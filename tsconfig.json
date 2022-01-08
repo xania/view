@@ -1,0 +1,21 @@
+{
+  "include": ["lib", "dist/es2015"],
+  "compilerOptions": {
+    "outDir": "dist/es2015",
+    "module": "ES2015",
+    "lib": ["dom", "ES2015"],
+    "importHelpers": true,
+    "declaration": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "target": "ES2015",
+    "jsx": "react",
+    "esModuleInterop": true
+  }
+}
