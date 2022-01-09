@@ -1,46 +1,28 @@
-import {
-  Template,
-  TemplateType,
-  ExpressionTemplate,
-  RenderResult,
-} from '../template';
+import { Template, RenderResult } from '../template';
 
 import { compile, RenderOptions } from '../compile';
-import { ExpressionType } from '../expression';
-import { ElementContainer, RenderContainer } from '../container';
 import {
-  ListMutation,
-  ListMutationManager,
-  ListMutationType,
-} from './list-mutation';
+  ContainerMutation,
+  ContainerMutationManager,
+  ContainerMutationType,
+} from './mutation';
+import { RowContext } from './row-context';
+import { ElementRef } from '../abstractions/element';
 
-export class RowContext<T> {
-  property(name: keyof T & string): ExpressionTemplate {
-    return {
-      type: TemplateType.Expression,
-      expression: {
-        type: ExpressionType.Property,
-        name,
-      },
-    };
-  }
-  get<U>(getter: (row: T) => U) {
-    return function (context: { values: T }) {
-      if (context) return getter(context.values);
-      return null;
-    };
-  }
-  remove(context: { dispose: Function }) {
-    if (context?.dispose) context.dispose();
-  }
-  call(func: (row: T, target: Element) => void) {
-    return function (context: { values: T }) {
-      func(context.values, null as any);
-    };
-  }
+export function createBla() {
+  return null;
 }
-export function viewList<T>() {
-  const mutations = new ListMutationManager<T>();
+
+export interface ViewContainer<T> {
+  push(data: T[], start?: number, count?: number): void;
+  swap(index0: number, index1: number): void;
+  clear(): void;
+  remove(values: T): void;
+  map(mapper: (context: RowContext<T>) => Template): void;
+}
+
+export function createContainer<T>(): ViewContainer<T> {
+  const mutations = new ContainerMutationManager<T>();
   return {
     map(mapper: (context: RowContext<T>) => Template) {
       const context = new RowContext<T>();
@@ -59,8 +41,31 @@ export function viewList<T>() {
         },
       };
     },
-    add(mut: ListMutation<T>) {
-      mutations.pushMutation(mut);
+    push(items: T[], start: number, count: number): void {
+      mutations.pushMutation({
+        type: ContainerMutationType.PUSH_MANY,
+        items,
+        start,
+        count,
+      });
+    },
+    clear(): void {
+      mutations.pushMutation({
+        type: ContainerMutationType.CLEAR,
+      });
+    },
+    remove(item: T): void {
+      mutations.pushMutation({
+        type: ContainerMutationType.REMOVE,
+        item,
+      });
+    },
+    swap(index1: number, index2: number) {
+      mutations.pushMutation({
+        type: ContainerMutationType.SWAP,
+        index1,
+        index2,
+      });
     },
   };
 }
@@ -73,7 +78,7 @@ export function viewList<T>() {
 function createMutationsObserver<T>(
   containerElt: Element,
   template: {
-    render: (target: RenderContainer, options: RenderOptions) => RenderResult[];
+    render: (target: ElementRef, options: RenderOptions) => RenderResult[];
   }
 ) {
   const renderResults: RenderResult[] = [];
@@ -100,11 +105,11 @@ function createMutationsObserver<T>(
       }
   }
 
-  const container = new ElementContainer(containerElt);
+  const container = new ElementRef(containerElt);
   return {
-    next(mut: ListMutation<T>) {
+    next(mut: ContainerMutation<T>) {
       switch (mut.type) {
-        case ListMutationType.PUSH:
+        case ContainerMutationType.PUSH:
           pushMany(
             template.render(container, {
               items: [mut.values],
@@ -113,15 +118,16 @@ function createMutationsObserver<T>(
             })
           );
           break;
-        case ListMutationType.PUSH_MANY:
+        case ContainerMutationType.PUSH_MANY:
           pushMany(template.render(container, mut));
           break;
-        case ListMutationType.CLEAR:
-          while (renderResultsLength) {
-            renderResults[--renderResultsLength].dispose();
+        case ContainerMutationType.CLEAR:
+          for (let i = 0, len = renderResultsLength; i < len; i++) {
+            renderResults[i].dispose();
           }
+          renderResultsLength = 0;
           break;
-        case ListMutationType.REMOVE:
+        case ContainerMutationType.REMOVE:
           const itemToRemove = mut.item;
           for (let i = 0; i < renderResultsLength; i++) {
             const rr = renderResults[i];
@@ -134,7 +140,7 @@ function createMutationsObserver<T>(
             }
           }
           break;
-        case ListMutationType.MOVE:
+        case ContainerMutationType.MOVE:
           const { from, to } = mut;
 
           if (from < to) {
@@ -154,7 +160,7 @@ function createMutationsObserver<T>(
           moveNodes(renderResults[to].nodes, to);
 
           break;
-        case ListMutationType.SWAP:
+        case ContainerMutationType.SWAP:
           const { index1, index2 } = mut;
           const nodes1 = renderResults[index1];
           const nodes2 = renderResults[index2];

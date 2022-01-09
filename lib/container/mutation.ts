@@ -1,6 +1,6 @@
-import { NextObserver, Unsubscribable } from 'lib/abstractions/rxjs';
+import { NextObserver, Unsubscribable } from '../abstractions/rxjs';
 
-export type ListMutation<T = unknown> =
+export type ContainerMutation<T = unknown> =
   | PushItem<T>
   | PushItems<T>
   | MoveItem
@@ -11,7 +11,7 @@ export type ListMutation<T = unknown> =
   | ClearItems
   | SwapItems;
 
-export enum ListMutationType {
+export enum ContainerMutationType {
   PUSH,
   MOVE,
   REMOVE,
@@ -24,62 +24,62 @@ export enum ListMutationType {
 }
 
 interface PushItem<T> {
-  type: ListMutationType.PUSH;
+  type: ContainerMutationType.PUSH;
   values: T;
 }
 
 interface PushItems<T> {
-  type: ListMutationType.PUSH_MANY;
+  type: ContainerMutationType.PUSH_MANY;
   items: ArrayLike<T>;
   start: number;
   count: number;
 }
 interface MoveItem {
-  type: ListMutationType.MOVE;
+  type: ContainerMutationType.MOVE;
   from: number;
   to: number;
 }
 
 interface RemoveItem<T> {
-  type: ListMutationType.REMOVE;
+  type: ContainerMutationType.REMOVE;
   item: T;
 }
 
 interface RemoveItemAt {
-  type: ListMutationType.REMOVE_AT;
+  type: ContainerMutationType.REMOVE_AT;
   index: number;
 }
 
 interface InsertItem<T> {
-  type: ListMutationType.INSERT;
+  type: ContainerMutationType.INSERT;
   values: T;
   index: number;
 }
 
 interface ResetItems<T> {
-  type: ListMutationType.RESET;
+  type: ContainerMutationType.RESET;
   items: T[];
 }
 
 interface ClearItems {
-  type: ListMutationType.CLEAR;
+  type: ContainerMutationType.CLEAR;
 }
 
 interface SwapItems {
-  type: ListMutationType.SWAP;
+  type: ContainerMutationType.SWAP;
   index1: number;
   index2: number;
 }
 
 export function pushItem<T>(values: T): PushItem<T> {
   return {
-    type: ListMutationType.PUSH,
+    type: ContainerMutationType.PUSH,
     values,
   };
 }
 export function insertItem<T>(values: T, index: number): InsertItem<T> {
   return {
-    type: ListMutationType.INSERT,
+    type: ContainerMutationType.INSERT,
     values,
     index,
   };
@@ -87,40 +87,40 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
 
 export function removeItem<T>(item: T): RemoveItem<T> {
   return {
-    type: ListMutationType.REMOVE,
+    type: ContainerMutationType.REMOVE,
     item,
   };
 }
 
 export function removeItemAt(index: number): RemoveItemAt {
   return {
-    type: ListMutationType.REMOVE_AT,
+    type: ContainerMutationType.REMOVE_AT,
     index,
   };
 }
 
 export function resetItems<T>(items: T[]): ResetItems<T> {
   return {
-    type: ListMutationType.RESET,
+    type: ContainerMutationType.RESET,
     items,
   };
 }
 
 type Prop<T, K extends keyof T> = T[K];
 
-export function isMutation<T = unknown>(mut: any): mut is ListMutation<T> {
+export function isMutation<T = unknown>(mut: any): mut is ContainerMutation<T> {
   if (!mut) {
     return false;
   }
-  const type: Prop<ListMutation, 'type'> = mut.type;
+  const type: Prop<ContainerMutation, 'type'> = mut.type;
   debugger;
-  return type in ListMutationType;
+  return type in ContainerMutationType;
 }
 
-export class ListMutationManager<T> {
-  private mutationObservers: NextObserver<ListMutation<T>>[] = [];
+export class ContainerMutationManager<T> {
+  private mutationObservers: NextObserver<ContainerMutation<T>>[] = [];
 
-  pushMutation = (mut: ListMutation<T>) => {
+  pushMutation = (mut: ContainerMutation<T>) => {
     if (!mut) return;
     const { mutationObservers } = this;
     let { length } = mutationObservers;
@@ -130,7 +130,9 @@ export class ListMutationManager<T> {
     }
   };
 
-  subscribe = (observer: NextObserver<ListMutation<T>>): Unsubscribable => {
+  subscribe = (
+    observer: NextObserver<ContainerMutation<T>>
+  ): Unsubscribable => {
     if (!observer) {
       return EMPTY;
     }

@@ -11,7 +11,7 @@ import { Expression, ExpressionType } from './expression';
 import flatten from './flatten';
 import { DomOperation, DomOperationType } from './dom-operation';
 import { State } from './state';
-import { RenderContainer } from './container';
+import { ElementRef } from './abstractions/element';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -289,7 +289,7 @@ class CompileResult {
 
   addEventListener() {}
 
-  render(rootContainer: RenderContainer, options: RenderOptions) {
+  render(rootContainer: ElementRef, options: RenderOptions) {
     const { items, start = 0, count = (items.length - start) | 0 } = options;
 
     const { renderStack, renderResults } = this;

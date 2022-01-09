@@ -1,17 +1,17 @@
-import { Disposable } from './template';
+import { Disposable } from '../template';
 
-export interface RenderContainer {
-  appendChild(child: Node): void;
+// export interface ElementRef {
+//   appendChild(child: Node): void;
 
-  addEventListener(
-    target: Element,
-    type: string,
-    handler: Function,
-    context: any
-  ): Disposable;
-}
+//   addEventListener(
+//     target: Element,
+//     type: string,
+//     handler: Function,
+//     context: any
+//   ): Disposable;
+// }
 
-export class ElementContainer implements RenderContainer {
+export class ElementRef {
   private bindings: {
     type: string;
     target: Element;
@@ -32,7 +32,7 @@ export class ElementContainer implements RenderContainer {
     type: string,
     handler: Function,
     context: any
-  ) {
+  ): Disposable {
     // this.target.addEventListener(type, handler);
     const { handlers, bindings } = this;
     if (!handlers[type]) {
@@ -51,10 +51,17 @@ export class ElementContainer implements RenderContainer {
       handlers[type] = eventListener;
       this.element.addEventListener(type, eventListener);
     }
-    bindings.push({ type, target, handler, context });
+
+    const binding = { type, target, handler, context };
+    bindings.push(binding);
 
     return {
-      dispose() {},
+      dispose() {
+        const idx = bindings.indexOf(binding);
+        if (idx >= 0) {
+          bindings.splice(idx, 1);
+        }
+      },
     };
   }
 }

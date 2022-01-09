@@ -16,6 +16,7 @@
     "baseUrl": "./",
     "target": "ES2015",
     "jsx": "react",
+    "jsxFactory": "jsx.factory",
     "esModuleInterop": true
   }
 }
