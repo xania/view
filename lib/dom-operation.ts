@@ -46,12 +46,17 @@ export interface AddEventListenerOperation {
   handler: Function;
 }
 
-export type DomOperation =
+export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
   | PushChildOperation
-  | PopNodeOperation
+  | PopNodeOperation;
+
+export type DomRenderOperation =
   | SetAttributeOperation
   | SetTextContentOperation
-  | RenderableOperation
-  | AddEventListenerOperation;
+  | RenderableOperation;
+
+export type DomEventOperation = AddEventListenerOperation;
+
+export type DomOperation = DomEventOperation | DomRenderOperation;

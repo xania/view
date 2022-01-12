@@ -73,7 +73,7 @@ export interface ExpressionTemplate {
 
 type RenderResultItem = Unsubscribable | Disposable;
 export class RenderResult {
-  readonly items: RenderResultItem[] = [];
+  // readonly items: RenderResultItem[] = [];
   readonly nodes: Node[] = [];
 
   constructor(public values: any) {}
@@ -83,13 +83,13 @@ export class RenderResult {
     ...results: (RenderResultItem | null | undefined | void)[]
   ) {
     var result = new RenderResult(null);
-    const { items, nodes } = result;
+    const { nodes } = result;
 
-    for (const x of results) {
-      if (x) {
-        items.push(x);
-      }
-    }
+    // for (const x of results) {
+    //   if (x) {
+    //     items.push(x);
+    //   }
+    // }
 
     if (node) nodes.push(node);
 
@@ -97,17 +97,17 @@ export class RenderResult {
   }
 
   dispose() {
-    const { items, nodes } = this;
-    for (const item of items) {
-      if ('dispose' in item) item.dispose();
-      if ('unsubscribe' in item) item.unsubscribe();
-    }
+    const { nodes } = this;
+    // for (const item of items) {
+    //   if ('dispose' in item) item.dispose();
+    //   if ('unsubscribe' in item) item.unsubscribe();
+    // }
 
     for (const elt of nodes) {
       (elt as any).remove();
     }
 
-    items.length = 0;
+    //    items.length = 0;
   }
 }
 

@@ -4,7 +4,7 @@ import {
   RenderResult,
   Template,
   TemplateType,
-} from "./template";
+} from './template';
 
 export interface RenderTarget {
   addEventListener(event: string, handler: EventHandler): void;
@@ -22,7 +22,7 @@ export function render(
   // args?: any[]
 ) {
   const stack: [RenderTarget, Template][] = [];
-  const disposables: ReturnType<Renderable["render"]>[] = [];
+  const disposables: ReturnType<Renderable['render']>[] = [];
 
   if (Array.isArray(children)) {
     let { length } = children;
@@ -76,7 +76,7 @@ export function render(
         break;
 
       case TemplateType.Subscribable:
-        const subscribableNode = document.createTextNode("");
+        const subscribableNode = document.createTextNode('');
         target.appendChild(subscribableNode);
         const subcr = child.value.subscribe({
           next(value) {
@@ -98,7 +98,7 @@ export function render(
     }
   }
 
-  function addDisposables(result: ReturnType<Renderable["render"]>) {
+  function addDisposables(result: ReturnType<Renderable['render']>) {
     if (result) {
       disposables.push(result);
     }
@@ -108,7 +108,7 @@ export function render(
 
 export function createDOMElement(namespaceURI: string | null, name: string) {
   return document.createElementNS(
-    name === "svg" ? "http://www.w3.org/2000/svg" : namespaceURI,
+    name === 'svg' ? 'http://www.w3.org/2000/svg' : namespaceURI,
     name
   );
 }

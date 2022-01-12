@@ -1,17 +1,12 @@
-import { Template, RenderResult } from '../template';
+import { Template } from '../template';
 
-import { compile, RenderOptions } from '../compile';
+import { compile, CompileResult, RenderOptions } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
 import { RowContext } from './row-context';
-import { ElementRef } from '../abstractions/element';
-
-export function createBla() {
-  return null;
-}
 
 export interface ViewContainer<T> {
   push(data: T[], start?: number, count?: number): void;
@@ -77,41 +72,34 @@ export function createContainer<T>(): ViewContainer<T> {
 
 function createMutationsObserver<T>(
   containerElt: Element,
-  template: {
-    render: (target: ElementRef, options: RenderOptions) => RenderResult[];
-  }
+  template: CompileResult
 ) {
-  const renderResults: RenderResult[] = [];
+  template.listen(containerElt);
+
+  const renderResults: Node[] = [];
   let renderResultsLength: number = 0;
 
-  function pushMany(items: RenderResult[]) {
+  function pushMany(items: Node[]) {
     for (let i = 0, len = items.length; i < len; i++)
       renderResults[renderResultsLength++] = items[i];
   }
 
   function moveNodes(nodes: Node[], toIndex: number) {
-    if (nodes && nodes.length)
-      for (let n = toIndex + 1; n < renderResultsLength; n++) {
-        const rr = renderResults[n];
-        if (rr.nodes.length) {
-          const refNode = rr.nodes[0] as any;
+    const count = template.templateNodes.length;
+    const refNode = renderResults[toIndex + count];
 
-          for (const node of nodes) {
-            containerElt.insertBefore(node, refNode);
-          }
-
-          break;
-        }
-      }
+    for (let i = 0; i < nodes.length; i++) {
+      containerElt.insertBefore(nodes[i], refNode);
+    }
   }
 
-  const container = new ElementRef(containerElt);
   return {
     next(mut: ContainerMutation<T>) {
+      const count = template.templateNodes.length;
       switch (mut.type) {
         case ContainerMutationType.PUSH:
           pushMany(
-            template.render(container, {
+            template.render(containerElt, {
               items: [mut.values],
               start: 0,
               count: 1,
@@ -119,21 +107,29 @@ function createMutationsObserver<T>(
           );
           break;
         case ContainerMutationType.PUSH_MANY:
-          pushMany(template.render(container, mut));
+          pushMany(template.render(containerElt, mut));
           break;
         case ContainerMutationType.CLEAR:
-          for (let i = 0, len = renderResultsLength; i < len; i++) {
-            renderResults[i].dispose();
-          }
+          containerElt.textContent = '';
+          // var rangeObj = new Range();
+
+          // if (renderResultsLength) {
+          //   rangeObj.setStartBefore(renderResults[0].nodes[0]);
+          //   rangeObj.setEndAfter(
+          //     renderResults[renderResultsLength - 1].nodes[0]
+          //   );
+
+          //   rangeObj.deleteContents();
+          // }
           renderResultsLength = 0;
           break;
         case ContainerMutationType.REMOVE:
           const itemToRemove = mut.item;
           for (let i = 0; i < renderResultsLength; i++) {
-            const rr = renderResults[i];
+            const rr = renderResults[i] as any;
 
             if (rr.values === itemToRemove) {
-              rr.dispose();
+              containerElt.removeChild(rr);
               renderResults.splice(i, 1);
               renderResultsLength--;
               break;
@@ -141,45 +137,53 @@ function createMutationsObserver<T>(
           }
           break;
         case ContainerMutationType.MOVE:
-          const { from, to } = mut;
+          const { from: f, to: t } = mut;
+          const from = f * count;
+          const to = t * count;
 
+          const tmp = renderResults.slice(from, count);
           if (from < to) {
-            const tmp = renderResults[from];
-            for (let n = from; n < to; n++) {
-              renderResults[n] = renderResults[n + 1];
+            for (let n = from * count; n < to; n++) {
+              renderResults[n] = renderResults[n + count];
             }
-            renderResults[to] = tmp;
+            for (let i = 0; i < count; i++) {
+              renderResults[to + i] = tmp[i];
+            }
           } else {
-            const tmp = renderResults[from];
             for (let n = from; n > to; n--) {
               renderResults[n] = renderResults[n - 1];
             }
-            renderResults[to] = tmp;
+
+            for (let i = 0; i < count; i++) {
+              renderResults[to + i] = tmp[i];
+            }
           }
 
-          moveNodes(renderResults[to].nodes, to);
+          moveNodes(tmp, to);
 
           break;
         case ContainerMutationType.SWAP:
-          const { index1, index2 } = mut;
-          const nodes1 = renderResults[index1];
-          const nodes2 = renderResults[index2];
-          renderResults[index1] = renderResults[index2];
-          renderResults[index2] = nodes1;
+          const { index1: i1, index2: i2 } = mut;
+          const index1 = i1 * count;
+          const index2 = i2 * count;
 
-          moveNodes(nodes1.nodes, index2);
-          moveNodes(nodes2.nodes, index1);
+          const nodes1 = renderResults.slice(index1, index1 + count);
+          const nodes2 = renderResults.slice(index2, index2 + count);
+
+          for (let i = 0; i < count; i++) {
+            renderResults[index1 + i] = nodes2[i];
+          }
+          for (let i = 0; i < count; i++) {
+            renderResults[index2 + i] = nodes1[i];
+          }
+
+          moveNodes(nodes1, index2);
+          moveNodes(nodes2, index1);
 
           break;
+        case ContainerMutationType.UPDATE:
+          break;
       }
-
-      // function renderPush(target: Element, values: T) {
-      //   const rr = template.render(target, [values], 0, 1);
-      //   return rr;
-      //   function remove() {
-      //     flatTree(rr, (r) => r.dispose());
-      //   }
-      // }
     },
   };
 }

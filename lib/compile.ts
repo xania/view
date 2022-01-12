@@ -9,9 +9,15 @@ import { createDOMElement } from './render';
 import { isSubscribable, Subscribable } from './abstractions/rxjs';
 import { Expression, ExpressionType } from './expression';
 import flatten from './flatten';
-import { DomOperation, DomOperationType } from './dom-operation';
+import {
+  DomEventOperation,
+  DomNavigationOperation,
+  DomOperation,
+  DomOperationType,
+  DomRenderOperation,
+} from './dom-operation';
 import { State } from './state';
-import { ElementRef } from './abstractions/element';
+import { createLookup } from './util/lookup';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -35,7 +41,16 @@ export function compile(rootTemplate: Template | Template[]) {
   const operationsMap = createLookup<Node, DomOperation>();
 
   const fragment = new DocumentFragment();
-  const stack: StackItem[] = [[fragment, rootTemplate]];
+  const stack: StackItem[] = [];
+  if (Array.isArray(rootTemplate)) {
+    for (const tpl of rootTemplate) {
+      const frg = new DocumentFragment();
+      fragment.appendChild(frg);
+      stack.push([frg, tpl]);
+    }
+  } else {
+    stack.push([fragment, rootTemplate]);
+  }
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
     const [target, template] = curr;
@@ -116,9 +131,12 @@ export function compile(rootTemplate: Template | Template[]) {
 
   return createResult();
 
-  function createResult() {
-    const rootNodes = toArray(fragment.childNodes as NodeListOf<HTMLElement>);
-
+  function compileOperations(
+    rootNodes: ChildNode[],
+    operationsMap: {
+      get(node: Node): DomOperation[] | undefined;
+    }
+  ) {
     const flattened = flatten(
       rootNodes.map(createNodeCustomization),
       ({ node }) => toArray(node.childNodes).map(createNodeCustomization)
@@ -133,25 +151,49 @@ export function compile(rootTemplate: Template | Template[]) {
         .map((node) => customizations.get(node))
         .filter((x) => !!x) as NodeCustomization[];
 
-      const operations = cust.operations;
+      customizations.set(cust.node, cust);
 
-      if (children.length || operations.length) {
-        customizations.set(cust.node, cust);
+      iter(cust, (x) => x.render);
+      for (const eventName of distinct(
+        selectMany(children, (child) => Object.keys(child.events))
+      )) {
+        if (!cust.events[eventName]) {
+          cust.events[eventName] = [];
+        }
+        iter(cust, (x) => x.events[eventName]);
+        console.log(cust.node, cust.events[eventName]);
+      }
 
-        if (
-          children.length === 1 &&
-          children[0].node.nodeType === Node.TEXT_NODE &&
-          children[0].operations.length === 1 &&
-          children[0].operations[0].type === DomOperationType.SetTextContent
-        ) {
-          const child = children[0];
-          child.node.remove();
-          operations.push(child.operations[0]);
-        } else if (children.length) {
+      function iter(
+        cust: NodeCustomization,
+        getOperations: (
+          node: NodeCustomization
+        ) => (DomOperation | DomNavigationOperation)[]
+      ) {
+        const operations = getOperations(cust);
+        if (children.length || operations.length) {
+          if (
+            children.length === 1 &&
+            children[0].node.nodeType === Node.TEXT_NODE
+          ) {
+            const childOperations = getOperations(children[0]);
+            if (
+              childOperations &&
+              childOperations.length === 1 &&
+              childOperations[0].type === DomOperationType.SetTextContent
+            ) {
+              const child = children[0];
+              child.node.remove();
+              operations.push(childOperations[0]);
+              return;
+            }
+          }
+
           let prevIndex = -1;
 
           for (const child of children) {
-            if (child.operations.length) {
+            const childOperations = getOperations(child);
+            if (childOperations?.length) {
               const { index } = child;
               if (index === 0) {
                 operations.push({
@@ -168,7 +210,7 @@ export function compile(rootTemplate: Template | Template[]) {
                   index,
                 });
               }
-              operations.push(...child.operations);
+              operations.push(...childOperations);
               operations.push({ type: DomOperationType.PopNode });
               prevIndex = index;
             }
@@ -177,19 +219,48 @@ export function compile(rootTemplate: Template | Template[]) {
       }
     }
 
-    return new CompileResult(
-      rootNodes,
-      rootNodes
-        .map((x) => customizations.get(x))
-        .filter((x) => x?.operations?.length) as NodeCustomization[]
-    );
+    return customizations;
 
     function createNodeCustomization(
       node: ChildNode,
       index: number
     ): NodeCustomization {
-      return { node, index, operations: operationsMap.get(node) || [] };
+      const operations = operationsMap.get(node) || [];
+      const render: DomRenderOperation[] = [];
+      const events: { [event: string]: DomEventOperation[] } = {};
+
+      for (const op of operations) {
+        switch (op.type) {
+          case DomOperationType.SetTextContent:
+          case DomOperationType.SetAttribute:
+          case DomOperationType.Renderable:
+            render.push(op);
+            break;
+          case DomOperationType.AddEventListener:
+            const { name } = op;
+            const eventBag = events[name] || (events[name] = []);
+            eventBag.push(op);
+            break;
+        }
+      }
+      return {
+        node,
+        index,
+        render,
+        events,
+      };
     }
+  }
+
+  function createResult() {
+    const rootNodes = toArray(fragment.childNodes as NodeListOf<HTMLElement>);
+
+    const renderCustomizations = compileOperations(rootNodes, operationsMap);
+
+    return new CompileResult(
+      rootNodes,
+      rootNodes.map((x) => renderCustomizations.get(x))
+    );
   }
 
   function createFunctionRenderer(func: Function): Renderable {
@@ -278,46 +349,104 @@ export interface RenderOptions {
   count: number;
 }
 
-class CompileResult {
+export class CompileResult {
   constructor(
-    private templateNodes: HTMLElement[],
-    private customizations: (NodeCustomization | undefined)[] = []
+    public templateNodes: HTMLElement[],
+    public customizations: (NodeCustomization | undefined)[]
   ) {}
 
   renderStack: HTMLElement[] = [];
-  renderResults: RenderResult[] = [];
+  renderResults: Node[] = [];
 
-  addEventListener() {}
+  listen(rootContainer: Element) {
+    const { customizations } = this;
 
-  render(rootContainer: ElementRef, options: RenderOptions) {
+    function getRootNode(node: Node | null): Node | null {
+      if (!node) return null;
+      if (node.parentNode === rootContainer) return node;
+      return getRootNode(node.parentNode);
+    }
+
+    for (const eventName of distinct(
+      selectMany(customizations, (x) => Object.keys(x.events))
+    )) {
+      rootContainer.addEventListener(eventName, (evt: Event) => {
+        const eventName = evt.type;
+        const eventTarget = evt.target as Node;
+
+        if (!eventTarget) return;
+
+        const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
+        const values = (rootNode as any).values;
+
+        const { renderStack } = this;
+        for (let t = 0; t < customizations.length; t++) {
+          const cust = customizations[t];
+          if (!cust) return;
+
+          const operations = cust.events[eventName];
+          if (!operations || !operations.length) return;
+
+          renderStack[0] = rootNode as HTMLElement;
+          let renderIndex = 0;
+          for (
+            let n = 0, len = operations.length | 0;
+            n < len;
+            n = (n + 1) | 0
+          ) {
+            const operation = operations[n];
+            const curr = renderStack[renderIndex];
+            switch (operation.type) {
+              case DomOperationType.PushChild:
+                renderStack[++renderIndex] = curr.childNodes[
+                  operation.index
+                ] as HTMLElement;
+                break;
+              case DomOperationType.PushFirstChild:
+                renderStack[++renderIndex] = curr.firstChild as HTMLElement;
+                break;
+              case DomOperationType.PushNextSibling:
+                renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+                break;
+              case DomOperationType.PopNode:
+                renderIndex--;
+                break;
+              case DomOperationType.AddEventListener:
+                if (eventTarget === curr || curr.contains(eventTarget)) {
+                  operation.handler({ values });
+                }
+                break;
+            }
+          }
+        }
+      });
+    }
+  }
+
+  render(rootContainer: Element, options: RenderOptions) {
     const { items, start = 0, count = (items.length - start) | 0 } = options;
 
     const { renderStack, renderResults } = this;
     const { templateNodes, customizations } = this;
-    const rootLength = templateNodes.length | 0;
 
     let renderResultsLength = 0;
 
     const end = (start + count) | 0;
     for (let n = start; n < end; n = (n + 1) | 0) {
       const values = items[n];
-      const renderResult = new RenderResult(values);
-      renderResults[renderResultsLength++] = renderResult;
 
-      const rootNodes = renderResult.items;
-      let rootNodesLength = rootNodes.length | 0;
-
-      for (let i = 0; i < rootLength; i = (i + 1) | 0) {
-        const rootNode = templateNodes[i].cloneNode(true) as HTMLElement;
+      for (let t = 0; t < templateNodes.length; t++) {
+        const rootNode = templateNodes[t].cloneNode(true) as HTMLElement;
+        (rootNode as any)['values'] = values;
         rootContainer.appendChild(rootNode);
-        renderResult.nodes.push(rootNode);
+        renderResults[renderResultsLength++] = rootNode;
+        const cust = customizations[t];
 
-        const cust = customizations[i];
-        if (!cust) continue;
+        if (!cust || !cust.render || !cust.render.length) continue;
 
         renderStack[0] = rootNode;
         let renderIndex = 0;
-        const operations = cust.operations;
+        const operations = cust.render;
         for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
           const operation = operations[n];
           const curr = renderStack[renderIndex];
@@ -343,10 +472,10 @@ class CompileResult {
                   const value = values[textContentExpr.name];
                   if (value instanceof State) {
                     curr.textContent = value.current;
-                    rootNodes[rootNodesLength++] = new SetContentObserver(
-                      value,
-                      curr
-                    );
+                    // rootNodes[rootNodesLength++] = new SetContentObserver(
+                    //   value,
+                    //   curr
+                    // );
                   } else if (value) {
                     curr.textContent = value;
                   }
@@ -355,10 +484,10 @@ class CompileResult {
                   const state = values[textContentExpr.name];
                   if (state instanceof State) {
                     curr.textContent = state.current;
-                    rootNodes[rootNodesLength++] = new SetContentObserver(
-                      state,
-                      curr
-                    );
+                    // rootNodes[rootNodesLength++] = new SetContentObserver(
+                    //   state,
+                    //   curr
+                    // );
                   } else if (state) {
                     curr.textContent = state;
                   }
@@ -374,11 +503,11 @@ class CompileResult {
                     const attrValue = value.current;
                     if (attrValue) (curr as any)[operation.name] = attrValue;
 
-                    rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                      value,
-                      curr,
-                      operation.name
-                    );
+                    // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+                    //   value,
+                    //   curr,
+                    //   operation.name
+                    // );
                   } else if (value) {
                     (curr as any)[operation.name] = value;
                   }
@@ -391,96 +520,27 @@ class CompileResult {
                       curr.setAttribute(operation.name, attrValue);
                     }
 
-                    rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                      state,
-                      curr,
-                      operation.name
-                    );
+                    // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+                    //   state,
+                    //   curr,
+                    //   operation.name
+                    // );
                   } else {
                     curr.setAttribute(operation.name, state);
                   }
                   break;
               }
               break;
-            case DomOperationType.AddEventListener:
-              rootNodes[rootNodesLength++] = rootContainer.addEventListener(
-                curr,
-                operation.name,
-                operation.handler,
-                renderResult
-              );
-              break;
             default:
               break;
           }
         }
       }
-      //   const { operations } = cus;
-      //   // if (renderers) {
-      //   //   let { length } = renderers;
-      //   //   if (length | 0) {
-      //   //     const driver = { target };
-      //   //     const renderContext = {
-      //   //       values,
-      //   //       remove() {
-      //   //         console.log(12345678);
-      //   //       },
-      //   //     };
-      //   //     while (length--) {
-      //   //       const renderer = renderers[length];
-      //   //       renderResults[renderResultsLength++] = renderer.render(
-      //   //         driver,
-      //   //         renderContext
-      //   //       );
-      //   //     }
-      //   //   }
-      //   // }
-
-      //   if (values) {
-      //     // if (textContentExpr && values) {
-      //     //   switch (textContentExpr.type) {
-      //     //     case ExpressionType.Property:
-      //     //       target.textContent = values[textContentExpr.name];
-      //     //       break;
-      //     //   }
-      //     // }
-      //     // if (attrExpressions) {
-      //     //   let length = attrExpressions.length | 0;
-      //     //   while (length) {
-      //     //     length = (length - 1) | 0;
-      //     //     const { name, expression } = attrExpressions[length];
-      //     //     switch (expression.type) {
-      //     //       case ExpressionType.Property:
-      //     //         const attrValue = values[expression.name];
-      //     //         if (attrValue)
-      //     //           (target as Element).setAttribute(name, attrValue);
-      //     //         break;
-      //     //     }
-      //     //   }
-      //     // }
-      //   }
     }
 
     renderResults.length = renderResultsLength;
     return renderResults;
   }
-}
-
-function createLookup<K, T>() {
-  const lookup = new Map<K, T[]>();
-  return {
-    get(key: K) {
-      return lookup.get(key);
-    },
-    add(key: K, value: T) {
-      const values = lookup.get(key);
-      if (values) {
-        values.push(value);
-      } else {
-        lookup.set(key, [value]);
-      }
-    },
-  };
 }
 
 type VisitResult<T> = {
@@ -491,7 +551,8 @@ type VisitResult<T> = {
 type NodeCustomization = {
   index: number;
   node: ChildNode;
-  operations: DomOperation[];
+  render: (DomNavigationOperation | DomRenderOperation)[];
+  events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
 };
 
 type TransformResult<T> = {
@@ -524,6 +585,7 @@ class SetAttributeObserver {
       (element as any)[name] = nextValue;
     }
   }
+
   unsubscribe() {
     const { observers } = this.state;
     const idx = observers.indexOf(this);
@@ -544,4 +606,26 @@ class SetContentObserver {
     const idx = observers.indexOf(this);
     observers.splice(idx, 1);
   }
+}
+
+function selectMany<T, P>(
+  source: (T | undefined)[],
+  selector: (x: T) => (P | undefined)[]
+): P[] {
+  const result: P[] = [];
+
+  for (const x of source) {
+    if (x) {
+      const members = selector(x);
+      for (const m of members) {
+        if (m) result.push(m);
+      }
+    }
+  }
+
+  return result;
+}
+
+function distinct<T>(source: T[]) {
+  return new Set<T>(source);
 }

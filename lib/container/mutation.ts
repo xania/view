@@ -9,7 +9,8 @@ export type ContainerMutation<T = unknown> =
   | InsertItem<T>
   | ResetItems<T>
   | ClearItems
-  | SwapItems;
+  | SwapItems
+  | UpdateItems;
 
 export enum ContainerMutationType {
   PUSH,
@@ -21,6 +22,7 @@ export enum ContainerMutationType {
   CLEAR,
   PUSH_MANY,
   SWAP,
+  UPDATE,
 }
 
 interface PushItem<T> {
@@ -69,6 +71,10 @@ interface SwapItems {
   type: ContainerMutationType.SWAP;
   index1: number;
   index2: number;
+}
+
+interface UpdateItems {
+  type: ContainerMutationType.UPDATE;
 }
 
 export function pushItem<T>(values: T): PushItem<T> {
