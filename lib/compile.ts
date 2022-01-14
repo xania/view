@@ -139,7 +139,8 @@ export function compile(rootTemplate: Template | Template[]) {
   ) {
     const flattened = flatten(
       rootNodes.map(createNodeCustomization),
-      ({ node }) => toArray(node.childNodes).map(createNodeCustomization)
+      ({ templateNode }) =>
+        toArray(templateNode.childNodes).map(createNodeCustomization)
     );
 
     const customizations = new Map<Node, NodeCustomization>();
@@ -147,11 +148,11 @@ export function compile(rootTemplate: Template | Template[]) {
     for (let i = flattened.length - 1; i >= 0; i--) {
       const cust = flattened[i];
 
-      const children = toArray(cust.node.childNodes)
+      const children = toArray(cust.templateNode.childNodes)
         .map((node) => customizations.get(node))
         .filter((x) => !!x) as NodeCustomization[];
 
-      customizations.set(cust.node, cust);
+      customizations.set(cust.templateNode, cust);
 
       iter(cust, (x) => x.render);
       for (const eventName of distinct(
@@ -161,7 +162,7 @@ export function compile(rootTemplate: Template | Template[]) {
           cust.events[eventName] = [];
         }
         iter(cust, (x) => x.events[eventName]);
-        console.log(cust.node, cust.events[eventName]);
+        console.log(cust.templateNode, cust.events[eventName]);
       }
 
       function iter(
@@ -174,7 +175,7 @@ export function compile(rootTemplate: Template | Template[]) {
         if (children.length || operations.length) {
           if (
             children.length === 1 &&
-            children[0].node.nodeType === Node.TEXT_NODE
+            children[0].templateNode.nodeType === Node.TEXT_NODE
           ) {
             const childOperations = getOperations(children[0]);
             if (
@@ -183,7 +184,7 @@ export function compile(rootTemplate: Template | Template[]) {
               childOperations[0].type === DomOperationType.SetTextContent
             ) {
               const child = children[0];
-              child.node.remove();
+              child.templateNode.remove();
               operations.push(childOperations[0]);
               return;
             }
@@ -244,10 +245,11 @@ export function compile(rootTemplate: Template | Template[]) {
         }
       }
       return {
-        node,
+        templateNode: node,
         index,
         render,
         events,
+        nodes: [],
       };
     }
   }
@@ -256,11 +258,9 @@ export function compile(rootTemplate: Template | Template[]) {
     const rootNodes = toArray(fragment.childNodes as NodeListOf<HTMLElement>);
 
     const renderCustomizations = compileOperations(rootNodes, operationsMap);
+    const cust = renderCustomizations.get(rootNodes[0]);
 
-    return new CompileResult(
-      rootNodes,
-      rootNodes.map((x) => renderCustomizations.get(x))
-    );
+    return new CompileResult(cust);
   }
 
   function createFunctionRenderer(func: Function): Renderable {
@@ -350,16 +350,14 @@ export interface RenderOptions {
 }
 
 export class CompileResult {
-  constructor(
-    public templateNodes: HTMLElement[],
-    public customizations: (NodeCustomization | undefined)[]
-  ) {}
+  constructor(public customization?: NodeCustomization) {}
 
-  renderStack: HTMLElement[] = [];
-  renderResults: Node[] = [];
+  static renderStack: Node[] = [];
+  static renderResults: Node[] = [];
 
   listen(rootContainer: Element) {
-    const { customizations } = this;
+    const { customization } = this;
+    if (!customization) return;
 
     function getRootNode(node: Node | null): Node | null {
       if (!node) return null;
@@ -367,9 +365,7 @@ export class CompileResult {
       return getRootNode(node.parentNode);
     }
 
-    for (const eventName of distinct(
-      selectMany(customizations, (x) => Object.keys(x.events))
-    )) {
+    for (const eventName of distinct(Object.keys(customization.events))) {
       rootContainer.addEventListener(eventName, (evt: Event) => {
         const eventName = evt.type;
         const eventTarget = evt.target as Node;
@@ -377,76 +373,18 @@ export class CompileResult {
         if (!eventTarget) return;
 
         const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
-        const values = (rootNode as any).values;
+        const { values } = rootNode as any;
 
-        const { renderStack } = this;
-        for (let t = 0; t < customizations.length; t++) {
-          const cust = customizations[t];
-          if (!cust) return;
+        const { renderStack } = CompileResult;
 
-          const operations = cust.events[eventName];
-          if (!operations || !operations.length) return;
+        const cust = customization;
+        if (!cust) return;
 
-          renderStack[0] = rootNode as HTMLElement;
-          let renderIndex = 0;
-          for (
-            let n = 0, len = operations.length | 0;
-            n < len;
-            n = (n + 1) | 0
-          ) {
-            const operation = operations[n];
-            const curr = renderStack[renderIndex];
-            switch (operation.type) {
-              case DomOperationType.PushChild:
-                renderStack[++renderIndex] = curr.childNodes[
-                  operation.index
-                ] as HTMLElement;
-                break;
-              case DomOperationType.PushFirstChild:
-                renderStack[++renderIndex] = curr.firstChild as HTMLElement;
-                break;
-              case DomOperationType.PushNextSibling:
-                renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
-                break;
-              case DomOperationType.PopNode:
-                renderIndex--;
-                break;
-              case DomOperationType.AddEventListener:
-                if (eventTarget === curr || curr.contains(eventTarget)) {
-                  operation.handler({ values });
-                }
-                break;
-            }
-          }
-        }
-      });
-    }
-  }
+        const operations = cust.events[eventName];
+        if (!operations || !operations.length) return;
 
-  render(rootContainer: Element, options: RenderOptions) {
-    const { items, start = 0, count = (items.length - start) | 0 } = options;
-
-    const { renderStack, renderResults } = this;
-    const { templateNodes, customizations } = this;
-
-    let renderResultsLength = 0;
-
-    const end = (start + count) | 0;
-    for (let n = start; n < end; n = (n + 1) | 0) {
-      const values = items[n];
-
-      for (let t = 0; t < templateNodes.length; t++) {
-        const rootNode = templateNodes[t].cloneNode(true) as HTMLElement;
-        (rootNode as any)['values'] = values;
-        rootContainer.appendChild(rootNode);
-        renderResults[renderResultsLength++] = rootNode;
-        const cust = customizations[t];
-
-        if (!cust || !cust.render || !cust.render.length) continue;
-
-        renderStack[0] = rootNode;
+        renderStack[0] = rootNode as HTMLElement;
         let renderIndex = 0;
-        const operations = cust.render;
         for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
           const operation = operations[n];
           const curr = renderStack[renderIndex];
@@ -465,82 +403,247 @@ export class CompileResult {
             case DomOperationType.PopNode:
               renderIndex--;
               break;
-            case DomOperationType.SetTextContent:
-              const textContentExpr = operation.expression;
-              switch (textContentExpr.type) {
-                case ExpressionType.Property:
-                  const value = values[textContentExpr.name];
-                  if (value instanceof State) {
-                    curr.textContent = value.current;
-                    // rootNodes[rootNodesLength++] = new SetContentObserver(
-                    //   value,
-                    //   curr
-                    // );
-                  } else if (value) {
-                    curr.textContent = value;
-                  }
-                  break;
-                case ExpressionType.Async:
-                  const state = values[textContentExpr.name];
-                  if (state instanceof State) {
-                    curr.textContent = state.current;
-                    // rootNodes[rootNodesLength++] = new SetContentObserver(
-                    //   state,
-                    //   curr
-                    // );
-                  } else if (state) {
-                    curr.textContent = state;
-                  }
-                  break;
+            case DomOperationType.AddEventListener:
+              if (eventTarget === curr || curr.contains(eventTarget)) {
+                operation.handler({ values, node: rootNode });
               }
-              break;
-            case DomOperationType.SetAttribute:
-              const attrExpr = operation.expression;
-              switch (attrExpr.type) {
-                case ExpressionType.Property:
-                  const value = values[attrExpr.name];
-                  if (value instanceof State) {
-                    const attrValue = value.current;
-                    if (attrValue) (curr as any)[operation.name] = attrValue;
-
-                    // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                    //   value,
-                    //   curr,
-                    //   operation.name
-                    // );
-                  } else if (value) {
-                    (curr as any)[operation.name] = value;
-                  }
-                  break;
-                case ExpressionType.Async:
-                  const state = values[attrExpr.name];
-                  if (state instanceof State) {
-                    const attrValue = state.current;
-                    if (attrValue) {
-                      curr.setAttribute(operation.name, attrValue);
-                    }
-
-                    // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                    //   state,
-                    //   curr,
-                    //   operation.name
-                    // );
-                  } else {
-                    curr.setAttribute(operation.name, state);
-                  }
-                  break;
-              }
-              break;
-            default:
               break;
           }
         }
+      });
+    }
+  }
+
+  update(rootNodes: Node[], offset: number, items: ArrayLike<any>) {
+    const { renderStack } = CompileResult;
+    const { customization } = this;
+
+    const cust = customization;
+
+    if (!cust || !cust.render || !cust.render.length) return;
+
+    for (let n = 0, len = items.length; n < len; n = (n + 1) | 0) {
+      const values = items[n];
+      const rootNode = rootNodes[n + offset];
+      (rootNode as any).values = values;
+      renderStack[0] = rootNode;
+      let renderIndex = 0;
+      const operations = cust.render;
+      for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
+        const operation = operations[n];
+        const curr = renderStack[renderIndex];
+        switch (operation.type) {
+          case DomOperationType.PushChild:
+            renderStack[++renderIndex] = curr.childNodes[
+              operation.index
+            ] as HTMLElement;
+            break;
+          case DomOperationType.PushFirstChild:
+            renderStack[++renderIndex] = curr.firstChild as HTMLElement;
+            break;
+          case DomOperationType.PushNextSibling:
+            renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+            break;
+          case DomOperationType.PopNode:
+            renderIndex--;
+            break;
+          case DomOperationType.SetTextContent:
+            const textContentExpr = operation.expression;
+            switch (textContentExpr.type) {
+              case ExpressionType.Property:
+                const value = values[textContentExpr.name];
+                if (value instanceof State) {
+                  curr.textContent = value.current;
+                  // rootNodes[rootNodesLength++] = new SetContentObserver(
+                  //   value,
+                  //   curr
+                  // );
+                } else if (value) {
+                  curr.textContent = value;
+                }
+                break;
+              case ExpressionType.Async:
+                const state = values[textContentExpr.name];
+                if (state instanceof State) {
+                  curr.textContent = state.current;
+                  // rootNodes[rootNodesLength++] = new SetContentObserver(
+                  //   state,
+                  //   curr
+                  // );
+                } else if (state) {
+                  curr.textContent = state;
+                }
+                break;
+            }
+            break;
+          case DomOperationType.SetAttribute:
+            const attrExpr = operation.expression;
+            switch (attrExpr.type) {
+              case ExpressionType.Property:
+                const value = values[attrExpr.name];
+                if (value instanceof State) {
+                  const attrValue = value.current;
+                  if (attrValue) (curr as any)[operation.name] = attrValue;
+
+                  // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+                  //   value,
+                  //   curr,
+                  //   operation.name
+                  // );
+                } else if (value) {
+                  (curr as any)[operation.name] = value;
+                }
+                break;
+              case ExpressionType.Async:
+                const state = values[attrExpr.name];
+                if (state instanceof State) {
+                  const attrValue = state.current;
+                  if (attrValue) {
+                    (curr as HTMLElement).setAttribute(
+                      operation.name,
+                      attrValue
+                    );
+                  }
+
+                  // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+                  //   state,
+                  //   curr,
+                  //   operation.name
+                  // );
+                } else {
+                  (curr as HTMLElement).setAttribute(operation.name, state);
+                }
+                break;
+            }
+            break;
+          default:
+            break;
+        }
       }
     }
-
-    renderResults.length = renderResultsLength;
-    return renderResults;
   }
+
+  // render(rootContainer: Element, options: RenderOptions) {
+  //   const { items, start = 0, count = (items.length - start) | 0 } = options;
+
+  //   const { renderStack, renderResults } = CompileResult;
+  //   const { customization } = this;
+
+  //   let renderResultsLength = 0;
+
+  //   const end = (start + count) | 0;
+  //   for (let n = start; n < end; n = (n + 1) | 0) {
+  //     const values = items[n];
+
+  //     {
+  //       const cust = customization;
+  //       if (!cust || !cust.render || !cust.render.length) continue;
+
+  //       const rootNode = cust.templateNode.cloneNode(true) as HTMLElement;
+  //       (rootNode as any)['values'] = values;
+  //       rootContainer.appendChild(rootNode);
+  //       renderResults[renderResultsLength++] = rootNode;
+
+  //       renderStack[0] = rootNode;
+  //       let renderIndex = 0;
+  //       const operations = cust.render;
+  //       for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
+  //         const operation = operations[n];
+  //         const curr = renderStack[renderIndex];
+  //         switch (operation.type) {
+  //           case DomOperationType.PushChild:
+  //             renderStack[++renderIndex] = curr.childNodes[
+  //               operation.index
+  //             ] as HTMLElement;
+  //             break;
+  //           case DomOperationType.PushFirstChild:
+  //             renderStack[++renderIndex] = curr.firstChild as HTMLElement;
+  //             break;
+  //           case DomOperationType.PushNextSibling:
+  //             renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+  //             break;
+  //           case DomOperationType.PopNode:
+  //             renderIndex--;
+  //             break;
+  //           case DomOperationType.SetTextContent:
+  //             const textContentExpr = operation.expression;
+  //             switch (textContentExpr.type) {
+  //               case ExpressionType.Property:
+  //                 const value = values[textContentExpr.name];
+  //                 if (value instanceof State) {
+  //                   curr.textContent = value.current;
+  //                   // rootNodes[rootNodesLength++] = new SetContentObserver(
+  //                   //   value,
+  //                   //   curr
+  //                   // );
+  //                 } else if (value) {
+  //                   curr.textContent = value;
+  //                 }
+  //                 break;
+  //               case ExpressionType.Async:
+  //                 const state = values[textContentExpr.name];
+  //                 if (state instanceof State) {
+  //                   curr.textContent = state.current;
+  //                   // rootNodes[rootNodesLength++] = new SetContentObserver(
+  //                   //   state,
+  //                   //   curr
+  //                   // );
+  //                 } else if (state) {
+  //                   curr.textContent = state;
+  //                 }
+  //                 break;
+  //             }
+  //             break;
+  //           case DomOperationType.SetAttribute:
+  //             const attrExpr = operation.expression;
+  //             switch (attrExpr.type) {
+  //               case ExpressionType.Property:
+  //                 const value = values[attrExpr.name];
+  //                 if (value instanceof State) {
+  //                   const attrValue = value.current;
+  //                   if (attrValue) (curr as any)[operation.name] = attrValue;
+
+  //                   // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+  //                   //   value,
+  //                   //   curr,
+  //                   //   operation.name
+  //                   // );
+  //                 } else if (value) {
+  //                   (curr as any)[operation.name] = value;
+  //                 }
+  //                 break;
+  //               case ExpressionType.Async:
+  //                 const state = values[attrExpr.name];
+  //                 if (state instanceof State) {
+  //                   const attrValue = state.current;
+  //                   if (attrValue) {
+  //                     (curr as HTMLElement).setAttribute(
+  //                       operation.name,
+  //                       attrValue
+  //                     );
+  //                   }
+
+  //                   // rootNodes[rootNodesLength++] = new SetAttributeObserver(
+  //                   //   state,
+  //                   //   curr,
+  //                   //   operation.name
+  //                   // );
+  //                 } else {
+  //                   (curr as HTMLElement).setAttribute(operation.name, state);
+  //                 }
+  //                 break;
+  //             }
+  //             break;
+  //           default:
+  //             break;
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   renderResults.length = renderResultsLength;
+  //   return renderResults;
+  // }
 }
 
 type VisitResult<T> = {
@@ -550,9 +653,10 @@ type VisitResult<T> = {
 
 type NodeCustomization = {
   index: number;
-  node: ChildNode;
+  templateNode: ChildNode;
   render: (DomNavigationOperation | DomRenderOperation)[];
   events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
+  nodes: Node[];
 };
 
 type TransformResult<T> = {

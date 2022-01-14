@@ -1,27 +1,31 @@
 import { Template } from '../template';
 
-import { compile, CompileResult, RenderOptions } from '../compile';
+import { compile, CompileResult } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
-import { RowContext } from './row-context';
+import { ViewContext } from './row-context';
 
 export interface ViewContainer<T> {
   push(data: T[], start?: number, count?: number): void;
   swap(index0: number, index1: number): void;
   clear(): void;
-  remove(values: T): void;
-  map(mapper: (context: RowContext<T>) => Template): void;
+  remove(context: ViewContext<T>): void;
+  map(template: Template): void;
+  length: number;
+  updateAt(index: number, updater: (data: T) => any): void;
 }
 
 export function createContainer<T>(): ViewContainer<T> {
   const mutations = new ContainerMutationManager<T>();
+  const data: T[] = [];
   return {
-    map(mapper: (context: RowContext<T>) => Template) {
-      const context = new RowContext<T>();
-      const itemTemplate = mapper(context);
+    get length() {
+      return data.length;
+    },
+    map(itemTemplate: Template) {
       const compiled = compile(itemTemplate);
       return {
         render({ target }: { target: Element }) {
@@ -36,39 +40,57 @@ export function createContainer<T>(): ViewContainer<T> {
         },
       };
     },
-    push(items: T[], start: number, count: number): void {
+    push(items: T[]): void {
+      const offset = data.length;
+      data.length += items.length;
+      for (let i = 0, len = items.length; i < len; i++) {
+        data[i + offset] = items[i];
+      }
       mutations.pushMutation({
         type: ContainerMutationType.PUSH_MANY,
         items,
-        start,
-        count,
       });
     },
     clear(): void {
+      data.length = 0;
       mutations.pushMutation({
         type: ContainerMutationType.CLEAR,
       });
     },
-    remove(item: T): void {
-      mutations.pushMutation({
-        type: ContainerMutationType.REMOVE,
-        item,
-      });
+    remove(context: ViewContext<T>): void {
+      const { values } = context;
+      const index = data.indexOf(values);
+      if (index >= 0) {
+        mutations.pushMutation({
+          type: ContainerMutationType.REMOVE_AT,
+          index,
+        });
+
+        data.splice(index, 1);
+      }
     },
     swap(index1: number, index2: number) {
+      const tmp = data[index1];
+      data[index1] = data[index2];
+      data[index2] = tmp;
+
       mutations.pushMutation({
         type: ContainerMutationType.SWAP,
         index1,
         index2,
       });
     },
+    updateAt(index: number, updater: (item: T) => void) {
+      const values = data[index];
+      updater(values);
+      mutations.pushMutation({
+        type: ContainerMutationType.UPDATE,
+        index,
+        values: values,
+      });
+    },
   };
 }
-
-// type RenderTarget = {
-//   appendChild<T extends Node>(node: T): T;
-//   addEventListener(): void;
-// };
 
 function createMutationsObserver<T>(
   containerElt: Element,
@@ -76,112 +98,86 @@ function createMutationsObserver<T>(
 ) {
   template.listen(containerElt);
 
-  const renderResults: Node[] = [];
-  let renderResultsLength: number = 0;
-
-  function pushMany(items: Node[]) {
-    for (let i = 0, len = items.length; i < len; i++)
-      renderResults[renderResultsLength++] = items[i];
-  }
-
-  function moveNodes(nodes: Node[], toIndex: number) {
-    const count = template.templateNodes.length;
-    const refNode = renderResults[toIndex + count];
-
-    for (let i = 0; i < nodes.length; i++) {
-      containerElt.insertBefore(nodes[i], refNode);
-    }
-  }
+  const { customization } = template;
 
   return {
     next(mut: ContainerMutation<T>) {
-      const count = template.templateNodes.length;
       switch (mut.type) {
-        case ContainerMutationType.PUSH:
-          pushMany(
-            template.render(containerElt, {
-              items: [mut.values],
-              start: 0,
-              count: 1,
-            })
-          );
-          break;
         case ContainerMutationType.PUSH_MANY:
-          pushMany(template.render(containerElt, mut));
+          const { items } = mut;
+          if (customization) {
+            const cust = customization;
+            const { nodes } = cust;
+            let nodesLen = nodes.length;
+            for (let i = 0, len = items.length; i < len; i++) {
+              const rootNode = cust.templateNode.cloneNode(true);
+              containerElt.appendChild(rootNode);
+              cust.nodes[nodesLen++] = rootNode;
+            }
+            template.update(nodes, nodesLen - items.length, items);
+          }
+
           break;
         case ContainerMutationType.CLEAR:
-          containerElt.textContent = '';
-          // var rangeObj = new Range();
+          if (customization) {
+            // containerElt.textContent = '';
+            var rangeObj = new Range();
+            const { nodes } = customization;
 
-          // if (renderResultsLength) {
-          //   rangeObj.setStartBefore(renderResults[0].nodes[0]);
-          //   rangeObj.setEndAfter(
-          //     renderResults[renderResultsLength - 1].nodes[0]
-          //   );
+            if (nodes.length) {
+              rangeObj.setStartBefore(nodes[0]);
+              rangeObj.setEndAfter(nodes[nodes.length - 1]);
 
-          //   rangeObj.deleteContents();
-          // }
-          renderResultsLength = 0;
+              rangeObj.deleteContents();
+            }
+            customization.nodes.length = 0;
+          }
+          break;
+        case ContainerMutationType.REMOVE_AT:
+          if (customization) {
+            const { nodes } = customization;
+            const { index } = mut;
+            const node = nodes[index];
+            containerElt.removeChild(node);
+            nodes.splice(index, 1);
+          }
           break;
         case ContainerMutationType.REMOVE:
           const itemToRemove = mut.item;
-          for (let i = 0; i < renderResultsLength; i++) {
-            const rr = renderResults[i] as any;
+          if (customization) {
+            const { nodes } = customization;
+            for (let i = 0, len = nodes.length; i < len; i++) {
+              const rr = nodes[i] as any;
 
-            if (rr.values === itemToRemove) {
-              containerElt.removeChild(rr);
-              renderResults.splice(i, 1);
-              renderResultsLength--;
-              break;
+              if (rr.values === itemToRemove) {
+                containerElt.removeChild(rr);
+                nodes.splice(i, 1);
+                break;
+              }
             }
           }
-          break;
-        case ContainerMutationType.MOVE:
-          const { from: f, to: t } = mut;
-          const from = f * count;
-          const to = t * count;
-
-          const tmp = renderResults.slice(from, count);
-          if (from < to) {
-            for (let n = from * count; n < to; n++) {
-              renderResults[n] = renderResults[n + count];
-            }
-            for (let i = 0; i < count; i++) {
-              renderResults[to + i] = tmp[i];
-            }
-          } else {
-            for (let n = from; n > to; n--) {
-              renderResults[n] = renderResults[n - 1];
-            }
-
-            for (let i = 0; i < count; i++) {
-              renderResults[to + i] = tmp[i];
-            }
-          }
-
-          moveNodes(tmp, to);
-
           break;
         case ContainerMutationType.SWAP:
-          const { index1: i1, index2: i2 } = mut;
-          const index1 = i1 * count;
-          const index2 = i2 * count;
+          if (customization) {
+            const { nodes } = customization;
+            const { index1, index2 } = mut;
 
-          const nodes1 = renderResults.slice(index1, index1 + count);
-          const nodes2 = renderResults.slice(index2, index2 + count);
+            const node1 = nodes[index1];
+            const node2 = nodes[index2];
 
-          for (let i = 0; i < count; i++) {
-            renderResults[index1 + i] = nodes2[i];
+            nodes[index1] = node2;
+            nodes[index2] = node1;
+
+            containerElt.insertBefore(node1, nodes[index2 + 1]);
+            containerElt.insertBefore(node2, nodes[index1 + 1]);
           }
-          for (let i = 0; i < count; i++) {
-            renderResults[index2 + i] = nodes1[i];
-          }
-
-          moveNodes(nodes1, index2);
-          moveNodes(nodes2, index1);
 
           break;
         case ContainerMutationType.UPDATE:
+          if (customization) {
+            const { values, index } = mut;
+            template.update(customization.nodes, index, [values]);
+          }
           break;
       }
     },
