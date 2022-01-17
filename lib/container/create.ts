@@ -86,6 +86,8 @@ export function createContainer<T>(): ViewContainer<T> {
       });
     },
     updateAt(index: number, property: any, valueFn: (prev: any) => any) {
+      if (index < 0 || index >= data.length) return;
+
       const row = data[index] as any;
       const newValue = valueFn(row[property]);
       row[property] = newValue;
@@ -183,10 +185,8 @@ function createMutationsObserver<T>(
         case ContainerMutationType.UPDATE:
           if (customization) {
             const { property, index, value } = mut;
-            console.log(mut);
             const node = customization.nodes[index];
             template.update(node, property, value);
-            // template.update(customization.nodes, index, [values]);
           }
           break;
       }

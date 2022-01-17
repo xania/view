@@ -368,19 +368,13 @@ export class CompileResult {
         const eventName = evt.type;
         const eventTarget = evt.target as Node;
 
-        if (!eventTarget) return;
+        if (!eventTarget || !customization) return;
 
-        const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
-
-        const { renderStack } = CompileResult;
-
-        const cust = customization;
-        if (!cust) return;
-
-        const operations = cust.events[eventName];
+        const operations = customization.events[eventName];
         if (!operations || !operations.length) return;
 
-        renderStack[0] = rootNode as HTMLElement;
+        const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
+        const renderStack: Node[] = [rootNode];
         let renderIndex = 0;
         for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
           const operation = operations[n];
@@ -415,15 +409,12 @@ export class CompileResult {
     const { customization } = this;
     if (!customization) return;
 
-    const { renderStack } = CompileResult;
+    if (!customization) return;
 
-    const cust = customization;
-    if (!cust) return;
-
-    const operations = cust.render;
+    const operations = customization.render;
     if (!operations || !operations.length) return;
 
-    renderStack[0] = rootNode as HTMLElement;
+    const renderStack: Node[] = [rootNode];
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
@@ -444,11 +435,20 @@ export class CompileResult {
           renderIndex--;
           break;
         case DomOperationType.SetTextContent:
-          const expr = operation.expression;
-          switch (expr.type) {
+          const textExpr = operation.expression;
+          switch (textExpr.type) {
             case ExpressionType.Property:
-              if (expr.name === property) {
-                console.log('set content', property, value);
+              if (textExpr.name === property) {
+                curr.textContent = value;
+              }
+          }
+          break;
+        case DomOperationType.SetAttribute:
+          const attrExpr = operation.expression;
+          switch (attrExpr.type) {
+            case ExpressionType.Property:
+              if (attrExpr.name === property) {
+                (curr as HTMLElement).className = value;
               }
           }
           break;

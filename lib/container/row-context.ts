@@ -14,14 +14,3 @@ export function property<T>(name: keyof T & string): ExpressionTemplate {
     },
   };
 }
-// get<U>(getter: (row: T) => U) {
-//   return function (context: { values: T }) {
-//     if (context) return getter(context.values);
-//     return null;
-//   };
-// }
-export function call(func: (row: ViewContext) => void) {
-  return function (context: ViewContext) {
-    func(context);
-  };
-}
