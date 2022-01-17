@@ -162,7 +162,6 @@ export function compile(rootTemplate: Template | Template[]) {
           cust.events[eventName] = [];
         }
         iter(cust, (x) => x.events[eventName]);
-        console.log(cust.templateNode, cust.events[eventName]);
       }
 
       function iter(
@@ -352,8 +351,7 @@ export interface RenderOptions {
 export class CompileResult {
   constructor(public customization?: NodeCustomization) {}
 
-  static renderStack: Node[] = [];
-  static renderResults: Node[] = [];
+  private static renderStack: Node[] = [];
 
   listen(rootContainer: Element) {
     const { customization } = this;
@@ -373,7 +371,6 @@ export class CompileResult {
         if (!eventTarget) return;
 
         const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
-        const { values } = rootNode as any;
 
         const { renderStack } = CompileResult;
 
@@ -405,7 +402,7 @@ export class CompileResult {
               break;
             case DomOperationType.AddEventListener:
               if (eventTarget === curr || curr.contains(eventTarget)) {
-                operation.handler({ values, node: rootNode });
+                operation.handler({ node: rootNode });
               }
               break;
           }
@@ -414,7 +411,52 @@ export class CompileResult {
     }
   }
 
-  update(rootNodes: Node[], offset: number, items: ArrayLike<any>) {
+  update(rootNode: Node, property: any, value: any) {
+    const { customization } = this;
+    if (!customization) return;
+
+    const { renderStack } = CompileResult;
+
+    const cust = customization;
+    if (!cust) return;
+
+    const operations = cust.render;
+    if (!operations || !operations.length) return;
+
+    renderStack[0] = rootNode as HTMLElement;
+    let renderIndex = 0;
+    for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
+      const operation = operations[n];
+      const curr = renderStack[renderIndex];
+      switch (operation.type) {
+        case DomOperationType.PushChild:
+          renderStack[++renderIndex] = curr.childNodes[
+            operation.index
+          ] as HTMLElement;
+          break;
+        case DomOperationType.PushFirstChild:
+          renderStack[++renderIndex] = curr.firstChild as HTMLElement;
+          break;
+        case DomOperationType.PushNextSibling:
+          renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+          break;
+        case DomOperationType.PopNode:
+          renderIndex--;
+          break;
+        case DomOperationType.SetTextContent:
+          const expr = operation.expression;
+          switch (expr.type) {
+            case ExpressionType.Property:
+              if (expr.name === property) {
+                console.log('set content', property, value);
+              }
+          }
+          break;
+      }
+    }
+  }
+
+  render(rootNodes: Node[], offset: number, items: ArrayLike<any>) {
     const { renderStack } = CompileResult;
     const { customization } = this;
 
@@ -425,7 +467,7 @@ export class CompileResult {
     for (let n = 0, len = items.length; n < len; n = (n + 1) | 0) {
       const values = items[n];
       const rootNode = rootNodes[n + offset];
-      (rootNode as any).values = values;
+      // (rootNode as any).values = values;
       renderStack[0] = rootNode;
       let renderIndex = 0;
       const operations = cust.render;

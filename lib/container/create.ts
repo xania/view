@@ -6,22 +6,29 @@ import {
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
-import { ViewContext } from './row-context';
 
 export interface ViewContainer<T> {
   push(data: T[], start?: number, count?: number): void;
   swap(index0: number, index1: number): void;
   clear(): void;
-  remove(context: ViewContext<T>): void;
+  removeAt(index: number): void;
   map(template: Template): void;
   length: number;
-  updateAt(index: number, updater: (data: T) => any): void;
+  updateAt<K extends keyof T>(
+    index: number,
+    property: K,
+    valueFn: (prev: T[K]) => T[K]
+  ): void;
+  itemAt(index: number): T;
 }
 
 export function createContainer<T>(): ViewContainer<T> {
   const mutations = new ContainerMutationManager<T>();
   const data: T[] = [];
   return {
+    itemAt(index: number): T {
+      return data[index];
+    },
     get length() {
       return data.length;
     },
@@ -57,9 +64,7 @@ export function createContainer<T>(): ViewContainer<T> {
         type: ContainerMutationType.CLEAR,
       });
     },
-    remove(context: ViewContext<T>): void {
-      const { values } = context;
-      const index = data.indexOf(values);
+    removeAt(index: number): void {
       if (index >= 0) {
         mutations.pushMutation({
           type: ContainerMutationType.REMOVE_AT,
@@ -80,13 +85,15 @@ export function createContainer<T>(): ViewContainer<T> {
         index2,
       });
     },
-    updateAt(index: number, updater: (item: T) => void) {
-      const values = data[index];
-      updater(values);
+    updateAt(index: number, property: any, valueFn: (prev: any) => any) {
+      const row = data[index] as any;
+      const newValue = valueFn(row[property]);
+      row[property] = newValue;
       mutations.pushMutation({
         type: ContainerMutationType.UPDATE,
         index,
-        values: values,
+        property,
+        value: newValue,
       });
     },
   };
@@ -114,7 +121,7 @@ function createMutationsObserver<T>(
               containerElt.appendChild(rootNode);
               cust.nodes[nodesLen++] = rootNode;
             }
-            template.update(nodes, nodesLen - items.length, items);
+            template.render(nodes, nodesLen - items.length, items);
           }
 
           break;
@@ -175,8 +182,11 @@ function createMutationsObserver<T>(
           break;
         case ContainerMutationType.UPDATE:
           if (customization) {
-            const { values, index } = mut;
-            template.update(customization.nodes, index, [values]);
+            const { property, index, value } = mut;
+            console.log(mut);
+            const node = customization.nodes[index];
+            template.update(node, property, value);
+            // template.update(customization.nodes, index, [values]);
           }
           break;
       }

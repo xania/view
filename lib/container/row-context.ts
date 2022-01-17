@@ -1,8 +1,7 @@
 import { ExpressionType } from '../expression';
 import { TemplateType, ExpressionTemplate } from '../template';
 
-export interface ViewContext<T> {
-  values: T;
+export interface ViewContext {
   node: Node;
 }
 
@@ -21,8 +20,8 @@ export function property<T>(name: keyof T & string): ExpressionTemplate {
 //     return null;
 //   };
 // }
-export function call<T>(func: (row: ViewContext<T>) => void) {
-  return function (context: ViewContext<T>) {
+export function call(func: (row: ViewContext) => void) {
+  return function (context: ViewContext) {
     func(context);
   };
 }
