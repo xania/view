@@ -85,11 +85,11 @@ export class RenderResult {
     var result = new RenderResult(null);
     const { nodes } = result;
 
-    // for (const x of results) {
-    //   if (x) {
-    //     items.push(x);
-    //   }
-    // }
+    for (const x of results) {
+      if (x) {
+        // items.push(x);
+      }
+    }
 
     if (node) nodes.push(node);
 

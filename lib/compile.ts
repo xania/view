@@ -16,7 +16,6 @@ import {
   DomOperationType,
   DomRenderOperation,
 } from './dom-operation';
-import { State } from './state';
 import { createLookup } from './util/lookup';
 
 export interface RenderProps {

@@ -129,15 +129,18 @@ function createMutationsObserver<T>(
           break;
         case ContainerMutationType.CLEAR:
           if (customization) {
-            // containerElt.textContent = '';
-            var rangeObj = new Range();
             const { nodes } = customization;
 
             if (nodes.length) {
-              rangeObj.setStartBefore(nodes[0]);
-              rangeObj.setEndAfter(nodes[nodes.length - 1]);
+              if (containerElt.childNodes.length === nodes.length) {
+                containerElt.textContent = '';
+              } else {
+                var rangeObj = new Range();
+                rangeObj.setStartBefore(nodes[0]);
+                rangeObj.setEndAfter(nodes[nodes.length - 1]);
 
-              rangeObj.deleteContents();
+                rangeObj.deleteContents();
+              }
             }
             customization.nodes.length = 0;
           }
