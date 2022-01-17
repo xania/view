@@ -493,28 +493,7 @@ export class CompileResult {
             const textContentExpr = operation.expression;
             switch (textContentExpr.type) {
               case ExpressionType.Property:
-                const value = values[textContentExpr.name];
-                if (value instanceof State) {
-                  curr.textContent = value.current;
-                  // rootNodes[rootNodesLength++] = new SetContentObserver(
-                  //   value,
-                  //   curr
-                  // );
-                } else if (value) {
-                  curr.textContent = value;
-                }
-                break;
-              case ExpressionType.Async:
-                const state = values[textContentExpr.name];
-                if (state instanceof State) {
-                  curr.textContent = state.current;
-                  // rootNodes[rootNodesLength++] = new SetContentObserver(
-                  //   state,
-                  //   curr
-                  // );
-                } else if (state) {
-                  curr.textContent = state;
-                }
+                curr.textContent = values[textContentExpr.name];
                 break;
             }
             break;
@@ -522,39 +501,7 @@ export class CompileResult {
             const attrExpr = operation.expression;
             switch (attrExpr.type) {
               case ExpressionType.Property:
-                const value = values[attrExpr.name];
-                if (value instanceof State) {
-                  const attrValue = value.current;
-                  if (attrValue) (curr as any)[operation.name] = attrValue;
-
-                  // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                  //   value,
-                  //   curr,
-                  //   operation.name
-                  // );
-                } else if (value) {
-                  (curr as any)[operation.name] = value;
-                }
-                break;
-              case ExpressionType.Async:
-                const state = values[attrExpr.name];
-                if (state instanceof State) {
-                  const attrValue = state.current;
-                  if (attrValue) {
-                    (curr as HTMLElement).setAttribute(
-                      operation.name,
-                      attrValue
-                    );
-                  }
-
-                  // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-                  //   state,
-                  //   curr,
-                  //   operation.name
-                  // );
-                } else {
-                  (curr as HTMLElement).setAttribute(operation.name, state);
-                }
+                (curr as any)[operation.name] = values[attrExpr.name];
                 break;
             }
             break;
@@ -712,46 +659,6 @@ function toArray<T extends Node>(nodes: NodeListOf<T>) {
     result.push(nodes[i]);
   }
   return result;
-}
-
-class SetAttributeObserver {
-  constructor(
-    private state: State<any>,
-    private element: Element,
-    private name: string
-  ) {
-    const len = state.observers.length;
-    state.observers[len] = this;
-  }
-  next(nextValue: any) {
-    const { element, name } = this;
-    if (name === 'class') {
-      element.className = nextValue;
-    } else {
-      (element as any)[name] = nextValue;
-    }
-  }
-
-  unsubscribe() {
-    const { observers } = this.state;
-    const idx = observers.indexOf(this);
-    observers.splice(idx, 1);
-  }
-}
-
-class SetContentObserver {
-  constructor(private state: State<any>, private element: Element) {
-    const len = state.observers.length;
-    state.observers[len] = this;
-  }
-  next(nextValue: any) {
-    this.element.textContent = nextValue;
-  }
-  unsubscribe() {
-    const { observers } = this.state;
-    const idx = observers.indexOf(this);
-    observers.splice(idx, 1);
-  }
 }
 
 function selectMany<T, P>(
