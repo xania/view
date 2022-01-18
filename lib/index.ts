@@ -1,4 +1,4 @@
-export * from './factory';
+export * from './jsx';
 export * from './template';
 export * from './render';
 export * from './state';

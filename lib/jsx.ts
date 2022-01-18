@@ -1,22 +1,9 @@
-import {
-  Subscribable,
-  Observer,
-  isUnsubscribable,
-  isSubscribable,
-} from './abstractions/rxjs';
+import { isUnsubscribable, isSubscribable } from './abstractions/rxjs';
 import { TagTemplate, Template, TemplateType } from './template';
 import { reverse } from './util/reverse';
 import { Renderable, AttributeType } from './template';
 
-declare type Attachable = {
-  attachTo: (dom: HTMLElement) => { dispose(): any };
-};
-// export declare type Component = {
-//   view: any;
-//   dispose?(): void;
-// };
-
-export function factory(
+export function jsx(
   name: string | Function | null,
   props: any = null,
   ...children: unknown[]
@@ -48,23 +35,6 @@ export function factory(
   return null;
 }
 
-export function lazy<T>(fn: () => T | Subscribable<T>) {
-  return {
-    subscribe(observer: Observer<T>) {
-      var value = fn();
-      if (isSubscribable(value)) {
-        return value.subscribe(observer);
-      }
-      observer.next(value);
-      return {
-        unsubscribe() {
-          debugger;
-        },
-      };
-    },
-  };
-}
-
 function construct(func: Function, args: any[]) {
   try {
     if (!func) return false;
@@ -75,7 +45,7 @@ function construct(func: Function, args: any[]) {
   }
 }
 
-export function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
+function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
   var retval: T[] = [];
   var stack = [tree];
   while (stack.length > 0) {
@@ -101,7 +71,7 @@ export function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
 //   return typeof obj === 'object' && obj !== null && prop in obj;
 // }
 
-export function attributes(props: any | null): TagTemplate['attrs'] {
+function attributes(props: any | null): TagTemplate['attrs'] {
   if (props)
     return Object.keys(props).map((name) => {
       const value = props[name];
@@ -122,7 +92,7 @@ export function attributes(props: any | null): TagTemplate['attrs'] {
   return null;
 }
 
-export function asTemplate(value: any): Template | Template[] {
+function asTemplate(value: any): Template | Template[] {
   if (typeof value === 'undefined' || value === null) {
     return null as any;
   } else if (isTemplate(value)) return value;
@@ -148,9 +118,6 @@ export function asTemplate(value: any): Template | Template[] {
       type: TemplateType.DOM,
       node: value,
     };
-  // else if (typeof value === 'function') {
-  //   return createFunctionRenderer(value);
-  // }
   else if (isRenderable(value)) {
     return {
       type: TemplateType.Renderable,
@@ -175,7 +142,7 @@ export function asTemplate(value: any): Template | Template[] {
 //   return value && typeof value.attachTo === 'function';
 // }
 
-export function isRenderable(value: any): value is Renderable {
+function isRenderable(value: any): value is Renderable {
   return value && typeof value.render === 'function';
 }
 
