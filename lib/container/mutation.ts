@@ -1,5 +1,3 @@
-import { NextObserver, Unsubscribable } from '../abstractions/rxjs';
-
 export type ContainerMutation<T = unknown> =
   | PushItem<T>
   | PushItems<T>
@@ -125,7 +123,7 @@ export function isMutation<T = unknown>(mut: any): mut is ContainerMutation<T> {
 }
 
 export class ContainerMutationManager<T> {
-  private mutationObservers: NextObserver<ContainerMutation<T>>[] = [];
+  private mutationObservers: RXJS.NextObserver<ContainerMutation<T>>[] = [];
 
   pushMutation = (mut: ContainerMutation<T>) => {
     if (!mut) return;
@@ -138,8 +136,8 @@ export class ContainerMutationManager<T> {
   };
 
   subscribe = (
-    observer: NextObserver<ContainerMutation<T>>
-  ): Unsubscribable => {
+    observer: RXJS.NextObserver<ContainerMutation<T>>
+  ): RXJS.Unsubscribable => {
     if (!observer) {
       return EMPTY;
     }
@@ -158,6 +156,6 @@ export class ContainerMutationManager<T> {
   };
 }
 
-const EMPTY: Unsubscribable = {
+const EMPTY: RXJS.Unsubscribable = {
   unsubscribe() {},
 };

@@ -59,4 +59,7 @@ export type DomRenderOperation =
 
 export type DomEventOperation = AddEventListenerOperation;
 
-export type DomOperation = DomEventOperation | DomRenderOperation;
+export type DomOperation =
+  | DomNavigationOperation
+  | DomEventOperation
+  | DomRenderOperation;

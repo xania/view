@@ -1,4 +1,3 @@
-import { Subscribable, Unsubscribable } from './abstractions/rxjs';
 import { Expression } from './expression';
 
 export interface Disposable {
@@ -50,7 +49,7 @@ interface NativeTemplate {
 }
 interface SubscribableTemplate {
   type: TemplateType.Subscribable;
-  value: Subscribable<any>;
+  value: RXJS.Subscribable<any>;
 }
 interface DisposableTemplate extends Disposable {
   type: TemplateType.Disposable;
@@ -71,7 +70,7 @@ export interface ExpressionTemplate {
   expression: Expression;
 }
 
-type RenderResultItem = Unsubscribable | Disposable;
+type RenderResultItem = RXJS.Unsubscribable | Disposable;
 export class RenderResult {
   // readonly items: RenderResultItem[] = [];
   readonly nodes: Node[] = [];

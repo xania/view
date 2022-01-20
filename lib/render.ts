@@ -18,7 +18,7 @@ export type EventHandler = { handleEvent(): void };
 
 export function render(
   root: RenderTarget,
-  children: Template | Template[]
+  children: any
   // args?: any[]
 ) {
   const stack: [RenderTarget, Template][] = [];

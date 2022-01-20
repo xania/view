@@ -1,7 +1,7 @@
-import { isUnsubscribable, isSubscribable } from './abstractions/rxjs';
 import { TagTemplate, Template, TemplateType } from './template';
 import { reverse } from './util/reverse';
 import { Renderable, AttributeType } from './template';
+import { isSubscribable, isUnsubscribable } from './util/is-subscibable';
 
 export function jsx(
   name: string | Function | null,

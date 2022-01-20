@@ -12,7 +12,7 @@ export interface ViewContainer<T> {
   swap(index0: number, index1: number): void;
   clear(): void;
   removeAt(index: number): void;
-  map(template: Template): void;
+  map(template: JSX.Element): void;
   length: number;
   updateAt<K extends keyof T>(
     index: number,
@@ -95,7 +95,7 @@ export function createContainer<T>(): ViewContainer<T> {
         type: ContainerMutationType.UPDATE,
         index,
         property,
-        value: newValue,
+        value: row,
       });
     },
   };
@@ -123,7 +123,16 @@ function createMutationsObserver<T>(
               containerElt.appendChild(rootNode);
               cust.nodes[nodesLen++] = rootNode;
             }
-            template.render(nodes, nodesLen - items.length, items);
+
+            const operations = cust.render;
+            if (operations?.length)
+              template.render(
+                nodes,
+                items,
+                nodesLen - items.length,
+                items.length,
+                operations
+              );
           }
 
           break;
@@ -188,8 +197,17 @@ function createMutationsObserver<T>(
         case ContainerMutationType.UPDATE:
           if (customization) {
             const { property, index, value } = mut;
-            const node = customization.nodes[index];
-            template.update(node, property, value);
+
+            const operations = customization.updates[property as string];
+            if (operations?.length) {
+              template.render(
+                customization.nodes,
+                [value],
+                index,
+                1,
+                operations
+              );
+            }
           }
           break;
       }

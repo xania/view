@@ -1,5 +1,5 @@
 {
-  "version": "0.3.1",
+  "version": "0.3.3",
   "license": "MIT",
   "main": "lib/index.ts",
   "module": "dist/es2015/index.js",
@@ -32,6 +32,10 @@
     "typescript": "^4.5.4",
     "webpack": "5.64.0",
     "webpack-cli": "^4.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xania/view.git"
   },
   "peerDependencies": {}
 }
