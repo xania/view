@@ -1,5 +1,5 @@
 {
-  "include": ["lib"],
+  "include": ["lib", "types"],
   "compilerOptions": {
     "outDir": "dist/es2015",
     "module": "ES2015",
