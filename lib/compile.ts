@@ -101,7 +101,7 @@ export function compile(rootTemplate: Template | Template[]) {
         operationsMap.add(asyncNode, {
           type: DomOperationType.Renderable,
           renderable: {
-            render({ target }) {
+            render(target) {
               const subscr = template.value.subscribe({
                 next(x) {
                   target.textContent = x;
@@ -287,7 +287,7 @@ export function compile(rootTemplate: Template | Template[]) {
 
   function createFunctionRenderer(func: Function): Renderable {
     return {
-      render({ target }: { target: Node }, context: any) {
+      render(target, context: any) {
         const value = func(context);
         if (isSubscribable(value)) {
           const subscr = value.subscribe({
@@ -298,7 +298,7 @@ export function compile(rootTemplate: Template | Template[]) {
           return RenderResult.create(null, subscr);
         } else {
           target.textContent = value;
-          return;
+          return undefined;
         }
       },
     };
@@ -317,8 +317,8 @@ export function compile(rootTemplate: Template | Template[]) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(ctx) {
-            bind(ctx.target, value);
+          render(target) {
+            bind(target, value);
           },
         },
       });
@@ -327,13 +327,13 @@ export function compile(rootTemplate: Template | Template[]) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(ctx, args) {
+          render(target, args) {
             const value = func(args);
 
             if (isSubscribable(value)) {
-              bind(ctx.target, value);
+              bind(target, value);
             } else {
-              ctx.target.setAttribute(name, value);
+              target.setAttribute(name, value);
             }
           },
         },

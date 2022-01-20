@@ -3,7 +3,7 @@
     "license": "MIT",
     "main": "dist/main.umd.js",
     "module": "lib/index.ts",
-    "types": "dist/es2015/index.d.ts",
+    "types": "lib/index.ts",
     "files": [
         "types",
         "dist",
