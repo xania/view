@@ -93,7 +93,7 @@ export function render(
         target.appendChild(child.node);
         break;
       case TemplateType.Renderable:
-        addDisposables(child.renderer.render({ target }));
+        addDisposables(child.renderer.render(target as Element));
         break;
     }
   }

@@ -115,7 +115,7 @@ export interface RenderContext {
   remove(): unknown;
 }
 export interface Renderable {
-  render(driver: { target: any }, context?: RenderContext): RenderResult | void;
+  render(target: Element, context?: RenderContext): RenderResult | void;
 }
 export interface RenderableTemplate {
   type: TemplateType.Renderable;
