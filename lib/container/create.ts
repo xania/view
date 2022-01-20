@@ -1,6 +1,6 @@
 import { Template } from '../template';
 
-import { compile, CompileResult } from '../compile';
+import { compile, CompileResult, execute } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
@@ -126,12 +126,12 @@ function createMutationsObserver<T>(
 
             const operations = cust.render;
             if (operations?.length)
-              template.render(
+              execute(
+                operations,
                 nodes,
                 items,
                 nodesLen - items.length,
-                items.length,
-                operations
+                items.length
               );
           }
 
@@ -200,13 +200,7 @@ function createMutationsObserver<T>(
 
             const operations = customization.updates[property as string];
             if (operations?.length) {
-              template.render(
-                customization.nodes,
-                [value],
-                index,
-                1,
-                operations
-              );
+              execute(operations, customization.nodes, [value], index, 1);
             }
           }
           break;

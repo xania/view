@@ -367,8 +367,6 @@ export interface RenderOptions {
 export class CompileResult {
   constructor(public customization?: NodeCustomization) {}
 
-  private static renderStack: Node[] = [];
-
   listen(rootContainer: Element) {
     const { customization } = this;
     if (!customization) return;
@@ -384,7 +382,7 @@ export class CompileResult {
         const eventName = evt.type;
         const eventTarget = evt.target as Node;
 
-        if (!eventTarget || !customization) return;
+        if (!eventTarget) return;
 
         const operations = customization.events[eventName];
         if (!operations || !operations.length) return;
@@ -420,187 +418,58 @@ export class CompileResult {
       });
     }
   }
+}
 
-  render(
-    rootNodes: Node[],
-    items: ArrayLike<any>,
-    offset: number,
-    length: number,
-    operations: DomOperation[]
-  ) {
-    const { renderStack } = CompileResult;
-
-    for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
-      const values = items[n];
-      const rootNode = rootNodes[n + offset];
-      renderStack[0] = rootNode;
-      let renderIndex = 0;
-      for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
-        const operation = operations[n];
-        const curr = renderStack[renderIndex];
-        switch (operation.type) {
-          case DomOperationType.PushChild:
-            renderStack[++renderIndex] = curr.childNodes[
-              operation.index
-            ] as HTMLElement;
-            break;
-          case DomOperationType.PushFirstChild:
-            renderStack[++renderIndex] = curr.firstChild as HTMLElement;
-            break;
-          case DomOperationType.PushNextSibling:
-            renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
-            break;
-          case DomOperationType.PopNode:
-            renderIndex--;
-            break;
-          case DomOperationType.SetTextContent:
-            const textContentExpr = operation.expression;
-            switch (textContentExpr.type) {
-              case ExpressionType.Property:
-                curr.textContent = values[textContentExpr.name];
-                break;
-            }
-            break;
-          case DomOperationType.SetAttribute:
-            const attrExpr = operation.expression;
-            switch (attrExpr.type) {
-              case ExpressionType.Property:
-                (curr as any)[operation.name] = values[attrExpr.name];
-                break;
-            }
-            break;
-        }
+const renderStack: Node[] = [];
+export function execute(
+  operations: DomOperation[],
+  rootNodes: Node[],
+  items: ArrayLike<any>,
+  offset: number,
+  length: number
+) {
+  for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
+    const values = items[n];
+    renderStack[0] = rootNodes[n + offset];
+    let renderIndex = 0;
+    for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
+      const operation = operations[n];
+      const curr = renderStack[renderIndex];
+      switch (operation.type) {
+        case DomOperationType.PushChild:
+          renderStack[++renderIndex] = curr.childNodes[
+            operation.index
+          ] as HTMLElement;
+          break;
+        case DomOperationType.PushFirstChild:
+          renderStack[++renderIndex] = curr.firstChild as HTMLElement;
+          break;
+        case DomOperationType.PushNextSibling:
+          renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+          break;
+        case DomOperationType.PopNode:
+          renderIndex--;
+          break;
+        case DomOperationType.SetTextContent:
+          const textContentExpr = operation.expression;
+          switch (textContentExpr.type) {
+            case ExpressionType.Property:
+              curr.textContent = values[textContentExpr.name];
+              break;
+          }
+          break;
+        case DomOperationType.SetAttribute:
+          const attrExpr = operation.expression;
+          switch (attrExpr.type) {
+            case ExpressionType.Property:
+              (curr as any)[operation.name] = values[attrExpr.name];
+              break;
+          }
+          break;
       }
     }
   }
-
-  // render(rootContainer: Element, options: RenderOptions) {
-  //   const { items, start = 0, count = (items.length - start) | 0 } = options;
-
-  //   const { renderStack, renderResults } = CompileResult;
-  //   const { customization } = this;
-
-  //   let renderResultsLength = 0;
-
-  //   const end = (start + count) | 0;
-  //   for (let n = start; n < end; n = (n + 1) | 0) {
-  //     const values = items[n];
-
-  //     {
-  //       const cust = customization;
-  //       if (!cust || !cust.render || !cust.render.length) continue;
-
-  //       const rootNode = cust.templateNode.cloneNode(true) as HTMLElement;
-  //       (rootNode as any)['values'] = values;
-  //       rootContainer.appendChild(rootNode);
-  //       renderResults[renderResultsLength++] = rootNode;
-
-  //       renderStack[0] = rootNode;
-  //       let renderIndex = 0;
-  //       const operations = cust.render;
-  //       for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
-  //         const operation = operations[n];
-  //         const curr = renderStack[renderIndex];
-  //         switch (operation.type) {
-  //           case DomOperationType.PushChild:
-  //             renderStack[++renderIndex] = curr.childNodes[
-  //               operation.index
-  //             ] as HTMLElement;
-  //             break;
-  //           case DomOperationType.PushFirstChild:
-  //             renderStack[++renderIndex] = curr.firstChild as HTMLElement;
-  //             break;
-  //           case DomOperationType.PushNextSibling:
-  //             renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
-  //             break;
-  //           case DomOperationType.PopNode:
-  //             renderIndex--;
-  //             break;
-  //           case DomOperationType.SetTextContent:
-  //             const textContentExpr = operation.expression;
-  //             switch (textContentExpr.type) {
-  //               case ExpressionType.Property:
-  //                 const value = values[textContentExpr.name];
-  //                 if (value instanceof State) {
-  //                   curr.textContent = value.current;
-  //                   // rootNodes[rootNodesLength++] = new SetContentObserver(
-  //                   //   value,
-  //                   //   curr
-  //                   // );
-  //                 } else if (value) {
-  //                   curr.textContent = value;
-  //                 }
-  //                 break;
-  //               case ExpressionType.Async:
-  //                 const state = values[textContentExpr.name];
-  //                 if (state instanceof State) {
-  //                   curr.textContent = state.current;
-  //                   // rootNodes[rootNodesLength++] = new SetContentObserver(
-  //                   //   state,
-  //                   //   curr
-  //                   // );
-  //                 } else if (state) {
-  //                   curr.textContent = state;
-  //                 }
-  //                 break;
-  //             }
-  //             break;
-  //           case DomOperationType.SetAttribute:
-  //             const attrExpr = operation.expression;
-  //             switch (attrExpr.type) {
-  //               case ExpressionType.Property:
-  //                 const value = values[attrExpr.name];
-  //                 if (value instanceof State) {
-  //                   const attrValue = value.current;
-  //                   if (attrValue) (curr as any)[operation.name] = attrValue;
-
-  //                   // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-  //                   //   value,
-  //                   //   curr,
-  //                   //   operation.name
-  //                   // );
-  //                 } else if (value) {
-  //                   (curr as any)[operation.name] = value;
-  //                 }
-  //                 break;
-  //               case ExpressionType.Async:
-  //                 const state = values[attrExpr.name];
-  //                 if (state instanceof State) {
-  //                   const attrValue = state.current;
-  //                   if (attrValue) {
-  //                     (curr as HTMLElement).setAttribute(
-  //                       operation.name,
-  //                       attrValue
-  //                     );
-  //                   }
-
-  //                   // rootNodes[rootNodesLength++] = new SetAttributeObserver(
-  //                   //   state,
-  //                   //   curr,
-  //                   //   operation.name
-  //                   // );
-  //                 } else {
-  //                   (curr as HTMLElement).setAttribute(operation.name, state);
-  //                 }
-  //                 break;
-  //             }
-  //             break;
-  //           default:
-  //             break;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   renderResults.length = renderResultsLength;
-  //   return renderResults;
-  // }
 }
-
-type VisitResult<T> = {
-  value?: T;
-  children?: TransformResult<T>;
-};
 
 type NodeCustomization = {
   index: number;
@@ -609,10 +478,6 @@ type NodeCustomization = {
   events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
   updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };
   nodes: Node[];
-};
-
-type TransformResult<T> = {
-  [i: number]: VisitResult<T>;
 };
 
 function toArray<T extends Node>(nodes: NodeListOf<T>) {
