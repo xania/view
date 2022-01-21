@@ -3,37 +3,46 @@ import { reverse } from './util/reverse';
 import { Renderable, AttributeType } from './template';
 import { isSubscribable, isUnsubscribable } from './util/is-subscibable';
 
-export function jsx(
-  name: string | Function | null,
-  props: any = null,
-  ...children: unknown[]
-): Template | Template[] | null {
-  const flatChildren: Template[] = flatTree(children, asTemplate);
+export const jsx = {
+  createElement(
+    name: string | Function | null,
+    props: any = null,
+    ...children: unknown[]
+  ): Template | Template[] | null {
+    const flatChildren: Template[] = flatTree(children, asTemplate);
 
-  if (name === null /* fragment */) {
-    return flatChildren;
-  }
-
-  if (typeof name === 'string') {
-    const attrs = attributes(props);
-    return {
-      type: TemplateType.Tag,
-      name,
-      attrs,
-      children: flatChildren,
-    };
-  }
-
-  if (typeof name === 'function') {
-    try {
-      return asTemplate(name(props, flatChildren));
-    } catch {
-      return asTemplate(construct(name, [props, flatChildren]));
+    if (name === null /* fragment */) {
+      return flatChildren;
     }
-  }
 
-  return null;
-}
+    if (typeof name === 'string') {
+      const attrs = attributes(props);
+      return {
+        type: TemplateType.Tag,
+        name,
+        attrs,
+        children: flatChildren,
+      };
+    }
+
+    if (typeof name === 'function') {
+      try {
+        return asTemplate(name(props, flatChildren));
+      } catch {
+        return asTemplate(construct(name, [props, flatChildren]));
+      }
+    }
+
+    return null;
+  },
+
+  createFragment(_: null, children: Template[]): Template {
+    return {
+      type: TemplateType.Fragment,
+      children,
+    };
+  },
+};
 
 function construct(func: Function, args: any[]) {
   try {

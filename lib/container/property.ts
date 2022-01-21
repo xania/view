@@ -1,12 +1,23 @@
 import { ExpressionType } from '../expression';
 import { TemplateType, ExpressionTemplate } from '../template';
 
-export function property<T>(name: keyof T & string): ExpressionTemplate {
+export function expr(
+  expression: ExpressionTemplate['expression']
+): ExpressionTemplate {
   return {
     type: TemplateType.Expression,
-    expression: {
-      type: ExpressionType.Property,
-      name,
-    },
+    expression,
+  };
+}
+
+export function useContext<T = unknown>() {
+  return (nameOrGetter: keyof T | Function, ...deps: (keyof T)[]) => {
+    if (typeof nameOrGetter === 'function')
+      return expr({ type: ExpressionType.Function, func: nameOrGetter, deps });
+    else
+      return expr({
+        type: ExpressionType.Property,
+        name: nameOrGetter,
+      });
   };
 }

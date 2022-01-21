@@ -5,7 +5,6 @@ import {
   Renderable,
   RenderResult,
 } from './template';
-import { createDOMElement } from './render';
 import { ExpressionType } from './expression';
 import flatten from './util/flatten';
 import {
@@ -17,6 +16,7 @@ import {
 } from './dom-operation';
 import { createLookup } from './util/lookup';
 import { isSubscribable } from './util/is-subscibable';
+import { createDOMElement } from './util/create-dom';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -128,7 +128,10 @@ export function compile(rootTemplate: Template | Template[]) {
           type: DomOperationType.SetTextContent,
           expression: template.expression,
         });
-
+        break;
+      case TemplateType.Fragment:
+        for (let i = template.children.length; i--; )
+          stack.push([target, template.children[i]]);
         break;
     }
   }
@@ -242,7 +245,9 @@ export function compile(rootTemplate: Template | Template[]) {
       const operations = operationsMap.get(node) || [];
       const render: DomRenderOperation[] = [];
       const events: { [event: string]: DomEventOperation[] } = {};
-      const updates: { [event: string]: DomRenderOperation[] } = {};
+      const updates: {
+        [prop: string | number | symbol]: DomRenderOperation[];
+      } = {};
 
       for (const op of operations) {
         switch (op.type) {
@@ -252,6 +257,12 @@ export function compile(rootTemplate: Template | Template[]) {
               const name = op.expression.name;
               const updatesBag = updates[name] || (updates[name] = []);
               updatesBag.push(op);
+            } else if (op.expression.type === ExpressionType.Function) {
+              const { deps } = op.expression;
+              for (const name of deps) {
+                const updatesBag = updates[name] || (updates[name] = []);
+                updatesBag.push(op);
+              }
             }
             render.push(op);
             break;
@@ -456,6 +467,10 @@ export function execute(
             case ExpressionType.Property:
               curr.textContent = values[textContentExpr.name];
               break;
+            case ExpressionType.Function:
+              const args = textContentExpr.deps.map((d) => values[d]);
+              curr.textContent = textContentExpr.func.apply(null, args);
+              break;
           }
           break;
         case DomOperationType.SetAttribute:
@@ -464,7 +479,15 @@ export function execute(
             case ExpressionType.Property:
               (curr as any)[operation.name] = values[attrExpr.name];
               break;
+            case ExpressionType.Function:
+              const args = attrExpr.deps.map((d) => values[d]);
+              (curr as any)[operation.name] = attrExpr.func.apply(null, args);
+              break;
           }
+          break;
+        case DomOperationType.Renderable:
+          const result = operation.renderable.render(curr as Element, values);
+          console.log(result);
           break;
       }
     }

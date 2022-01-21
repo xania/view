@@ -17,6 +17,7 @@ export enum TemplateType {
   Renderable,
   Context,
   Expression,
+  Fragment,
 }
 
 export enum AttributeType {
@@ -33,12 +34,12 @@ export interface TagTemplate {
   children: Template[];
 }
 
-interface AttributeTemplate {
+export interface AttributeTemplate {
   type: AttributeType.Attribute;
   name: string;
   value: Exclude<any, null>;
 }
-interface EventTemplate {
+export interface EventTemplate {
   type: AttributeType.Event;
   event: string;
   handler: Function;
@@ -122,6 +123,11 @@ export interface RenderableTemplate {
   renderer: Renderable;
 }
 
+export interface FragmentTemplate {
+  type: TemplateType.Fragment;
+  children: Template[];
+}
+
 export type Template =
   | TagTemplate
   | NativeTemplate
@@ -130,4 +136,5 @@ export type Template =
   | DomTemplate
   | ContextTemplate
   | RenderableTemplate
-  | ExpressionTemplate;
+  | ExpressionTemplate
+  | FragmentTemplate;

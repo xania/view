@@ -89,14 +89,17 @@ export function createContainer<T>(): ViewContainer<T> {
       if (index < 0 || index >= data.length) return;
 
       const row = data[index] as any;
-      const newValue = valueFn(row[property]);
-      row[property] = newValue;
-      mutations.pushMutation({
-        type: ContainerMutationType.UPDATE,
-        index,
-        property,
-        value: row,
-      });
+      const oldValue = row[property];
+      const newValue = valueFn(oldValue);
+      if (newValue !== oldValue) {
+        row[property] = newValue;
+        mutations.pushMutation({
+          type: ContainerMutationType.UPDATE,
+          index,
+          property,
+          value: row,
+        });
+      }
     },
   };
 }
