@@ -421,7 +421,7 @@ export class CompileResult {
               break;
             case DomOperationType.AddEventListener:
               if (eventTarget === curr || curr.contains(eventTarget)) {
-                operation.handler({ node: rootNode });
+                operation.handler({ node: rootNode, event: evt });
               }
               break;
           }
