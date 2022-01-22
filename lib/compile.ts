@@ -90,7 +90,10 @@ export function compile(rootTemplate: Template | Template[]) {
         target.appendChild(textNode);
         break;
       case TemplateType.DOM:
-        target.appendChild(template.node);
+        operationsMap.add(target, {
+          type: DomOperationType.AppendChild,
+          node: template.node,
+        });
         break;
       case TemplateType.Renderable:
         operationsMap.add(target, {
@@ -269,6 +272,8 @@ export function compile(rootTemplate: Template | Template[]) {
             }
             render.push(op);
             break;
+          case DomOperationType.AppendChild:
+            render.push(op);
           case DomOperationType.Renderable:
             render.push(op);
             break;
@@ -488,9 +493,11 @@ export function execute(
               break;
           }
           break;
+        case DomOperationType.AppendChild:
+          (curr as Element).appendChild(operation.node);
+          break;
         case DomOperationType.Renderable:
-          const result = operation.renderable.render(curr as Element, values);
-          console.log(result);
+          operation.renderable.render(curr as Element, values);
           break;
       }
     }
