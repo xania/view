@@ -4,3 +4,9 @@ export function createDOMElement(namespaceURI: string | null, name: string) {
     name
   );
 }
+
+export function createHtmlElement<K extends keyof HTMLElementTagNameMap>(
+  name: K
+) {
+  return document.createElement(name) as HTMLElementTagNameMap[K];
+}

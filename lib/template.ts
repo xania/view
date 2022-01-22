@@ -44,10 +44,7 @@ export interface EventTemplate {
   event: string;
   handler: Function;
 }
-interface NativeTemplate {
-  type: TemplateType.Text;
-  value: string;
-}
+
 interface SubscribableTemplate {
   type: TemplateType.Subscribable;
   value: RXJS.Subscribable<any>;
@@ -128,13 +125,18 @@ export interface FragmentTemplate {
   children: Template[];
 }
 
+export interface TextTemplate {
+  type: TemplateType.Text;
+  value: any;
+}
+
 export type Template =
   | TagTemplate
-  | NativeTemplate
   | SubscribableTemplate
   | DisposableTemplate
   | DomTemplate
   | ContextTemplate
   | RenderableTemplate
   | ExpressionTemplate
-  | FragmentTemplate;
+  | FragmentTemplate
+  | TextTemplate;

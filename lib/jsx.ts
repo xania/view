@@ -132,6 +132,13 @@ function asTemplate(value: any): Template | Template[] {
       type: TemplateType.Renderable,
       renderer: value,
     };
+  } else if (typeof value === 'function') {
+    return {
+      type: TemplateType.Renderable,
+      renderer: {
+        render: value,
+      },
+    };
   }
   // else if (hasProperty(name, 'view')) return asTemplate(name.view);
   // else if (isPrimitive(name)) return new PrimitiveTemplate(name);

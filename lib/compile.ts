@@ -89,6 +89,9 @@ export function compile(rootTemplate: Template | Template[]) {
         const textNode = document.createTextNode(template.value);
         target.appendChild(textNode);
         break;
+      case TemplateType.DOM:
+        target.appendChild(template.node);
+        break;
       case TemplateType.Renderable:
         operationsMap.add(target, {
           type: DomOperationType.Renderable,
