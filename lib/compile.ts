@@ -17,6 +17,7 @@ import {
 import { createLookup } from './util/lookup';
 import { isSubscribable } from './util/is-subscibable';
 import { createDOMElement } from './util/create-dom';
+import { ElementRef } from './abstractions/element';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -145,7 +146,7 @@ export function compile(rootTemplate: Template | Template[]) {
   return createResult();
 
   function compileOperations(
-    rootNodes: ChildNode[],
+    rootNodes: Node[],
     operationsMap: {
       get(node: Node): DomOperation[] | undefined;
     }
@@ -206,9 +207,12 @@ export function compile(rootTemplate: Template | Template[]) {
               childOperations[0].type === DomOperationType.SetTextContent
             ) {
               const child = children[0];
-              child.templateNode.remove();
-              operations.push(childOperations[0]);
-              return;
+              const { parentElement } = child.templateNode;
+              if (parentElement) {
+                parentElement?.removeChild(child.templateNode);
+                operations.push(childOperations[0]);
+                return;
+              }
             }
           }
 
@@ -245,7 +249,7 @@ export function compile(rootTemplate: Template | Template[]) {
     return customizations;
 
     function createNodeCustomization(
-      node: ChildNode,
+      node: Node,
       index: number
     ): NodeCustomization {
       const operations = operationsMap.get(node) || [];
@@ -274,6 +278,7 @@ export function compile(rootTemplate: Template | Template[]) {
             break;
           case DomOperationType.AppendChild:
             render.push(op);
+            break;
           case DomOperationType.Renderable:
             render.push(op);
             break;
@@ -296,10 +301,8 @@ export function compile(rootTemplate: Template | Template[]) {
   }
 
   function createResult() {
-    const rootNodes = toArray(fragment.childNodes as NodeListOf<HTMLElement>);
-
-    const renderCustomizations = compileOperations(rootNodes, operationsMap);
-    const cust = renderCustomizations.get(rootNodes[0]);
+    const renderCustomizations = compileOperations([fragment], operationsMap);
+    const cust = renderCustomizations.get(fragment);
 
     return new CompileResult(cust);
   }
@@ -386,7 +389,7 @@ export interface RenderOptions {
 export class CompileResult {
   constructor(public customization?: NodeCustomization) {}
 
-  listen(rootContainer: Element) {
+  listen(rootContainer: ElementRef) {
     const { customization } = this;
     if (!customization) return;
 
@@ -506,7 +509,7 @@ export function execute(
 
 type NodeCustomization = {
   index: number;
-  templateNode: ChildNode;
+  templateNode: Node;
   render: (DomNavigationOperation | DomRenderOperation)[];
   events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
   updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };

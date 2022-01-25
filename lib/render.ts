@@ -1,3 +1,4 @@
+import { ElementRef } from './abstractions/element';
 import { compile, execute } from './compile';
 import { Template } from './template';
 
@@ -110,12 +111,12 @@ import { Template } from './template';
 
 export function render<T>(
   element: Template,
-  container: Element | string,
+  container: ElementRef | string,
   values?: T
 ): T {
   const containerElt =
     typeof container === 'string'
-      ? document.querySelector<HTMLDivElement>('#app')
+      ? document.querySelector<HTMLDivElement>(container)
       : container;
 
   const result = compile(element);
