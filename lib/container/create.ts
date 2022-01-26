@@ -1,6 +1,11 @@
 import { Template } from '../template';
 
-import { compile, CompileResult, execute } from '../compile';
+import {
+  addEventDelegation,
+  compile,
+  CompileResult,
+  execute,
+} from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
@@ -33,12 +38,15 @@ export function createContainer<T>(): ViewContainer<T> {
       return data.length;
     },
     map(itemTemplate: Template) {
-      const compiled = compile(itemTemplate);
       return {
         render({ target }: { target: Element }) {
+          const compiled = compile(itemTemplate);
+          if (!compiled) return;
+
           const subscr = mutations.subscribe(
             createMutationsObserver<T>(target, compiled)
           );
+
           return {
             dispose() {
               subscr.unsubscribe();

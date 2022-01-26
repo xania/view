@@ -119,15 +119,12 @@ export function render<T>(
       ? document.querySelector<HTMLDivElement>(container)
       : container;
 
-  const result = compile(element);
-  const { customization } = result;
-  if (customization && containerElt) {
-    const rootNode = customization.templateNode.cloneNode(true);
-    containerElt.appendChild(rootNode);
-    result.listen(containerElt);
-    execute(customization.render, [rootNode], [values], 0, 1);
-
-    // return .execute(container);
+  if (containerElt) {
+    const result = compile(element);
+    if (result) {
+      result.listen(containerElt);
+      result.execute(containerElt, values);
+    }
   }
 
   return null as any;
