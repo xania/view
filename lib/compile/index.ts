@@ -46,6 +46,8 @@ export function compile(rootTemplate: Template | Template[]) {
       continue;
     }
 
+    if (template === null || template === undefined) continue;
+
     switch (template.type) {
       case TemplateType.Tag:
         const { name, attrs, children } = template;

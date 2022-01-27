@@ -29,8 +29,9 @@ export const jsx = {
     if (typeof name === 'function') {
       try {
         return asTemplate(name(props, flatChildren));
-      } catch {
-        return asTemplate(construct(name, [props, flatChildren]));
+      } catch (e) {
+        const instance = Reflect.construct(name, [props, flatChildren]);
+        return asTemplate(instance);
       }
     }
 
@@ -44,16 +45,6 @@ export const jsx = {
     };
   },
 };
-
-function construct(func: Function, args: any[]) {
-  try {
-    if (!func) return false;
-    if (func === Symbol) return false;
-    return Reflect.construct(func, args);
-  } catch (e) {
-    return false;
-  }
-}
 
 function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
   var retval: T[] = [];
