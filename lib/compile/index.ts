@@ -12,24 +12,14 @@ import { createLookup } from '../util/lookup';
 import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { ElementRef } from '../abstractions/element';
-import { VirtualElement } from './virtual-element';
 import { RenderTarget } from '../renderable/render-target';
+import { AnchorTarget } from './anchor-target';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
   start: number;
   count: number;
 }
-
-// interface RenderTarget {
-//   appendChild(node: Node): void;
-//   addEventListener(target: Element, name: string, handler: any): void;
-// }
-
-// interface AttrExpression {
-//   name: string;
-//   expression: Expression;
-// }
 
 type StackItem = [TemplateNode, Template | Template[]];
 
@@ -93,7 +83,9 @@ export function compile(rootTemplate: Template | Template[]) {
         });
         break;
       case TemplateType.Renderable:
-        operationsMap.add(target, {
+        const commentNode = document.createComment('');
+        target.appendChild(commentNode);
+        operationsMap.add(commentNode, {
           type: DomOperationType.Renderable,
           renderable: template.renderer,
         });
@@ -141,9 +133,11 @@ export function compile(rootTemplate: Template | Template[]) {
 
   return createResult();
 
-  function compileOperations(rootCustumization: NodeCustomization) {
-    const flattened = flatten([rootCustumization], ({ templateNode }) =>
-      toArray(templateNode.childNodes).map(createNodeCustomization)
+  function compileOperations(rootNodes: Node[]) {
+    const flattened = flatten(
+      rootNodes.map(createNodeCustomization),
+      ({ templateNode }) =>
+        toArray(templateNode.childNodes).map(createNodeCustomization)
     );
 
     const customizations = new Map<TemplateNode, NodeCustomization>();
@@ -290,43 +284,13 @@ export function compile(rootTemplate: Template | Template[]) {
   }
 
   function createResult() {
-    const fragmentOperations = operationsMap.get(fragment);
-    if (!fragmentOperations && fragment.childNodes.length === 0) return null;
+    const childNodes = toArray(fragment.childNodes);
+    const renderCustomizations = compileOperations(childNodes);
 
-    const needsFragment =
-      fragmentOperations?.length || fragment.childNodes.length > 1;
-
-    const fragmentCust = createNodeCustomization(fragment, 0);
-    const renderCustomizations = compileOperations(fragmentCust);
-
-    if (needsFragment) {
-      return new CompileResult(fragmentCust);
-    } else {
-      const singleNode = fragment.childNodes[0];
-      const cust = renderCustomizations.get(singleNode);
-
-      return new CompileResult(cust);
-    }
+    return new CompileResult(
+      childNodes.map((e) => renderCustomizations.get(e) as NodeCustomization)
+    );
   }
-
-  // function createFunctionRenderer(func: Function): Renderable {
-  //   return {
-  //     render(target, context: any) {
-  //       const value = func(context);
-  //       if (isSubscribable(value)) {
-  //         const subscr = value.subscribe({
-  //           next(x: any) {
-  //             target.textContent = x;
-  //           },
-  //         });
-  //         return RenderResult.create(null, subscr);
-  //       } else {
-  //         target.textContent = value;
-  //         return undefined;
-  //       }
-  //     },
-  //   };
-  // }
 
   function setAttribute(elt: Element, name: string, value: any): void {
     if (!value) return;
@@ -389,31 +353,21 @@ export interface RenderOptions {
 }
 
 export class CompileResult {
-  constructor(public customization?: NodeCustomization) {}
+  constructor(public customizations: NodeCustomization[]) {}
 
-  listen(targetElement: ElementRef) {
-    const { customization } = this;
-    if (customization) addEventDelegation(targetElement, customization);
+  listen(targetElement: RenderTarget) {
+    const { customizations } = this;
+    for (const cust of customizations) {
+      addEventDelegation(targetElement, cust);
+    }
   }
 
-  execute(targetElement: ElementRef, values: any) {
-    const { customization } = this;
-    if (customization) {
-      const rootNode = customization.templateNode.cloneNode(true);
-      if (rootNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-        execute(
-          customization.render,
-          [new VirtualElement(targetElement)],
-          [values],
-          0,
-          1
-        );
-        targetElement.appendChild(rootNode);
-      } else {
-        execute(customization.render, [rootNode], [values], 0, 1);
-        targetElement.appendChild(rootNode);
-      }
-      // return .execute(container);
+  execute(targetElement: RenderTarget, values: any) {
+    const { customizations } = this;
+    for (const cust of customizations) {
+      const rootNode = cust.templateNode.cloneNode(true);
+      execute(cust.render, [rootNode], [values], 0, 1);
+      targetElement.appendChild(rootNode);
     }
   }
 }
@@ -480,7 +434,8 @@ export function execute(
           (curr as Element).appendChild(operation.node);
           break;
         case DomOperationType.Renderable:
-          operation.renderable.render(curr as Element, values);
+          const targetElement = new AnchorTarget(curr as Node);
+          operation.renderable.render(targetElement, values);
           break;
       }
     }
@@ -536,7 +491,7 @@ interface TemplateNode {
 }
 
 export function addEventDelegation(
-  rootContainer: ElementRef,
+  rootContainer: RenderTarget,
   customization?: NodeCustomization
 ) {
   if (!customization) return;
