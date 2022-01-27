@@ -1,5 +1,5 @@
-import { Expression } from './expression';
-import { Renderable } from './template';
+import { Expression } from '../expression';
+import { Renderable } from '../renderable';
 
 export enum DomOperationType {
   PushFirstChild,

@@ -1,12 +1,6 @@
-import {
-  AttributeType,
-  TemplateType,
-  Template,
-  Renderable,
-  RenderResult,
-} from './template';
-import { ExpressionType } from './expression';
-import flatten from './util/flatten';
+import { AttributeType, TemplateType, Template } from '../template';
+import { ExpressionType } from '../expression';
+import flatten from '../util/flatten';
 import {
   DomEventOperation,
   DomNavigationOperation,
@@ -14,10 +8,12 @@ import {
   DomOperationType,
   DomRenderOperation,
 } from './dom-operation';
-import { createLookup } from './util/lookup';
-import { isSubscribable } from './util/is-subscibable';
-import { createDOMElement } from './util/create-dom';
-import { ElementRef } from './abstractions/element';
+import { createLookup } from '../util/lookup';
+import { isSubscribable } from '../util/is-subscibable';
+import { createDOMElement } from '../util/create-dom';
+import { ElementRef } from '../abstractions/element';
+import { VirtualElement } from './virtual-element';
+import { RenderTarget } from '../renderable/render-target';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -102,31 +98,31 @@ export function compile(rootTemplate: Template | Template[]) {
           renderable: template.renderer,
         });
         break;
-      case TemplateType.Subscribable:
-        const asyncNode = document.createTextNode('');
-        target.appendChild(asyncNode);
-        operationsMap.add(asyncNode, {
-          type: DomOperationType.Renderable,
-          renderable: {
-            render(target) {
-              const subscr = template.value.subscribe({
-                next(x) {
-                  target.textContent = x;
-                },
-              });
-              return RenderResult.create(null, subscr);
-            },
-          },
-        });
-        break;
-      case TemplateType.Context:
-        const contextNode = document.createTextNode('');
-        target.appendChild(contextNode);
-        operationsMap.add(target, {
-          type: DomOperationType.Renderable,
-          renderable: createFunctionRenderer(template.func),
-        });
-        break;
+      // case TemplateType.Subscribable:
+      //   const asyncNode = document.createTextNode('');
+      //   target.appendChild(asyncNode);
+      //   operationsMap.add(asyncNode, {
+      //     type: DomOperationType.Renderable,
+      //     renderable: {
+      //       render(target) {
+      //         const subscr = template.value.subscribe({
+      //           next(x) {
+      //             target.textContent = x;
+      //           },
+      //         });
+      //         return RenderResult.create(null, subscr);
+      //       },
+      //     },
+      //   });
+      //   break;
+      // case TemplateType.Context:
+      //   const contextNode = document.createTextNode('');
+      //   target.appendChild(contextNode);
+      //   operationsMap.add(target, {
+      //     type: DomOperationType.Renderable,
+      //     renderable: createFunctionRenderer(template.func),
+      //   });
+      //   break;
       case TemplateType.Expression:
         const exprNode = document.createTextNode('');
         target.appendChild(exprNode);
@@ -313,24 +309,24 @@ export function compile(rootTemplate: Template | Template[]) {
     }
   }
 
-  function createFunctionRenderer(func: Function): Renderable {
-    return {
-      render(target, context: any) {
-        const value = func(context);
-        if (isSubscribable(value)) {
-          const subscr = value.subscribe({
-            next(x: any) {
-              target.textContent = x;
-            },
-          });
-          return RenderResult.create(null, subscr);
-        } else {
-          target.textContent = value;
-          return undefined;
-        }
-      },
-    };
-  }
+  // function createFunctionRenderer(func: Function): Renderable {
+  //   return {
+  //     render(target, context: any) {
+  //       const value = func(context);
+  //       if (isSubscribable(value)) {
+  //         const subscr = value.subscribe({
+  //           next(x: any) {
+  //             target.textContent = x;
+  //           },
+  //         });
+  //         return RenderResult.create(null, subscr);
+  //       } else {
+  //         target.textContent = value;
+  //         return undefined;
+  //       }
+  //     },
+  //   };
+  // }
 
   function setAttribute(elt: Element, name: string, value: any): void {
     if (!value) return;
@@ -345,7 +341,7 @@ export function compile(rootTemplate: Template | Template[]) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(target) {
+          render(target: Element) {
             bind(target, value);
           },
         },
@@ -355,7 +351,7 @@ export function compile(rootTemplate: Template | Template[]) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(target, args) {
+          render(target: Element, args: any) {
             const value = func(args);
 
             if (isSubscribable(value)) {
@@ -407,7 +403,7 @@ export class CompileResult {
       if (rootNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
         execute(
           customization.render,
-          [new FragmentProxyNode(rootNode, targetElement)],
+          [new VirtualElement(targetElement)],
           [values],
           0,
           1
@@ -420,11 +416,6 @@ export class CompileResult {
       // return .execute(container);
     }
   }
-}
-
-interface RenderTarget {
-  readonly childNodes: ArrayLike<Node>;
-  readonly firstChild: Node['firstChild'];
 }
 
 const renderStack: RenderTarget[] = [];
@@ -441,7 +432,8 @@ export function execute(
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
-      const curr = renderStack[renderIndex];
+      // promote curr to ElementRef because we trust operation to only access valid properties
+      const curr = renderStack[renderIndex] as ElementRef;
       switch (operation.type) {
         case DomOperationType.PushChild:
           renderStack[++renderIndex] = curr.childNodes[
@@ -452,8 +444,7 @@ export function execute(
           renderStack[++renderIndex] = curr.firstChild as HTMLElement;
           break;
         case DomOperationType.PushNextSibling:
-          renderStack[++renderIndex] = (curr as Node)
-            .nextSibling as HTMLElement;
+          renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
           break;
         case DomOperationType.PopNode:
           renderIndex--;
@@ -595,26 +586,5 @@ export function addEventDelegation(
         }
       }
     });
-  }
-}
-
-class FragmentProxyNode implements RenderTarget, ElementRef {
-  constructor(node: Node, private targetElement: ElementRef) {
-    this.childNodes = node.childNodes;
-    this.firstChild = node.firstChild;
-  }
-
-  childNodes: ArrayLike<Node>;
-  firstChild: ChildNode | null;
-
-  appendChild(node: Node): void {
-    this.targetElement.appendChild(node);
-  }
-  insertBefore<T extends Node>(node: T, child: Node | null) {
-    this.targetElement.insertBefore(node, child);
-    return node;
-  }
-  addEventListener(type: string, handler: (evt: Event) => void): void {
-    this.targetElement.addEventListener(type, handler);
   }
 }

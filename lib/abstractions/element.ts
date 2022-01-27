@@ -2,6 +2,9 @@ export interface ElementRef {
   appendChild(node: Node): void;
   addEventListener(type: string, handler: (evt: Event) => void): void;
   insertBefore: Node['insertBefore'];
+  childNodes: Node['childNodes'];
+  firstChild: Node['firstChild'];
+  nextSibling: Node['nextSibling'];
 }
 
 //import { Disposable } from '../template';

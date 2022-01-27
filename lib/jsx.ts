@@ -1,7 +1,8 @@
 import { TagTemplate, Template, TemplateType } from './template';
 import { reverse } from './util/reverse';
-import { Renderable, AttributeType } from './template';
+import { AttributeType } from './template';
 import { isSubscribable, isUnsubscribable } from './util/is-subscibable';
+import { Renderable } from './renderable';
 
 export const jsx = {
   createElement(
