@@ -135,9 +135,9 @@ export function compile(rootTemplate: Template | Template[]) {
 
   return createResult();
 
-  function compileOperations(rootNodes: Node[]) {
+  function compileOperations(rootNode: Node) {
     const flattened = flatten(
-      rootNodes.map(createNodeCustomization),
+      [createNodeCustomization(rootNode, 0)],
       ({ templateNode }) =>
         toArray(templateNode.childNodes).map(createNodeCustomization)
     );
@@ -286,12 +286,21 @@ export function compile(rootTemplate: Template | Template[]) {
   }
 
   function createResult() {
-    const childNodes = toArray(fragment.childNodes);
-    const renderCustomizations = compileOperations(childNodes);
+    const { childNodes } = fragment;
+    const renderCustomizations = compileOperations(fragment);
 
-    return new CompileResult(
-      childNodes.map((e) => renderCustomizations.get(e) as NodeCustomization)
-    );
+    if (childNodes.length === 0) {
+      return null;
+    } else if (childNodes.length === 1) {
+      return new CompileResult(
+        renderCustomizations.get(fragment) as NodeCustomization
+        // renderCustomizations.get(childNodes[0]) as NodeCustomization
+      );
+    } else {
+      return new CompileResult(
+        renderCustomizations.get(fragment) as NodeCustomization
+      );
+    }
   }
 
   function setAttribute(elt: Element, name: string, value: any): void {
@@ -355,21 +364,29 @@ export interface RenderOptions {
 }
 
 export class CompileResult {
-  constructor(public customizations: NodeCustomization[]) {}
+  constructor(public customization: NodeCustomization) {}
 
   listen(targetElement: RenderTarget) {
-    const { customizations } = this;
-    for (const cust of customizations) {
-      addEventDelegation(targetElement, cust);
-    }
+    addEventDelegation(targetElement, this.customization);
   }
 
   execute(targetElement: RenderTarget, values: any) {
-    const { customizations } = this;
-    for (const cust of customizations) {
-      const rootNode = cust.templateNode.cloneNode(true);
-      execute(cust.render, [rootNode], [values], 0, 1);
+    const { customization: cust } = this;
+    const rootNode = cust.templateNode.cloneNode(true);
+    if (rootNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+      const childNodes = toArray(rootNode.childNodes);
+      for (let i = 0; i < childNodes.length; i++)
+        targetElement.appendChild(childNodes[i]);
+      execute(
+        cust.render,
+        [new FragmentTarget(targetElement, childNodes)],
+        [values],
+        0,
+        1
+      );
+    } else {
       targetElement.appendChild(rootNode);
+      execute(cust.render, [rootNode], [values], 0, 1);
     }
   }
 }
@@ -384,7 +401,8 @@ export function execute(
 ) {
   for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
     const values = items[n];
-    renderStack[0] = rootNodes[n + offset];
+    const rootNode = rootNodes[n + offset];
+    renderStack[0] = rootNode;
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
@@ -543,5 +561,34 @@ export function addEventDelegation(
         }
       }
     });
+  }
+}
+
+class FragmentTarget implements RenderTarget {
+  constructor(
+    private parentElement: RenderTarget,
+    private childNodes: ArrayLike<Node>
+  ) {}
+
+  get firstChild() {
+    return this.childNodes[0];
+  }
+
+  get nextSibling() {
+    const { childNodes } = this;
+    const lastIndex = childNodes.length - 1;
+    return this.childNodes[lastIndex].nextSibling;
+  }
+  removeChild(node: Node): void {
+    this.parentElement.removeChild(node);
+  }
+  appendChild(node: Node): void {
+    this.parentElement.appendChild(node);
+  }
+  addEventListener(type: string, handler: (evt: Event) => void): void {
+    this.parentElement.addEventListener(type, handler);
+  }
+  insertBefore<T extends Node>(node: T, child: Node | null): T {
+    return this.parentElement.insertBefore(node, child);
   }
 }

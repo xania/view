@@ -1,22 +1,28 @@
 import { RenderTarget } from '../renderable/render-target';
 
 export class AnchorTarget implements RenderTarget {
-  constructor(private anchor: Node) {}
+  parentElement: HTMLElement | null;
 
-  appendChild(node: Node): void {
-    const { anchor } = this;
-    const parentElement = anchor.parentElement;
-    if (parentElement) parentElement.appendChild(node);
+  constructor(private anchor: Node) {
+    this.parentElement = anchor.parentElement;
+  }
+
+  removeChild(node: Node): void {
+    const { parentElement } = this;
+    if (parentElement) parentElement.removeChild(node);
+  }
+
+  appendChild(child: Node): void {
+    const { parentElement, anchor } = this;
+    if (parentElement) parentElement.insertBefore(child, anchor);
   }
   insertBefore<T extends Node>(node: T, child: Node | null) {
-    const { anchor } = this;
-    const parentElement = anchor.parentElement;
+    const { parentElement } = this;
     if (parentElement) parentElement.insertBefore(node, child);
     return node;
   }
   addEventListener(type: string, handler: (evt: Event) => void): void {
-    const { anchor } = this;
-    const parentElement = anchor.parentElement;
+    const { parentElement } = this;
     if (parentElement) parentElement.addEventListener(type, handler);
   }
 }

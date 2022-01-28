@@ -1,18 +1,14 @@
 import { Template } from '../template';
 
-import {
-  addEventDelegation,
-  compile,
-  CompileResult,
-  execute,
-} from '../compile';
+import { compile, CompileResult, execute } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
+import { RenderTarget } from '../renderable/render-target';
 
-export interface ViewContainer<T> {
+export interface ViewContainer<T = unknown> {
   push(data: T[], start?: number, count?: number): void;
   swap(index0: number, index1: number): void;
   clear(): void;
@@ -39,9 +35,9 @@ export function createContainer<T>(): ViewContainer<T> {
     },
     map(itemTemplate: Template) {
       return {
-        render({ target }: { target: Element }) {
+        render(target: RenderTarget) {
           const compiled = compile(itemTemplate);
-          if (!compiled) return;
+          if (!compiled) return undefined;
 
           const subscr = mutations.subscribe(
             createMutationsObserver<T>(target, compiled)
@@ -113,7 +109,7 @@ export function createContainer<T>(): ViewContainer<T> {
 }
 
 function createMutationsObserver<T>(
-  containerElt: Element,
+  containerElt: RenderTarget,
   template: CompileResult
 ) {
   template.listen(containerElt);
@@ -152,15 +148,15 @@ function createMutationsObserver<T>(
             const { nodes } = customization;
 
             if (nodes.length) {
-              if (containerElt.childNodes.length === nodes.length) {
-                containerElt.textContent = '';
-              } else {
-                var rangeObj = new Range();
-                rangeObj.setStartBefore(nodes[0]);
-                rangeObj.setEndAfter(nodes[nodes.length - 1]);
+              // if (containerElt.childNodes.length === nodes.length) {
+              //   containerElt.textContent = '';
+              // } else {
+              var rangeObj = new Range();
+              rangeObj.setStartBefore(nodes[0]);
+              rangeObj.setEndAfter(nodes[nodes.length - 1]);
 
-                rangeObj.deleteContents();
-              }
+              rangeObj.deleteContents();
+              // }
             }
             customization.nodes.length = 0;
           }
