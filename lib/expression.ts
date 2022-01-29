@@ -1,6 +1,9 @@
+import { State } from './state';
+
 export enum ExpressionType {
   Property,
   Function,
+  State,
 }
 
 export interface PropertyExpression {
@@ -14,4 +17,12 @@ export interface FunctionExpression {
   deps: (string | number | symbol)[];
 }
 
-export type Expression = PropertyExpression | FunctionExpression;
+export interface StateExpression {
+  type: ExpressionType.State;
+  state: State<any>;
+}
+
+export type Expression =
+  | PropertyExpression
+  | FunctionExpression
+  | StateExpression;

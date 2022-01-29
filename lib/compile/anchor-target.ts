@@ -25,4 +25,10 @@ export class AnchorTarget implements RenderTarget {
     const { parentElement } = this;
     if (parentElement) parentElement.addEventListener(type, handler);
   }
+
+  childNodes: ArrayLike<Node> = [];
+
+  contains() {
+    return false;
+  }
 }

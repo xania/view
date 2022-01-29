@@ -1,11 +1,12 @@
 import { Disposable } from './abstractions/disposable';
 import { Expression } from './expression';
 import { Renderable } from './renderable';
+import { State } from './state';
 
 export enum TemplateType {
   Text,
   Tag,
-  Subscribable,
+  State,
   Disposable,
   DOM,
   Renderable,
@@ -38,9 +39,9 @@ export interface EventTemplate {
   handler: Function;
 }
 
-interface SubscribableTemplate {
-  type: TemplateType.Subscribable;
-  value: RXJS.Subscribable<any>;
+interface StateTemplate {
+  type: TemplateType.State;
+  state: State<any>;
 }
 interface DisposableTemplate extends Disposable {
   type: TemplateType.Disposable;
@@ -73,7 +74,7 @@ export interface TextTemplate {
 
 export type Template =
   | TagTemplate
-  | SubscribableTemplate
+  | StateTemplate
   | DisposableTemplate
   | DomTemplate
   | RenderableTemplate

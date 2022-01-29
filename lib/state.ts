@@ -30,6 +30,16 @@ export class State<T> {
     }
   }
 
+  set(newValue: T) {
+    const { current: value } = this;
+    if (newValue !== value) {
+      this.current = newValue;
+      for (const o of this.observers) {
+        o.next(newValue);
+      }
+    }
+  }
+
   toString() {
     return this.current;
   }

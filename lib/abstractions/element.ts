@@ -3,6 +3,7 @@ export interface ElementRef {
   addEventListener(type: string, handler: (evt: Event) => void): void;
   insertBefore: Node['insertBefore'];
   removeChild: Node['removeChild'];
+  contains: Node['contains'];
   childNodes: Node['childNodes'];
   firstChild: Node['firstChild'];
   nextSibling: Node['nextSibling'];

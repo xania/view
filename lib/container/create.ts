@@ -126,7 +126,7 @@ function createMutationsObserver<T>(
             const { nodes } = cust;
             let nodesLen = nodes.length;
             for (let i = 0, len = items.length; i < len; i++) {
-              const rootNode = cust.templateNode.cloneNode(true);
+              const rootNode = cust.templateNode.cloneNode(true) as any;
               containerElt.appendChild(rootNode);
               cust.nodes[nodesLen++] = rootNode;
             }

@@ -1,8 +1,9 @@
 import { TagTemplate, Template, TemplateType } from './template';
 import { reverse } from './util/reverse';
 import { AttributeType } from './template';
-import { isSubscribable, isUnsubscribable } from './util/is-subscibable';
+import { isUnsubscribable } from './util/is-subscibable';
 import { Renderable } from './renderable';
+import { State } from './state';
 
 export const jsx = {
   createElement(
@@ -102,12 +103,12 @@ function asTemplate(value: any): Template | Template[] {
   // else if (typeof name === 'function') return name;
   // else if (Array.isArray(name)) return flatTree(name, asTemplate);
   // else if (isPromise<TemplateInput>(name)) return new TemplatePromise(name);
-  else if (isSubscribable(value))
+  else if (value instanceof State) {
     return {
-      type: TemplateType.Subscribable,
-      value,
+      type: TemplateType.State,
+      state: value,
     };
-  else if (isUnsubscribable(value))
+  } else if (isUnsubscribable(value))
     return {
       type: TemplateType.Disposable,
       dispose() {
