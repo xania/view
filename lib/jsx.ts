@@ -94,7 +94,7 @@ function attributes(props: any | null): TagTemplate['attrs'] {
   return null;
 }
 
-function asTemplate(value: any): Template | Template[] {
+export function asTemplate(value: any): Template | Template[] {
   if (typeof value === 'undefined' || value === null) {
     return null as any;
   } else if (isTemplate(value)) return value;
@@ -120,7 +120,15 @@ function asTemplate(value: any): Template | Template[] {
       type: TemplateType.DOM,
       node: value,
     };
-  else if (isRenderable(value)) {
+  else if (
+    'view' in Object.keys(value) ||
+    'view' in value.constructor.prototype
+  ) {
+    return {
+      type: TemplateType.ViewProvider,
+      provider: value,
+    };
+  } else if (isRenderable(value)) {
     return {
       type: TemplateType.Renderable,
       renderer: value,

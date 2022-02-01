@@ -15,6 +15,7 @@ import { ElementRef } from '../abstractions/element';
 import { RenderTarget } from '../renderable/render-target';
 import { AnchorTarget } from './anchor-target';
 import { State } from '../state';
+import { asTemplate } from '../jsx';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -36,7 +37,7 @@ export function compile(rootTemplate: Template | Template[]) {
       stack.push([frg, tpl]);
     }
   } else {
-    stack.push([fragment, rootTemplate]);
+    stack.push([fragment, asTemplate(rootTemplate)]);
   }
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
@@ -142,6 +143,9 @@ export function compile(rootTemplate: Template | Template[]) {
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
           stack.push([target, template.children[i]]);
+        break;
+      case TemplateType.ViewProvider:
+        stack.push([target, template.provider.view]);
         break;
     }
   }

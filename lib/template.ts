@@ -10,6 +10,7 @@ export enum TemplateType {
   Disposable,
   DOM,
   Renderable,
+  ViewProvider,
   Expression,
   Fragment,
 }
@@ -43,6 +44,7 @@ interface StateTemplate {
   type: TemplateType.State;
   state: State<any>;
 }
+
 interface DisposableTemplate extends Disposable {
   type: TemplateType.Disposable;
 }
@@ -55,6 +57,11 @@ interface DomTemplate {
 export interface ExpressionTemplate {
   type: TemplateType.Expression;
   expression: Expression;
+}
+
+interface ViewProviderTemplate {
+  type: TemplateType.ViewProvider;
+  provider: { view: any };
 }
 
 export interface RenderableTemplate {
@@ -80,4 +87,5 @@ export type Template =
   | RenderableTemplate
   | ExpressionTemplate
   | FragmentTemplate
-  | TextTemplate;
+  | TextTemplate
+  | ViewProviderTemplate;
