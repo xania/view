@@ -23,7 +23,7 @@ export interface RenderProps {
   count: number;
 }
 
-type StackItem = [TemplateNode, Template | Template[]];
+type StackItem = [TemplateNode, Template];
 
 export function compile(rootTemplate: Template | Template[]) {
   const operationsMap = createLookup<TemplateNode, DomOperation>();
@@ -32,9 +32,7 @@ export function compile(rootTemplate: Template | Template[]) {
   const stack: StackItem[] = [];
   if (Array.isArray(rootTemplate)) {
     for (const tpl of rootTemplate) {
-      const frg = new DocumentFragment();
-      fragment.appendChild(frg);
-      stack.push([frg, tpl]);
+      stack.push([fragment, tpl]);
     }
   } else {
     stack.push([fragment, asTemplate(rootTemplate)]);
@@ -44,8 +42,7 @@ export function compile(rootTemplate: Template | Template[]) {
     const [target, template] = curr;
 
     if (Array.isArray(template)) {
-      for (let i = template.length; i--; ) stack.push([target, template[i]]);
-      continue;
+      throw new Error('array unexpected!');
     }
 
     if (template === null || template === undefined) continue;
@@ -73,7 +70,7 @@ export function compile(rootTemplate: Template | Template[]) {
 
         let { length } = children;
         while (length--) {
-          stack.push([dom, children[length]]);
+          stack.push([dom, asTemplate(children[length])]);
         }
         break;
       case TemplateType.Text:
@@ -142,7 +139,7 @@ export function compile(rootTemplate: Template | Template[]) {
         break;
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
-          stack.push([target, template.children[i]]);
+          stack.push([target, asTemplate(template.children[i])]);
         break;
       case TemplateType.ViewProvider:
         stack.push([target, template.provider.view]);

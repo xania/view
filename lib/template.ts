@@ -18,6 +18,7 @@ export enum TemplateType {
 export enum AttributeType {
   Attribute,
   Event,
+  ClassName,
 }
 
 // type Primitive = string | number | boolean | Date;
@@ -30,7 +31,7 @@ export interface TagTemplate {
 }
 
 export interface AttributeTemplate {
-  type: AttributeType.Attribute;
+  type: AttributeType.Attribute | AttributeType.ClassName;
   name: string;
   value: Exclude<any, null>;
 }

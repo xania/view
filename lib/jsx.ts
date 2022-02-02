@@ -10,11 +10,12 @@ export const jsx = {
     name: string | Function | null,
     props: any = null,
     ...children: unknown[]
-  ): Template | Template[] | null {
-    const flatChildren: Template[] = flatTree(children, asTemplate);
-
+  ): Template | null {
     if (name === null /* fragment */) {
-      return flatChildren;
+      return {
+        type: TemplateType.Fragment,
+        children: flatTree(children, asTemplate),
+      };
     }
 
     if (typeof name === 'string') {
@@ -23,16 +24,15 @@ export const jsx = {
         type: TemplateType.Tag,
         name,
         attrs,
-        children: flatChildren,
+        children: flatTree(children, asTemplate),
       };
     }
 
     if (typeof name === 'function') {
       try {
-        return asTemplate(name(props, flatChildren));
+        return name(props, children);
       } catch (e) {
-        const instance = Reflect.construct(name, [props, flatChildren]);
-        return asTemplate(instance);
+        return Reflect.construct(name, [props, children]);
       }
     }
 
@@ -94,7 +94,7 @@ function attributes(props: any | null): TagTemplate['attrs'] {
   return null;
 }
 
-export function asTemplate(value: any): Template | Template[] {
+export function asTemplate(value: any): Template {
   if (typeof value === 'undefined' || value === null) {
     return null as any;
   } else if (isTemplate(value)) return value;
