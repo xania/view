@@ -1,5 +1,5 @@
 import { compile } from './compile';
-import { RenderTarget } from './renderable';
+import { RenderTarget } from './renderable/render-target';
 import { Template } from './template';
 
 export function render<T>(
@@ -13,10 +13,10 @@ export function render<T>(
       : container;
 
   if (containerElt) {
-    const result = compile(element);
+    const result = compile(element, containerElt);
     if (result) {
-      result.listen(containerElt);
-      result.execute(containerElt, [values]);
+      result.listen();
+      result.execute([values]);
     }
   }
 

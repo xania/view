@@ -2,13 +2,13 @@ export type ContainerMutation<T = unknown> =
   | PushItem<T>
   | PushItems<T>
   | MoveItem
-  | RemoveItem<T>
+  | RemoveNode
   | RemoveItemAt
   | InsertItem<T>
   | ResetItems<T>
   | ClearItems
   | SwapItems
-  | UpdateItem<T>;
+  | UpdateNode<T>;
 
 export enum ContainerMutationType {
   PUSH,
@@ -38,9 +38,9 @@ interface MoveItem {
   to: number;
 }
 
-interface RemoveItem<T> {
+interface RemoveNode {
   type: ContainerMutationType.REMOVE;
-  item: T;
+  node: Node;
 }
 
 interface RemoveItemAt {
@@ -69,11 +69,11 @@ interface SwapItems {
   index2: number;
 }
 
-interface UpdateItem<T> {
+interface UpdateNode<T> {
   type: ContainerMutationType.UPDATE;
-  index: number;
+  node: Node;
   property: keyof T;
-  value: T[this['property']];
+  valueFn: (row: T) => T[this['property']];
 }
 
 export function pushItem<T>(values: T): PushItem<T> {
@@ -90,10 +90,10 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
   };
 }
 
-export function removeItem<T>(item: T): RemoveItem<T> {
+export function removeItem(node: Node): RemoveNode {
   return {
     type: ContainerMutationType.REMOVE,
-    item,
+    node,
   };
 }
 

@@ -13,12 +13,11 @@ import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
 import { asTemplate } from '../jsx';
-import {
-  CompileResult,
-  FragmentCompileResult,
-  NodeCompileResult,
-} from './compile-result';
 import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
+import { FragmentCompileResult } from './fragment-compile-result';
+import { NodeCompileResult } from './node-compile-result';
+import { RenderTarget } from '../renderable/render-target';
+import { CompileResult } from './compile-result';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -28,7 +27,10 @@ export interface RenderProps {
 
 type StackItem = [Node, Template, Template[]];
 
-export function compile(rootTemplate: Template | Template[]) {
+export function compile(
+  rootTemplate: Template | Template[],
+  containerElt: RenderTarget
+): CompileResult | null {
   const operationsMap = createLookup<Node, DomOperation>();
 
   const fragment = new DocumentFragment();
@@ -328,11 +330,13 @@ export function compile(rootTemplate: Template | Template[]) {
     if (operationsMap.get(fragment)?.length || childNodes.length !== 1) {
       const fragmentCustomization = renderCustomizations.get(fragment);
       return new FragmentCompileResult(
+        containerElt,
         fragmentCustomization,
         childCustomizations
       );
     } else if (childNodes.length === 1) {
       return new NodeCompileResult(
+        containerElt,
         renderCustomizations.get(childNodes[0]) as NodeCustomization
       );
     } else {

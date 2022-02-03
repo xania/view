@@ -24,14 +24,15 @@ export function execute(
         case DomOperationType.PushChild:
           renderStack[++renderIndex] = curr.childNodes[
             operation.index
-          ] as HTMLElement;
+          ] as RenderTarget;
           break;
         case DomOperationType.PushFirstChild:
-          renderStack[++renderIndex] = (curr as Node).firstChild as HTMLElement;
+          renderStack[++renderIndex] = (curr as Node)
+            .firstChild as RenderTarget;
           break;
         case DomOperationType.PushNextSibling:
           renderStack[++renderIndex] = (curr as Node)
-            .nextSibling as HTMLElement;
+            .nextSibling as RenderTarget;
           break;
         case DomOperationType.PopNode:
           renderIndex--;

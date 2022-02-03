@@ -1,6 +1,11 @@
 import { RenderTarget } from '../renderable/render-target';
 import { DomOperationType } from './dom-operation';
-import { component, distinct, NodeCustomization } from './helpers';
+import {
+  componentKey,
+  distinct,
+  NodeCustomization,
+  valuesKey,
+} from './helpers';
 
 export function addEventDelegation(
   rootContainer: RenderTarget,
@@ -10,7 +15,7 @@ export function addEventDelegation(
 
   function getRootNode(node: Node | null): Node | null {
     if (!node) return null;
-    if ((node as any)[component]) return node;
+    if ((node as any)[componentKey]) return node;
     return getRootNode(node.parentNode);
   }
 
@@ -22,7 +27,10 @@ export function addEventDelegation(
       if (!eventTarget) return;
       const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
       if (!rootNode) return;
-      const customization = (rootNode as any)[component] as NodeCustomization;
+      const customization = (rootNode as any)[
+        componentKey
+      ] as NodeCustomization;
+      const values = (rootNode as any)[valuesKey] as NodeCustomization;
 
       const operations = customization.events[eventName];
       if (!operations || !operations.length) return;
@@ -49,7 +57,7 @@ export function addEventDelegation(
             break;
           case DomOperationType.AddEventListener:
             if (eventTarget === curr || curr.contains(eventTarget)) {
-              operation.handler({ node: rootNode, event: evt });
+              operation.handler({ node: rootNode, values, event: evt });
             }
             break;
         }

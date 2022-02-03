@@ -45,4 +45,5 @@ export type NodeCustomization = {
   nodes: RenderTarget[];
 };
 
-export const component = Symbol(new Date().getTime());
+export const componentKey = Symbol(new Date().getTime());
+export const valuesKey = Symbol(new Date().getTime());
