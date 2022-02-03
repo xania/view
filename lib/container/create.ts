@@ -87,7 +87,7 @@ export function createContainer<T>(): ViewContainer<T> {
         index2,
       });
     },
-    updateAt(index: number, property: any, valueFn: (prev: any) => any) {
+    updateAt() {
       // if (index < 0 || index >= data.length) return;
       // const row = data[index] as any;
       // const oldValue = row[property];
