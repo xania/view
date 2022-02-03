@@ -1,12 +1,14 @@
 import { Template } from '../template';
 
-import { compile, CompileResult, execute } from '../compile';
+import { compile } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
 import { RenderTarget } from '../renderable/render-target';
+import { CompileResult } from '../compile/compile-result';
+import { execute } from '../compile/execute';
 
 export interface ViewContainer<T = unknown> {
   push(data: T[], start?: number, count?: number): void;
@@ -120,28 +122,8 @@ function createMutationsObserver<T>(
     next(mut: ContainerMutation<T>) {
       switch (mut.type) {
         case ContainerMutationType.PUSH_MANY:
-          const { items } = mut;
-          if (customization) {
-            const cust = customization;
-            const { nodes } = cust;
-            let nodesLen = nodes.length;
-            for (let i = 0, len = items.length; i < len; i++) {
-              const rootNode = cust.templateNode.cloneNode(true) as any;
-              containerElt.appendChild(rootNode);
-              cust.nodes[nodesLen++] = rootNode;
-            }
-
-            const operations = cust.render;
-            if (operations?.length)
-              execute(
-                operations,
-                nodes,
-                items,
-                nodesLen - items.length,
-                items.length
-              );
-          }
-
+          // const nodes = customization.nodes;
+          template.execute(containerElt, mut.items);
           break;
         case ContainerMutationType.CLEAR:
           if (customization) {
@@ -152,8 +134,8 @@ function createMutationsObserver<T>(
               //   containerElt.textContent = '';
               // } else {
               var rangeObj = new Range();
-              rangeObj.setStartBefore(nodes[0]);
-              rangeObj.setEndAfter(nodes[nodes.length - 1]);
+              // rangeObj.setStartBefore(nodes[0]);
+              // rangeObj.setEndAfter(nodes[nodes.length - 1]);
 
               rangeObj.deleteContents();
               // }
@@ -166,7 +148,8 @@ function createMutationsObserver<T>(
             const { nodes } = customization;
             const { index } = mut;
             const node = nodes[index];
-            containerElt.removeChild(node);
+            // node.remove();
+            // containerElt.removeChild(node);
             nodes.splice(index, 1);
           }
           break;
@@ -196,8 +179,8 @@ function createMutationsObserver<T>(
             nodes[index1] = node2;
             nodes[index2] = node1;
 
-            containerElt.insertBefore(node1, nodes[index2 + 1]);
-            containerElt.insertBefore(node2, nodes[index1 + 1]);
+            // containerElt.insertBefore(node1, nodes[index2 + 1]);
+            // containerElt.insertBefore(node2, nodes[index1 + 1]);
           }
 
           break;

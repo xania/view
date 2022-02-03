@@ -7,6 +7,10 @@ export class AnchorTarget implements RenderTarget {
     this.parentElement = anchor.parentElement;
   }
 
+  remove() {
+    this.removeChild(this.anchor);
+  }
+
   removeChild(node: Node): void {
     const { parentElement } = this;
     if (parentElement) parentElement.removeChild(node);

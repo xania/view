@@ -11,11 +11,14 @@ import {
 import { createLookup } from '../util/lookup';
 import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
-import { ElementRef } from '../abstractions/element';
-import { RenderTarget } from '../renderable/render-target';
-import { AnchorTarget } from './anchor-target';
 import { State } from '../state';
 import { asTemplate } from '../jsx';
+import {
+  CompileResult,
+  FragmentCompileResult,
+  NodeCompileResult,
+} from './compile-result';
+import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -23,23 +26,23 @@ export interface RenderProps {
   count: number;
 }
 
-type StackItem = [TemplateNode, Template];
+type StackItem = [Node, Template, Template[]];
 
 export function compile(rootTemplate: Template | Template[]) {
-  const operationsMap = createLookup<TemplateNode, DomOperation>();
+  const operationsMap = createLookup<Node, DomOperation>();
 
   const fragment = new DocumentFragment();
   const stack: StackItem[] = [];
   if (Array.isArray(rootTemplate)) {
     for (const tpl of rootTemplate) {
-      stack.push([fragment, tpl]);
+      stack.push([fragment, tpl, rootTemplate]);
     }
   } else {
-    stack.push([fragment, asTemplate(rootTemplate)]);
+    stack.push([fragment, asTemplate(rootTemplate), [rootTemplate]]);
   }
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
-    const [target, template] = curr;
+    const [target, template, siblings] = curr;
 
     if (Array.isArray(template)) {
       throw new Error('array unexpected!');
@@ -50,7 +53,7 @@ export function compile(rootTemplate: Template | Template[]) {
     switch (template.type) {
       case TemplateType.Tag:
         const { name, attrs, children } = template;
-        const dom = createDOMElement('http://www.w3.org/1999/xhtml', name);
+        const dom = createDOMElement(name);
         target.appendChild(dom);
 
         if (attrs) {
@@ -70,7 +73,7 @@ export function compile(rootTemplate: Template | Template[]) {
 
         let { length } = children;
         while (length--) {
-          stack.push([dom, asTemplate(children[length])]);
+          stack.push([dom, asTemplate(children[length]), children]);
         }
         break;
       case TemplateType.Text:
@@ -96,12 +99,18 @@ export function compile(rootTemplate: Template | Template[]) {
         });
         break;
       case TemplateType.Renderable:
-        const commentNode = document.createComment('');
-        target.appendChild(commentNode);
-        operationsMap.add(commentNode, {
+        const operation: DomOperation = {
           type: DomOperationType.Renderable,
           renderable: template.renderer,
-        });
+        };
+
+        if (siblings?.length === 1) {
+          operationsMap.add(target, operation);
+        } else {
+          const commentNode = document.createComment('');
+          target.appendChild(commentNode);
+          operationsMap.add(commentNode, operation);
+        }
         break;
       // case TemplateType.Subscribable:
       //   const asyncNode = document.createTextNode('');
@@ -139,17 +148,18 @@ export function compile(rootTemplate: Template | Template[]) {
         break;
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
-          stack.push([target, asTemplate(template.children[i])]);
+          stack.push([target, asTemplate(template.children[i]), children]);
         break;
       case TemplateType.ViewProvider:
-        stack.push([target, template.provider.view]);
+        const { view } = template.provider;
+        stack.push([target, view, []]);
         break;
     }
   }
 
   return createResult();
 
-  function compileOperations(fragment: TemplateNode) {
+  function compileOperations(fragment: Node) {
     const flattened = flatten(
       [createNodeCustomization(fragment, 0, operationsMap.get(fragment))],
       ({ templateNode }) =>
@@ -158,7 +168,7 @@ export function compile(rootTemplate: Template | Template[]) {
         )
     );
 
-    const customizations = new Map<TemplateNode, NodeCustomization>();
+    const customizations = new Map<Node, NodeCustomization>();
     // iterate in reverse to traverse nodes bottom up
     for (let i = flattened.length - 1; i >= 0; i--) {
       const cust = flattened[i];
@@ -251,7 +261,7 @@ export function compile(rootTemplate: Template | Template[]) {
   }
 
   function createNodeCustomization(
-    node: TemplateNode,
+    node: Node,
     index: number,
     operations?: DomOperation[]
   ): NodeCustomization {
@@ -306,16 +316,27 @@ export function compile(rootTemplate: Template | Template[]) {
     const { childNodes } = fragment;
     const renderCustomizations = compileOperations(fragment);
 
-    if (childNodes.length === 0) {
-      return null;
+    const childCustomizations: NodeCustomization[] = new Array(
+      childNodes.length
+    );
+    for (let i = 0, len = childNodes.length; i < len; i++) {
+      const childNode = childNodes[i];
+      childCustomizations[i] = renderCustomizations.get(
+        childNode
+      ) as NodeCustomization;
+    }
+    if (operationsMap.get(fragment)?.length || childNodes.length !== 1) {
+      const fragmentCustomization = renderCustomizations.get(fragment);
+      return new FragmentCompileResult(
+        fragmentCustomization,
+        childCustomizations
+      );
     } else if (childNodes.length === 1) {
-      return new CompileResult(
-        // renderCustomizations.get(fragment) as NodeCustomization
+      return new NodeCompileResult(
         renderCustomizations.get(childNodes[0]) as NodeCustomization
       );
     } else {
-      const cust = renderCustomizations.get(fragment) as NodeCustomization;
-      return new CompileResult(cust);
+      return null;
     }
   }
 
@@ -387,279 +408,6 @@ export interface RenderOptions {
   items: ArrayLike<any>;
   start: number;
   count: number;
-}
-
-export class CompileResult {
-  constructor(public customization: NodeCustomization) {}
-
-  listen(targetElement: RenderTarget) {
-    addEventDelegation(targetElement, this.customization);
-  }
-
-  clone(targetElement: RenderTarget): RenderTarget {
-    const { customization: cust } = this;
-    const { templateNode } = cust;
-    const rootNode = (templateNode as any).cloneNode(
-      true,
-      targetElement as any
-    );
-
-    if (templateNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-      const childNodes = toArray(rootNode.childNodes);
-      const fragmentTarget = new FragmentTarget(targetElement, childNodes);
-      for (let i = 0; i < childNodes.length; i++)
-        targetElement.appendChild(childNodes[i]);
-      return fragmentTarget;
-    } else {
-      targetElement.appendChild(rootNode);
-      return rootNode;
-    }
-  }
-
-  execute(targetElement: RenderTarget, values: any) {
-    const { customization: cust } = this;
-    const { templateNode } = cust;
-    const rootNode = templateNode.cloneNode(true);
-
-    if (templateNode.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-      const childNodes = toArray(rootNode.childNodes);
-      const fragmentTarget = new FragmentTarget(targetElement, childNodes);
-      for (let i = 0; i < childNodes.length; i++)
-        targetElement.appendChild(childNodes[i]);
-      execute(cust.render, [fragmentTarget], [values], 0, 1);
-      return fragmentTarget;
-    } else {
-      targetElement.appendChild(rootNode as any);
-      execute(cust.render, [rootNode], [values], 0, 1);
-      return rootNode;
-    }
-  }
-}
-
-const renderStack: RenderTarget[] = [];
-export function execute(
-  operations: DomOperation[],
-  rootNodes: RenderTarget[],
-  items: ArrayLike<any>,
-  offset: number,
-  length: number
-) {
-  for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
-    const values = items[n];
-    const rootNode = rootNodes[n + offset];
-    renderStack[0] = rootNode;
-    let renderIndex = 0;
-    for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
-      const operation = operations[n];
-      // promote curr to ElementRef because we trust operation to only access valid properties
-      const curr = renderStack[renderIndex] as ElementRef;
-      switch (operation.type) {
-        case DomOperationType.PushChild:
-          renderStack[++renderIndex] = curr.childNodes[
-            operation.index
-          ] as HTMLElement;
-          break;
-        case DomOperationType.PushFirstChild:
-          renderStack[++renderIndex] = curr.firstChild as HTMLElement;
-          break;
-        case DomOperationType.PushNextSibling:
-          renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
-          break;
-        case DomOperationType.PopNode:
-          renderIndex--;
-          break;
-        case DomOperationType.SetTextContent:
-          const textContentExpr = operation.expression;
-          switch (textContentExpr.type) {
-            case ExpressionType.Property:
-              (curr as Node).textContent = values[textContentExpr.name];
-              break;
-            case ExpressionType.Function:
-              const args = textContentExpr.deps.map((d) => values[d]);
-              (curr as Node).textContent = textContentExpr.func.apply(
-                null,
-                args
-              );
-              break;
-            case ExpressionType.State:
-              textContentExpr.state.subscribe({
-                next(s) {
-                  (curr as Node).textContent = s;
-                },
-              });
-              break;
-          }
-          break;
-        case DomOperationType.SetAttribute:
-          const attrExpr = operation.expression;
-          switch (attrExpr.type) {
-            case ExpressionType.Property:
-              (curr as any)[operation.name] = values[attrExpr.name];
-              break;
-            case ExpressionType.Function:
-              const args = attrExpr.deps.map((d) => values[d]);
-              (curr as any)[operation.name] = attrExpr.func.apply(null, args);
-              break;
-            case ExpressionType.State:
-              attrExpr.state.subscribe({
-                next(s) {
-                  (curr as any)[operation.name] = s;
-                },
-              });
-              break;
-          }
-          break;
-        case DomOperationType.AppendChild:
-          (curr as Element).appendChild(operation.node);
-          break;
-        case DomOperationType.Renderable:
-          const targetElement = new AnchorTarget(curr as Node);
-          operation.renderable.render(targetElement, values);
-          break;
-      }
-    }
-  }
-}
-
-type NodeCustomization = {
-  index: number;
-  templateNode: TemplateNode;
-  render: (DomNavigationOperation | DomRenderOperation)[];
-  events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
-  updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };
-  nodes: Node[];
-};
-
-function toArray<T extends Node>(nodes: ArrayLike<T>) {
-  const result: T[] = [];
-  const length = nodes.length;
-  for (let i = 0; i < length; i++) {
-    result.push(nodes[i]);
-  }
-  return result;
-}
-
-function selectMany<T, P>(
-  source: (T | undefined)[],
-  selector: (x: T) => (P | undefined)[]
-): P[] {
-  const result: P[] = [];
-
-  for (const x of source) {
-    if (x) {
-      const members = selector(x);
-      for (const m of members) {
-        if (m) result.push(m);
-      }
-    }
-  }
-
-  return result;
-}
-
-function distinct<T>(source: T[]) {
-  return new Set<T>(source);
-}
-
-interface TemplateNode {
-  childNodes: ArrayLike<Node>;
-  nodeType: Node['nodeType'];
-  parentElement: Node['parentElement'];
-  appendChild: Node['appendChild'];
-  cloneNode(deep: boolean): RenderTarget;
-}
-
-export function addEventDelegation(
-  rootContainer: RenderTarget,
-  customization?: NodeCustomization
-) {
-  if (!customization) return;
-
-  function getRootNode(node: Node | null): Node | null {
-    if (!node) return null;
-    if (rootContainer.contains(node)) return node;
-    return getRootNode(node.parentNode);
-  }
-
-  for (const eventName of distinct(Object.keys(customization.events))) {
-    rootContainer.addEventListener(eventName, (evt: Event) => {
-      const eventName = evt.type;
-      const eventTarget = evt.target as Node;
-
-      if (!eventTarget) return;
-
-      const operations = customization.events[eventName];
-      if (!operations || !operations.length) return;
-
-      const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
-
-      const renderStack: Node[] = [rootNode];
-      let renderIndex = 0;
-      for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
-        const operation = operations[n];
-        const curr = renderStack[renderIndex];
-        switch (operation.type) {
-          case DomOperationType.PushChild:
-            renderStack[++renderIndex] = curr.childNodes[
-              operation.index
-            ] as HTMLElement;
-            break;
-          case DomOperationType.PushFirstChild:
-            renderStack[++renderIndex] = curr.firstChild as HTMLElement;
-            break;
-          case DomOperationType.PushNextSibling:
-            renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
-            break;
-          case DomOperationType.PopNode:
-            renderIndex--;
-            break;
-          case DomOperationType.AddEventListener:
-            if (eventTarget === curr || curr.contains(eventTarget)) {
-              operation.handler({ node: rootNode, event: evt });
-            }
-            break;
-        }
-      }
-    });
-  }
-}
-
-class FragmentTarget implements RenderTarget {
-  constructor(
-    private parentElement: RenderTarget,
-    public childNodes: ArrayLike<Node>
-  ) {}
-
-  get firstChild() {
-    return this.childNodes[0];
-  }
-
-  get nextSibling() {
-    const { childNodes } = this;
-    const lastIndex = childNodes.length - 1;
-    return this.childNodes[lastIndex].nextSibling;
-  }
-  removeChild(node: Node): void {
-    this.parentElement.removeChild(node);
-  }
-  appendChild(node: Node): void {
-    this.parentElement.appendChild(node);
-  }
-  addEventListener(type: string, handler: (evt: Event) => void): void {
-    this.parentElement.addEventListener(type, handler);
-  }
-  insertBefore<T extends Node>(node: T, child: Node | null): T {
-    return this.parentElement.insertBefore(node, child);
-  }
-
-  contains(node: Node | null) {
-    if (!node) return false;
-    const { childNodes } = this;
-    for (let i = 0, len = childNodes.length; i < len; i++) {
-      if (childNodes[i] === node) return true;
-    }
-    return false;
-  }
 }
 
 // class FragmentTemplate {

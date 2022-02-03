@@ -35,5 +35,6 @@ declare namespace JSX {
   export interface EventContext<TEvent> {
     node: Node;
     event: TEvent;
+    values: any;
   }
 }

@@ -16,7 +16,7 @@ export function render<T>(
     const result = compile(element);
     if (result) {
       result.listen(containerElt);
-      result.execute(containerElt, values);
+      result.execute(containerElt, [values]);
     }
   }
 
