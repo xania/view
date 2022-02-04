@@ -123,6 +123,34 @@ export class NodeCompileResult implements CompileResult {
           }
         }
         break;
+      case ContainerMutationType.UPDATE_AT:
+        {
+          const { rootNodes } = this;
+          const { index, property, valueFn } = mut;
+          if (index < 0 || index >= rootNodes.length) return;
+          const node = rootNodes[index];
+          const values = (node as any)[valuesKey];
+
+          if (values) {
+            const oldValue = values[property];
+            const newValue = valueFn(values);
+            if (newValue !== oldValue) {
+              values[property] = newValue;
+            }
+          } else {
+            const newValue = valueFn(values);
+            if (newValue !== undefined) {
+              values[property] = newValue;
+              (node as any)[valuesKey] = { [property]: newValue };
+            }
+          }
+
+          const operations = this.customization.updates[property];
+          if (operations?.length) {
+            execute(operations, [node], [values], 0, 1);
+          }
+        }
+        break;
       default:
         console.error('not supported mutation ', mut);
         break;

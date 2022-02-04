@@ -8,7 +8,8 @@ export type ContainerMutation<T = unknown> =
   | ResetItems<T>
   | ClearItems
   | SwapItems
-  | UpdateNode<T>;
+  | UpdateNode<T>
+  | UpdateAt<T>;
 
 export enum ContainerMutationType {
   PUSH,
@@ -21,6 +22,7 @@ export enum ContainerMutationType {
   PUSH_MANY,
   SWAP,
   UPDATE,
+  UPDATE_AT,
 }
 
 interface PushItem<T> {
@@ -72,6 +74,13 @@ interface SwapItems {
 interface UpdateNode<T> {
   type: ContainerMutationType.UPDATE;
   node: Node;
+  property: keyof T;
+  valueFn: (row: T) => T[this['property']];
+}
+
+interface UpdateAt<T> {
+  type: ContainerMutationType.UPDATE_AT;
+  index: number;
   property: keyof T;
   valueFn: (row: T) => T[this['property']];
 }

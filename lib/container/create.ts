@@ -87,20 +87,13 @@ export function createContainer<T>(): ViewContainer<T> {
         index2,
       });
     },
-    updateAt() {
-      // if (index < 0 || index >= data.length) return;
-      // const row = data[index] as any;
-      // const oldValue = row[property];
-      // const newValue = valueFn(oldValue);
-      // if (newValue !== oldValue) {
-      //   row[property] = newValue;
-      //   mutations.pushMutation({
-      //     type: ContainerMutationType.UPDATE,
-      //     index,
-      //     property,
-      //     value: row,
-      //   });
-      // }
+    updateAt(index: number, property: keyof T, valueFn: any) {
+      mutations.pushMutation({
+        type: ContainerMutationType.UPDATE_AT,
+        index,
+        property,
+        valueFn,
+      });
     },
     update(node: Node, property: any, valueFn: (prev: any) => any) {
       mutations.pushMutation({
