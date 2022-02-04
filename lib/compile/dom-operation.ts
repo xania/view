@@ -39,6 +39,7 @@ export interface SetTextContentOperation {
 export interface RenderableOperation {
   type: DomOperationType.Renderable;
   renderable: Renderable;
+  index: number;
 }
 
 export interface AddEventListenerOperation {

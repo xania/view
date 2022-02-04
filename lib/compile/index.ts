@@ -25,7 +25,7 @@ export interface RenderProps {
   count: number;
 }
 
-type StackItem = [Node, Template, Template[]];
+type StackItem = [node: Node, template: Template];
 
 export function compile(
   rootTemplate: Template | Template[],
@@ -36,15 +36,15 @@ export function compile(
   const fragment = new DocumentFragment();
   const stack: StackItem[] = [];
   if (Array.isArray(rootTemplate)) {
-    for (const tpl of rootTemplate) {
-      stack.push([fragment, tpl, rootTemplate]);
+    for (let i = 0; i < rootTemplate.length; i++) {
+      stack.push([fragment, rootTemplate[i]]);
     }
   } else {
-    stack.push([fragment, asTemplate(rootTemplate), [rootTemplate]]);
+    stack.push([fragment, asTemplate(rootTemplate)]);
   }
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
-    const [target, template, siblings] = curr;
+    const [target, template] = curr;
 
     if (Array.isArray(template)) {
       throw new Error('array unexpected!');
@@ -64,7 +64,7 @@ export function compile(
             if (attr.type === AttributeType.Attribute) {
               setAttribute(dom, attr.name, attr.value);
             } else if (attr.type === AttributeType.Event) {
-              operationsMap.add(dom, {
+              operationsMap.append(dom, {
                 type: DomOperationType.AddEventListener,
                 name: attr.event,
                 handler: attr.handler,
@@ -75,7 +75,7 @@ export function compile(
 
         let { length } = children;
         while (length--) {
-          stack.push([dom, asTemplate(children[length]), children]);
+          stack.push([dom, asTemplate(children[length])]);
         }
         break;
       case TemplateType.Text:
@@ -86,7 +86,7 @@ export function compile(
         const state = template.state;
         const stateNode = document.createTextNode(state.current);
         target.appendChild(stateNode);
-        operationsMap.add(stateNode, {
+        operationsMap.append(stateNode, {
           type: DomOperationType.SetTextContent,
           expression: {
             type: ExpressionType.State,
@@ -95,7 +95,7 @@ export function compile(
         });
         break;
       case TemplateType.DOM:
-        operationsMap.add(target, {
+        operationsMap.append(target, {
           type: DomOperationType.AppendChild,
           node: template.node,
         });
@@ -104,20 +104,21 @@ export function compile(
         const operation: DomOperation = {
           type: DomOperationType.Renderable,
           renderable: template.renderer,
+          index: target.childNodes.length,
         };
 
-        if (siblings?.length === 1) {
-          operationsMap.add(target, operation);
-        } else {
-          const commentNode = document.createComment('');
-          target.appendChild(commentNode);
-          operationsMap.add(commentNode, operation);
-        }
+        // if (siblings?.length === 1) {
+        operationsMap.prepend(target, operation);
+        // } else {
+        //   const commentNode = document.createComment('');
+        //   target.appendChild(commentNode);
+        //   operationsMap.append(commentNode, operation);
+        // }
         break;
       // case TemplateType.Subscribable:
       //   const asyncNode = document.createTextNode('');
       //   target.appendChild(asyncNode);
-      //   operationsMap.add(asyncNode, {
+      //   operationsMap.append(asyncNode, {
       //     type: DomOperationType.Renderable,
       //     renderable: {
       //       render(target) {
@@ -134,7 +135,7 @@ export function compile(
       // case TemplateType.Context:
       //   const contextNode = document.createTextNode('');
       //   target.appendChild(contextNode);
-      //   operationsMap.add(target, {
+      //   operationsMap.append(target, {
       //     type: DomOperationType.Renderable,
       //     renderable: createFunctionRenderer(template.func),
       //   });
@@ -143,18 +144,18 @@ export function compile(
         const exprNode = document.createTextNode('');
         target.appendChild(exprNode);
 
-        operationsMap.add(exprNode, {
+        operationsMap.append(exprNode, {
           type: DomOperationType.SetTextContent,
           expression: template.expression,
         });
         break;
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
-          stack.push([target, asTemplate(template.children[i]), children]);
+          stack.push([target, asTemplate(template.children[i])]);
         break;
       case TemplateType.ViewProvider:
         const { view } = template.provider;
-        stack.push([target, view, []]);
+        stack.push([target, view]);
         break;
     }
   }
@@ -348,14 +349,14 @@ export function compile(
     if (!value) return;
 
     if (value.type === TemplateType.Expression) {
-      operationsMap.add(elt, {
+      operationsMap.append(elt, {
         type: DomOperationType.SetAttribute,
         name,
         expression: value.expression,
       });
     } else if (value instanceof State) {
       if (value.current) elt.setAttribute(name, value.current);
-      operationsMap.add(elt, {
+      operationsMap.append(elt, {
         type: DomOperationType.SetAttribute,
         name,
         expression: {
@@ -364,17 +365,18 @@ export function compile(
         },
       });
     } else if (isSubscribable(value)) {
-      operationsMap.add(elt, {
+      operationsMap.append(elt, {
         type: DomOperationType.Renderable,
         renderable: {
           render(target: Element) {
             bind(target, value);
           },
         },
+        index: -1,
       });
     } else if (typeof value === 'function') {
       const func = value;
-      operationsMap.add(elt, {
+      operationsMap.append(elt, {
         type: DomOperationType.Renderable,
         renderable: {
           render(target: Element, args: any) {
@@ -387,6 +389,7 @@ export function compile(
             }
           },
         },
+        index: -1,
       });
     } else {
       elt.setAttribute(name, value);

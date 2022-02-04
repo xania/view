@@ -1,8 +1,7 @@
 import { ExpressionType } from '../expression';
 import { RenderTarget } from '../renderable/render-target';
+import { createScope } from '../renderable/scope';
 import { DomOperation, DomOperationType } from './dom-operation';
-
-const renderStack: RenderTarget[] = [];
 
 export function execute(
   operations: DomOperation[],
@@ -11,6 +10,8 @@ export function execute(
   offset: number,
   length: number
 ) {
+  const renderStack: RenderTarget[] = new Array(5);
+
   for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
     const values = items[n];
     const rootNode = rootNodes[n + offset];
@@ -82,7 +83,14 @@ export function execute(
           (curr as Element).appendChild(operation.node);
           break;
         case DomOperationType.Renderable:
-          operation.renderable.render(curr as Node, values);
+          const index = operation.index;
+          const { childNodes } = curr;
+          if (index > 0 && index < childNodes.length) {
+            const scope = createScope(curr, childNodes[index]);
+            operation.renderable.render(scope, values);
+          } else {
+            operation.renderable.render(curr as RenderTarget, values);
+          }
           break;
       }
     }

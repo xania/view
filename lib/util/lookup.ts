@@ -4,10 +4,18 @@ export function createLookup<K, T>() {
     get(key: K) {
       return lookup.get(key);
     },
-    add(key: K, value: T) {
+    append(key: K, value: T) {
       const values = lookup.get(key);
       if (values) {
         values.push(value);
+      } else {
+        lookup.set(key, [value]);
+      }
+    },
+    prepend(key: K, value: T) {
+      const values = lookup.get(key);
+      if (values) {
+        values.unshift(value);
       } else {
         lookup.set(key, [value]);
       }
