@@ -1,13 +1,23 @@
 import { RenderTarget } from '../renderable/render-target';
+import { valuesKey } from './helpers';
 
 export class FragmentTarget implements RenderTarget {
   constructor(
     private parentElement: RenderTarget,
-    public childNodes: ArrayLike<Node>
+    public childNodes: ArrayLike<Node>,
+    public values: any
   ) {}
+
+  [valuesKey] = this.values;
 
   get firstChild() {
     return this.childNodes[0];
+  }
+
+  get lastChild() {
+    const { childNodes } = this;
+    const lastIndex = childNodes.length - 1;
+    return this.childNodes[lastIndex];
   }
 
   get nextSibling() {

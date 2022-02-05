@@ -85,7 +85,7 @@ export function execute(
         case DomOperationType.Renderable:
           const index = operation.index;
           const { childNodes } = curr;
-          if (index > 0 && index < childNodes.length) {
+          if (index >= 0 && index < childNodes.length) {
             const scope = createScope(curr, childNodes[index]);
             operation.renderable.render(scope, values);
           } else {

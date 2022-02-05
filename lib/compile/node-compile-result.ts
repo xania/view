@@ -20,7 +20,7 @@ export class NodeCompileResult implements CompileResult {
   }
 
   execute(items: ArrayLike<any>) {
-    const { customization: cust, rootNodes } = this;
+    const { customization: cust, rootNodes, target } = this;
     const { templateNode } = cust;
 
     const itemsLength = items.length;
@@ -30,7 +30,7 @@ export class NodeCompileResult implements CompileResult {
       const rootNode = templateNode.cloneNode(true);
       (rootNode as any)[componentKey] = cust;
       (rootNode as any)[valuesKey] = items[i];
-      this.target.appendChild(rootNode as any);
+      target.appendChild(rootNode as any);
       rootNodes[i + offset] = rootNode;
     }
 
