@@ -6,9 +6,11 @@ export class FragmentTarget implements RenderTarget {
     private parentElement: RenderTarget,
     public childNodes: ArrayLike<Node>,
     public values: any
-  ) {}
+  ) {
+    this[valuesKey] = values;
+  }
 
-  [valuesKey] = this.values;
+  [valuesKey]: any;
 
   get firstChild() {
     return this.childNodes[0];
