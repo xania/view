@@ -1,12 +1,11 @@
 import { compile } from './compile';
 import { RenderTarget } from './renderable/render-target';
-import { Template } from './template';
 
 export function render<T>(
-  element: Template,
+  element: any,
   container: RenderTarget | string,
   values?: T
-): T {
+) {
   const containerElt =
     typeof container === 'string'
       ? document.querySelector<HTMLDivElement>(container)
@@ -16,9 +15,9 @@ export function render<T>(
     const result = compile(element, containerElt);
     if (result) {
       result.listen();
-      result.execute([values]);
+      return result.execute([values]);
     }
   }
 
-  return null as any;
+  return [];
 }
