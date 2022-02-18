@@ -9,7 +9,7 @@ import { execute } from './execute';
 import { componentKey, NodeCustomization, valuesKey } from './helpers';
 
 export class NodeCompileResult implements CompileResult {
-  private rootNodes: Node[] = [];
+  private rootNodes: ChildNode[] = [];
   constructor(
     public target: RenderTarget,
     public customization: NodeCustomization
@@ -27,7 +27,7 @@ export class NodeCompileResult implements CompileResult {
     const offset = rootNodes.length;
     rootNodes.length = offset + itemsLength;
     for (let i = 0; i < itemsLength; i++) {
-      const rootNode = templateNode.cloneNode(true);
+      const rootNode = templateNode.cloneNode(true) as any;
       (rootNode as any)[componentKey] = cust;
       (rootNode as any)[valuesKey] = items[i];
       target.appendChild(rootNode as any);
@@ -47,7 +47,7 @@ export class NodeCompileResult implements CompileResult {
         {
           const { rootNodes } = this;
           const { node } = mut;
-          const index = rootNodes.indexOf(node);
+          const index = rootNodes.indexOf(node as any);
           if (index >= 0 && index < rootNodes.length) {
             rootNodes.splice(index, 1);
             this.target.removeChild(node);
