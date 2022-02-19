@@ -4,6 +4,7 @@ import { AttributeType } from './template';
 import { isUnsubscribable } from './util/is-subscibable';
 import { Renderable } from './renderable';
 import { State } from './state';
+import { isDisposable } from './abstractions/disposable';
 
 export const jsx = {
   createElement(
@@ -115,7 +116,14 @@ export function asTemplate(value: any): Template {
         value.unsubscribe();
       },
     };
-  else if (isDomNode(value))
+  else if (isDisposable(value)) {
+    return {
+      type: TemplateType.Disposable,
+      dispose() {
+        return value.dispose();
+      },
+    };
+  } else if (isDomNode(value))
     return {
       type: TemplateType.DOM,
       node: value,

@@ -157,6 +157,9 @@ export function compile(
         const { view } = template.provider;
         stack.push([target, view]);
         break;
+      case TemplateType.Disposable:
+        console.log(template);
+        break;
     }
   }
 

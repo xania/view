@@ -10,7 +10,7 @@ export function execute(
   offset: number,
   length: number
 ) {
-  const renderStack: RenderTarget[] = new Array(5);
+  const renderStack: RenderTarget[] = new Array();
 
   for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
     const values = items[n];
@@ -87,9 +87,13 @@ export function execute(
           const { childNodes } = curr;
           if (index >= 0 && index < childNodes.length) {
             const scope = createScope(curr, childNodes[index]);
-            operation.renderable.render(scope, values);
+            const result = operation.renderable.render(scope, values);
           } else {
-            operation.renderable.render(curr as RenderTarget, values);
+            const result = operation.renderable.render(
+              curr as RenderTarget,
+              values
+            );
+            console.log(result);
           }
           break;
       }
