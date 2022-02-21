@@ -47,3 +47,4 @@ export type NodeCustomization = {
 
 export const componentKey = Symbol(new Date().getTime());
 export const valuesKey = Symbol(new Date().getTime());
+export const disposeKey = Symbol(new Date().getTime());

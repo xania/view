@@ -1,4 +1,5 @@
 import { compile } from './compile';
+import { disposeKey } from './compile/helpers';
 import { RenderTarget } from './renderable/render-target';
 
 export function render<T>(
@@ -20,4 +21,20 @@ export function render<T>(
   }
 
   return [];
+}
+
+export function dispose(nodes: ReturnType<typeof render>) {
+  for (const node of nodes) {
+    const disposables = (node as any)[disposeKey];
+    if (disposables) {
+      if (Array.isArray(disposables)) {
+        for (const disp of disposables) {
+          disp.dispose();
+        }
+      } else {
+        disposables.dispose();
+      }
+    }
+    node.remove();
+  }
 }

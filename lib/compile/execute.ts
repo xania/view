@@ -1,7 +1,9 @@
+import { Disposable } from '../abstractions/disposable';
 import { ExpressionType } from '../expression';
 import { RenderTarget } from '../renderable/render-target';
 import { createScope } from '../renderable/scope';
 import { DomOperation, DomOperationType } from './dom-operation';
+import { disposeKey } from './helpers';
 
 export function execute(
   operations: DomOperation[],
@@ -11,6 +13,7 @@ export function execute(
   length: number
 ) {
   const renderStack: RenderTarget[] = new Array();
+  let results: Disposable | Disposable[] | undefined = undefined;
 
   for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
     const values = items[n];
@@ -85,18 +88,43 @@ export function execute(
         case DomOperationType.Renderable:
           const index = operation.index;
           const { childNodes } = curr;
+          let result: Disposable | void;
           if (index >= 0 && index < childNodes.length) {
             const scope = createScope(curr, childNodes[index]);
-            const result = operation.renderable.render(scope, values);
+            result = operation.renderable.render(scope, values);
           } else {
-            const result = operation.renderable.render(
-              curr as RenderTarget,
-              values
-            );
-            console.log(result);
+            result = operation.renderable.render(curr as RenderTarget, values);
+          }
+
+          if (result) {
+            const results = (rootNode as any)[disposeKey] || [];
+            results.push(result);
+            (rootNode as any)[disposeKey] = results;
           }
           break;
       }
     }
   }
+  return results;
 }
+
+// if (results) {
+//   const { disposables } = this;
+//   if (disposables) {
+//     if (Array.isArray(disposables)) {
+//       if (Array.isArray(results)) {
+//         disposables.push(...results);
+//       } else {
+//         disposables.push(results);
+//       }
+//     } else {
+//       if (Array.isArray(results)) {
+//         this.disposables = [disposables, ...results];
+//       } else {
+//         this.disposables = [disposables, results];
+//       }
+//     }
+//   } else {
+//     this.disposables = results;
+//   }
+// }
