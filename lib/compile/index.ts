@@ -448,7 +448,7 @@ export interface RenderOptions {
 // }
 
 function arrayToAttributeValue(array: any[]) {
-  if (!array || array.length === 0) return;
+  if (!array || array.length === 0) return null;
 
   return new ArrayValue(array);
 }
