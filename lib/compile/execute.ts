@@ -63,6 +63,25 @@ export function execute(
               break;
           }
           break;
+        case DomOperationType.SetClassName:
+          const classExpr = operation.expression;
+          switch (classExpr.type) {
+            case ExpressionType.Property:
+              (curr as any)['className'] = values[classExpr.name];
+              break;
+            case ExpressionType.Function:
+              const args = classExpr.deps.map((d) => values[d]);
+              (curr as any)['className'] = classExpr.func.apply(null, args);
+              break;
+            case ExpressionType.State:
+              classExpr.state.subscribe({
+                next(s) {
+                  (curr as any)['className'] = s;
+                },
+              });
+              break;
+          }
+          break;
         case DomOperationType.SetAttribute:
           const attrExpr = operation.expression;
           switch (attrExpr.type) {
@@ -86,7 +105,7 @@ export function execute(
           (curr as Element).appendChild(operation.node);
           break;
         case DomOperationType.Renderable:
-          const index = operation.index;
+          const { index } = operation;
           const { childNodes } = curr;
           let result: Disposable | void;
           if (index >= 0 && index < childNodes.length) {
@@ -97,10 +116,9 @@ export function execute(
           }
 
           if (result) {
-            const results = (rootNode as any)[disposeKey] || [];
-            results.push(result);
-            (rootNode as any)[disposeKey] = results;
+            bindDisposable(rootNode, result);
           }
+
           break;
       }
     }
@@ -108,23 +126,8 @@ export function execute(
   return results;
 }
 
-// if (results) {
-//   const { disposables } = this;
-//   if (disposables) {
-//     if (Array.isArray(disposables)) {
-//       if (Array.isArray(results)) {
-//         disposables.push(...results);
-//       } else {
-//         disposables.push(results);
-//       }
-//     } else {
-//       if (Array.isArray(results)) {
-//         this.disposables = [disposables, ...results];
-//       } else {
-//         this.disposables = [disposables, results];
-//       }
-//     }
-//   } else {
-//     this.disposables = results;
-//   }
-// }
+function bindDisposable(rootNode: any, disposable: Disposable) {
+  const results = rootNode[disposeKey] || [];
+  results.push(disposable);
+  rootNode[disposeKey] = results;
+}

@@ -42,7 +42,7 @@ interface MoveItem {
 
 interface RemoveNode {
   type: ContainerMutationType.REMOVE;
-  node: Node;
+  node: ChildNode;
 }
 
 interface RemoveItemAt {
@@ -99,7 +99,7 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
   };
 }
 
-export function removeItem(node: Node): RemoveNode {
+export function removeItem(node: ChildNode): RemoveNode {
   return {
     type: ContainerMutationType.REMOVE,
     node,

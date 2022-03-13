@@ -64,7 +64,7 @@ export function createContainer<T>(): ViewContainer<T> {
         type: ContainerMutationType.CLEAR,
       });
     },
-    remove(node: Node): void {
+    remove(node: ChildNode): void {
       length--;
       mutations.pushMutation({
         type: ContainerMutationType.REMOVE,

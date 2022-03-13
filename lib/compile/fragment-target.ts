@@ -4,7 +4,7 @@ import { valuesKey } from './helpers';
 export class FragmentTarget implements RenderTarget {
   constructor(
     private parentElement: RenderTarget,
-    public childNodes: ArrayLike<Node>,
+    public childNodes: ArrayLike<ChildNode>,
     public values: any
   ) {
     this[valuesKey] = values;
@@ -30,7 +30,7 @@ export class FragmentTarget implements RenderTarget {
   remove() {
     const { childNodes } = this;
     for (let i = 0, len = childNodes.length; i < len; i++)
-      this.parentElement.removeChild(childNodes[i]);
+      childNodes[i].remove();
   }
   removeChild(node: Node): void {
     this.parentElement.removeChild(node);

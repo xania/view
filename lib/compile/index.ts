@@ -277,7 +277,7 @@ export function compile(
       [prop: string | number | symbol]: DomRenderOperation[];
     } = {};
 
-    if (operations)
+    if (operations) {
       for (const op of operations) {
         switch (op.type) {
           case DomOperationType.SetAttribute:
@@ -308,6 +308,7 @@ export function compile(
             break;
         }
       }
+    }
     return {
       templateNode: node,
       index,
@@ -351,12 +352,21 @@ export function compile(
   function setAttribute(elt: Element, name: string, value: any): void {
     if (!value) return;
 
-    if (value.type === TemplateType.Expression) {
-      operationsMap.append(elt, {
-        type: DomOperationType.SetAttribute,
-        name,
-        expression: value.expression,
-      });
+    if (Array.isArray(value)) {
+      setAttribute(elt, name, arrayToAttributeValue(value));
+    } else if (value.type === TemplateType.Expression) {
+      if (name === 'class' || name === 'className') {
+        operationsMap.append(elt, {
+          type: DomOperationType.SetClassName,
+          expression: value.expression,
+        });
+      } else {
+        operationsMap.append(elt, {
+          type: DomOperationType.SetAttribute,
+          name,
+          expression: value.expression,
+        });
+      }
     } else if (value instanceof State) {
       if (value.current) elt.setAttribute(name, value.current);
       operationsMap.append(elt, {
@@ -377,7 +387,7 @@ export function compile(
         },
         index: -1,
       });
-    } else if (typeof value === 'function') {
+    } else if (value instanceof Function) {
       const func = value;
       operationsMap.append(elt, {
         type: DomOperationType.Renderable,
@@ -436,3 +446,25 @@ export interface RenderOptions {
 //     return new FragmentTarget(this.parentElement, cloneNodes);
 //   }
 // }
+
+function arrayToAttributeValue(array: any[]) {
+  if (!array || array.length === 0) return;
+
+  return new ArrayValue(array);
+}
+
+class ArrayValue {
+  /**
+   *
+   */
+  constructor(private array: any[]) {}
+
+  toString() {
+    const { array } = this;
+    let joined = '';
+    for (let i = 0; i < array.length; i++) {
+      joined += ' ' + array[i];
+    }
+    return joined;
+  }
+}

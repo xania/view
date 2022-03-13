@@ -22,9 +22,5 @@ export function createScope(
     insertBefore<T extends Node>(node: T, child: Node | null) {
       return targetElement.insertBefore(node, child);
     },
-    // dispose() {
-    //   for (const node of nodes) {
-    //     targetElement.removeChild(node);
-    //   }
   };
 }
