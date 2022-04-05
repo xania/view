@@ -50,7 +50,7 @@ export function addEventDelegation(
             renderStack[++renderIndex] = curr.firstChild as HTMLElement;
             break;
           case DomOperationType.PushNextSibling:
-            renderStack[++renderIndex] = curr.nextSibling as HTMLElement;
+            renderStack[renderIndex] = curr.nextSibling as HTMLElement;
             break;
           case DomOperationType.PopNode:
             renderIndex--;
