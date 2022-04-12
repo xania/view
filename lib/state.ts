@@ -65,3 +65,7 @@ class MappedState<T, U> extends State<U> {
     this.set(this.mapper(newValue));
   }
 }
+
+export function useState<T>(initial: T) {
+  return new State<T>(initial);
+}
