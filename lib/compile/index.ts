@@ -63,7 +63,7 @@ export function compile(
             const attr = attrs[i];
             if (attr.type === AttributeType.Attribute) {
               setAttribute(dom, attr.name, attr.value);
-            } else if (attr.type === AttributeType.Event) {
+            } else if (attr.type === AttributeType.Event && attr.handler) {
               operationsMap.append(dom, {
                 type: DomOperationType.AddEventListener,
                 name: attr.event,

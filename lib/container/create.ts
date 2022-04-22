@@ -5,7 +5,8 @@ import { ContainerMutationManager, ContainerMutationType } from './mutation';
 import { RenderTarget } from '../renderable/render-target';
 
 export interface ViewContainer<T = unknown> {
-  push(data: T[], start?: number, count?: number): void;
+  push(item: T): void;
+  pushMany(data: T[], start?: number, count?: number): void;
   swap(index0: number, index1: number): void;
   clear(): void;
   remove(node: Node): void;
@@ -51,7 +52,14 @@ export function createContainer<T>(): ViewContainer<T> {
         },
       };
     },
-    push(items: T[]): void {
+    push(item: T): void {
+      length += 1;
+      mutations.pushMutation({
+        type: ContainerMutationType.PUSH,
+        item,
+      });
+    },
+    pushMany(items: T[]): void {
       length += items.length;
       mutations.pushMutation({
         type: ContainerMutationType.PUSH_MANY,

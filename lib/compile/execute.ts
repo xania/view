@@ -35,8 +35,7 @@ export function execute(
             .firstChild as RenderTarget;
           break;
         case DomOperationType.PushNextSibling:
-          renderStack[++renderIndex] = (curr as Node)
-            .nextSibling as RenderTarget;
+          renderStack[renderIndex] = (curr as Node).nextSibling as RenderTarget;
           break;
         case DomOperationType.PopNode:
           renderIndex--;

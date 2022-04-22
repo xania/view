@@ -5,3 +5,4 @@ export * from './state';
 export * from './container/index';
 export * from './renderable';
 export * from './css-module';
+export * from './store/use-store';

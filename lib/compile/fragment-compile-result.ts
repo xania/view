@@ -57,6 +57,9 @@ export class FragmentCompileResult implements CompileResult {
       case ContainerMutationType.PUSH_MANY:
         this.execute(mut.items);
         break;
+      case ContainerMutationType.PUSH:
+        this.execute([mut.item]);
+        break;
       case ContainerMutationType.REMOVE:
         {
           const { rootNodes } = this;

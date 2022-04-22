@@ -27,7 +27,7 @@ export enum ContainerMutationType {
 
 interface PushItem<T> {
   type: ContainerMutationType.PUSH;
-  values: T;
+  item: T;
 }
 
 interface PushItems<T> {
@@ -85,10 +85,10 @@ interface UpdateAt<T> {
   valueFn: (row: T) => T[this['property']];
 }
 
-export function pushItem<T>(values: T): PushItem<T> {
+export function pushItem<T>(item: T): PushItem<T> {
   return {
     type: ContainerMutationType.PUSH,
-    values,
+    item,
   };
 }
 export function insertItem<T>(values: T, index: number): InsertItem<T> {
