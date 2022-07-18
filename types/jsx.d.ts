@@ -1,4 +1,4 @@
-declare namespace JSX {
+export declare namespace JSX {
   export type Element = any;
 
   export type IntrinsicElements = {

@@ -1,4 +1,4 @@
-declare namespace RXJS {
+export declare namespace RXJS {
   export interface NextObserver<T> {
     next: (value: T) => void;
     error?: (err: any) => void;

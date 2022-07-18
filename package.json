@@ -1,5 +1,5 @@
 {
-  "version": "0.3.6",
+  "version": "0.3.10",
   "license": "MIT",
   "main": "dist/main.umd.js",
   "module": "dist/es2015/index.js",

@@ -6,6 +6,7 @@ import {
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
+import { JSX } from '../../types/jsx';
 
 export interface ViewContainer<T> {
   push(data: T[], start?: number, count?: number): void;
