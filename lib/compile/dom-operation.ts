@@ -1,5 +1,5 @@
-import { Expression } from './expression';
-import { Renderable } from './template';
+import { Expression } from '../expression';
+import { Renderable } from '../renderable';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -10,6 +10,7 @@ export enum DomOperationType {
   SetTextContent,
   Renderable,
   AddEventListener,
+  AppendChild,
 }
 
 export interface PushFirstChildOperation {
@@ -46,6 +47,11 @@ export interface AddEventListenerOperation {
   handler: Function;
 }
 
+export interface AppendChildOperation {
+  type: DomOperationType.AppendChild;
+  node: Node;
+}
+
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
@@ -55,7 +61,8 @@ export type DomNavigationOperation =
 export type DomRenderOperation =
   | SetAttributeOperation
   | SetTextContentOperation
-  | RenderableOperation;
+  | RenderableOperation
+  | AppendChildOperation;
 
 export type DomEventOperation = AddEventListenerOperation;
 

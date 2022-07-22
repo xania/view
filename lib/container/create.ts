@@ -1,14 +1,17 @@
 import { Template } from '../template';
 
-import { compile, CompileResult, execute } from '../compile';
+import { compile } from '../compile';
 import {
   ContainerMutation,
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
 import { JSX } from '../../types/jsx';
+import { RenderTarget } from '../renderable/render-target';
+import { CompileResult } from '../compile/compile-result';
+import { execute } from '../compile/execute';
 
-export interface ViewContainer<T> {
+export interface ViewContainer<T = unknown> {
   push(data: T[], start?: number, count?: number): void;
   swap(index0: number, index1: number): void;
   clear(): void;
@@ -34,12 +37,15 @@ export function createContainer<T>(): ViewContainer<T> {
       return data.length;
     },
     map(itemTemplate: Template) {
-      const compiled = compile(itemTemplate);
       return {
-        render({ target }: { target: Element }) {
+        render(target: RenderTarget) {
+          const compiled = compile(itemTemplate);
+          if (!compiled) return undefined;
+
           const subscr = mutations.subscribe(
             createMutationsObserver<T>(target, compiled)
           );
+
           return {
             dispose() {
               subscr.unsubscribe();
@@ -90,20 +96,23 @@ export function createContainer<T>(): ViewContainer<T> {
       if (index < 0 || index >= data.length) return;
 
       const row = data[index] as any;
-      const newValue = valueFn(row[property]);
-      row[property] = newValue;
-      mutations.pushMutation({
-        type: ContainerMutationType.UPDATE,
-        index,
-        property,
-        value: row,
-      });
+      const oldValue = row[property];
+      const newValue = valueFn(oldValue);
+      if (newValue !== oldValue) {
+        row[property] = newValue;
+        mutations.pushMutation({
+          type: ContainerMutationType.UPDATE,
+          index,
+          property,
+          value: row,
+        });
+      }
     },
   };
 }
 
 function createMutationsObserver<T>(
-  containerElt: Element,
+  containerElt: RenderTarget,
   template: CompileResult
 ) {
   template.listen(containerElt);
@@ -114,43 +123,23 @@ function createMutationsObserver<T>(
     next(mut: ContainerMutation<T>) {
       switch (mut.type) {
         case ContainerMutationType.PUSH_MANY:
-          const { items } = mut;
-          if (customization) {
-            const cust = customization;
-            const { nodes } = cust;
-            let nodesLen = nodes.length;
-            for (let i = 0, len = items.length; i < len; i++) {
-              const rootNode = cust.templateNode.cloneNode(true);
-              containerElt.appendChild(rootNode);
-              cust.nodes[nodesLen++] = rootNode;
-            }
-
-            const operations = cust.render;
-            if (operations?.length)
-              execute(
-                operations,
-                nodes,
-                items,
-                nodesLen - items.length,
-                items.length
-              );
-          }
-
+          // const nodes = customization.nodes;
+          template.execute(containerElt, mut.items);
           break;
         case ContainerMutationType.CLEAR:
           if (customization) {
             const { nodes } = customization;
 
             if (nodes.length) {
-              if (containerElt.childNodes.length === nodes.length) {
-                containerElt.textContent = '';
-              } else {
-                var rangeObj = new Range();
-                rangeObj.setStartBefore(nodes[0]);
-                rangeObj.setEndAfter(nodes[nodes.length - 1]);
+              // if (containerElt.childNodes.length === nodes.length) {
+              //   containerElt.textContent = '';
+              // } else {
+              var rangeObj = new Range();
+              // rangeObj.setStartBefore(nodes[0]);
+              // rangeObj.setEndAfter(nodes[nodes.length - 1]);
 
-                rangeObj.deleteContents();
-              }
+              rangeObj.deleteContents();
+              // }
             }
             customization.nodes.length = 0;
           }
@@ -160,7 +149,8 @@ function createMutationsObserver<T>(
             const { nodes } = customization;
             const { index } = mut;
             const node = nodes[index];
-            containerElt.removeChild(node);
+            // node.remove();
+            // containerElt.removeChild(node);
             nodes.splice(index, 1);
           }
           break;
@@ -190,8 +180,8 @@ function createMutationsObserver<T>(
             nodes[index1] = node2;
             nodes[index2] = node1;
 
-            containerElt.insertBefore(node1, nodes[index2 + 1]);
-            containerElt.insertBefore(node2, nodes[index1 + 1]);
+            // containerElt.insertBefore(node1, nodes[index2 + 1]);
+            // containerElt.insertBefore(node2, nodes[index1 + 1]);
           }
 
           break;

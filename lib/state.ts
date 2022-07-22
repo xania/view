@@ -30,7 +30,38 @@ export class State<T> {
     }
   }
 
+  set(newValue: T) {
+    const { current: value } = this;
+    if (newValue !== value) {
+      this.current = newValue;
+      for (const o of this.observers) {
+        o.next(newValue);
+      }
+    }
+  }
+
+  map<U>(func: (x: T) => U) {
+    const { observers } = this;
+    const mappedState = new MappedState<T, U>(this.current, func);
+    observers.push(mappedState);
+
+    return mappedState;
+  }
+
   toString() {
     return this.current;
+  }
+}
+
+class MappedState<T, U> extends State<U> {
+  /**
+   *
+   */
+  constructor(current: T, private mapper: (value: T) => U) {
+    super(mapper(current));
+  }
+
+  next(newValue: T) {
+    this.set(this.mapper(newValue));
   }
 }

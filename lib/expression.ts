@@ -1,16 +1,28 @@
+import { State } from './state';
+
 export enum ExpressionType {
   Property,
   Function,
+  State,
 }
 
 export interface PropertyExpression {
   type: ExpressionType.Property;
-  name: string;
+  name: string | number | symbol;
 }
 
 export interface FunctionExpression {
   type: ExpressionType.Function;
-  observable: Expression;
+  func: Function;
+  deps: (string | number | symbol)[];
 }
 
-export type Expression = PropertyExpression | FunctionExpression;
+export interface StateExpression {
+  type: ExpressionType.State;
+  state: State<any>;
+}
+
+export type Expression =
+  | PropertyExpression
+  | FunctionExpression
+  | StateExpression;

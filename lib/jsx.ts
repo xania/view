@@ -1,49 +1,51 @@
 import { TagTemplate, Template, TemplateType } from './template';
 import { reverse } from './util/reverse';
-import { Renderable, AttributeType } from './template';
-import { isSubscribable, isUnsubscribable } from './util/is-subscibable';
+import { AttributeType } from './template';
+import { isUnsubscribable } from './util/is-subscibable';
+import { Renderable } from './renderable';
+import { State } from './state';
 
-export function jsx(
-  name: string | Function | null,
-  props: any = null,
-  ...children: unknown[]
-): Template | Template[] | null {
-  const flatChildren: Template[] = flatTree(children, asTemplate);
-
-  if (name === null /* fragment */) {
-    return flatChildren;
-  }
-
-  if (typeof name === 'string') {
-    const attrs = attributes(props);
-    return {
-      type: TemplateType.Tag,
-      name,
-      attrs,
-      children: flatChildren,
-    };
-  }
-
-  if (typeof name === 'function') {
-    try {
-      return asTemplate(name(props, flatChildren));
-    } catch {
-      return asTemplate(construct(name, [props, flatChildren]));
+export const jsx = {
+  createElement(
+    name: string | Function | null,
+    props: any = null,
+    ...children: unknown[]
+  ): Template | null {
+    if (name === null /* fragment */) {
+      return {
+        type: TemplateType.Fragment,
+        children: flatTree(children, asTemplate),
+      };
     }
-  }
 
-  return null;
-}
+    if (typeof name === 'string') {
+      const attrs = attributes(props);
+      return {
+        type: TemplateType.Tag,
+        name,
+        attrs,
+        children: flatTree(children, asTemplate),
+      };
+    }
 
-function construct(func: Function, args: any[]) {
-  try {
-    if (!func) return false;
-    if (func === Symbol) return false;
-    return Reflect.construct(func, args);
-  } catch (e) {
-    return false;
-  }
-}
+    if (typeof name === 'function') {
+      try {
+        return name(props, children);
+      } catch (e) {
+        return Reflect.construct(name, [props, children]);
+      }
+    }
+
+    return null;
+  },
+
+  createFragment(_: null, children: Template[]): Template {
+    return {
+      type: TemplateType.Fragment,
+      children,
+    };
+  },
+};
 
 function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
   var retval: T[] = [];
@@ -92,7 +94,7 @@ function attributes(props: any | null): TagTemplate['attrs'] {
   return null;
 }
 
-function asTemplate(value: any): Template | Template[] {
+export function asTemplate(value: any): Template {
   if (typeof value === 'undefined' || value === null) {
     return null as any;
   } else if (isTemplate(value)) return value;
@@ -101,12 +103,12 @@ function asTemplate(value: any): Template | Template[] {
   // else if (typeof name === 'function') return name;
   // else if (Array.isArray(name)) return flatTree(name, asTemplate);
   // else if (isPromise<TemplateInput>(name)) return new TemplatePromise(name);
-  else if (isSubscribable(value))
+  else if (value instanceof State) {
     return {
-      type: TemplateType.Subscribable,
-      value,
+      type: TemplateType.State,
+      state: value,
     };
-  else if (isUnsubscribable(value))
+  } else if (isUnsubscribable(value))
     return {
       type: TemplateType.Disposable,
       dispose() {
@@ -118,10 +120,25 @@ function asTemplate(value: any): Template | Template[] {
       type: TemplateType.DOM,
       node: value,
     };
-  else if (isRenderable(value)) {
+  else if (
+    'view' in Object.keys(value) ||
+    'view' in value.constructor.prototype
+  ) {
+    return {
+      type: TemplateType.ViewProvider,
+      provider: value,
+    };
+  } else if (isRenderable(value)) {
     return {
       type: TemplateType.Renderable,
       renderer: value,
+    };
+  } else if (typeof value === 'function') {
+    return {
+      type: TemplateType.Renderable,
+      renderer: {
+        render: value,
+      },
     };
   }
   // else if (hasProperty(name, 'view')) return asTemplate(name.view);

@@ -1,27 +1,24 @@
+import { Disposable } from './abstractions/disposable';
 import { Expression } from './expression';
-
-export interface Disposable {
-  dispose(): void;
-}
-
-export interface Removable {
-  remove(): void;
-}
+import { Renderable } from './renderable';
+import { State } from './state';
 
 export enum TemplateType {
   Text,
   Tag,
-  Subscribable,
+  State,
   Disposable,
   DOM,
   Renderable,
-  Context,
+  ViewProvider,
   Expression,
+  Fragment,
 }
 
 export enum AttributeType {
   Attribute,
   Event,
+  ClassName,
 }
 
 // type Primitive = string | number | boolean | Date;
@@ -33,24 +30,22 @@ export interface TagTemplate {
   children: Template[];
 }
 
-interface AttributeTemplate {
-  type: AttributeType.Attribute;
+export interface AttributeTemplate {
+  type: AttributeType.Attribute | AttributeType.ClassName;
   name: string;
   value: Exclude<any, null>;
 }
-interface EventTemplate {
+export interface EventTemplate {
   type: AttributeType.Event;
   event: string;
   handler: Function;
 }
-interface NativeTemplate {
-  type: TemplateType.Text;
-  value: string;
+
+interface StateTemplate {
+  type: TemplateType.State;
+  state: State<any>;
 }
-interface SubscribableTemplate {
-  type: TemplateType.Subscribable;
-  value: RXJS.Subscribable<any>;
-}
+
 interface DisposableTemplate extends Disposable {
   type: TemplateType.Disposable;
 }
@@ -60,74 +55,38 @@ interface DomTemplate {
   node: Node;
 }
 
-interface ContextTemplate {
-  type: TemplateType.Context;
-  func: (context: any) => any;
-}
-
 export interface ExpressionTemplate {
   type: TemplateType.Expression;
   expression: Expression;
 }
 
-type RenderResultItem = RXJS.Unsubscribable | Disposable;
-export class RenderResult {
-  // readonly items: RenderResultItem[] = [];
-  readonly nodes: Node[] = [];
-
-  constructor(public values: any) {}
-
-  static create(
-    node: Node | null,
-    ...results: (RenderResultItem | null | undefined | void)[]
-  ) {
-    var result = new RenderResult(null);
-    const { nodes } = result;
-
-    for (const x of results) {
-      if (x) {
-        // items.push(x);
-      }
-    }
-
-    if (node) nodes.push(node);
-
-    return result;
-  }
-
-  dispose() {
-    const { nodes } = this;
-    // for (const item of items) {
-    //   if ('dispose' in item) item.dispose();
-    //   if ('unsubscribe' in item) item.unsubscribe();
-    // }
-
-    for (const elt of nodes) {
-      (elt as any).remove();
-    }
-
-    //    items.length = 0;
-  }
+interface ViewProviderTemplate {
+  type: TemplateType.ViewProvider;
+  provider: { view: any };
 }
 
-export interface RenderContext {
-  values: any;
-  remove(): unknown;
-}
-export interface Renderable {
-  render(driver: { target: any }, context?: RenderContext): RenderResult | void;
-}
 export interface RenderableTemplate {
   type: TemplateType.Renderable;
   renderer: Renderable;
 }
 
+export interface FragmentTemplate {
+  type: TemplateType.Fragment;
+  children: Template[];
+}
+
+export interface TextTemplate {
+  type: TemplateType.Text;
+  value: any;
+}
+
 export type Template =
   | TagTemplate
-  | NativeTemplate
-  | SubscribableTemplate
+  | StateTemplate
   | DisposableTemplate
   | DomTemplate
-  | ContextTemplate
   | RenderableTemplate
-  | ExpressionTemplate;
+  | ExpressionTemplate
+  | FragmentTemplate
+  | TextTemplate
+  | ViewProviderTemplate;

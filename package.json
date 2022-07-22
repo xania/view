@@ -1,9 +1,8 @@
 {
   "version": "0.3.10",
   "license": "MIT",
-  "main": "dist/main.umd.js",
-  "module": "dist/es2015/index.js",
-  "types": "dist/es2015/index.d.ts",
+  "main": "lib/index.ts",
+  "module": "lib/index.ts",
   "files": [
     "types",
     "dist",
