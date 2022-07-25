@@ -6,7 +6,7 @@ import { execute } from './execute';
 
 export interface CompileResult {
   listen(targetElement: RenderTarget): void;
-  execute(targetElement: RenderTarget, items: ArrayLike<any>): RenderTarget[];
+  render(targetElement: RenderTarget, items: ArrayLike<any>): RenderTarget[];
 }
 
 export class NodeCompileResult implements CompileResult {
@@ -16,20 +16,31 @@ export class NodeCompileResult implements CompileResult {
     addEventDelegation(targetElement, this.customization);
   }
 
-  execute(targetElement: RenderTarget, items: ArrayLike<any>) {
+  render(targetElement: RenderTarget, items: ArrayLike<any>) {
     const { customization: cust } = this;
     const { templateNode } = cust;
 
-    const itemsLength = items.length;
-    const rootNodes: Node[] = new Array(itemsLength);
-    for (let i = 0; i < itemsLength; i++) {
+    const rootNodes = cust.nodes;
+    const offset = rootNodes.length;
+
+    function createRootNode(idx: number) {
       const rootNode = templateNode.cloneNode(true);
       (rootNode as any)[component] = cust;
       targetElement.appendChild(rootNode as any);
-      rootNodes[i] = rootNode;
+      rootNodes[idx + offset] = rootNode;
+      return rootNode;
     }
 
-    execute(cust.render, rootNodes, items, 0, items.length);
+    // for (let i = 0, qlen = queries.length; i < qlen; i++) {
+    //   const query = queries[i];
+    //   if (query.type === QueryType.Index) {
+    //     const index = query.index;
+    //     const values = items[index];
+    //     const rootNode = rootNodes[index + offset];
+    //   }
+    // }
+
+    execute(cust.render, items, createRootNode);
     return rootNodes;
   }
 }
@@ -44,14 +55,15 @@ export class FragmentCompileResult implements CompileResult {
     addEventDelegation(targetElement, this.fragmentCustomization);
   }
 
-  execute(targetElement: RenderTarget, items: ArrayLike<any>) {
+  render(targetElement: RenderTarget, items: ArrayLike<any>) {
     const { children } = this;
 
     const itemsLength = items.length;
     const childrenLength = children.length;
     const rootNodes: FragmentTarget[] = new Array(itemsLength);
     let r = 0;
-    for (let i = 0; i < itemsLength; i++) {
+
+    function createRootNode() {
       const childNodes = new Array(childrenLength);
       for (let e = 0; e < childrenLength; e++) {
         const cust = children[e];
@@ -60,12 +72,14 @@ export class FragmentCompileResult implements CompileResult {
         (rootNode as any)[component] = cust;
         childNodes[e] = rootNode;
       }
-      rootNodes[r++] = new FragmentTarget(targetElement, childNodes);
+      const target = new FragmentTarget(targetElement, childNodes);
+      rootNodes[r++] = target;
+      return target;
     }
 
     const cust = this.fragmentCustomization;
     if (cust) {
-      execute(cust.render, rootNodes, items, 0, itemsLength);
+      execute(cust.render, items, createRootNode);
     }
 
     return rootNodes;

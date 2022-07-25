@@ -13,12 +13,9 @@ import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
 import { asTemplate } from '../jsx';
-import {
-  CompileResult,
-  FragmentCompileResult,
-  NodeCompileResult,
-} from './compile-result';
+import { FragmentCompileResult, NodeCompileResult } from './compile-result';
 import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
+import { RXJS } from '../../types/rxjs';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -359,16 +356,7 @@ export function compile(rootTemplate: Template | Template[]) {
           state: value,
         },
       });
-    } else if (isSubscribable(value)) {
-      operationsMap.add(elt, {
-        type: DomOperationType.Renderable,
-        renderable: {
-          render(target: Element) {
-            bind(target, value);
-          },
-        },
-      });
-    } else if (typeof value === 'function') {
+    } else if (value instanceof Function) {
       const func = value;
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,

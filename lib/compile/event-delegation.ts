@@ -8,21 +8,21 @@ export function addEventDelegation(
 ) {
   if (!customization) return;
 
-  function getRootNode(node: Node | null): Node | null {
-    if (!node) return null;
-    if ((node as any)[component]) return node;
-    return getRootNode(node.parentNode);
-  }
-
   for (const eventName of distinct(Object.keys(customization.events))) {
     rootContainer.addEventListener(eventName, (evt: Event) => {
       const eventName = evt.type;
-      const eventTarget = evt.target as Node;
+      const eventTarget = evt.target as ParentNode;
 
-      if (!eventTarget) return;
-      const rootNode = getRootNode(eventTarget as Node) as HTMLElement;
+      let rootNode: ParentNode | null = eventTarget;
       if (!rootNode) return;
-      const customization = (rootNode as any)[component] as NodeCustomization;
+      let customization: NodeCustomization | null = null;
+
+      do {
+        customization = (rootNode as any)[component] as NodeCustomization;
+        if (customization) break;
+      } while ((rootNode = rootNode.parentNode));
+
+      if (!customization || !rootNode) return;
 
       const operations = customization.events[eventName];
       if (!operations || !operations.length) return;

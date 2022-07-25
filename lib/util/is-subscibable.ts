@@ -1,3 +1,5 @@
+import { RXJS } from '../../types/rxjs';
+
 export function isSubscribable(
   value: any
 ): value is RXJS.Subscribable<unknown> {

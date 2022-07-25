@@ -6,15 +6,12 @@ const renderStack: RenderTarget[] = [];
 
 export function execute(
   operations: DomOperation[],
-  rootNodes: RenderTarget[],
-  items: ArrayLike<any>,
-  offset: number,
-  length: number
+  items: ArrayLike<any> = [],
+  getRootNode: (idx: number) => RenderTarget
 ) {
-  for (let n = 0, len = length; n < len; n = (n + 1) | 0) {
-    const values = items[n];
-    const rootNode = rootNodes[n + offset];
-    renderStack[0] = rootNode;
+  for (let i = 0, itemsLen = items.length; i < itemsLen; i++) {
+    const values = items[i];
+    renderStack[0] = getRootNode(i);
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
@@ -62,7 +59,10 @@ export function execute(
           const attrExpr = operation.expression;
           switch (attrExpr.type) {
             case ExpressionType.Property:
-              (curr as any)[operation.name] = values[attrExpr.name];
+              const propValue = values[attrExpr.name];
+              // if (propValue !== null && propValue !== undefined)
+              (curr as any)[operation.name] = propValue;
+              // else delete (curr as any)[operation.name];
               break;
             case ExpressionType.Function:
               const args = attrExpr.deps.map((d) => values[d]);

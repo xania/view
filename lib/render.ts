@@ -1,5 +1,5 @@
 import { compile } from './compile';
-import { RenderTarget } from './renderable';
+import type { RenderTarget } from './renderable';
 import { Template } from './template';
 
 export function render<T>(
@@ -16,7 +16,7 @@ export function render<T>(
     const result = compile(element);
     if (result) {
       result.listen(containerElt);
-      result.execute(containerElt, [values]);
+      result.render(containerElt, [values]);
     }
   }
 

@@ -6,7 +6,6 @@ import {
   ContainerMutationManager,
   ContainerMutationType,
 } from './mutation';
-import { JSX } from '../../types/jsx';
 import { RenderTarget } from '../renderable/render-target';
 import { CompileResult } from '../compile/compile-result';
 import { execute } from '../compile/execute';
@@ -18,10 +17,9 @@ export interface ViewContainer<T = unknown> {
   removeAt(index: number): void;
   map(template: JSX.Element): void;
   length: number;
-  updateAt<K extends keyof T>(
-    index: number,
+  update<K extends keyof T>(
     property: K,
-    valueFn: (prev: T[K]) => T[K]
+    callback: (item: T, idx: number) => boolean
   ): void;
   itemAt(index: number): T;
 }
@@ -42,13 +40,13 @@ export function createContainer<T>(): ViewContainer<T> {
           const compiled = compile(itemTemplate);
           if (!compiled) return undefined;
 
-          const subscr = mutations.subscribe(
+          const ss = mutations.subscribe(
             createMutationsObserver<T>(target, compiled)
           );
 
           return {
             dispose() {
-              subscr.unsubscribe();
+              ss.unsubscribe();
             },
           };
         },
@@ -92,23 +90,37 @@ export function createContainer<T>(): ViewContainer<T> {
         index2,
       });
     },
-    updateAt(index: number, property: any, valueFn: (prev: any) => any) {
-      if (index < 0 || index >= data.length) return;
-
-      const row = data[index] as any;
-      const oldValue = row[property];
-      const newValue = valueFn(oldValue);
-      if (newValue !== oldValue) {
-        row[property] = newValue;
-        mutations.pushMutation({
-          type: ContainerMutationType.UPDATE,
-          index,
-          property,
-          value: row,
-        });
+    update(property: any, callback: (item: any, idx: number) => boolean) {
+      const pairs: [any, number][] = [];
+      for (let i = 0, len = data.length; i < len; i++) {
+        const row = data[i];
+        if (callback(data[i], i) === true) {
+          pairs.push([row, i]);
+        }
       }
+
+      mutations.pushMutation({
+        type: ContainerMutationType.UPDATE,
+        property,
+        pairs,
+      });
+
+      // if (index < 0 || index >= data.length) return;
+
+      // const row = data[index] as any;
+      // const oldValue = row[property];
+      // const newValue =
+      //   valueFn instanceof Function ? valueFn(oldValue) : valueFn;
+      // if (newValue !== oldValue) {
+      //   row[property] = newValue;
+      //   mutations.pushMutation({
+      //     type: ContainerMutationType.UPDATE,
+      //     property,
+      //     pairs: [[row, index]],
+      //   });
+      // }
     },
-  };
+  } as any;
 }
 
 function createMutationsObserver<T>(
@@ -117,31 +129,32 @@ function createMutationsObserver<T>(
 ) {
   template.listen(containerElt);
 
-  const { customization } = template;
+  const { customization } = template as any;
 
   return {
     next(mut: ContainerMutation<T>) {
       switch (mut.type) {
         case ContainerMutationType.PUSH_MANY:
           // const nodes = customization.nodes;
-          template.execute(containerElt, mut.items);
+          template.render(containerElt, mut.items);
           break;
         case ContainerMutationType.CLEAR:
           if (customization) {
             const { nodes } = customization;
+            const length = nodes.length;
 
-            if (nodes.length) {
-              // if (containerElt.childNodes.length === nodes.length) {
-              //   containerElt.textContent = '';
-              // } else {
-              var rangeObj = new Range();
-              // rangeObj.setStartBefore(nodes[0]);
-              // rangeObj.setEndAfter(nodes[nodes.length - 1]);
+            if (length) {
+              if (containerElt.childNodes.length === length) {
+                containerElt.textContent = '';
+              } else {
+                const rangeObj = new Range();
+                rangeObj.setStartBefore(nodes[0]);
+                rangeObj.setEndAfter(nodes[(length - 1) | 0]);
 
-              rangeObj.deleteContents();
-              // }
+                rangeObj.deleteContents();
+              }
             }
-            customization.nodes.length = 0;
+            nodes.length = 0;
           }
           break;
         case ContainerMutationType.REMOVE_AT:
@@ -149,8 +162,7 @@ function createMutationsObserver<T>(
             const { nodes } = customization;
             const { index } = mut;
             const node = nodes[index];
-            // node.remove();
-            // containerElt.removeChild(node);
+            containerElt.removeChild(node);
             nodes.splice(index, 1);
           }
           break;
@@ -180,18 +192,23 @@ function createMutationsObserver<T>(
             nodes[index1] = node2;
             nodes[index2] = node1;
 
-            // containerElt.insertBefore(node1, nodes[index2 + 1]);
-            // containerElt.insertBefore(node2, nodes[index1 + 1]);
+            containerElt.insertBefore(node1, nodes[index2 + 1]);
+            containerElt.insertBefore(node2, nodes[index1 + 1]);
           }
 
           break;
         case ContainerMutationType.UPDATE:
           if (customization) {
-            const { property, index, value } = mut;
+            const { property, pairs } = mut;
 
             const operations = customization.updates[property as string];
             if (operations?.length) {
-              execute(operations, customization.nodes, [value], index, 1);
+              const { nodes } = customization;
+              execute(
+                operations,
+                pairs.map((p) => p[0]),
+                (i) => nodes[pairs[i][1]]
+              );
             }
           }
           break;

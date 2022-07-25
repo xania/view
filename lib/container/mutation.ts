@@ -1,3 +1,5 @@
+import { RXJS } from '../../types/rxjs';
+
 export type ContainerMutation<T = unknown> =
   | PushItem<T>
   | PushItems<T>
@@ -71,9 +73,8 @@ interface SwapItems {
 
 interface UpdateItem<T> {
   type: ContainerMutationType.UPDATE;
-  index: number;
   property: keyof T;
-  value: T[this['property']];
+  pairs: [T, number][];
 }
 
 export function pushItem<T>(values: T): PushItem<T> {
@@ -138,10 +139,9 @@ export class ContainerMutationManager<T> {
   subscribe = (
     observer: RXJS.NextObserver<ContainerMutation<T>>
   ): RXJS.Unsubscribable => {
-    if (!observer) {
+    if (!(observer?.next instanceof Function)) {
       return EMPTY;
     }
-    if (typeof observer.next !== 'function') return EMPTY;
 
     const { mutationObservers } = this;
     mutationObservers.push(observer);

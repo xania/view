@@ -1,7 +1,5 @@
-export declare namespace JSX {
-  export type Element = any;
-
-  export type IntrinsicElements = {
+declare module JSX {
+  type IntrinsicElements = {
     [P in keyof HTMLElementTagNameMap]: IntrinsicElement<P>;
   } & {
     label: {
@@ -10,19 +8,21 @@ export declare namespace JSX {
     style: any;
   };
 
+  type Element = any;
+
   type EventMap = {
     [P in keyof HTMLElementEventMap]?: (
       e: EventContext<HTMLElementEventMap[P]>
     ) => void;
   };
 
-  type AttrValue<T> = T | null | ExpressionTemplate;
-
   type IntrinsicElement<P extends keyof HTMLElementTagNameMap> = EventMap & {
     [K in Attributes<HTMLElementTagNameMap[P], string>]?: AttrValue<any>;
   } & {
     [K in Attributes<HTMLElementTagNameMap[P], number>]?: AttrValue<number>;
   } & { class?: any; style?: any };
+
+  type AttrValue<T> = T | null | ExpressionTemplate;
 
   type Attributes<T, U> = {
     [P in keyof T]: T[P] extends U ? P : never;
@@ -32,7 +32,7 @@ export declare namespace JSX {
     type: number;
   }
 
-  export interface EventContext<TEvent> {
+  interface EventContext<TEvent> {
     node: Node;
     event: TEvent;
     values: any;

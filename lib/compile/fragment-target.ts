@@ -6,6 +6,22 @@ export class FragmentTarget implements RenderTarget {
     public childNodes: ArrayLike<Node>
   ) {}
 
+  set textContent(value: string) {
+    const { childNodes, parentElement } = this;
+    if (parentElement) {
+      for (let i = 0, len = childNodes.length; i < len; i++) {
+        this.parentElement.removeChild(childNodes[i]);
+      }
+      if (value) {
+        const textNode = document.createTextNode(value);
+        this.parentElement.appendChild(textNode);
+        this.childNodes = [textNode];
+      } else {
+        this.childNodes = [];
+      }
+    }
+  }
+
   get firstChild() {
     return this.childNodes[0];
   }
