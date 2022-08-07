@@ -30,7 +30,7 @@ export function compile(rootTemplate: Template | Template[]) {
 
   const fragment = new DocumentFragment();
   const stack: StackItem[] = [];
-  if (Array.isArray(rootTemplate)) {
+  if (rootTemplate instanceof Array) {
     for (const tpl of rootTemplate) {
       stack.push([fragment, tpl, rootTemplate]);
     }
@@ -41,7 +41,7 @@ export function compile(rootTemplate: Template | Template[]) {
     const curr = stack.pop() as StackItem;
     const [target, template, siblings] = curr;
 
-    if (Array.isArray(template)) {
+    if (template instanceof Array) {
       throw new Error('array unexpected!');
     }
 
@@ -58,6 +58,8 @@ export function compile(rootTemplate: Template | Template[]) {
             const attr = attrs[i];
             if (attr.type === AttributeType.Attribute) {
               setAttribute(dom, attr.name, attr.value);
+            } else if (attr.type === AttributeType.ClassName) {
+              setClassName(dom, attr.value);
             } else if (attr.type === AttributeType.Event) {
               operationsMap.add(dom, {
                 type: DomOperationType.AddEventListener,
@@ -271,6 +273,7 @@ export function compile(rootTemplate: Template | Template[]) {
     if (operations)
       for (const op of operations) {
         switch (op.type) {
+          case DomOperationType.SetClassName:
           case DomOperationType.SetAttribute:
           case DomOperationType.SetTextContent:
             if (op.expression.type === ExpressionType.Property) {
@@ -334,6 +337,58 @@ export function compile(rootTemplate: Template | Template[]) {
       );
     } else {
       return null;
+    }
+  }
+
+  function setClassName(elt: Element, value: any) {
+    if (!value) return;
+
+    if (value.type === TemplateType.Expression) {
+      operationsMap.add(elt, {
+        type: DomOperationType.SetClassName,
+        expression: value.expression,
+      });
+    } else if (value instanceof State) {
+      if (value.current) elt.classList.add(value.current);
+      operationsMap.add(elt, {
+        type: DomOperationType.SetClassName,
+        expression: {
+          type: ExpressionType.State,
+          state: value,
+        },
+      });
+    } else if (value instanceof Function) {
+      const func = value;
+      operationsMap.add(elt, {
+        type: DomOperationType.Renderable,
+        renderable: {
+          render(target: Element, args: any) {
+            const value = func(args);
+
+            if (isSubscribable(value)) {
+              bind(target, value);
+            } else {
+              target.classList.add(value);
+            }
+          },
+        },
+      });
+    } else {
+      for (const cl of value.split(' ')) elt.classList.add(cl);
+    }
+
+    function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
+      const subscr = subscribable.subscribe({
+        next(value: any) {
+          target.classList.add(value);
+        },
+      });
+
+      return {
+        dispose() {
+          subscr.unsubscribe();
+        },
+      };
     }
   }
 

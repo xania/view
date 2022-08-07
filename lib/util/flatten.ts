@@ -12,7 +12,7 @@ export default function flatten<T>(
   }
   while (stack.length > 0) {
     var curr = stack.pop() as StackType;
-    if (Array.isArray(curr)) {
+    if (curr instanceof Array) {
       let length = curr.length;
       while (length--) {
         stack.push(curr[length]);
@@ -44,7 +44,7 @@ export function bottomUp<T>(
   }
   while (stack.length > 0) {
     var curr = stack.pop() as StackType;
-    if (Array.isArray(curr)) {
+    if (curr instanceof Array) {
       let length = curr.length;
       while (length--) {
         stack.push(curr[length]);

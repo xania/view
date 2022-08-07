@@ -52,11 +52,11 @@ function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
   var stack = [tree];
   while (stack.length > 0) {
     var curr = stack.pop();
-    if (Array.isArray(curr)) {
+    if (curr instanceof Array) {
       stack.push.apply(stack, reverse(curr));
     } else if (curr !== null && curr !== undefined) {
       const projected = project ? project(curr) : curr;
-      if (Array.isArray(projected)) {
+      if (projected instanceof Array) {
         retval.push.apply(retval, projected);
       } else if (projected !== undefined && projected !== null) {
         retval.push(projected);
@@ -82,6 +82,11 @@ function attributes(props: any | null): TagTemplate['attrs'] {
           type: AttributeType.Event,
           event: name.toLocaleLowerCase(),
           handler: value,
+        };
+      } else if (name === 'class' || name === 'className') {
+        return {
+          type: AttributeType.ClassName,
+          value,
         };
       } else {
         return {

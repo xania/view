@@ -77,6 +77,31 @@ export function execute(
               break;
           }
           break;
+        case DomOperationType.SetClassName:
+          const classExpr = operation.expression;
+          switch (classExpr.type) {
+            case ExpressionType.Property:
+              const propValue = values[classExpr.name];
+              if (propValue !== null && propValue !== undefined)
+                (curr as HTMLElement).className = propValue;
+              else (curr as HTMLElement).className = '';
+              break;
+            case ExpressionType.Function:
+              const args = classExpr.deps.map((d) => values[d]);
+              const retval = classExpr.func.apply(null, args);
+              if (retval) (curr as HTMLElement).className = retval;
+              else (curr as HTMLElement).className = '';
+              break;
+            case ExpressionType.State:
+              classExpr.state.subscribe({
+                next(s) {
+                  if (s) (curr as any).className = s;
+                  else (curr as any).className = '';
+                },
+              });
+              break;
+          }
+          break;
         case DomOperationType.AppendChild:
           (curr as Element).appendChild(operation.node);
           break;

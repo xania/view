@@ -4,7 +4,7 @@ import { component, distinct, NodeCustomization } from './helpers';
 
 export function addEventDelegation(
   rootContainer: RenderTarget,
-  customization?: NodeCustomization
+  customization: NodeCustomization | undefined
 ) {
   if (!customization) return;
 

@@ -73,8 +73,7 @@ interface SwapItems {
 
 interface UpdateItem<T> {
   type: ContainerMutationType.UPDATE;
-  property: keyof T;
-  pairs: [T, number][];
+  pairs: [T, number, string][];
 }
 
 export function pushItem<T>(values: T): PushItem<T> {

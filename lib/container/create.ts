@@ -9,20 +9,9 @@ import {
 import { RenderTarget } from '../renderable/render-target';
 import { CompileResult } from '../compile/compile-result';
 import { execute } from '../compile/execute';
+import { ViewContainer } from './types';
 
-export interface ViewContainer<T = unknown> {
-  push(data: T[], start?: number, count?: number): void;
-  swap(index0: number, index1: number): void;
-  clear(): void;
-  removeAt(index: number): void;
-  map(template: JSX.Element): void;
-  length: number;
-  update<K extends keyof T>(
-    property: K,
-    callback: (item: T, idx: number) => boolean
-  ): void;
-  itemAt(index: number): T;
-}
+const virtual = Symbol('virtual');
 
 export function createContainer<T>(): ViewContainer<T> {
   const mutations = new ContainerMutationManager<T>();
@@ -39,6 +28,8 @@ export function createContainer<T>(): ViewContainer<T> {
         render(target: RenderTarget) {
           const compiled = compile(itemTemplate);
           if (!compiled) return undefined;
+
+          compiled.listen(target);
 
           const ss = mutations.subscribe(
             createMutationsObserver<T>(target, compiled)
@@ -90,35 +81,38 @@ export function createContainer<T>(): ViewContainer<T> {
         index2,
       });
     },
-    update(property: any, callback: (item: any, idx: number) => boolean) {
-      const pairs: [any, number][] = [];
-      for (let i = 0, len = data.length; i < len; i++) {
-        const row = data[i];
-        if (callback(data[i], i) === true) {
-          pairs.push([row, i]);
+    update(callback: (item: any, idx: number) => string, idx?: number) {
+      const pairs: [any, number, string][] = [];
+      if (idx === undefined)
+        for (let i = 0, len = data.length; i < len; i++) {
+          const row = data[i] as any;
+          const vrow = row[virtual];
+          const property = callback(row, i);
+          if (property !== undefined) {
+            const newValue = row[property];
+            if (!vrow) {
+              row[virtual] = {
+                [property]: newValue,
+              };
+              pairs.push([row, i, property]);
+            } else if (newValue != vrow[property]) {
+              vrow[property] = newValue;
+              pairs.push([row, i, property]);
+            }
+          }
+        }
+      else {
+        const row = data[idx];
+        const result = callback(row, idx);
+        if (result !== undefined) {
+          pairs.push([row, idx, result]);
         }
       }
 
       mutations.pushMutation({
         type: ContainerMutationType.UPDATE,
-        property,
         pairs,
       });
-
-      // if (index < 0 || index >= data.length) return;
-
-      // const row = data[index] as any;
-      // const oldValue = row[property];
-      // const newValue =
-      //   valueFn instanceof Function ? valueFn(oldValue) : valueFn;
-      // if (newValue !== oldValue) {
-      //   row[property] = newValue;
-      //   mutations.pushMutation({
-      //     type: ContainerMutationType.UPDATE,
-      //     property,
-      //     pairs: [[row, index]],
-      //   });
-      // }
     },
   } as any;
 }
@@ -127,8 +121,6 @@ function createMutationsObserver<T>(
   containerElt: RenderTarget,
   template: CompileResult
 ) {
-  template.listen(containerElt);
-
   const { customization } = template as any;
 
   return {
@@ -199,17 +191,22 @@ function createMutationsObserver<T>(
           break;
         case ContainerMutationType.UPDATE:
           if (customization) {
-            const { property, pairs } = mut;
+            const { pairs } = mut;
 
-            const operations = customization.updates[property as string];
-            if (operations?.length) {
-              const { nodes } = customization;
-              execute(
-                operations,
-                pairs.map((p) => p[0]),
-                (i) => nodes[pairs[i][1]]
-              );
+            const { updates, nodes } = customization;
+            for (const [row, idx, property] of pairs) {
+              const operations = updates[property];
+              if (operations) execute(operations, [row], () => nodes[idx]);
             }
+
+            // for (const property in updates) {
+            //   const operations = updates[property];
+            //   execute(
+            //     operations,
+            //     pairs.map((p) => p[0]),
+            //     (i) => nodes[pairs[i][1]]
+            //   );
+            // }
           }
           break;
       }

@@ -7,6 +7,7 @@ export enum DomOperationType {
   PushChild,
   PopNode,
   SetAttribute,
+  SetClassName,
   SetTextContent,
   Renderable,
   AddEventListener,
@@ -29,6 +30,11 @@ export interface PopNodeOperation {
 export interface SetAttributeOperation {
   type: DomOperationType.SetAttribute;
   name: string;
+  expression: Expression;
+}
+
+export interface SetClassNameOperation {
+  type: DomOperationType.SetClassName;
   expression: Expression;
 }
 export interface SetTextContentOperation {
@@ -60,6 +66,7 @@ export type DomNavigationOperation =
 
 export type DomRenderOperation =
   | SetAttributeOperation
+  | SetClassNameOperation
   | SetTextContentOperation
   | RenderableOperation
   | AppendChildOperation;

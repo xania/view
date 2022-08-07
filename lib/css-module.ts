@@ -15,10 +15,7 @@ export function CssModule(props: CssModuleProps, children: Template[]) {
           const { attrs, children } = template;
           if (attrs) {
             for (const attr of attrs) {
-              if (
-                attr.type === AttributeType.Attribute &&
-                (attr.name === 'class' || attr.name === 'className')
-              ) {
+              if (attr.type === AttributeType.ClassName) {
                 const mapped = classes[attr.value];
                 if (mapped) attr.value = mapped;
               }

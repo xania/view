@@ -36,5 +36,6 @@ declare module JSX {
     node: Node;
     event: TEvent;
     values: any;
+    context: any;
   }
 }

@@ -26,13 +26,17 @@ export enum AttributeType {
 export interface TagTemplate {
   type: TemplateType.Tag;
   name: string;
-  attrs: (AttributeTemplate | EventTemplate)[] | null;
+  attrs: (AttributeTemplate | EventTemplate | ClassNameTemplate)[] | null;
   children: Template[];
 }
 
 export interface AttributeTemplate {
-  type: AttributeType.Attribute | AttributeType.ClassName;
+  type: AttributeType.Attribute;
   name: string;
+  value: Exclude<any, null>;
+}
+export interface ClassNameTemplate {
+  type: AttributeType.ClassName;
   value: Exclude<any, null>;
 }
 export interface EventTemplate {
