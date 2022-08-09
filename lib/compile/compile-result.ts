@@ -23,7 +23,7 @@ export class NodeCompileResult implements CompileResult {
     const rootNodes = cust.nodes;
     const offset = rootNodes.length;
 
-    function createRootNode(idx: number) {
+    function createRootNode(_: any, idx: number) {
       const rootNode = templateNode.cloneNode(true);
       (rootNode as any)[component] = cust;
       targetElement.appendChild(rootNode as any);

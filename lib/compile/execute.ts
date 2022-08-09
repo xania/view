@@ -7,11 +7,11 @@ const renderStack: RenderTarget[] = [];
 export function execute(
   operations: DomOperation[],
   items: ArrayLike<any> = [],
-  getRootNode: (idx: number) => RenderTarget
+  getRootNode: (item: any, idx: number) => RenderTarget
 ) {
   for (let i = 0, itemsLen = items.length; i < itemsLen; i++) {
     const values = items[i];
-    renderStack[0] = getRootNode(i);
+    renderStack[0] = getRootNode(values, i);
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
