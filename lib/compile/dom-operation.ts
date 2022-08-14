@@ -12,6 +12,7 @@ export enum DomOperationType {
   Renderable,
   AddEventListener,
   AppendChild,
+  CloneNode,
 }
 
 export interface PushFirstChildOperation {
@@ -58,6 +59,11 @@ export interface AppendChildOperation {
   node: Node;
 }
 
+export interface CloneNodeOperation {
+  type: DomOperationType.CloneNode;
+  template: Node;
+}
+
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
@@ -65,6 +71,7 @@ export type DomNavigationOperation =
   | PopNodeOperation;
 
 export type DomRenderOperation =
+  | CloneNodeOperation
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation

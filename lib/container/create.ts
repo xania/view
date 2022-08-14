@@ -56,6 +56,7 @@ export function createContainer<T>(): ViewContainer<T> {
       });
     },
     clear(): void {
+      vdata.length = 0;
       data.length = 0;
       mutations.pushMutation({
         type: ContainerMutationType.CLEAR,
@@ -69,12 +70,17 @@ export function createContainer<T>(): ViewContainer<T> {
         });
 
         data.splice(index, 1);
+        vdata.splice(index, 1);
       }
     },
     swap(index1: number, index2: number) {
-      const tmp = data[index1];
+      let tmp = data[index1];
       data[index1] = data[index2];
       data[index2] = tmp;
+
+      tmp = vdata[index1];
+      vdata[index1] = vdata[index2];
+      vdata[index2] = tmp;
 
       mutations.pushMutation({
         type: ContainerMutationType.SWAP,
@@ -184,10 +190,10 @@ function createMutationsObserver<T>(
                   const prevValue = vitem[property];
                   if (prevValue !== newValue) {
                     vitem[property] = newValue;
+                    vitem[index] = i;
+                    dirty.push(vitem);
                   }
-                  vitem[index] = i;
-                  dirty.push(vitem);
-                } else {
+                } else if (newValue !== null && newValue !== undefined) {
                   vitem = {
                     [property]: newValue,
                     [index]: i,

@@ -2,8 +2,6 @@ import { ExpressionType } from '../expression';
 import { RenderTarget } from '../renderable/render-target';
 import { DomOperation, DomOperationType } from './dom-operation';
 
-const renderStack: RenderTarget[] = [];
-
 export function execute(
   operations: DomOperation[],
   items: ArrayLike<any> = [],
@@ -11,24 +9,33 @@ export function execute(
 ) {
   for (let i = 0, itemsLen = items.length; i < itemsLen; i++) {
     const values = items[i];
-    renderStack[0] = getRootNode(values, i);
+    let stack: Stack<any> = { head: getRootNode(values, i) };
     let renderIndex = 0;
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
       // promote curr to ElementRef because we trust operation to only access valid properties
-      const curr = renderStack[renderIndex];
       switch (operation.type) {
+        case DomOperationType.CloneNode:
+          // const rootNode = operation.template.cloneNode(true);
+          // (rootNode as any)[component] = cust;
+          // targetElement.appendChild(rootNode as any);
+          // rootNodes[idx + offset] = rootNode;
+          // return rootNode;
+          break;
         case DomOperationType.PushChild:
-          renderStack[++renderIndex] = curr.childNodes[
-            operation.index
-          ] as HTMLElement;
+          stack = { head: stack.head.childNodes[operation.index], tail: stack };
           break;
         case DomOperationType.PushFirstChild:
-          renderStack[++renderIndex] = (curr as Node).firstChild as HTMLElement;
+          stack = {
+            head: (stack.head as Node).firstChild as HTMLElement,
+            tail: stack,
+          };
           break;
         case DomOperationType.PushNextSibling:
-          renderStack[++renderIndex] = (curr as Node)
-            .nextSibling as HTMLElement;
+          stack = {
+            head: (stack.head as Node).nextSibling as HTMLElement,
+            tail: stack,
+          };
           break;
         case DomOperationType.PopNode:
           renderIndex--;
@@ -37,11 +44,11 @@ export function execute(
           const textContentExpr = operation.expression;
           switch (textContentExpr.type) {
             case ExpressionType.Property:
-              (curr as Node).textContent = values[textContentExpr.name];
+              (stack.head as Node).textContent = values[textContentExpr.name];
               break;
             case ExpressionType.Function:
               const args = textContentExpr.deps.map((d) => values[d]);
-              (curr as Node).textContent = textContentExpr.func.apply(
+              (stack.head as Node).textContent = textContentExpr.func.apply(
                 null,
                 args
               );
@@ -49,7 +56,7 @@ export function execute(
             case ExpressionType.State:
               textContentExpr.state.subscribe({
                 next(s) {
-                  (curr as Node).textContent = s;
+                  (stack.head as Node).textContent = s;
                 },
               });
               break;
@@ -61,17 +68,20 @@ export function execute(
             case ExpressionType.Property:
               const propValue = values[attrExpr.name];
               // if (propValue !== null && propValue !== undefined)
-              (curr as any)[operation.name] = propValue;
+              (stack.head as any)[operation.name] = propValue;
               // else delete (curr as any)[operation.name];
               break;
             case ExpressionType.Function:
               const args = attrExpr.deps.map((d) => values[d]);
-              (curr as any)[operation.name] = attrExpr.func.apply(null, args);
+              (stack.head as any)[operation.name] = attrExpr.func.apply(
+                null,
+                args
+              );
               break;
             case ExpressionType.State:
               attrExpr.state.subscribe({
                 next(s) {
-                  (curr as any)[operation.name] = s;
+                  (stack.head as any)[operation.name] = s;
                 },
               });
               break;
@@ -83,32 +93,37 @@ export function execute(
             case ExpressionType.Property:
               const propValue = values[classExpr.name];
               if (propValue !== null && propValue !== undefined)
-                (curr as HTMLElement).className = propValue;
-              else (curr as HTMLElement).className = '';
+                (stack.head as HTMLElement).className = propValue;
+              else (stack.head as HTMLElement).className = '';
               break;
             case ExpressionType.Function:
               const args = classExpr.deps.map((d) => values[d]);
               const retval = classExpr.func.apply(null, args);
-              if (retval) (curr as HTMLElement).className = retval;
-              else (curr as HTMLElement).className = '';
+              if (retval) (stack.head as HTMLElement).className = retval;
+              else (stack.head as HTMLElement).className = '';
               break;
             case ExpressionType.State:
               classExpr.state.subscribe({
                 next(s) {
-                  if (s) (curr as any).className = s;
-                  else (curr as any).className = '';
+                  if (s) (stack.head as any).className = s;
+                  else (stack.head as any).className = '';
                 },
               });
               break;
           }
           break;
         case DomOperationType.AppendChild:
-          (curr as Element).appendChild(operation.node);
+          (stack.head as Element).appendChild(operation.node);
           break;
         case DomOperationType.Renderable:
-          operation.renderable.render(curr as Node, values);
+          operation.renderable.render(stack.head as Node, values);
           break;
       }
     }
   }
+}
+
+interface Stack<T> {
+  readonly head: T;
+  readonly tail?: Stack<T>;
 }
