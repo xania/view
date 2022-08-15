@@ -33,6 +33,7 @@ interface PushItem<T> {
 interface PushItems<T> {
   type: ContainerMutationType.PUSH_MANY;
   items: ArrayLike<T>;
+  vdata: Partial<T>[];
 }
 interface MoveItem {
   type: ContainerMutationType.MOVE;

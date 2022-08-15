@@ -13,6 +13,7 @@ export enum DomOperationType {
   AddEventListener,
   AppendChild,
   CloneNode,
+  SelectNode,
 }
 
 export interface PushFirstChildOperation {
@@ -64,6 +65,10 @@ export interface CloneNodeOperation {
   template: Node;
 }
 
+export interface SelectNodeOperation {
+  type: DomOperationType.SelectNode;
+}
+
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
@@ -76,7 +81,8 @@ export type DomRenderOperation =
   | SetClassNameOperation
   | SetTextContentOperation
   | RenderableOperation
-  | AppendChildOperation;
+  | AppendChildOperation
+  | SelectNodeOperation;
 
 export type DomEventOperation = AddEventListenerOperation;
 

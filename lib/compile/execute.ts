@@ -1,26 +1,40 @@
 import { ExpressionType } from '../expression';
-import { RenderTarget } from '../renderable/render-target';
+import { RenderTarget } from '../renderable';
 import { DomOperation, DomOperationType } from './dom-operation';
+import { component, index, NodeCustomization } from './helpers';
 
 export function execute(
   operations: DomOperation[],
   items: ArrayLike<any> = [],
-  getRootNode: (item: any, idx: number) => RenderTarget
+  context: ExecuteContext
+  // getRootNode: (item: any, idx: number) => RenderTarget
 ) {
+  const { nodes } = context.cust;
   for (let i = 0, itemsLen = items.length; i < itemsLen; i++) {
     const values = items[i];
-    let stack: Stack<any> = { head: getRootNode(values, i) };
-    let renderIndex = 0;
+    let stack: Stack<any> = {
+      head: context.target,
+    };
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
       // promote curr to ElementRef because we trust operation to only access valid properties
       switch (operation.type) {
+        case DomOperationType.SelectNode:
+          const rootIndex = values[index];
+          stack = {
+            head: nodes[rootIndex],
+            tail: stack,
+          };
+          break;
         case DomOperationType.CloneNode:
-          // const rootNode = operation.template.cloneNode(true);
-          // (rootNode as any)[component] = cust;
-          // targetElement.appendChild(rootNode as any);
-          // rootNodes[idx + offset] = rootNode;
-          // return rootNode;
+          const { cust } = context;
+          const clone = operation.template.cloneNode(true);
+          (clone as any)[component] = cust;
+
+          stack.head.appendChild(clone);
+          nodes.push(clone);
+
+          stack = { head: clone, tail: stack };
           break;
         case DomOperationType.PushChild:
           stack = { head: stack.head.childNodes[operation.index], tail: stack };
@@ -38,7 +52,7 @@ export function execute(
           };
           break;
         case DomOperationType.PopNode:
-          renderIndex--;
+          stack = stack.tail as any;
           break;
         case DomOperationType.SetTextContent:
           const textContentExpr = operation.expression;
@@ -126,4 +140,10 @@ export function execute(
 interface Stack<T> {
   readonly head: T;
   readonly tail?: Stack<T>;
+}
+
+export interface ExecuteContext {
+  target: RenderTarget;
+  cust: NodeCustomization;
+  // appendChild(element: Node): void;
 }

@@ -46,3 +46,4 @@ export type NodeCustomization = {
 };
 
 export const component = Symbol(new Date().getTime());
+export const index = Symbol('index');

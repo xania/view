@@ -10,8 +10,7 @@ import { RenderTarget } from '../renderable/render-target';
 import { CompileResult } from '../compile/compile-result';
 import { execute } from '../compile/execute';
 import { ViewContainer } from './types';
-
-const index = Symbol('index');
+import { index } from '../compile/helpers';
 
 export function createContainer<T>(): ViewContainer<T> {
   const mutations = new ContainerMutationManager<T>();
@@ -48,11 +47,13 @@ export function createContainer<T>(): ViewContainer<T> {
       const offset = data.length;
       data.length += items.length;
       for (let i = 0, len = items.length; i < len; i++) {
-        data[i + offset] = items[i];
+        const idx = i + offset;
+        data[idx] = items[i];
       }
       mutations.pushMutation({
         type: ContainerMutationType.PUSH_MANY,
         items,
+        vdata,
       });
     },
     clear(): void {
@@ -111,6 +112,22 @@ function createMutationsObserver<T>(
       switch (mut.type) {
         case ContainerMutationType.PUSH_MANY:
           // const nodes = customization.nodes;
+          const { items, vdata } = mut;
+          const { updates } = customization;
+
+          const offset = vdata.length;
+          for (let i = 0, len = items.length; i < len; i++) {
+            vdata.push({});
+          }
+          for (const property in updates) {
+            for (let i = 0, len = items.length; i < len; i++) {
+              const item = items[i] as any;
+              const newValue = item[property];
+              const vitem = vdata[i + offset] as any;
+              vitem[property] = newValue;
+            }
+          }
+
           template.render(containerElt, mut.items);
           break;
         case ContainerMutationType.CLEAR:
@@ -176,7 +193,7 @@ function createMutationsObserver<T>(
           if (customization) {
             const { data, vdata } = mut;
 
-            const { updates, nodes } = customization;
+            const { updates } = customization;
             for (const property in updates) {
               const operations = updates[property];
               if (!operations) break;
@@ -203,9 +220,9 @@ function createMutationsObserver<T>(
                 }
               }
               if (dirty.length)
-                execute(operations, dirty, (vitem) => {
-                  const idx = vitem[index];
-                  return nodes[idx];
+                execute(operations, dirty, {
+                  target: containerElt,
+                  cust: customization,
                 });
             }
 

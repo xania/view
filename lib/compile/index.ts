@@ -13,7 +13,7 @@ import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
 import { asTemplate } from '../jsx';
-import { FragmentCompileResult, NodeCompileResult } from './compile-result';
+import { NodeCompileResult } from './compile-result';
 import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
 import { RXJS } from '../../types/rxjs';
 
@@ -147,7 +147,7 @@ export function compile(rootTemplate: Template | Template[]) {
         break;
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
-          stack.push([target, asTemplate(template.children[i]), children]);
+          stack.push([target, asTemplate(template.children[i]), []]);
         break;
       case TemplateType.ViewProvider:
         const { view } = template.provider;
@@ -158,9 +158,11 @@ export function compile(rootTemplate: Template | Template[]) {
 
   return createResult();
 
-  function compileOperations(fragment: Node) {
+  function compileOperations(root: Node) {
+    const rootOperations = operationsMap.get(root) || [];
+
     const flattened = flatten(
-      [createNodeCustomization(fragment, 0, operationsMap.get(fragment))],
+      [createNodeCustomization(root, 0, rootOperations, true)],
       ({ templateNode }) =>
         toArray(templateNode.childNodes).map((n, i) =>
           createNodeCustomization(n, i, operationsMap.get(n))
@@ -262,9 +264,10 @@ export function compile(rootTemplate: Template | Template[]) {
   function createNodeCustomization(
     node: Node,
     index: number,
-    operations?: DomOperation[]
+    operations?: DomOperation[],
+    clone: boolean = false
   ): NodeCustomization {
-    const render: DomRenderOperation[] = [];
+    const render: DomRenderOperation[] = clone ? [cloneOperation(node)] : [];
     const events: { [event: string]: DomEventOperation[] } = {};
     const updates: {
       [prop: string | number | symbol]: DomRenderOperation[];
@@ -290,8 +293,6 @@ export function compile(rootTemplate: Template | Template[]) {
             render.push(op);
             break;
           case DomOperationType.AppendChild:
-            render.push(op);
-            break;
           case DomOperationType.Renderable:
             render.push(op);
             break;
@@ -314,30 +315,27 @@ export function compile(rootTemplate: Template | Template[]) {
 
   function createResult() {
     const { childNodes } = fragment;
-    const renderCustomizations = compileOperations(fragment);
 
-    const childCustomizations: NodeCustomization[] = new Array(
-      childNodes.length
-    );
-    for (let i = 0, len = childNodes.length; i < len; i++) {
+    const nodesLength = childNodes.length;
+    if (nodesLength === 0) return null;
+
+    const childCustomizations: NodeCustomization[] = new Array(nodesLength);
+    for (let i = 0; i < nodesLength; i++) {
       const childNode = childNodes[i];
-      childCustomizations[i] = renderCustomizations.get(
+      const renderCustomizations = compileOperations(childNode).get(
         childNode
       ) as NodeCustomization;
+      childCustomizations[i] = renderCustomizations;
+
+      const { updates } = renderCustomizations;
+      for (const property in renderCustomizations.updates) {
+        updates[property].unshift({
+          type: DomOperationType.SelectNode,
+        });
+      }
     }
-    if (operationsMap.get(fragment)?.length || childNodes.length !== 1) {
-      const fragmentCustomization = renderCustomizations.get(fragment);
-      return new FragmentCompileResult(
-        fragmentCustomization,
-        childCustomizations
-      );
-    } else if (childNodes.length === 1) {
-      return new NodeCompileResult(
-        renderCustomizations.get(childNodes[0]) as NodeCustomization
-      );
-    } else {
-      return null;
-    }
+
+    return new NodeCompileResult(childCustomizations[0]);
   }
 
   function setClassName(elt: Element, value: any) {
@@ -469,3 +467,10 @@ export interface RenderOptions {
 //     return new FragmentTarget(this.parentElement, cloneNodes);
 //   }
 // }
+
+function cloneOperation(template: Node) {
+  return {
+    type: DomOperationType.CloneNode,
+    template,
+  } as DomRenderOperation;
+}
