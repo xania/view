@@ -2,27 +2,23 @@ import { RXJS } from '../../types/rxjs';
 
 export type ContainerMutation<T = unknown> =
   | PushItem<T>
-  | PushItems<T>
+  | RenderItems<T>
   | MoveItem
-  | RemoveItem<T>
   | RemoveItemAt
   | InsertItem<T>
   | ResetItems<T>
   | ClearItems
-  | SwapItems
-  | UpdateItem<T>;
+  | SwapItems;
 
 export enum ContainerMutationType {
   PUSH,
   MOVE,
-  REMOVE,
   REMOVE_AT,
   INSERT,
   RESET,
   CLEAR,
-  PUSH_MANY,
+  RENDER,
   SWAP,
-  UPDATE,
 }
 
 interface PushItem<T> {
@@ -30,20 +26,14 @@ interface PushItem<T> {
   values: T;
 }
 
-interface PushItems<T> {
-  type: ContainerMutationType.PUSH_MANY;
-  items: ArrayLike<T>;
-  vdata: Partial<T>[];
+interface RenderItems<T> {
+  type: ContainerMutationType.RENDER;
+  data: ArrayLike<T>;
 }
 interface MoveItem {
   type: ContainerMutationType.MOVE;
   from: number;
   to: number;
-}
-
-interface RemoveItem<T> {
-  type: ContainerMutationType.REMOVE;
-  item: T;
 }
 
 interface RemoveItemAt {
@@ -72,12 +62,6 @@ interface SwapItems {
   index2: number;
 }
 
-interface UpdateItem<T> {
-  type: ContainerMutationType.UPDATE;
-  data: T[];
-  vdata: Partial<T>[];
-}
-
 export function pushItem<T>(values: T): PushItem<T> {
   return {
     type: ContainerMutationType.PUSH,
@@ -89,13 +73,6 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
     type: ContainerMutationType.INSERT,
     values,
     index,
-  };
-}
-
-export function removeItem<T>(item: T): RemoveItem<T> {
-  return {
-    type: ContainerMutationType.REMOVE,
-    item,
   };
 }
 
@@ -124,7 +101,7 @@ export function isMutation<T = unknown>(mut: any): mut is ContainerMutation<T> {
   return type in ContainerMutationType;
 }
 
-export class ContainerMutationManager<T> {
+export class ViewMutationManager<T> {
   private mutationObservers: RXJS.NextObserver<ContainerMutation<T>>[] = [];
 
   pushMutation = (mut: ContainerMutation<T>) => {
@@ -136,6 +113,10 @@ export class ContainerMutationManager<T> {
       observer.next(mut);
     }
   };
+
+  dispose() {
+    throw new Error('Method not implemented.');
+  }
 
   subscribe = (
     observer: RXJS.NextObserver<ContainerMutation<T>>

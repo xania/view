@@ -34,6 +34,7 @@ declare module JSX {
 
   interface EventContext<TEvent> {
     node: Node;
+    index: number;
     event: TEvent;
     values: any;
     context: any;

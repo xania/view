@@ -1,4 +1,4 @@
-import { compile } from './compile';
+import { ViewBinding } from './compile/binding';
 import type { RenderTarget } from './renderable';
 import { Template } from './template';
 
@@ -13,10 +13,9 @@ export function render<T>(
       : container;
 
   if (containerElt) {
-    const result = compile(element);
-    if (result) {
-      result.listen(containerElt);
-      result.render(containerElt, [values]);
+    if (element) {
+      const result = new ViewBinding(element, containerElt);
+      result.render([values]);
     }
   }
 

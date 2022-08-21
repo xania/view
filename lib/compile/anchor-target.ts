@@ -45,6 +45,10 @@ export class AnchorTarget implements RenderTarget {
     const { parentElement } = this;
     if (parentElement) parentElement.addEventListener(type, handler);
   }
+  removeEventListener(type: string, handler: (evt: Event) => void): void {
+    const { parentElement } = this;
+    if (parentElement) parentElement.removeEventListener(type, handler);
+  }
 
   childNodes: ArrayLike<Node> = [];
 

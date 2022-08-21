@@ -1,4 +1,4 @@
 export * from './create';
-export * from './types';
+export * from './view';
 export * from './mutation';
 export * from './property';

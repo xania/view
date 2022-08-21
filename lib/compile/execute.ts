@@ -1,40 +1,29 @@
 import { ExpressionType } from '../expression';
 import { RenderTarget } from '../renderable';
 import { DomOperation, DomOperationType } from './dom-operation';
-import { component, index, NodeCustomization } from './helpers';
+import { dom } from './helpers';
 
 export function execute(
   operations: DomOperation[],
-  items: ArrayLike<any> = [],
+  data: any[] = [],
   context: ExecuteContext
   // getRootNode: (item: any, idx: number) => RenderTarget
 ) {
-  const { nodes } = context.cust;
-  for (let i = 0, itemsLen = items.length; i < itemsLen; i++) {
-    const values = items[i];
+  const { offset } = context;
+  for (let i = offset, itemsLen = data.length; i < itemsLen; i++) {
+    const values = data[i];
     let stack: Stack<any> = {
-      head: context.target,
+      head: values[dom],
     };
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
       // promote curr to ElementRef because we trust operation to only access valid properties
       switch (operation.type) {
         case DomOperationType.SelectNode:
-          const rootIndex = values[index];
           stack = {
-            head: nodes[rootIndex],
+            head: values[dom],
             tail: stack,
           };
-          break;
-        case DomOperationType.CloneNode:
-          const { cust } = context;
-          const clone = operation.template.cloneNode(true);
-          (clone as any)[component] = cust;
-
-          stack.head.appendChild(clone);
-          nodes.push(clone);
-
-          stack = { head: clone, tail: stack };
           break;
         case DomOperationType.PushChild:
           stack = { head: stack.head.childNodes[operation.index], tail: stack };
@@ -144,6 +133,6 @@ interface Stack<T> {
 
 export interface ExecuteContext {
   target: RenderTarget;
-  cust: NodeCustomization;
-  // appendChild(element: Node): void;
+  data: any[];
+  offset: number;
 }

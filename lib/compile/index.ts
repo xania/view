@@ -13,9 +13,9 @@ import { isSubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
 import { asTemplate } from '../jsx';
-import { NodeCompileResult } from './compile-result';
 import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
 import { RXJS } from '../../types/rxjs';
+import CompileResult from './compile-result';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -23,23 +23,29 @@ export interface RenderProps {
   count: number;
 }
 
-type StackItem = [Node, Template, Template[]];
+type StackItem = [Node, Template];
 
-export function compile(rootTemplate: Template | Template[]) {
+export function compile(rootTemplate: Template | CompileResult) {
+  if (rootTemplate instanceof CompileResult) return rootTemplate;
+
   const operationsMap = createLookup<Node, DomOperation>();
 
   const fragment = new DocumentFragment();
+  operationsMap.add(fragment, {
+    type: DomOperationType.SelectNode,
+  });
+
   const stack: StackItem[] = [];
   if (rootTemplate instanceof Array) {
     for (const tpl of rootTemplate) {
-      stack.push([fragment, tpl, rootTemplate]);
+      stack.push([fragment, tpl]);
     }
   } else {
-    stack.push([fragment, asTemplate(rootTemplate), [rootTemplate]]);
+    stack.push([fragment, asTemplate(rootTemplate)]);
   }
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
-    const [target, template, siblings] = curr;
+    const [target, template] = curr;
 
     if (template instanceof Array) {
       throw new Error('array unexpected!');
@@ -72,7 +78,7 @@ export function compile(rootTemplate: Template | Template[]) {
 
         let { length } = children;
         while (length--) {
-          stack.push([dom, asTemplate(children[length]), children]);
+          stack.push([dom, asTemplate(children[length])]);
         }
         break;
       case TemplateType.Text:
@@ -98,44 +104,11 @@ export function compile(rootTemplate: Template | Template[]) {
         });
         break;
       case TemplateType.Renderable:
-        const operation: DomOperation = {
+        operationsMap.add(target, {
           type: DomOperationType.Renderable,
           renderable: template.renderer,
-        };
-
-        if (siblings?.length === 1) {
-          operationsMap.add(target, operation);
-        } else {
-          const commentNode = document.createComment('');
-          target.appendChild(commentNode);
-          operationsMap.add(commentNode, operation);
-        }
+        });
         break;
-      // case TemplateType.Subscribable:
-      //   const asyncNode = document.createTextNode('');
-      //   target.appendChild(asyncNode);
-      //   operationsMap.add(asyncNode, {
-      //     type: DomOperationType.Renderable,
-      //     renderable: {
-      //       render(target) {
-      //         const subscr = template.value.subscribe({
-      //           next(x) {
-      //             target.textContent = x;
-      //           },
-      //         });
-      //         return RenderResult.create(null, subscr);
-      //       },
-      //     },
-      //   });
-      //   break;
-      // case TemplateType.Context:
-      //   const contextNode = document.createTextNode('');
-      //   target.appendChild(contextNode);
-      //   operationsMap.add(target, {
-      //     type: DomOperationType.Renderable,
-      //     renderable: createFunctionRenderer(template.func),
-      //   });
-      //   break;
       case TemplateType.Expression:
         const exprNode = document.createTextNode('');
         target.appendChild(exprNode);
@@ -147,11 +120,11 @@ export function compile(rootTemplate: Template | Template[]) {
         break;
       case TemplateType.Fragment:
         for (let i = template.children.length; i--; )
-          stack.push([target, asTemplate(template.children[i]), []]);
+          stack.push([target, asTemplate(template.children[i])]);
         break;
       case TemplateType.ViewProvider:
         const { view } = template.provider;
-        stack.push([target, view, []]);
+        stack.push([target, asTemplate(view)]);
         break;
     }
   }
@@ -162,7 +135,7 @@ export function compile(rootTemplate: Template | Template[]) {
     const rootOperations = operationsMap.get(root) || [];
 
     const flattened = flatten(
-      [createNodeCustomization(root, 0, rootOperations, true)],
+      [createNodeCustomization(root, 0, rootOperations)],
       ({ templateNode }) =>
         toArray(templateNode.childNodes).map((n, i) =>
           createNodeCustomization(n, i, operationsMap.get(n))
@@ -264,10 +237,9 @@ export function compile(rootTemplate: Template | Template[]) {
   function createNodeCustomization(
     node: Node,
     index: number,
-    operations?: DomOperation[],
-    clone: boolean = false
+    operations?: DomOperation[]
   ): NodeCustomization {
-    const render: DomRenderOperation[] = clone ? [cloneOperation(node)] : [];
+    const render: DomRenderOperation[] = [];
     const events: { [event: string]: DomEventOperation[] } = {};
     const updates: {
       [prop: string | number | symbol]: DomRenderOperation[];
@@ -309,11 +281,10 @@ export function compile(rootTemplate: Template | Template[]) {
       render,
       events,
       updates,
-      nodes: [],
     };
   }
 
-  function createResult() {
+  function createResult(): CompileResult | null {
     const { childNodes } = fragment;
 
     const nodesLength = childNodes.length;
@@ -335,7 +306,7 @@ export function compile(rootTemplate: Template | Template[]) {
       }
     }
 
-    return new NodeCompileResult(childCustomizations[0]);
+    return new CompileResult(childCustomizations[0]);
   }
 
   function setClassName(elt: Element, value: any) {
@@ -467,10 +438,3 @@ export interface RenderOptions {
 //     return new FragmentTarget(this.parentElement, cloneNodes);
 //   }
 // }
-
-function cloneOperation(template: Node) {
-  return {
-    type: DomOperationType.CloneNode,
-    template,
-  } as DomRenderOperation;
-}

@@ -1,4 +1,3 @@
-import { RenderTarget } from '../renderable/render-target';
 import {
   DomEventOperation,
   DomNavigationOperation,
@@ -42,8 +41,9 @@ export type NodeCustomization = {
   render: (DomNavigationOperation | DomRenderOperation)[];
   events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
   updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };
-  nodes: RenderTarget[];
 };
 
 export const component = Symbol(new Date().getTime());
-export const index = Symbol('index');
+// export const index = Symbol('index');
+export const dom = Symbol('dom');
+export const values = Symbol('values');

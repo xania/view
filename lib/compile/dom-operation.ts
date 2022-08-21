@@ -12,7 +12,6 @@ export enum DomOperationType {
   Renderable,
   AddEventListener,
   AppendChild,
-  CloneNode,
   SelectNode,
 }
 
@@ -60,11 +59,6 @@ export interface AppendChildOperation {
   node: Node;
 }
 
-export interface CloneNodeOperation {
-  type: DomOperationType.CloneNode;
-  template: Node;
-}
-
 export interface SelectNodeOperation {
   type: DomOperationType.SelectNode;
 }
@@ -76,7 +70,6 @@ export type DomNavigationOperation =
   | PopNodeOperation;
 
 export type DomRenderOperation =
-  | CloneNodeOperation
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation

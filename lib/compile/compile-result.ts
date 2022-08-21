@@ -1,27 +1,11 @@
-import { addEventDelegation } from './event-delegation';
-import { RenderTarget } from '../renderable/render-target';
+import { RenderTarget } from '../renderable';
 import { NodeCustomization } from './helpers';
-import { execute } from './execute';
+import { ViewBinding } from './binding';
 
-export interface CompileResult {
-  listen(targetElement: RenderTarget): void;
-  render(targetElement: RenderTarget, items: ArrayLike<any>): RenderTarget[];
-}
-
-export class NodeCompileResult implements CompileResult {
+export default class CompileResult {
   constructor(public customization: NodeCustomization) {}
 
-  listen(targetElement: RenderTarget) {
-    addEventDelegation(targetElement, this.customization);
-  }
-
-  render(targetElement: RenderTarget, items: ArrayLike<any>) {
-    const { customization: cust } = this;
-    const rootNodes = cust.nodes;
-    execute(cust.render, items, {
-      target: targetElement,
-      cust: this.customization,
-    });
-    return rootNodes;
+  render(target: RenderTarget) {
+    return new ViewBinding(this, target);
   }
 }
