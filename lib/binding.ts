@@ -1,14 +1,12 @@
-import { RenderTarget } from '../renderable/render-target';
-import { component, distinct, dom, NodeCustomization, values } from './helpers';
+import { component, dom, values } from './symbols';
 import { execute } from './execute';
-import { DomOperationType } from './dom-operation';
-import { compile } from '.';
-import { Template } from '../template';
-import CompileResult from './compile-result';
-import {
-  ContainerMutation,
-  ContainerMutationType,
-} from '../container/mutation';
+import { CompileResult, NodeCustomization } from './compile/compile-result';
+import { ViewMutation, ViewMutationType } from './mutation';
+import { Template } from './jsx';
+import { RenderTarget } from './jsx';
+import { compile } from './compile';
+import { distinct } from './util/helpers';
+import { DomOperationType } from './compile/dom-operation';
 
 export class ViewBinding {
   public vdata: any[] = [];
@@ -27,18 +25,18 @@ export class ViewBinding {
     this.listen();
   }
 
-  next(mut: ContainerMutation) {
+  next(mut: ViewMutation) {
     switch (mut.type) {
-      case ContainerMutationType.CLEAR:
+      case ViewMutationType.CLEAR:
         this.clear();
         break;
-      case ContainerMutationType.REMOVE_AT:
+      case ViewMutationType.REMOVE_AT:
         this.removeAt(mut.index);
         break;
-      case ContainerMutationType.MOVE:
+      case ViewMutationType.MOVE:
         this.moveTo(mut.from, mut.to);
         break;
-      case ContainerMutationType.RENDER:
+      case ViewMutationType.RENDER:
         this.render(mut.data);
         break;
     }

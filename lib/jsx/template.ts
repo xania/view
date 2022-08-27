@@ -1,7 +1,7 @@
-import { Disposable } from './abstractions/disposable';
+import { Disposable } from '../disposable';
 import { Expression } from './expression';
 import { Renderable } from './renderable';
-import { State } from './state';
+import { State } from '../state';
 
 export enum TemplateType {
   Text,
@@ -27,7 +27,7 @@ export interface TagTemplate {
   type: TemplateType.Tag;
   name: string;
   attrs: (AttributeTemplate | EventTemplate | ClassNameTemplate)[] | null;
-  children: Template[];
+  children: unknown[];
 }
 
 export interface AttributeTemplate {
@@ -76,7 +76,7 @@ export interface RenderableTemplate {
 
 export interface FragmentTemplate {
   type: TemplateType.Fragment;
-  children: Template[];
+  children: unknown[];
 }
 
 export interface TextTemplate {

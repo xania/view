@@ -1,6 +1,6 @@
-import { ViewBinding } from './compile/binding';
-import type { RenderTarget } from './renderable';
-import { Template } from './template';
+import { ViewBinding } from './binding';
+import { RenderTarget } from './jsx';
+import { Template } from './jsx';
 
 export function render<T>(
   element: Template,

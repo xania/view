@@ -1,11 +1,17 @@
-import { RenderTarget } from '../renderable';
-import { NodeCustomization } from './helpers';
-import { ViewBinding } from './binding';
+import {
+  DomEventOperation,
+  DomNavigationOperation,
+  DomRenderOperation,
+} from './dom-operation';
 
-export default class CompileResult {
+export class CompileResult {
   constructor(public customization: NodeCustomization) {}
-
-  render(target: RenderTarget) {
-    return new ViewBinding(this, target);
-  }
 }
+
+export type NodeCustomization = {
+  index: number;
+  templateNode: Node;
+  render: (DomNavigationOperation | DomRenderOperation)[];
+  events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
+  updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };
+};

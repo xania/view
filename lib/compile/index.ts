@@ -1,5 +1,4 @@
-import { AttributeType, TemplateType, Template } from '../template';
-import { ExpressionType } from '../expression';
+import { AttributeType, TemplateType, Template, Renderable, RenderTarget, View, ExpressionType } from '../jsx';
 import flatten from '../util/flatten';
 import {
   DomEventOperation,
@@ -9,13 +8,11 @@ import {
   DomRenderOperation,
 } from './dom-operation';
 import { createLookup } from '../util/lookup';
-import { isSubscribable } from '../util/is-subscibable';
+import { isSubscribable, isUnsubscribable } from '../util/is-subscibable';
 import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
-import { asTemplate } from '../jsx';
-import { distinct, NodeCustomization, selectMany, toArray } from './helpers';
-import { RXJS } from '../../types/rxjs';
-import CompileResult from './compile-result';
+import { distinct, selectMany, toArray } from '../util/helpers';
+import { CompileResult, NodeCustomization } from './compile-result';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -331,14 +328,18 @@ export function compile(rootTemplate: Template | CompileResult) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(target: Element, args: any) {
+          render(_: RenderTarget, args: any) {
             const value = func(args);
 
             if (isSubscribable(value)) {
-              bind(target, value);
-            } else {
-              target.classList.add(value);
+              //   bind(target, value);
+              // } else {
+              //   target.classList.add(value);
             }
+
+            return {
+              dispose() {},
+            };
           },
         },
       });
@@ -346,19 +347,19 @@ export function compile(rootTemplate: Template | CompileResult) {
       for (const cl of value.split(' ')) elt.classList.add(cl);
     }
 
-    function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
-      const subscr = subscribable.subscribe({
-        next(value: any) {
-          target.classList.add(value);
-        },
-      });
+    // function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
+    //   const subscr = subscribable.subscribe({
+    //     next(value: any) {
+    //       target.classList.add(value);
+    //     },
+    //   });
 
-      return {
-        dispose() {
-          subscr.unsubscribe();
-        },
-      };
-    }
+    //   return {
+    //     dispose() {
+    //       subscr.unsubscribe();
+    //     },
+    //   };
+    // }
   }
 
   function setAttribute(elt: Element, name: string, value: any): void {
@@ -385,14 +386,15 @@ export function compile(rootTemplate: Template | CompileResult) {
       operationsMap.add(elt, {
         type: DomOperationType.Renderable,
         renderable: {
-          render(target: Element, args: any) {
+          render(_: Element, args: any) {
             const value = func(args);
 
             if (isSubscribable(value)) {
-              bind(target, value);
-            } else {
-              target.setAttribute(name, value);
+              //   bind(target, value);
+              // } else {
+              //   target.setAttribute(name, value);
             }
+            return { dispose() {} };
           },
         },
       });
@@ -400,19 +402,19 @@ export function compile(rootTemplate: Template | CompileResult) {
       elt.setAttribute(name, value);
     }
 
-    function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
-      const subscr = subscribable.subscribe({
-        next(value: any) {
-          target.setAttribute(name, value);
-        },
-      });
+    // function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
+    //   const subscr = subscribable.subscribe({
+    //     next(value: any) {
+    //       target.setAttribute(name, value);
+    //     },
+    //   });
 
-      return {
-        dispose() {
-          subscr.unsubscribe();
-        },
-      };
-    }
+    //   return {
+    //     dispose() {
+    //       subscr.unsubscribe();
+    //     },
+    //   };
+    // }
   }
 }
 
@@ -438,3 +440,92 @@ export interface RenderOptions {
 //     return new FragmentTarget(this.parentElement, cloneNodes);
 //   }
 // }
+
+export function asTemplate(value: any): Template {
+  if (typeof value === 'undefined' || value === null) {
+    return null as any;
+  } else if (isTemplate(value)) return value;
+  // else if (isComponent(name)) return new TemplateComponent(name);
+  // else if (isAttachable(name)) return new TemplateAttachable(name);
+  // else if (typeof name === 'function') return name;
+  // else if (Array.isArray(name)) return flatTree(name, asTemplate);
+  // else if (isPromise<TemplateInput>(name)) return new TemplatePromise(name);
+  else if (value instanceof View<any>) {
+    return {
+      type: TemplateType.Renderable,
+      renderer: value,
+    };
+  } else if (value instanceof State) {
+    return {
+      type: TemplateType.State,
+      state: value,
+    };
+  } else if (isUnsubscribable(value))
+    return {
+      type: TemplateType.Disposable,
+      dispose() {
+        value.unsubscribe();
+      },
+    };
+  else if (isDomNode(value))
+    return {
+      type: TemplateType.DOM,
+      node: value,
+    };
+  else if (
+    'view' in Object.keys(value) ||
+    'view' in value.constructor.prototype
+  ) {
+    return {
+      type: TemplateType.ViewProvider,
+      provider: value,
+    };
+  } else if (isRenderable(value)) {
+    return {
+      type: TemplateType.Renderable,
+      renderer: value,
+    };
+  } else if (typeof value === 'function') {
+    return {
+      type: TemplateType.Renderable,
+      renderer: {
+        render: value,
+      },
+    };
+  }
+  // else if (hasProperty(name, 'view')) return asTemplate(name.view);
+  // else if (isPrimitive(name)) return new PrimitiveTemplate(name);
+
+  // return new NativeTemplate(name);
+  return {
+    type: TemplateType.Text,
+    value,
+  };
+}
+
+function isRenderable(value: any): value is Renderable {
+  return value && typeof value.render === 'function';
+}
+
+function isTemplate(value: any): value is Template {
+  if (!value) return false;
+  const { type } = value;
+  return type === 0 || !isNaN(parseInt(type));
+}
+
+function isDomNode(obj: any): obj is Node {
+  try {
+    //Using W3 DOM2 (works for FF, Opera and Chrome)
+    return obj instanceof HTMLElement;
+  } catch (e) {
+    //Browsers not supporting W3 DOM2 don't have HTMLElement and
+    //an exception is thrown and we end up here. Testing some
+    //properties that all elements have (works on IE7)
+    return (
+      typeof obj === 'object' &&
+      obj.nodeType === 1 &&
+      typeof obj.style === 'object' &&
+      typeof obj.ownerDocument === 'object'
+    );
+  }
+}

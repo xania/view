@@ -1,9 +1,3 @@
-import {
-  DomEventOperation,
-  DomNavigationOperation,
-  DomRenderOperation,
-} from './dom-operation';
-
 export function toArray<T extends Node>(nodes: ArrayLike<T>) {
   const result: T[] = [];
   const length = nodes.length;
@@ -34,16 +28,3 @@ export function selectMany<T, P>(
 export function distinct<T>(source: T[]) {
   return new Set<T>(source);
 }
-
-export type NodeCustomization = {
-  index: number;
-  templateNode: Node;
-  render: (DomNavigationOperation | DomRenderOperation)[];
-  events: { [event: string]: (DomNavigationOperation | DomEventOperation)[] };
-  updates: { [event: string]: (DomNavigationOperation | DomRenderOperation)[] };
-};
-
-export const component = Symbol(new Date().getTime());
-// export const index = Symbol('index');
-export const dom = Symbol('dom');
-export const values = Symbol('values');

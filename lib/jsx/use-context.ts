@@ -1,7 +1,7 @@
-import { ExpressionType } from '../expression';
-import { TemplateType, ExpressionTemplate } from '../template';
+import { ExpressionType } from './expression';
+import { ExpressionTemplate, TemplateType } from './template';
 
-export function expr(
+function expr(
   expression: ExpressionTemplate['expression']
 ): ExpressionTemplate {
   return {

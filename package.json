@@ -2,7 +2,7 @@
   "version": "0.4.2",
   "license": "MIT",
   "main": "dist/es2015/index.js",
-  "module": "lib/index.ts",
+  "module": "index.ts",
   "files": [
     "types",
     "dist",

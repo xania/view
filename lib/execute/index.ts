@@ -1,7 +1,7 @@
-import { ExpressionType } from '../expression';
-import { RenderTarget } from '../renderable';
-import { DomOperation, DomOperationType } from './dom-operation';
-import { dom } from './helpers';
+import { ExpressionType } from '../jsx';
+import { RenderTarget } from '../jsx';
+import { DomOperation, DomOperationType } from '../compile/dom-operation';
+import { dom } from '../symbols';
 
 export function execute(
   operations: DomOperation[],

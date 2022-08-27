@@ -1,5 +1,5 @@
-import { Expression } from '../expression';
-import { Renderable } from '../renderable';
+import { Expression } from '../jsx';
+import { Renderable } from '../jsx';
 
 export enum DomOperationType {
   PushFirstChild,
