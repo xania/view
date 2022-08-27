@@ -5,10 +5,11 @@ import {
 } from './dom-operation';
 
 export class CompileResult {
-  constructor(public customization: NodeCustomization) {}
+  constructor(public customizations: NodeCustomization[]) {}
 }
 
 export type NodeCustomization = {
+  dom: symbol;
   index: number;
   templateNode: Node;
   render: (DomNavigationOperation | DomRenderOperation)[];

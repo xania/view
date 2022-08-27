@@ -1,4 +1,4 @@
-import { component, dom, values } from './symbols';
+import { component, values } from './symbols';
 import { execute } from './execute';
 import { CompileResult, NodeCustomization } from './compile/compile-result';
 import { ViewMutation, ViewMutationType } from './mutation';
@@ -10,17 +10,16 @@ import { DomOperationType } from './compile/dom-operation';
 
 export class ViewBinding {
   public vdata: any[] = [];
-  public customization: NodeCustomization | null;
+  public customizations: NodeCustomization[];
   constructor(
     template: Template | CompileResult,
     private target: RenderTarget
   ) {
     const compiled = compile(template);
     if (compiled) {
-      const cust = compiled.customization;
-      this.customization = cust;
+      this.customizations = compiled.customizations;
     } else {
-      this.customization = null;
+      this.customizations = [];
     }
     this.listen();
   }
@@ -43,22 +42,21 @@ export class ViewBinding {
   }
 
   private listen() {
-    const { customization, target: rootContainer, vdata } = this;
-    if (!customization) return;
-
-    const eventNames = distinct(Object.keys(customization.events));
-    for (const eventName of eventNames) {
-      rootContainer.addEventListener(eventName, handler);
+    const { customizations, target: rootContainer, vdata } = this;
+    for (const customization of customizations) {
+      const eventNames = distinct(Object.keys(customization.events));
+      for (const eventName of eventNames) {
+        rootContainer.addEventListener(eventName, handler);
+      }
     }
 
     return {
       unsubscribe() {
-        for (const eventName of eventNames) {
-          rootContainer.removeEventListener(eventName, handler);
-        }
+        // for (const eventName of eventNames) {
+        //   rootContainer.removeEventListener(eventName, handler);
+        // }
       },
     };
-
     function handler(evt: Event) {
       const eventName = evt.type;
       const eventTarget = evt.target as Node;
@@ -72,9 +70,11 @@ export class ViewBinding {
         if (cust) break;
       } while ((rootNode = rootNode.parentNode));
 
-      if (customization !== cust || !rootNode) return;
+      if (customizations.includes(cust) || !rootNode) return;
 
-      const operations = customization.events[eventName];
+      const { dom } = cust;
+
+      const operations = cust.events[eventName];
       if (!operations || !operations.length) return;
 
       const renderStack: Node[] = [rootNode];
@@ -117,9 +117,12 @@ export class ViewBinding {
   }
 
   removeAt(index: number) {
-    const { vdata } = this;
-    this.target.removeChild(vdata[index][dom]);
-    vdata.splice(index, 1);
+    const { target, customizations, vdata } = this;
+    for (const cust of customizations) {
+      const { dom } = cust;
+      target.removeChild(vdata[index][dom]);
+      vdata.splice(index, 1);
+    }
   }
 
   clear() {
@@ -131,8 +134,8 @@ export class ViewBinding {
         target.textContent = '';
       } else {
         const rangeObj = new Range();
-        rangeObj.setStartBefore(vdata[0][dom]);
-        rangeObj.setEndAfter(vdata[length - 1][dom]);
+        // rangeObj.setStartBefore(vdata[0][dom]);
+        // rangeObj.setEndAfter(vdata[length - 1][dom]);
 
         rangeObj.deleteContents();
       }
@@ -141,67 +144,74 @@ export class ViewBinding {
   }
 
   render(data: ArrayLike<any>) {
-    const { vdata, customization, target } = this;
-    if (!customization) return;
-    const { updates } = customization;
+    const { vdata, customizations, target } = this;
 
-    const offset = vdata.length;
     const length = data.length;
+    const offset = vdata.length;
 
-    if (length > offset) {
-      const { templateNode } = customization;
-      for (let i = offset; i < length; i++) {
-        const clone = templateNode.cloneNode(true);
-        (clone as any)[component] = customization;
-        target.appendChild(clone);
-        const item = data[i] as any;
-        const vitem: any = {
-          [dom]: clone,
-          [values]: item,
-        };
-        if (item) {
-          for (const property in updates) {
-            const newValue = item[property];
-            vitem[property] = newValue;
-          }
-        }
-        vdata.push(vitem);
-      }
-      execute(customization.render, vdata, {
-        target,
-        data: vdata,
-        offset,
-      });
+    for (let i = offset; i < length; i++) {
+      const item = data[i] as any;
+      const vitem: any = {
+        [values]: item,
+      };
+      vdata.push(vitem);
     }
 
-    if (offset > 0) {
-      for (const property in updates) {
-        const operations = updates[property];
-        if (!operations) break;
-        const dirty: any[] = [];
-        for (let i = 0; i < offset; i++) {
+    for (const customization of customizations) {
+      const { updates, dom } = customization;
+
+      if (length > offset) {
+        const { templateNode } = customization;
+        for (let i = offset; i < length; i++) {
+          const clone = templateNode.cloneNode(true);
+          (clone as any)[component] = customization;
+          target.appendChild(clone);
           const item = data[i] as any;
-          let vitem = vdata[i] as any;
-          vitem[values] = item;
-
-          if (!item) {
-            continue;
-          }
-
-          const newValue = item[property];
-          vitem[values] = item;
-          const prevValue = vitem[property];
-          if (prevValue !== newValue) {
-            vitem[property] = newValue;
-            dirty.push(vitem);
+          const vitem = vdata[i];
+          vitem[dom] = clone;
+          if (item) {
+            for (const property in updates) {
+              const newValue = item[property];
+              vitem[property] = newValue;
+            }
           }
         }
-        if (dirty.length)
-          execute(operations, dirty, {
-            target,
-            data: vdata,
-            offset: 0,
-          });
+        execute(customization.render, vdata, {
+          target,
+          data: vdata,
+          offset,
+        });
+      }
+
+      if (offset > 0) {
+        for (const property in updates) {
+          const operations = updates[property];
+          if (!operations) break;
+          const dirty: any[] = [];
+          for (let i = 0; i < offset; i++) {
+            const item = data[i] as any;
+            let vitem = vdata[i] as any;
+            vitem[values] = item;
+
+            if (!item) {
+              continue;
+            }
+
+            const newValue = item[property];
+            vitem[values] = item;
+            const prevValue = vitem[property];
+            if (prevValue !== newValue) {
+              vitem[property] = newValue;
+              dirty.push(vitem);
+            }
+          }
+          if (dirty.length)
+            execute(operations, dirty, {
+              target,
+              data: vdata,
+              offset: 0,
+            });
+        }
       }
     }
   }
@@ -210,23 +220,29 @@ export class ViewBinding {
     if (from === to) {
       return;
     }
-    const { vdata } = this;
+    const { vdata, customizations } = this;
     const fromItem = vdata[from];
     const toItem = vdata[to];
-    const fromNode: HTMLElement = fromItem[dom];
-    const toNode: HTMLElement = toItem[dom];
-
     if (from < to) {
-      toNode.insertAdjacentElement('afterend', fromNode);
       for (let i = from + 1; i <= to; i++) {
         vdata[i - 1] = vdata[i];
       }
     } else if (from > to) {
-      toNode.insertAdjacentElement('beforebegin', fromNode);
       for (let i = from; i > to; i--) {
         vdata[i] = vdata[i - 1];
       }
     }
     vdata[to] = fromItem;
+    for (const cust of customizations) {
+      const { dom } = cust;
+      const fromNode: HTMLElement = fromItem[dom];
+      const toNode: HTMLElement = toItem[dom];
+
+      if (from < to) {
+        toNode.insertAdjacentElement('afterend', fromNode);
+      } else if (from > to) {
+        toNode.insertAdjacentElement('beforebegin', fromNode);
+      }
+    }
   }
 }

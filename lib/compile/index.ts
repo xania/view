@@ -273,6 +273,7 @@ export function compile(rootTemplate: Template | CompileResult) {
         }
       }
     return {
+      dom: Symbol(index),
       templateNode: node,
       index,
       render,
@@ -303,7 +304,7 @@ export function compile(rootTemplate: Template | CompileResult) {
       }
     }
 
-    return new CompileResult(childCustomizations[0]);
+    return new CompileResult(childCustomizations);
   }
 
   function setClassName(elt: Element, value: any) {
