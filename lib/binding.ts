@@ -176,11 +176,15 @@ export class ViewBinding {
             }
           }
         }
-        execute(customization.render, vdata, {
-          target,
-          data: vdata,
-          offset,
-        });
+        execute(
+          customization.render,
+          {
+            target,
+            data: vdata,
+            offset,
+          },
+          customization.dom
+        );
       }
 
       if (offset > 0) {
@@ -206,11 +210,15 @@ export class ViewBinding {
             }
           }
           if (dirty.length)
-            execute(operations, dirty, {
-              target,
-              data: vdata,
-              offset: 0,
-            });
+            execute(
+              operations,
+              {
+                target,
+                data: dirty,
+                offset: 0,
+              },
+              customization.dom
+            );
         }
       }
     }

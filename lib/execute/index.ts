@@ -1,15 +1,13 @@
 import { ExpressionType } from '../jsx';
 import { RenderTarget } from '../jsx';
 import { DomOperation, DomOperationType } from '../compile/dom-operation';
-import { dom } from '../symbols';
 
 export function execute(
   operations: DomOperation[],
-  data: any[] = [],
-  context: ExecuteContext
-  // getRootNode: (item: any, idx: number) => RenderTarget
+  context: ExecuteContext,
+  dom: symbol
 ) {
-  const { offset } = context;
+  const { offset, data } = context;
   for (let i = offset, itemsLen = data.length; i < itemsLen; i++) {
     const values = data[i];
     let stack: Stack<any> = {
