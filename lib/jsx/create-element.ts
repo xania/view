@@ -1,14 +1,38 @@
 import { AttributeType, TagTemplate, Template, TemplateType } from './template';
+import { render } from '../render';
+import { RenderTarget } from './renderable';
+
+function renderTemplate(this: Template, container: RenderTarget) {
+  return render(this, container);
+}
+
+interface TemplateRender {
+  render(target: RenderTarget): unknown;
+}
+
+export function createFragment(
+  _: null,
+  children: Template[]
+): (Template & TemplateRender) | null {
+  if (children instanceof Array && children.length > 0)
+    return {
+      type: TemplateType.Fragment,
+      children,
+      render: renderTemplate,
+    };
+  return null;
+}
 
 export function createElement(
   name: string | Function | null,
   props: any = null,
   ...children: unknown[]
-): Template | null {
+): (Template & TemplateRender) | null {
   if (name === null /* fragment */) {
     return {
       type: TemplateType.Fragment,
       children,
+      render: renderTemplate,
     };
   }
 
@@ -19,6 +43,7 @@ export function createElement(
       name,
       attrs,
       children: children,
+      render: renderTemplate,
     };
   }
 

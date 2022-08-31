@@ -1,7 +1,6 @@
 // import { reverse } from './reverse';
 
 export * from './create-element';
-export * from './create-fragment';
 export * from './use-context';
 export * from './template';
 export * from './expression';
