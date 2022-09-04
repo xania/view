@@ -24,6 +24,10 @@ export class ViewBinding {
     this.listen();
   }
 
+  dispose() {
+    this.clear();
+  }
+
   next(mut: ViewMutation) {
     switch (mut.type) {
       case ViewMutationType.CLEAR:
@@ -126,20 +130,27 @@ export class ViewBinding {
   }
 
   clear() {
-    const { vdata, target } = this;
-    const length = vdata.length | 0;
+    const { vdata, customizations } = this;
 
-    if (length) {
-      if (target.childNodes.length === length) {
-        target.textContent = '';
-      } else {
-        const rangeObj = new Range();
-        // rangeObj.setStartBefore(vdata[0][dom]);
-        // rangeObj.setEndAfter(vdata[length - 1][dom]);
+    for (const cust of customizations) {
+      const { dom } = cust;
 
-        rangeObj.deleteContents();
+      for (const vitem of vdata) {
+        vitem[dom].remove();
       }
     }
+
+    // if (length) {
+    //   if (target.childNodes.length === length) {
+    //     target.textContent = '';
+    //   } else {
+    //     const rangeObj = new Range();
+    //     // rangeObj.setStartBefore(vdata[0][dom]);
+    //     // rangeObj.setEndAfter(vdata[length - 1][dom]);
+
+    //     rangeObj.deleteContents();
+    //   }
+    // }
     vdata.length = 0;
   }
 
