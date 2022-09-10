@@ -74,7 +74,7 @@ export class ViewBinding {
         if (cust) break;
       } while ((rootNode = rootNode.parentNode));
 
-      if (customizations.includes(cust) || !rootNode) return;
+      if (!customizations.includes(cust) || !rootNode) return;
 
       const { dom } = cust;
 

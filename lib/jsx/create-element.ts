@@ -42,7 +42,7 @@ export function createElement(
       type: TemplateType.Tag,
       name,
       attrs,
-      children: children,
+      children: flattenChildren(children),
       render: renderTemplate,
     };
   }
@@ -82,4 +82,23 @@ function attributes(props: any | null): TagTemplate['attrs'] {
       }
     });
   return null;
+}
+
+function flattenChildren(children: any[]) {
+  if (!(children instanceof Array)) {
+    return children;
+  }
+  var result: any[] = [];
+  var stack = [children];
+
+  while (stack.length) {
+    var curr = stack.pop();
+    if (curr instanceof Array) {
+      for (let i = curr.length - 1; i >= 0; i--) stack.push(curr[i]);
+    } else if (curr !== null && curr !== undefined) {
+      result.push(curr);
+    }
+  }
+
+  return result;
 }
