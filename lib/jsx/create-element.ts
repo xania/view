@@ -47,7 +47,7 @@ export function createElement(
     };
   }
 
-  if (typeof name === 'function') {
+  if (name instanceof Function) {
     try {
       return name(props, children);
     } catch (e) {

@@ -344,6 +344,8 @@ export function compile(rootTemplate: Template | CompileResult) {
           },
         },
       });
+    } else if (value instanceof Array) {
+      for (const cl of value) elt.classList.add(cl);
     } else {
       for (const cl of value.split(' ')) elt.classList.add(cl);
     }
