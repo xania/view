@@ -1,4 +1,4 @@
-import { Expression } from '../jsx';
+import { AttachTemplate, Expression } from '../jsx';
 import { Renderable } from '../jsx';
 
 export enum DomOperationType {
@@ -13,6 +13,7 @@ export enum DomOperationType {
   AddEventListener,
   AppendChild,
   SelectNode,
+  AttachTo,
 }
 
 export interface PushFirstChildOperation {
@@ -63,6 +64,11 @@ export interface SelectNodeOperation {
   type: DomOperationType.SelectNode;
 }
 
+export interface AttachToNodeOperation {
+  type: DomOperationType.AttachTo;
+  attachable: AttachTemplate['attachable'];
+}
+
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
@@ -75,7 +81,8 @@ export type DomRenderOperation =
   | SetTextContentOperation
   | RenderableOperation
   | AppendChildOperation
-  | SelectNodeOperation;
+  | SelectNodeOperation
+  | AttachToNodeOperation;
 
 export type DomEventOperation = AddEventListenerOperation;
 

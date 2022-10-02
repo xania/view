@@ -1,4 +1,4 @@
-import { AttributeType, TemplateType, Template, Renderable, RenderTarget, View, ExpressionType } from '../jsx';
+import { AttributeType, TemplateType, Template, Renderable, RenderTarget, View, ExpressionType, AttachTemplate } from '../jsx';
 import flatten from '../util/flatten';
 import {
   DomEventOperation,
@@ -9,7 +9,6 @@ import {
 } from './dom-operation';
 import { createLookup } from '../util/lookup';
 import { isSubscribable, isUnsubscribable } from '../util/is-subscibable';
-import { createDOMElement } from '../util/create-dom';
 import { State } from '../state';
 import { distinct, selectMany, toArray } from '../util/helpers';
 import { CompileResult, NodeCustomization } from './compile-result';
@@ -20,7 +19,7 @@ export interface RenderProps {
   count: number;
 }
 
-type StackItem = [Node, Template];
+type StackItem = [Node, Template | string];
 
 export function compile(rootTemplate: Template | CompileResult) {
   if (rootTemplate instanceof CompileResult) return rootTemplate;
@@ -40,6 +39,8 @@ export function compile(rootTemplate: Template | CompileResult) {
   } else {
     stack.push([fragment, asTemplate(rootTemplate)]);
   }
+
+  let xmlns: string | null = 'http://www.w3.org/1999/xhtml'; // http://www.w3.org/2000/svg
   while (stack.length > 0) {
     const curr = stack.pop() as StackItem;
     const [target, template] = curr;
@@ -49,11 +50,21 @@ export function compile(rootTemplate: Template | CompileResult) {
     }
 
     if (template === null || template === undefined) continue;
+    
+    if (typeof template === 'string'){
+      xmlns = template;
+      continue;
+    }
 
     switch (template.type) {
       case TemplateType.Tag:
         const { name, attrs, children } = template;
-        const dom = createDOMElement(name);
+        if (name === 'svg') {
+          stack.push([target, 'http://www.w3.org/1999/xhtml'])
+          xmlns = 'http://www.w3.org/2000/svg'
+        }
+
+        const dom = document.createElementNS(xmlns, name);
         target.appendChild(dom);
 
         if (attrs) {
@@ -122,6 +133,12 @@ export function compile(rootTemplate: Template | CompileResult) {
       case TemplateType.ViewProvider:
         const { view } = template.provider;
         stack.push([target, asTemplate(view)]);
+        break;
+      case TemplateType.AttachTo:
+        operationsMap.add(target, {
+          type: DomOperationType.AttachTo,
+          attachable: template.attachable,
+        });
         break;
     }
   }
@@ -269,6 +286,9 @@ export function compile(rootTemplate: Template | CompileResult) {
             const { name } = op;
             const eventBag = events[name] || (events[name] = []);
             eventBag.push(op);
+            break;
+          case DomOperationType.AttachTo:
+            render.push(op);
             break;
         }
       }
@@ -475,6 +495,12 @@ export function asTemplate(value: any): Template {
       type: TemplateType.DOM,
       node: value,
     };
+  else if (isAttachable(value)) {
+    return {
+      type: TemplateType.AttachTo,
+      attachable: value
+    }
+  }
   else if (
     'view' in Object.keys(value) ||
     'view' in value.constructor.prototype
@@ -531,4 +557,8 @@ function isDomNode(obj: any): obj is Node {
       typeof obj.ownerDocument === 'object'
     );
   }
+}
+
+function isAttachable(obj: any): obj is AttachTemplate['attachable'] {
+  return obj && obj.attachTo && obj.attachTo instanceof Function
 }

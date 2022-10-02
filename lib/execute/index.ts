@@ -35,7 +35,7 @@ export function execute(
         case DomOperationType.PushNextSibling:
           stack = {
             head: (stack.head as Node).nextSibling as HTMLElement,
-            tail: stack,
+            tail: stack.tail,
           };
           break;
         case DomOperationType.PopNode:
@@ -118,6 +118,9 @@ export function execute(
           break;
         case DomOperationType.Renderable:
           operation.renderable.render(stack.head as Node, values);
+          break;
+        case DomOperationType.AttachTo:
+          operation.attachable.attachTo(stack.head as HTMLElement);
           break;
       }
     }

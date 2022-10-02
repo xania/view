@@ -13,6 +13,7 @@ export enum TemplateType {
   ViewProvider,
   Expression,
   Fragment,
+  AttachTo,
 }
 
 export enum AttributeType {
@@ -84,6 +85,13 @@ export interface TextTemplate {
   value: any;
 }
 
+export interface AttachTemplate {
+  type: TemplateType.AttachTo;
+  attachable: {
+    attachTo(dom: HTMLElement): unknown;
+  };
+}
+
 export type Template =
   | TagTemplate
   | StateTemplate
@@ -93,4 +101,5 @@ export type Template =
   | ExpressionTemplate
   | FragmentTemplate
   | TextTemplate
-  | ViewProviderTemplate;
+  | ViewProviderTemplate
+  | AttachTemplate;
