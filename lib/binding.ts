@@ -24,6 +24,20 @@ export class ViewBinding {
     this.listen();
   }
 
+  get elements() {
+    const { vdata, customizations } = this;
+    const r: any[] = [];
+    for (const cust of customizations) {
+      const { dom } = cust;
+      for (const vitem of vdata) {
+        const elt = vitem[dom];
+        r.push(elt);
+      }
+    }
+
+    return r;
+  }
+
   dispose() {
     this.clear();
   }
