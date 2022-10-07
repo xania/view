@@ -3,6 +3,9 @@ interface SVGTagNameMap {
     xmlns: string;
     width: number;
     height: number;
+    fill: string;
+    viewBox: string;
+    stroke: string;
   };
   g: {
     fill: string;
@@ -16,7 +19,15 @@ interface SVGTagNameMap {
 }
 
 declare module JSX {
-  type TagNameMap = HTMLElementTagNameMap & SVGTagNameMap;
+  type TagNameMap = HTMLElementTagNameMap &
+    SVGTagNameMap & {
+      div: {
+        role: string;
+      };
+      a: {
+        role: string;
+      };
+    };
 
   type IntrinsicElements = {
     [P in keyof TagNameMap]: IntrinsicElement<P>;
