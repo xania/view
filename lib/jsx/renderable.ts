@@ -25,6 +25,7 @@ export interface RenderTarget {
   addEventListener(type: string, handler: (evt: Event) => void): void;
   removeEventListener(type: string, handler: (evt: Event) => void): void;
   insertBefore: Node['insertBefore'];
+  setAttribute?: HTMLElement['setAttribute'];
   set textContent(value: string | null);
 }
 
