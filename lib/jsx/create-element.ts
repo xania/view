@@ -6,7 +6,7 @@ function renderTemplate(this: Template, container: RenderTarget) {
   return render(this, container);
 }
 
-interface TemplateRender {
+export interface TemplateRender {
   render(target: RenderTarget): unknown;
 }
 

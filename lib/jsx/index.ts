@@ -6,6 +6,7 @@ export * from './template';
 export * from './expression';
 export * from './renderable';
 export * from './view';
+export * from './use-factory';
 
 // function flatTree<T = any>(tree: any, project?: (item: any) => T | T[]) {
 //   var retval: T[] = [];
