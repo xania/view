@@ -14,10 +14,9 @@ export function useFactory(props: FactoryProps) {
 
   function mapClass(cls: string | string[]): string | string[] {
     if (cls instanceof Array) {
-      const res = flatten(cls, mapClass);
-      return res;
+      return flatten(cls, mapClass);
     }
-    return classes[cls] || cls;
+    return cls.split(' ').map((cls) => classes[cls] || cls);
   }
 
   return {
@@ -62,9 +61,8 @@ function flatten<T>(tree: T[], childrenFn: (node: T) => T[] | T | undefined) {
       if (children) {
         if (children instanceof Array)
           for (let i = children.length - 1; i >= 0; i--) {
-            stack[stack.length] = children[i];
+            retval.push(children[i]);
           }
-        else retval.push(children);
       }
     }
   }
