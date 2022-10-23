@@ -2,6 +2,10 @@ interface Observable<T> {
   next(value: T): void;
 }
 
+export function useState<T>(value: T) {
+  return new State(value);
+}
+
 export class State<T> {
   observers: Observable<T>[] = [];
   constructor(public current: T) {}
