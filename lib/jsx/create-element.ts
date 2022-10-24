@@ -10,17 +10,8 @@ export interface TemplateRender {
   render(target: RenderTarget): unknown;
 }
 
-export function createFragment(
-  _: null,
-  children: Template[]
-): (Template & TemplateRender) | null {
-  if (children instanceof Array && children.length > 0)
-    return {
-      type: TemplateType.Fragment,
-      children,
-      render: renderTemplate,
-    };
-  return null;
+export function createFragment(_: null, children: Template[]) {
+  return children;
 }
 
 export function createElement(

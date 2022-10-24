@@ -33,7 +33,7 @@ export function compile(rootTemplate: Template | CompileResult) {
 
   const stack: StackItem[] = [];
   if (rootTemplate instanceof Array) {
-    for (const tpl of rootTemplate) {
+    for (const tpl of rootTemplate.reverse()) {
       stack.push([fragment, tpl]);
     }
   } else {
@@ -46,7 +46,9 @@ export function compile(rootTemplate: Template | CompileResult) {
     const [target, template] = curr;
 
     if (template instanceof Array) {
-      throw new Error('array unexpected!');
+      for(const t of template.reverse())
+        stack.push([target, asTemplate(t)]);
+      continue;
     }
 
     if (template === null || template === undefined) continue;
@@ -75,11 +77,12 @@ export function compile(rootTemplate: Template | CompileResult) {
             } else if (attr.type === AttributeType.ClassName) {
               setClassName(dom, attr.value);
             } else if (attr.type === AttributeType.Event) {
-              operationsMap.add(dom, {
-                type: DomOperationType.AddEventListener,
-                name: attr.event,
-                handler: attr.handler,
-              });
+              if (attr.handler instanceof Function)
+                operationsMap.add(dom, {
+                  type: DomOperationType.AddEventListener,
+                  name: attr.event,
+                  handler: attr.handler,
+                });
             }
           }
         }
