@@ -1,16 +1,16 @@
 import { createElement, createFragment } from './create-element';
 
-interface FactoryProps {
+interface JsxFactoryConfig {
   classes?: { [name: string]: string };
 }
-export function useFactory(props: FactoryProps) {
-  if (!props.classes)
+export function jsxFactory(config: JsxFactoryConfig) {
+  if (!config.classes)
     return {
       createElement,
       createFragment,
     };
 
-  const { classes } = props;
+  const { classes } = config;
 
   function mapClass(cls: string | string[]): string | string[] {
     if (cls instanceof Array) {

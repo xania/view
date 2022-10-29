@@ -8,12 +8,16 @@ export function useState<T>(value: T) {
 
 export class State<T> {
   observers: Observable<T>[] = [];
-  constructor(public current: T) {}
+  constructor(public current?: T) {}
 
   subscribe(observer: Observable<T>) {
-    const { observers } = this;
+    const { observers, current } = this;
     const len = observers.length;
     observers[len] = observer;
+
+    if (current !== undefined) {
+      observer.next(current);
+    }
 
     return {
       unsubscribe() {
@@ -23,8 +27,9 @@ export class State<T> {
     };
   }
 
-  update(func: (p: T) => T) {
+  update(func: (p?: T) => T) {
     const { current: value } = this;
+
     const newValue = func(value);
     if (newValue !== value) {
       this.current = newValue;
@@ -44,9 +49,9 @@ export class State<T> {
     }
   }
 
-  map<U>(func: (x: T) => U) {
+  map<U>(func: (x?: T) => U) {
     const { observers } = this;
-    const mappedState = new MappedState<T, U>(this.current, func);
+    const mappedState = new MappedState<T | undefined, U>(this.current, func);
     observers.push(mappedState);
 
     return mappedState;

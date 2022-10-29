@@ -15,7 +15,6 @@ export function execute(
     };
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
-      // promote curr to ElementRef because we trust operation to only access valid properties
       switch (operation.type) {
         case DomOperationType.SelectNode:
           stack = {
@@ -55,9 +54,10 @@ export function execute(
               );
               break;
             case ExpressionType.State:
+              const elt = stack.head as Node;
               textContentExpr.state.subscribe({
                 next(s) {
-                  (stack.head as Node).textContent = s;
+                  elt.textContent = s;
                 },
               });
               break;
@@ -104,10 +104,11 @@ export function execute(
               else (stack.head as HTMLElement).className = '';
               break;
             case ExpressionType.State:
+              const stateElt = stack.head as HTMLElement;
               classExpr.state.subscribe({
                 next(s) {
-                  if (s) (stack.head as any).className = s;
-                  else (stack.head as any).className = '';
+                  if (s) stateElt.className = s;
+                  else stateElt.className = '';
                 },
               });
               break;
