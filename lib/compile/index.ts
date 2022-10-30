@@ -1,4 +1,15 @@
-import { AttributeType, TemplateType, Template, Renderable, RenderTarget, View, ExpressionType, AttachTemplate } from '../jsx';
+import {
+  AttributeType,
+  TemplateType,
+  Template,
+  Renderable,
+  View,
+  AttachTemplate,
+  TagTemplate,
+  ClassNameTemplate,
+  EventTemplate,
+  AttributeTemplate,
+} from '../jsx';
 import flatten from '../util/flatten';
 import {
   DomEventOperation,
@@ -6,12 +17,14 @@ import {
   DomOperation,
   DomOperationType,
   DomRenderOperation,
+  SetClassNameOperation,
 } from './dom-operation';
 import { createLookup } from '../util/lookup';
 import { isSubscribable, isUnsubscribable } from '../util/is-subscibable';
 import { State } from '../state';
 import { distinct, selectMany, toArray } from '../util/helpers';
 import { CompileResult, NodeCustomization } from './compile-result';
+import { ExpressionType } from '../jsx/expression';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -46,24 +59,41 @@ export function compile(rootTemplate: Template | CompileResult) {
     const [target, template] = curr;
 
     if (template instanceof Array) {
-      for(const t of template.reverse())
-        stack.push([target, asTemplate(t)]);
+      for (const t of template.reverse()) stack.push([target, asTemplate(t)]);
       continue;
     }
 
     if (template === null || template === undefined) continue;
-    
-    if (typeof template === 'string'){
+
+    if (typeof template === 'string') {
       xmlns = template;
       continue;
+    }
+
+    function parseAttr(
+      dom: Element,
+      attr: AttributeTemplate | EventTemplate | ClassNameTemplate
+    ) {
+      if (attr.type === AttributeType.Attribute) {
+        setAttribute(dom, attr.name, attr.value);
+      } else if (attr.type === AttributeType.ClassName) {
+        setClassName(dom, attr.value);
+      } else if (attr.type === AttributeType.Event) {
+        if (attr.handler instanceof Function)
+          operationsMap.add(dom, {
+            type: DomOperationType.AddEventListener,
+            name: attr.event,
+            handler: attr.handler,
+          });
+      }
     }
 
     switch (template.type) {
       case TemplateType.Tag:
         const { name, attrs, children } = template;
         if (name === 'svg') {
-          stack.push([target, 'http://www.w3.org/1999/xhtml'])
-          xmlns = 'http://www.w3.org/2000/svg'
+          stack.push([target, 'http://www.w3.org/1999/xhtml']);
+          xmlns = 'http://www.w3.org/2000/svg';
         }
 
         const dom = document.createElementNS(xmlns, name);
@@ -71,19 +101,7 @@ export function compile(rootTemplate: Template | CompileResult) {
 
         if (attrs) {
           for (let i = 0; i < attrs.length; i++) {
-            const attr = attrs[i];
-            if (attr.type === AttributeType.Attribute) {
-              setAttribute(dom, attr.name, attr.value);
-            } else if (attr.type === AttributeType.ClassName) {
-              setClassName(dom, attr.value);
-            } else if (attr.type === AttributeType.Event) {
-              if (attr.handler instanceof Function)
-                operationsMap.add(dom, {
-                  type: DomOperationType.AddEventListener,
-                  name: attr.event,
-                  handler: attr.handler,
-                });
-            }
+            parseAttr(dom, attrs[i]);
           }
         }
 
@@ -91,6 +109,9 @@ export function compile(rootTemplate: Template | CompileResult) {
         while (length--) {
           stack.push([dom, asTemplate(children[length])]);
         }
+        break;
+      case TemplateType.SetAttribute:
+        parseAttr(target as Element, template.attr);
         break;
       case TemplateType.Text:
         const textNode = document.createTextNode(template.value);
@@ -211,7 +232,9 @@ export function compile(rootTemplate: Template | CompileResult) {
               const child = children[0];
               const { parentElement } = child.templateNode;
               if (parentElement) {
-                parentElement?.removeChild(child.templateNode as Node);
+                parentElement.removeChild(child.templateNode as Node);
+                if (child.templateNode.nodeValue)
+                  parentElement.innerText = child.templateNode.nodeValue;
                 operations.push(childOperations[0]);
                 return;
               }
@@ -266,18 +289,27 @@ export function compile(rootTemplate: Template | CompileResult) {
       for (const op of operations) {
         switch (op.type) {
           case DomOperationType.SetClassName:
+            for (const expr of op.expressions) {
+              if (expr.type === ExpressionType.Property) {
+                const name = expr.name;
+                const updatesBag = updates[name] || (updates[name] = []);
+                updatesBag.push(op);
+              }
+            }
+            render.push(op);
+            break;
           case DomOperationType.SetAttribute:
           case DomOperationType.SetTextContent:
             if (op.expression.type === ExpressionType.Property) {
               const name = op.expression.name;
               const updatesBag = updates[name] || (updates[name] = []);
               updatesBag.push(op);
-            } else if (op.expression.type === ExpressionType.Function) {
-              const { deps } = op.expression;
-              for (const name of deps) {
-                const updatesBag = updates[name] || (updates[name] = []);
-                updatesBag.push(op);
-              }
+              // } else if (op.expression.type === ExpressionType.Function) {
+              //   const { deps } = op.expression;
+              //   for (const name of deps) {
+              //     const updatesBag = updates[name] || (updates[name] = []);
+              //     updatesBag.push(op);
+              //   }
             }
             render.push(op);
             break;
@@ -329,48 +361,63 @@ export function compile(rootTemplate: Template | CompileResult) {
 
     return new CompileResult(childCustomizations);
   }
-
-  function setClassName(elt: Element, value: any) {
+  function setClassName(elt: Element, value: JSX.ClassName) {
     if (!value) return;
 
-    if (value.type === TemplateType.Expression) {
-      operationsMap.add(elt, {
-        type: DomOperationType.SetClassName,
-        expression: value.expression,
-      });
+    const lookup = operationsMap.get(elt);
+    let operation: SetClassNameOperation | undefined;
+    if (lookup) {
+      for (const op of lookup) {
+        if (op.type === DomOperationType.SetClassName) {
+          operation = op;
+          break;
+        }
+      }
+    }
+    if (!operation) {
+      operationsMap.add(
+        elt,
+        (operation = {
+          type: DomOperationType.SetClassName,
+          expressions: [],
+          statics: [],
+        })
+      );
+    }
+
+    if (value instanceof Array) {
+      for (const cl of value) {
+        setClassName(elt, cl);
+      }
     } else if (value instanceof State) {
-      if (value.current) elt.classList.add(value.current);
-      operationsMap.add(elt, {
-        type: DomOperationType.SetClassName,
-        expression: {
-          type: ExpressionType.State,
-          state: value,
-        },
+      const { current } = value;
+      if (current) {
+        if (current instanceof Array) {
+          for (const cl of value.current) {
+            elt.classList.add(cl);
+          }
+        } else {
+          for (const cl of value.current.split(' ')) {
+            elt.classList.add(cl);
+          }
+        }
+      }
+      operation.expressions.push({
+        type: ExpressionType.State,
+        state: value,
       });
-    } else if (value instanceof Function) {
-      const func = value;
-      operationsMap.add(elt, {
-        type: DomOperationType.Renderable,
-        renderable: {
-          render(_: RenderTarget, args: any) {
-            const value = func(args);
-
-            if (isSubscribable(value)) {
-              //   bind(target, value);
-              // } else {
-              //   target.classList.add(value);
-            }
-
-            return {
-              dispose() {},
-            };
-          },
-        },
+    } else if (typeof value === 'string') {
+      for (const cl of value.split(' ')) {
+        elt.classList.add(cl);
+        operation.statics.push(cl);
+      }
+    } else if ('subscribe' in value) {
+      operation.expressions.push({
+        type: ExpressionType.State,
+        state: value,
       });
-    } else if (value instanceof Array) {
-      for (const cl of value) elt.classList.add(cl);
-    } else {
-      for (const cl of value.split(' ')) elt.classList.add(cl);
+    } else if ('type' in value && value.type === TemplateType.Expression) {
+      operation.expressions.push(value.expression);
     }
 
     // function bind(target: Element, subscribable: RXJS.Subscribable<any>) {
@@ -476,7 +523,7 @@ export function asTemplate(value: any): Template {
   // else if (typeof name === 'function') return name;
   // else if (Array.isArray(name)) return flatTree(name, asTemplate);
   // else if (isPromise<TemplateInput>(name)) return new TemplatePromise(name);
-  else if (value instanceof View<any>) {
+  else if (value instanceof View) {
     return {
       type: TemplateType.Renderable,
       renderer: value,
@@ -501,12 +548,11 @@ export function asTemplate(value: any): Template {
   else if (isAttachable(value)) {
     return {
       type: TemplateType.AttachTo,
-      attachable: value
-    }
-  }
-  else if (
+      attachable: value,
+    };
+  } else if (
     'view' in Object.keys(value) ||
-    'view' in value.constructor.prototype
+    'view' in (value as any).constructor.prototype
   ) {
     return {
       type: TemplateType.ViewProvider,
@@ -563,5 +609,5 @@ function isDomNode(obj: any): obj is Node {
 }
 
 function isAttachable(obj: any): obj is AttachTemplate['attachable'] {
-  return obj && obj.attachTo && obj.attachTo instanceof Function
+  return obj && obj.attachTo && obj.attachTo instanceof Function;
 }

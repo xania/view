@@ -1,6 +1,6 @@
-import { ExpressionType } from '../jsx';
 import { RenderTarget } from '../jsx';
 import { DomOperation, DomOperationType } from '../compile/dom-operation';
+import { ExpressionType } from '../jsx/expression';
 
 export function execute(
   operations: DomOperation[],
@@ -89,29 +89,40 @@ export function execute(
           }
           break;
         case DomOperationType.SetClassName:
-          const classExpr = operation.expression;
-          switch (classExpr.type) {
-            case ExpressionType.Property:
-              const propValue = values[classExpr.name];
-              if (propValue !== null && propValue !== undefined)
-                (stack.head as HTMLElement).className = propValue;
-              else (stack.head as HTMLElement).className = '';
-              break;
-            case ExpressionType.Function:
-              const args = classExpr.deps.map((d) => values[d]);
-              const retval = classExpr.func.apply(null, args);
-              if (retval) (stack.head as HTMLElement).className = retval;
-              else (stack.head as HTMLElement).className = '';
-              break;
-            case ExpressionType.State:
-              const stateElt = stack.head as HTMLElement;
-              classExpr.state.subscribe({
-                next(s) {
-                  if (s) stateElt.className = s;
-                  else stateElt.className = '';
-                },
-              });
-              break;
+          {
+            const { statics, expressions } = operation;
+            for (const classExpr of expressions) {
+              switch (classExpr.type) {
+                case ExpressionType.Property:
+                  const propValue = values[classExpr.name];
+                  if (propValue !== null && propValue !== undefined)
+                    (stack.head as HTMLElement).className = propValue;
+                  else (stack.head as HTMLElement).className = '';
+                  break;
+                case ExpressionType.State:
+                  const stateElt = stack.head as HTMLElement;
+                  classExpr.state.subscribe({
+                    next(s: string | string[], p: string | string[]) {
+                      if (p instanceof Array) {
+                        for (const x of p) {
+                          stateElt.classList.remove(x);
+                        }
+                      } else if (p) {
+                        stateElt.classList.remove(p);
+                      }
+
+                      if (s instanceof Array) {
+                        for (const x of s) {
+                          stateElt.classList.add(x);
+                        }
+                      } else if (s) {
+                        stateElt.classList.add(s);
+                      }
+                    },
+                  });
+                  break;
+              }
+            }
           }
           break;
         case DomOperationType.AppendChild:

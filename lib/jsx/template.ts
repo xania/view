@@ -1,5 +1,4 @@
 import { Disposable } from '../disposable';
-import { Expression } from './expression';
 import { Renderable } from './renderable';
 import { State } from '../state';
 
@@ -14,6 +13,7 @@ export enum TemplateType {
   Expression,
   Fragment,
   AttachTo,
+  SetAttribute,
 }
 
 export enum AttributeType {
@@ -31,14 +31,21 @@ export interface TagTemplate {
   children: unknown[];
 }
 
+export interface SetAttributeTemplate {
+  type: TemplateType.SetAttribute;
+  attr: AttributeTemplate | EventTemplate | ClassNameTemplate;
+}
+
 export interface AttributeTemplate {
   type: AttributeType.Attribute;
   name: string;
   value: Exclude<any, null>;
 }
+
 export interface ClassNameTemplate {
   type: AttributeType.ClassName;
-  value: Exclude<any, null>;
+  value: JSX.ClassName;
+  classes?: { [k: string]: string };
 }
 export interface EventTemplate {
   type: AttributeType.Event;
@@ -62,7 +69,7 @@ interface DomTemplate {
 
 export interface ExpressionTemplate {
   type: TemplateType.Expression;
-  expression: Expression;
+  expression: JSX.Expression;
 }
 
 interface ViewProviderTemplate {
@@ -102,4 +109,5 @@ export type Template =
   | FragmentTemplate
   | TextTemplate
   | ViewProviderTemplate
-  | AttachTemplate;
+  | AttachTemplate
+  | SetAttributeTemplate;

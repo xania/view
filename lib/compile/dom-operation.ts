@@ -1,4 +1,4 @@
-import { AttachTemplate, Expression } from '../jsx';
+import { AttachTemplate } from '../jsx';
 import { Renderable } from '../jsx';
 
 export enum DomOperationType {
@@ -32,16 +32,17 @@ export interface PopNodeOperation {
 export interface SetAttributeOperation {
   type: DomOperationType.SetAttribute;
   name: string;
-  expression: Expression;
+  expression: JSX.Expression;
 }
 
 export interface SetClassNameOperation {
   type: DomOperationType.SetClassName;
-  expression: Expression;
+  expressions: JSX.Expression[];
+  statics: string[];
 }
 export interface SetTextContentOperation {
   type: DomOperationType.SetTextContent;
-  expression: Expression;
+  expression: JSX.Expression;
 }
 
 export interface RenderableOperation {

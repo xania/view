@@ -46,11 +46,16 @@ declare module JSX {
     ) => void;
   };
 
+  type ClassName =
+    | string
+    | Subscribable<string | string[]>
+    | ExpressionTemplate;
+
   type IntrinsicElement<P extends keyof TagNameMap> = EventMap & {
     [K in Attributes<TagNameMap[P], string>]?: AttrValue<any>;
   } & {
     [K in Attributes<TagNameMap[P], number>]?: AttrValue<number>;
-  } & { class?: any; style?: any };
+  } & { class?: ClassName | ClassName[]; style?: any };
 
   type AttrValue<T> = T | null | ExpressionTemplate;
 
@@ -60,6 +65,7 @@ declare module JSX {
 
   interface ExpressionTemplate {
     type: number;
+    expression: Expression;
   }
 
   interface EventContext<TEvent> {
@@ -68,5 +74,52 @@ declare module JSX {
     event: TEvent;
     values: any;
     context: any;
+  }
+
+  export enum ExpressionType {
+    Property = 1,
+    Function = 2,
+    State = 3,
+  }
+
+  export interface PropertyExpression {
+    type: ExpressionType.Property;
+    name: string | number | symbol;
+  }
+
+  export interface FunctionExpression {
+    type: ExpressionType.Function;
+    func: Function;
+    deps: (string | number | symbol)[];
+  }
+
+  export interface StateExpression {
+    type: ExpressionType.State;
+    state: Subscribable<any>;
+  }
+
+  export type Expression =
+    | PropertyExpression
+    | FunctionExpression
+    | StateExpression;
+
+  export interface NextObserver<T> {
+    next: (value: T, prev?: T) => void;
+    error?: (err: any) => void;
+    complete?: () => void;
+  }
+
+  export interface Unsubscribable {
+    unsubscribe(): void;
+  }
+
+  export interface Subscribable<T> {
+    subscribe(observer: NextObserver<T>): Unsubscribable;
+  }
+
+  export interface Observer<T> {
+    next: (value: T) => void;
+    error: (err: any) => void;
+    complete: () => void;
   }
 }

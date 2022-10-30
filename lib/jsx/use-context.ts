@@ -1,4 +1,3 @@
-import { ExpressionType } from './expression';
 import { ExpressionTemplate, TemplateType } from './template';
 
 function expr(
@@ -13,10 +12,14 @@ function expr(
 export function useContext<T = unknown>() {
   return (nameOrGetter: keyof T | Function, ...deps: (keyof T)[]) => {
     if (typeof nameOrGetter === 'function')
-      return expr({ type: ExpressionType.Function, func: nameOrGetter, deps });
+      return expr({
+        type: JSX.ExpressionType.Function,
+        func: nameOrGetter,
+        deps,
+      });
     else
       return expr({
-        type: ExpressionType.Property,
+        type: JSX.ExpressionType.Property,
         name: nameOrGetter,
       });
   };

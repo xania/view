@@ -1,24 +1,15 @@
-import { RenderTarget } from 'lib/jsx';
+import { AttributeType, SetAttributeTemplate, TemplateType } from '../jsx';
 
 export interface CssProps {
-  value: string[];
+  value: JSX.ClassName;
 }
 
-export function Css(props: CssProps) {
+export function Css(props: CssProps): SetAttributeTemplate {
   return {
-    render(target: RenderTarget) {
-      const { value } = props;
-      const classList = (target as HTMLElement).classList;
-      for (const cl of value) {
-        if (!classList.contains(cl)) classList.add(cl);
-      }
-      return {
-        dispose() {
-          for (const cl of value) {
-            if (classList.contains(cl)) classList.remove(cl);
-          }
-        },
-      };
+    type: TemplateType.SetAttribute,
+    attr: {
+      type: AttributeType.ClassName,
+      value: props.value,
     },
   };
 }

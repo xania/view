@@ -11,13 +11,9 @@ export class State<T> {
   constructor(public current?: T) {}
 
   subscribe(observer: Observable<T>) {
-    const { observers, current } = this;
+    const { observers } = this;
     const len = observers.length;
     observers[len] = observer;
-
-    if (current !== undefined) {
-      observer.next(current);
-    }
 
     return {
       unsubscribe() {
@@ -28,13 +24,13 @@ export class State<T> {
   }
 
   update(func: (p?: T) => T) {
-    const { current: value } = this;
+    const { current: preValue } = this;
 
-    const newValue = func(value);
-    if (newValue !== value) {
+    const newValue = func(preValue);
+    if (newValue !== preValue) {
       this.current = newValue;
       for (const o of this.observers) {
-        o.next(newValue);
+        o.next(newValue, preValue);
       }
     }
   }

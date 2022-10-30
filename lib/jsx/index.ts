@@ -3,7 +3,6 @@
 export * from './create-element';
 export * from './use-context';
 export * from './template';
-export * from './expression';
 export * from './renderable';
 export * from './view';
 export * from './use-factory';
