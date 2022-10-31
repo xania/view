@@ -55,7 +55,7 @@ declare module JSX {
     [K in Attributes<TagNameMap[P], string>]?: AttrValue<any>;
   } & {
     [K in Attributes<TagNameMap[P], number>]?: AttrValue<number>;
-  } & { class?: ClassName | ClassName[]; style?: any };
+  } & { class?: ClassName | ClassName[]; style?: any; role?: string };
 
   type AttrValue<T> = T | null | ExpressionTemplate;
 
