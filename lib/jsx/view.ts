@@ -3,14 +3,14 @@ import { ViewMutation, ViewMutationType } from '../mutation';
 import { RenderTarget } from './renderable';
 import { Template } from './template';
 
-export function createView<T>(itemTemplate: Template): View<T> {
-  return new View<T>(itemTemplate);
+export function createView<T>(itemTemplate: Template, init?: T[]): View<T> {
+  return new View<T>(itemTemplate, init);
 }
 
 export class View<T> {
   private bindings: ViewBinding[] = [];
 
-  constructor(private itemTemplate: Template) {}
+  constructor(private itemTemplate: Template, private init?: T[]) {}
 
   pushMutation = (mut: ViewMutation<T>) => {
     if (!mut) return;
@@ -23,9 +23,14 @@ export class View<T> {
   };
 
   render(target: RenderTarget) {
-    const { itemTemplate, bindings } = this;
+    const { init, itemTemplate, bindings } = this;
     const binding = new ViewBinding(itemTemplate, target);
     bindings.push(binding);
+    if (init instanceof Array)
+      binding.next({
+        type: ViewMutationType.RENDER,
+        data: init,
+      });
 
     return {
       dispose() {

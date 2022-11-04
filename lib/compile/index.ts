@@ -5,7 +5,6 @@ import {
   Renderable,
   View,
   AttachTemplate,
-  TagTemplate,
   ClassNameTemplate,
   EventTemplate,
   AttributeTemplate,
@@ -25,6 +24,7 @@ import { State } from '../state';
 import { distinct, selectMany, toArray } from '../util/helpers';
 import { CompileResult, NodeCustomization } from './compile-result';
 import { ExpressionType } from '../jsx/expression';
+import { ViewBinding } from '../binding';
 
 export interface RenderProps {
   items: ArrayLike<unknown>;
@@ -126,6 +126,27 @@ export function compile(rootTemplate: Template | CompileResult) {
           expression: {
             type: ExpressionType.State,
             state,
+          },
+        });
+        break;
+      case TemplateType.Subscribable:
+        console.log(template.value);
+        break;
+      case TemplateType.Promise:
+        operationsMap.add(target, {
+          type: DomOperationType.Renderable,
+          renderable: {
+            promise: template.value,
+            render(containerElt: any) {
+              const { promise } = this;
+              promise.then((element) => {
+                const result = new ViewBinding(element, containerElt);
+                result.render([undefined]);
+              });
+              return {
+                dispose() {},
+              } as any;
+            },
           },
         });
         break;
@@ -515,7 +536,7 @@ export interface RenderOptions {
 // }
 
 export function asTemplate(value: any): Template {
-  if (typeof value === 'undefined' || value === null) {
+  if (value === undefined || value === null) {
     return null as any;
   } else if (isTemplate(value)) return value;
   // else if (isComponent(name)) return new TemplateComponent(name);
@@ -533,6 +554,16 @@ export function asTemplate(value: any): Template {
       type: TemplateType.State,
       state: value,
     };
+  } else if (isSubscribable(value)) {
+    return {
+      type: TemplateType.Subscribable,
+      value,
+    };
+  } else if (value instanceof Promise) {
+    return {
+      type: TemplateType.Promise,
+      value,
+    };
   } else if (isUnsubscribable(value))
     return {
       type: TemplateType.Disposable,
@@ -540,7 +571,7 @@ export function asTemplate(value: any): Template {
         value.unsubscribe();
       },
     };
-  else if (isDomNode(value))
+  else if (value instanceof Node)
     return {
       type: TemplateType.DOM,
       node: value,

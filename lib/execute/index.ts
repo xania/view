@@ -5,20 +5,22 @@ import { ExpressionType } from '../jsx/expression';
 export function execute(
   operations: DomOperation[],
   context: ExecuteContext,
-  dom: symbol
+  dom: symbol,
+  values: symbol
 ) {
   const { offset, data } = context;
   for (let i = offset, itemsLen = data.length; i < itemsLen; i++) {
-    const values = data[i];
+    const vitem = data[i];
+    const item = vitem[values];
     let stack: Stack<any> = {
-      head: values[dom],
+      head: vitem[dom],
     };
     for (let n = 0, len = operations.length | 0; n < len; n = (n + 1) | 0) {
       const operation = operations[n];
       switch (operation.type) {
         case DomOperationType.SelectNode:
           stack = {
-            head: values[dom],
+            head: vitem[dom],
             tail: stack,
           };
           break;
@@ -44,10 +46,10 @@ export function execute(
           const textContentExpr = operation.expression;
           switch (textContentExpr.type) {
             case ExpressionType.Property:
-              (stack.head as Node).textContent = values[textContentExpr.name];
+              (stack.head as Node).textContent = item[textContentExpr.name];
               break;
             case ExpressionType.Function:
-              const args = textContentExpr.deps.map((d) => values[d]);
+              const args = textContentExpr.deps.map((d) => item[d]);
               (stack.head as Node).textContent = textContentExpr.func.apply(
                 null,
                 args
@@ -67,13 +69,13 @@ export function execute(
           const attrExpr = operation.expression;
           switch (attrExpr.type) {
             case ExpressionType.Property:
-              const propValue = values[attrExpr.name];
+              const propValue = item[attrExpr.name];
               // if (propValue !== null && propValue !== undefined)
               (stack.head as any)[operation.name] = propValue;
               // else delete (curr as any)[operation.name];
               break;
             case ExpressionType.Function:
-              const args = attrExpr.deps.map((d) => values[d]);
+              const args = attrExpr.deps.map((d) => item[d]);
               (stack.head as any)[operation.name] = attrExpr.func.apply(
                 null,
                 args
@@ -90,33 +92,34 @@ export function execute(
           break;
         case DomOperationType.SetClassName:
           {
-            const { statics, expressions } = operation;
+            const { expressions } = operation;
             for (const classExpr of expressions) {
               switch (classExpr.type) {
                 case ExpressionType.Property:
-                  const propValue = values[classExpr.name];
+                  const propValue = vitem[classExpr.name];
                   if (propValue !== null && propValue !== undefined)
                     (stack.head as HTMLElement).className = propValue;
                   else (stack.head as HTMLElement).className = '';
                   break;
                 case ExpressionType.State:
                   const stateElt = stack.head as HTMLElement;
+                  const prev: string[] = [];
                   classExpr.state.subscribe({
-                    next(s: string | string[], p: string | string[]) {
-                      if (p instanceof Array) {
-                        for (const x of p) {
-                          stateElt.classList.remove(x);
-                        }
-                      } else if (p) {
-                        stateElt.classList.remove(p);
+                    prev,
+                    next(s: string | string[]) {
+                      const { prev } = this;
+                      for (const x of prev) {
+                        stateElt.classList.remove(x);
                       }
-
+                      prev.length = 0;
                       if (s instanceof Array) {
                         for (const x of s) {
                           stateElt.classList.add(x);
+                          prev.push(x);
                         }
                       } else if (s) {
                         stateElt.classList.add(s);
+                        prev.push(s);
                       }
                     },
                   });
@@ -129,7 +132,7 @@ export function execute(
           (stack.head as Element).appendChild(operation.node);
           break;
         case DomOperationType.Renderable:
-          operation.renderable.render(stack.head as Node, values);
+          operation.renderable.render(stack.head as Node, item);
           break;
         case DomOperationType.AttachTo:
           operation.attachable.attachTo(stack.head as HTMLElement);

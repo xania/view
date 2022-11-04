@@ -38,7 +38,6 @@ export interface SetAttributeOperation {
 export interface SetClassNameOperation {
   type: DomOperationType.SetClassName;
   expressions: JSX.Expression[];
-  statics: string[];
 }
 export interface SetTextContentOperation {
   type: DomOperationType.SetTextContent;

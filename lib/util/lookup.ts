@@ -4,7 +4,7 @@ export function createLookup<K, T>() {
     get(key: K) {
       return lookup.get(key);
     },
-    add(key: K, value: T) {
+    add<U extends T>(key: K, value: U) {
       const values = lookup.get(key);
       if (values) {
         values.push(value);

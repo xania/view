@@ -23,14 +23,15 @@ export class State<T> {
     };
   }
 
-  update(func: (p?: T) => T) {
+  update(valueOrFunc: T | Func<T | undefined, T>) {
     const { current: preValue } = this;
 
-    const newValue = func(preValue);
+    const newValue =
+      valueOrFunc instanceof Function ? valueOrFunc(preValue) : valueOrFunc;
     if (newValue !== preValue) {
       this.current = newValue;
       for (const o of this.observers) {
-        o.next(newValue, preValue);
+        o.next(newValue);
       }
     }
   }
@@ -70,3 +71,5 @@ class MappedState<T, U> extends State<U> {
     this.set(this.mapper(newValue));
   }
 }
+
+type Func<P, T> = (p: P) => T;

@@ -114,7 +114,7 @@ declare module JSX {
   }
 
   export interface Subscribable<T> {
-    subscribe(observer: NextObserver<T>): Unsubscribable;
+    subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;
   }
 
   export interface Observer<T> {

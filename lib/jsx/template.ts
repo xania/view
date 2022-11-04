@@ -1,6 +1,7 @@
 import { Disposable } from '../disposable';
 import { Renderable } from './renderable';
 import { State } from '../state';
+import { Subscribable } from '../util/is-subscibable';
 
 export enum TemplateType {
   Text,
@@ -14,8 +15,18 @@ export enum TemplateType {
   Fragment,
   AttachTo,
   SetAttribute,
+  Subscribable,
+  Promise,
 }
 
+export interface SubscribableTemplate {
+  type: TemplateType.Subscribable;
+  value: Subscribable;
+}
+export interface PromiseTemplate {
+  type: TemplateType.Promise;
+  value: Promise<any>;
+}
 export enum AttributeType {
   Attribute,
   Event,
@@ -110,4 +121,6 @@ export type Template =
   | TextTemplate
   | ViewProviderTemplate
   | AttachTemplate
-  | SetAttributeTemplate;
+  | SetAttributeTemplate
+  | SubscribableTemplate
+  | PromiseTemplate;

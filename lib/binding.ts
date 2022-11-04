@@ -208,7 +208,8 @@ export class ViewBinding {
             data: vdata,
             offset,
           },
-          customization.dom
+          customization.dom,
+          values
         );
       }
 
@@ -242,7 +243,8 @@ export class ViewBinding {
                 data: dirty,
                 offset: 0,
               },
-              customization.dom
+              customization.dom,
+              values
             );
         }
       }
