@@ -49,10 +49,9 @@ export function execute(
               (stack.head as Node).textContent = item[textContentExpr.name];
               break;
             case ExpressionType.Function:
-              const args = textContentExpr.deps.map((d) => item[d]);
               (stack.head as Node).textContent = textContentExpr.func.apply(
                 null,
-                args
+                [item]
               );
               break;
             case ExpressionType.State:
@@ -75,11 +74,9 @@ export function execute(
               // else delete (curr as any)[operation.name];
               break;
             case ExpressionType.Function:
-              const args = attrExpr.deps.map((d) => item[d]);
-              (stack.head as any)[operation.name] = attrExpr.func.apply(
-                null,
-                args
-              );
+              (stack.head as any)[operation.name] = attrExpr.func.apply(null, [
+                item,
+              ]);
               break;
             case ExpressionType.State:
               attrExpr.state.subscribe({

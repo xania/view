@@ -11,7 +11,7 @@ function expr(
 }
 
 export function useContext<T = unknown>() {
-  return (nameOrGetter: keyof T | Function, ...deps: (keyof T)[]) => {
+  return (nameOrGetter: keyof T | Func<T, string>, ...deps: (keyof T)[]) => {
     if (nameOrGetter instanceof Function)
       return expr({
         type: ExpressionType.Function,
@@ -25,3 +25,5 @@ export function useContext<T = unknown>() {
       });
   };
 }
+
+type Func<T, U> = (t: T) => U;

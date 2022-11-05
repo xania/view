@@ -315,6 +315,11 @@ export function compile(rootTemplate: Template | CompileResult) {
                 const name = expr.name;
                 const updatesBag = updates[name] || (updates[name] = []);
                 updatesBag.push(op);
+              } else if (expr.type === ExpressionType.Function) {
+                for (const dep of expr.deps) {
+                  const updatesBag = updates[dep] || (updates[dep] = []);
+                  updatesBag.push(op);
+                }
               }
             }
             render.push(op);
@@ -325,12 +330,11 @@ export function compile(rootTemplate: Template | CompileResult) {
               const name = op.expression.name;
               const updatesBag = updates[name] || (updates[name] = []);
               updatesBag.push(op);
-              // } else if (op.expression.type === ExpressionType.Function) {
-              //   const { deps } = op.expression;
-              //   for (const name of deps) {
-              //     const updatesBag = updates[name] || (updates[name] = []);
-              //     updatesBag.push(op);
-              //   }
+            } else if (op.expression.type === ExpressionType.Function) {
+              for (const dep of op.expression.deps) {
+                const updatesBag = updates[dep] || (updates[dep] = []);
+                updatesBag.push(op);
+              }
             }
             render.push(op);
             break;
@@ -401,7 +405,6 @@ export function compile(rootTemplate: Template | CompileResult) {
         (operation = {
           type: DomOperationType.SetClassName,
           expressions: [],
-          statics: [],
         })
       );
     }
@@ -430,7 +433,6 @@ export function compile(rootTemplate: Template | CompileResult) {
     } else if (typeof value === 'string') {
       for (const cl of value.split(' ')) {
         elt.classList.add(cl);
-        operation.statics.push(cl);
       }
     } else if ('subscribe' in value) {
       operation.expressions.push({
