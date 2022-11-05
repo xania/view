@@ -51,7 +51,7 @@ export function execute(
             case ExpressionType.Function:
               (stack.head as Node).textContent = textContentExpr.func.apply(
                 null,
-                [item]
+                [item, stack.head]
               );
               break;
             case ExpressionType.State:
@@ -76,6 +76,7 @@ export function execute(
             case ExpressionType.Function:
               (stack.head as any)[operation.name] = attrExpr.func.apply(null, [
                 item,
+                stack.head,
               ]);
               break;
             case ExpressionType.State:
