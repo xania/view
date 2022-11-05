@@ -3,7 +3,7 @@ import { createView, RenderTarget, View } from '../jsx';
 import { Subscribable } from '../util/is-subscibable';
 
 export interface ListProps<T> {
-  data: Subscribable<T[]>;
+  data: T[] | Subscribable<T[]>;
 }
 export function List<T>(props: ListProps<T>, children: any[]) {
   return {
@@ -17,22 +17,38 @@ export function List<T>(props: ListProps<T>, children: any[]) {
         bindings.push(binding);
       }
 
-      const subscription = props.data.subscribe({
-        next(rows: T[]) {
-          for (const view of views) {
-            view.update(rows);
-          }
-        },
-      });
+      const { data } = props;
 
-      return {
-        dispose() {
-          subscription?.unsubscribe();
-          for (const b of bindings) {
-            b.dispose();
-          }
-        },
-      };
+      if (data instanceof Array) {
+        for (const view of views) {
+          view.update(data);
+        }
+
+        return {
+          dispose() {
+            for (const b of bindings) {
+              b.dispose();
+            }
+          },
+        };
+      } else {
+        const subscription = data.subscribe({
+          next(rows: T[]) {
+            for (const view of views) {
+              view.update(rows);
+            }
+          },
+        });
+
+        return {
+          dispose() {
+            subscription?.unsubscribe();
+            for (const b of bindings) {
+              b.dispose();
+            }
+          },
+        };
+      }
     },
   };
 }
