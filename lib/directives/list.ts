@@ -35,7 +35,7 @@ export function List<T>(props: ListProps<T>, children: any[]) {
         const subscription = data.subscribe({
           next(rows: T[]) {
             for (const view of views) {
-              view.update(rows);
+              view.update(rows || []);
             }
           },
         });

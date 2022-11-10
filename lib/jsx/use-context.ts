@@ -1,9 +1,9 @@
 import { ExpressionType } from './expression';
 import { ExpressionTemplate, TemplateType } from './template';
 
-function expr(
-  expression: ExpressionTemplate['expression']
-): ExpressionTemplate {
+function expr<T>(
+  expression: ExpressionTemplate<T>['expression']
+): ExpressionTemplate<T> {
   return {
     type: TemplateType.Expression,
     expression,
@@ -11,7 +11,10 @@ function expr(
 }
 
 export function useContext<T = unknown>() {
-  return (nameOrGetter: keyof T | ContextFunc<T>, ...deps: (keyof T)[]) => {
+  return (
+    nameOrGetter: keyof T | JSX.FunctionExpression<T>['func'],
+    ...deps: (keyof T)[]
+  ) => {
     if (nameOrGetter instanceof Function)
       return expr({
         type: ExpressionType.Function,
@@ -25,5 +28,3 @@ export function useContext<T = unknown>() {
       });
   };
 }
-
-type ContextFunc<T> = (t: T, node?: Node) => string | undefined | void;

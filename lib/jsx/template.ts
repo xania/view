@@ -78,9 +78,9 @@ interface DomTemplate {
   node: Node;
 }
 
-export interface ExpressionTemplate {
+export interface ExpressionTemplate<T> {
   type: TemplateType.Expression;
-  expression: JSX.Expression;
+  expression: JSX.Expression<T>;
 }
 
 interface ViewProviderTemplate {
@@ -110,13 +110,13 @@ export interface AttachTemplate {
   };
 }
 
-export type Template =
+export type Template<T> =
   | TagTemplate
   | StateTemplate
   | DisposableTemplate
   | DomTemplate
   | RenderableTemplate
-  | ExpressionTemplate
+  | ExpressionTemplate<T>
   | FragmentTemplate
   | TextTemplate
   | ViewProviderTemplate

@@ -49,7 +49,7 @@ declare module JSX {
   type ClassName =
     | string
     | Subscribable<string | string[]>
-    | ExpressionTemplate;
+    | ExpressionTemplate<any>;
 
   type IntrinsicElement<P extends keyof TagNameMap> = EventMap & {
     [K in Attributes<TagNameMap[P], string>]?: AttrValue<any>;
@@ -57,15 +57,15 @@ declare module JSX {
     [K in Attributes<TagNameMap[P], number>]?: AttrValue<number>;
   } & { class?: ClassName | ClassName[]; style?: any; role?: string };
 
-  type AttrValue<T> = T | null | ExpressionTemplate;
+  type AttrValue<T> = T | null | ExpressionTemplate<T>;
 
   type Attributes<T, U> = {
     [P in keyof T]: T[P] extends U ? P : never;
   }[keyof T];
 
-  interface ExpressionTemplate {
+  interface ExpressionTemplate<T> {
     type: number;
-    expression: Expression;
+    expression: Expression<T>;
   }
 
   interface EventContext<TEvent> {
@@ -87,9 +87,12 @@ declare module JSX {
     name: string | number | symbol;
   }
 
-  export interface FunctionExpression {
+  export interface FunctionExpression<T> {
     type: ExpressionType.Function;
-    func: Function;
+    func: (
+      t: T,
+      context?: { index: number; node: Node }
+    ) => string | undefined | void;
     deps: (string | number | symbol)[];
   }
 
@@ -98,9 +101,9 @@ declare module JSX {
     state: Subscribable<any>;
   }
 
-  export type Expression =
+  export type Expression<T> =
     | PropertyExpression
-    | FunctionExpression
+    | FunctionExpression<T>
     | StateExpression;
 
   export interface NextObserver<T> {

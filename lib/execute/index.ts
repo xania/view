@@ -9,8 +9,8 @@ export function execute(
   values: symbol
 ) {
   const { offset, data } = context;
-  for (let i = offset, itemsLen = data.length; i < itemsLen; i++) {
-    const vitem = data[i];
+  for (let idx = offset, itemsLen = data.length; idx < itemsLen; idx++) {
+    const vitem = data[idx];
     const item = vitem[values];
     let stack: Stack<any> = {
       head: vitem[dom],
@@ -51,7 +51,7 @@ export function execute(
             case ExpressionType.Function:
               (stack.head as Node).textContent = textContentExpr.func.apply(
                 null,
-                [item, stack.head]
+                [item, { index: idx, node: stack.head }]
               );
               break;
             case ExpressionType.State:
@@ -76,7 +76,7 @@ export function execute(
             case ExpressionType.Function:
               (stack.head as any)[operation.name] = attrExpr.func.apply(null, [
                 item,
-                stack.head,
+                { index: idx, node: stack.head },
               ]);
               break;
             case ExpressionType.State:
