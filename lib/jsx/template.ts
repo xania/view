@@ -110,7 +110,7 @@ export interface AttachTemplate {
   };
 }
 
-export type Template<T> =
+export type Template<T = unknown> =
   | TagTemplate
   | StateTemplate
   | DisposableTemplate

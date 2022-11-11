@@ -172,9 +172,9 @@ export class ViewBinding {
     const { vdata, customizations, target } = this;
 
     const length = data.length;
-    const offset = vdata.length;
+    const vlength = vdata.length;
 
-    for (let i = offset; i < length; i++) {
+    for (let i = vlength; i < length; i++) {
       const item = data[i] as any;
       const vitem: any = {
         [values]: item,
@@ -185,9 +185,9 @@ export class ViewBinding {
     for (const customization of customizations) {
       const { updates, dom } = customization;
 
-      if (length > offset) {
+      if (length > vlength) {
         const { templateNode } = customization;
-        for (let i = offset; i < length; i++) {
+        for (let i = vlength; i < length; i++) {
           const clone = templateNode.cloneNode(true);
           (clone as any)[component] = customization;
           target.appendChild(clone);
@@ -206,19 +206,27 @@ export class ViewBinding {
           {
             target,
             data: vdata,
-            offset,
+            offset: vlength,
           },
           customization.dom,
           values
         );
       }
 
-      if (offset > 0) {
+      if (vlength > length) {
+        for (let i = length; i < vlength; i++) {
+          this.vdata[i][dom].remove();
+        }
+
+        this.vdata.length = length;
+      }
+
+      if (length > 0) {
         for (const property in updates) {
           const operations = updates[property];
           if (!operations) break;
           const dirty: any[] = [];
-          for (let i = 0; i < offset; i++) {
+          for (let i = 0; i < length; i++) {
             const item = data[i] as any;
             let vitem = vdata[i] as any;
             vitem[values] = item;
