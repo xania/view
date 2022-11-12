@@ -1,4 +1,4 @@
-import { RenderTarget } from 'lib/jsx';
+import { RenderTarget } from '../jsx';
 
 export interface EventsProps {
   [name: string]: Function;

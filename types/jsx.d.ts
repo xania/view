@@ -89,10 +89,7 @@ declare module JSX {
 
   export interface FunctionExpression<T> {
     type: ExpressionType.Function;
-    func: (
-      t: T,
-      context?: { index: number; node: Node }
-    ) => string | undefined | void;
+    func: (t: T, context?: { index: number; node: Node }) => string | null;
     deps: (string | number | symbol)[];
   }
 
@@ -101,7 +98,7 @@ declare module JSX {
     state: Subscribable<any>;
   }
 
-  export type Expression<T> =
+  export type Expression<T = any> =
     | PropertyExpression
     | FunctionExpression<T>
     | StateExpression;

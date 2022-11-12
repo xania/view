@@ -1,5 +1,5 @@
-import { Disposable } from 'lib/disposable';
-import { Renderable, RenderTarget } from 'lib/jsx';
+import { Disposable } from '../disposable';
+import { Renderable, RenderTarget } from '../jsx';
 import { Subscribable } from 'rxjs';
 
 export interface ObserveProps {

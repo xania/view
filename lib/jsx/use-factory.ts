@@ -12,7 +12,7 @@ export function jsxFactory(config: JsxFactoryConfig) {
 
   const { classes } = config;
 
-  function mapClass(cls: string | string[]): string | string[] {
+  function mapClass(cls: string | string[]): string | string[] | undefined {
     if (cls instanceof Array) {
       return flatten(cls, mapClass);
     }

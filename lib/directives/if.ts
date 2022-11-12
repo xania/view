@@ -1,6 +1,6 @@
-import { Disposable } from 'lib/disposable';
-import { Renderable, RenderTarget } from 'lib/jsx';
-import { State } from 'lib/state';
+import { Disposable } from '../disposable';
+import { Renderable, RenderTarget } from '../jsx';
+import { State } from '../state';
 
 export interface IfProps {
   condition: State<boolean>;
