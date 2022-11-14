@@ -240,27 +240,27 @@ export function compile(rootTemplate: Template | CompileResult) {
       ) {
         const operations = getOperations(cust);
         if (children.length || operations.length) {
-          if (
-            children.length === 1 &&
-            children[0].templateNode.nodeType === Node.TEXT_NODE
-          ) {
-            const childOperations = getOperations(children[0]);
-            if (
-              childOperations &&
-              childOperations.length === 1 &&
-              childOperations[0].type === DomOperationType.SetTextContent
-            ) {
-              const child = children[0];
-              const { parentElement } = child.templateNode;
-              if (parentElement) {
-                parentElement.removeChild(child.templateNode as Node);
-                if (child.templateNode.nodeValue)
-                  parentElement.innerText = child.templateNode.nodeValue;
-                operations.push(childOperations[0]);
-                return;
-              }
-            }
-          }
+          // if (
+          //   children.length === 1 &&
+          //   children[0].templateNode.nodeType === Node.TEXT_NODE
+          // ) {
+          //   const childOperations = getOperations(children[0]);
+          //   if (
+          //     childOperations &&
+          //     childOperations.length === 1 &&
+          //     childOperations[0].type === DomOperationType.SetTextContent
+          //   ) {
+          //     const child = children[0];
+          //     const { parentElement } = child.templateNode;
+          //     if (parentElement) {
+          //       parentElement.removeChild(child.templateNode as Node);
+          //       if (child.templateNode.nodeValue)
+          //         parentElement.innerText = child.templateNode.nodeValue;
+          //       operations.push(childOperations[0]);
+          //       return;
+          //     }
+          //   }
+          // }
 
           let prevIndex = -1;
 
@@ -310,19 +310,21 @@ export function compile(rootTemplate: Template | CompileResult) {
       for (const op of operations) {
         switch (op.type) {
           case DomOperationType.SetClassName:
-            for (const expr of op.expressions) {
-              if (expr.type === ExpressionType.Property) {
-                const name = expr.name;
-                const updatesBag = updates[name] || (updates[name] = []);
-                updatesBag.push(op);
-              } else if (expr.type === ExpressionType.Function) {
-                for (const dep of expr.deps) {
-                  const updatesBag = updates[dep] || (updates[dep] = []);
+            if (op.expressions.length > 0) {
+              for (const expr of op.expressions) {
+                if (expr.type === ExpressionType.Property) {
+                  const name = expr.name;
+                  const updatesBag = updates[name] || (updates[name] = []);
                   updatesBag.push(op);
+                } else if (expr.type === ExpressionType.Function) {
+                  for (const dep of expr.deps) {
+                    const updatesBag = updates[dep] || (updates[dep] = []);
+                    updatesBag.push(op);
+                  }
                 }
               }
+              render.push(op);
             }
-            render.push(op);
             break;
           case DomOperationType.SetAttribute:
           case DomOperationType.SetTextContent:

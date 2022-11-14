@@ -19,10 +19,10 @@ export function execute(
       const operation = operations[n];
       switch (operation.type) {
         case DomOperationType.SelectNode:
-          stack = {
-            head: vitem[dom],
-            tail: stack,
-          };
+          // stack = {
+          //   head: vitem[dom],
+          //   tail: stack,
+          // };
           break;
         case DomOperationType.PushChild:
           stack = { head: stack.head.childNodes[operation.index], tail: stack };
