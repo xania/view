@@ -16,6 +16,5 @@
     "baseUrl": "./",
     "target": "ES2015",
     "esModuleInterop": true
-  },
-  "files": ["../view/types/jsx.d.ts"]
+  }
 }

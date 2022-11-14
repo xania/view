@@ -12,9 +12,9 @@ export function jsxFactory(config: JsxFactoryConfig) {
 
   const { classes } = config;
 
-  function mapClass(cls: string | string[]): string | string[] | undefined {
+  function mapClass(cls: string | string[]): string | string[] {
     if (cls instanceof Array) {
-      return flatten(cls, mapClass);
+      return flatten(cls, (name) => classes[name]);
     }
     return cls.split(' ').map((cls) => classes[cls] || cls);
   }
@@ -40,7 +40,10 @@ export function jsxFactory(config: JsxFactoryConfig) {
   };
 }
 
-function flatten<T>(tree: T[], childrenFn: (node: T) => T[] | T | undefined) {
+function flatten<T>(
+  tree: T[],
+  childrenFn: (node: T) => T[] | T | undefined
+): T[] {
   const retval: T[] = [];
   if (!tree) return retval;
   type StackType = T | StackType[] | undefined;
