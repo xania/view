@@ -10,6 +10,7 @@ export enum DomOperationType {
   SetClassName,
   SetTextContent,
   Renderable,
+  HandleEvent,
   AddEventListener,
   AppendChild,
   SelectNode,
@@ -55,6 +56,11 @@ export interface AddEventListenerOperation {
   handler: Function;
 }
 
+export interface HandleEventOperation {
+  type: DomOperationType.HandleEvent;
+  handler: Function;
+}
+
 export interface AppendChildOperation {
   type: DomOperationType.AppendChild;
   node: Node;
@@ -88,5 +94,6 @@ export type DomEventOperation = AddEventListenerOperation;
 
 export type DomOperation =
   | DomNavigationOperation
-  | DomEventOperation
+  | HandleEventOperation
+  | AddEventListenerOperation
   | DomRenderOperation;

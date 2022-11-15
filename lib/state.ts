@@ -36,6 +36,10 @@ export class State<T> {
     }
   }
 
+  reduce<U>(valueOrFunc: (value: T | undefined, acc: U) => T) {
+    return (acc: U) => this.update((curr) => valueOrFunc(curr, acc));
+  }
+
   set(newValue: T) {
     const { current: value } = this;
     if (newValue !== value) {
