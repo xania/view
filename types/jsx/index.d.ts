@@ -49,6 +49,7 @@ declare module JSX {
   type ClassName =
     | string
     | Subscribable<string | string[]>
+    | Promise<string | string[]>
     | ExpressionTemplate<any>;
 
   type IntrinsicElement<P extends keyof TagNameMap> = EventMap & {

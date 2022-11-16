@@ -4,11 +4,15 @@
   DomOperationType,
   DomRenderOperation,
   HandleEventOperation,
+  SetAttributeOperation,
+  SetClassNameOperation,
   SetTextContentOperation,
 } from '../compile/dom-operation';
 import { RenderTarget } from '../jsx/renderable';
 import { ExpressionType } from '../jsx/expression';
-import { isSubscribable } from '../util/is-subscibable';
+import { isSubscribable, Unsubscribable } from '../util/is-subscibable';
+import { Disposable } from 'lib/disposable';
+import { AnchorTarget } from './anchor-target';
 
 interface JsxFactoryOptions {
   classes: {
@@ -27,12 +31,30 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         return name(props, children);
       }
 
+      const promises: Promise<void>[] = [];
       const tagTemplate = new TagTemplate(name);
       if (props) {
-        tagTemplate.setProps(props, opts?.classes);
+        for (const attrName in props) {
+          const attrValue = props[attrName];
+          const result = tagTemplate.setProp(
+            attrName,
+            attrValue,
+            opts?.classes
+          );
+          if (result) {
+            promises.push(result);
+          }
+        }
       }
 
-      return tagTemplate.appendChildren(flatten(children));
+      const result = tagTemplate.appendChildren(flatten(children));
+      if (result instanceof Array) {
+        for (const p of result) promises.push(p);
+      }
+
+      if (promises.length > 0)
+        return Promise.all(promises).then(() => tagTemplate);
+      else return tagTemplate;
     },
     createFragment(_: null, children: any[]) {
       return flatten(children);
@@ -49,42 +71,72 @@ type DomContentOperation =
   | DomNavigationOperation
   | SetTextContentOperation
   | DomRenderOperation;
+type DomAttributeOperation =
+  | DomNavigationOperation
+  | SetAttributeOperation
+  | SetClassNameOperation;
 
 class TagTemplate {
   public templateNode: HTMLElement;
   public events: { [name: string]: DomEventOperation[] } = {};
+  public eventTargets: { [name: string]: DomEventOperation[] } = {};
   public content: DomContentOperation[] = [];
+  public attrs: DomAttributeOperation[] = [];
 
   constructor(public name: string) {
     this.templateNode = document.createElement(name);
   }
 
-  setProps(props: any, classes?: JsxFactoryOptions['classes']) {
-    if (!props) return;
+  setProp(
+    attrName: string,
+    attrValue: any,
+    classes?: JsxFactoryOptions['classes']
+  ): Promise<void> | void {
+    if (attrValue === null || attrValue === undefined) return;
+
+    if (attrValue instanceof Promise) {
+      return attrValue.then((v) => this.setProp(attrName, v, classes));
+    }
+
     const { templateNode: node } = this;
-    for (const attrName in props) {
-      const attrValue = props[attrName];
-      if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
-        if (attrValue instanceof Function) {
-          const eventOperations =
-            this.events[attrName] ?? (this.events[attrName] = []);
-          eventOperations.push({
-            type: DomOperationType.HandleEvent,
-            handler: attrValue,
+
+    if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
+      if (attrValue instanceof Function) {
+        const eventOperations =
+          this.eventTargets[attrName] ?? (this.events[attrName] = []);
+        eventOperations.push({
+          type: DomOperationType.HandleEvent,
+          handler: attrValue,
+        });
+      }
+    } else if (attrName === 'class') {
+      for (const item of flatten(attrValue)) {
+        if (typeof item === 'string')
+          for (const cls of item.split(' ')) {
+            if (cls) node.classList.add((classes && classes[cls]) || cls);
+          }
+        else if (isSubscribable(item)) {
+          this.attrs.push({
+            type: DomOperationType.SetClassName,
+            expressions: [
+              {
+                type: ExpressionType.State,
+                state: item,
+              },
+            ],
+            classes,
           });
         }
-      } else if (attrName === 'class') {
-        for (const cls of attrValue.split(' ')) {
-          if (cls) node.classList.add((classes && classes[cls]) || cls);
-        }
-      } else {
-        node.setAttribute(attrName, attrValue);
       }
+    } else {
+      node.setAttribute(attrName, attrValue);
     }
   }
 
-  appendChildren(children: any[]): this | Promise<this> {
-    if (!(children instanceof Array)) return this;
+  appendChildren(children: any[]): Promise<void>[] | void {
+    if (!(children instanceof Array)) return;
+
+    const result: Promise<void>[] = [];
 
     const { templateNode: node } = this;
     for (let i = 0; i < children.length; i++) {
@@ -93,9 +145,11 @@ class TagTemplate {
         this.appendTag(child);
       } else if (child instanceof Promise) {
         const nextChildren = children.slice(i + 1);
-        return child.then((resolved: any) => {
-          return this.appendChildren([resolved, ...nextChildren]);
-        });
+        result.push(
+          child.then((resolved: any) => {
+            this.appendChildren([resolved, ...nextChildren]);
+          })
+        );
       } else if (child.render instanceof Function) {
         this.content.push({
           type: DomOperationType.Renderable,
@@ -126,7 +180,8 @@ class TagTemplate {
         }
       }
     }
-    return this;
+
+    return result;
   }
 
   appendTag(tag: TagTemplate) {
@@ -140,6 +195,19 @@ class TagTemplate {
         this.content.push(op);
       }
       this.content.push({
+        type: DomOperationType.PopNode,
+      });
+    }
+
+    if (tag.attrs.length > 0) {
+      this.attrs.push({
+        type: DomOperationType.PushChild,
+        index: node.childNodes.length,
+      });
+      for (const op of tag.attrs) {
+        this.attrs.push(op);
+      }
+      this.attrs.push({
         type: DomOperationType.PopNode,
       });
     }
@@ -166,28 +234,71 @@ class TagTemplate {
 
   render(target: RenderTarget) {
     const eventNames = Object.keys(this.events);
-    if (eventNames.length || this.content.length) {
-      const nodeClone = this.templateNode.cloneNode(true) as HTMLElement;
-      target.appendChild(nodeClone);
-      const events = this.events;
-      for (const eventName of eventNames) {
-        nodeClone.addEventListener(eventName, function handler(event: Event) {
-          const operations = events[eventName];
-          execute(operations, nodeClone, event.target as Node);
-        });
-      }
-      execute(this.content, nodeClone);
-    } else {
-      // there are no dynamic contextual differences for this template, so just render the template node itself
-      target.appendChild(this.templateNode);
+    const nodeClone = this.templateNode.cloneNode(true) as HTMLElement;
+    target.appendChild(nodeClone);
+    const events = this.events;
+
+    const bindings: Disposable[] = [];
+    const subscriptions: Unsubscribable[] = [];
+    for (const eventName of eventNames) {
+      const operations = events[eventName];
+      const handlers: [Node, Function][] = [];
+      execute(operations, nodeClone, {
+        bindings,
+        subscriptions,
+        handlers,
+      });
+      nodeClone.addEventListener(eventName, function handler(event: Event) {
+        let closest = event.target as HTMLElement | null;
+        while (closest) {
+          for (const [node, handler] of handlers) {
+            if (node === closest) {
+              handler({ node: closest });
+            }
+          }
+          if (closest === nodeClone) {
+            break;
+          }
+          closest = closest.parentElement;
+        }
+      });
     }
+    const executeContext: ExecuteContext = {
+      bindings,
+      subscriptions,
+      handlers: {
+        push() {
+          throw Error('Not supprted');
+        },
+      },
+    };
+    execute(this.attrs, nodeClone, executeContext);
+    execute(this.content, nodeClone, executeContext);
+
+    return {
+      dispose() {
+        nodeClone.remove();
+        disposeAll(bindings);
+        for (const sub of subscriptions) {
+          sub.unsubscribe();
+        }
+      },
+    };
   }
+}
+
+interface ExecuteContext {
+  bindings: Disposable[];
+  subscriptions: Unsubscribable[];
+  handlers: {
+    push(item: [Node, Function]): void;
+  };
 }
 
 function execute(
   operations: DomOperation[],
   root: Node,
-  target: Node | null = null
+  context: ExecuteContext
 ) {
   let stack: Stack<Node> = { head: root, tail: null } as any;
   for (let i = 0; i < operations.length; i++) {
@@ -197,40 +308,67 @@ function execute(
         stack = { head: stack.head.childNodes[curr.index], tail: stack };
         break;
       case DomOperationType.HandleEvent:
-        let closest = target;
-        do {
-          if (stack.head === closest) {
-            curr.handler();
-            break;
-          } else if (closest) {
-            closest = closest.parentElement;
-          } else {
-            break;
-          }
-        } while (closest !== root);
+        context.handlers.push([stack.head as Node, curr.handler]);
         break;
       case DomOperationType.PopNode:
         if (stack.tail == null) {
-          console.error('reached end of stack');
-          return;
+          throw Error('reached end of stack');
         }
         stack = stack.tail;
+        break;
+      case DomOperationType.SetAttribute:
+        break;
+      case DomOperationType.SetClassName:
+        const classes = curr.classes;
+        for (const classExpr of curr.expressions) {
+          switch (classExpr.type) {
+            case ExpressionType.State:
+              const prev: string[] = [];
+              const subs = classExpr.state.subscribe({
+                prev,
+                classes: classes,
+                elt: stack.head as HTMLElement,
+                next(s: string | string[]) {
+                  const { prev, classes } = this;
+                  for (const x of prev) {
+                    this.elt.classList.remove(x);
+                  }
+                  prev.length = 0;
+                  if (s instanceof Array) {
+                    for (const x of s) {
+                      const cls = (classes && classes[x]) || x;
+                      this.elt.classList.add(cls);
+                      prev.push(cls);
+                    }
+                  } else if (s) {
+                    const cls = (classes && classes[s]) || s;
+                    this.elt.classList.add(cls);
+                    prev.push(cls);
+                  }
+                },
+              });
+              if (subs) context.subscriptions.push(subs);
+              break;
+          }
+        }
         break;
       case DomOperationType.SetTextContent:
         const setTextContentExpr = curr.expression;
         switch (setTextContentExpr.type) {
           case ExpressionType.State:
-            setTextContentExpr.state.subscribe({
+            const subs = setTextContentExpr.state.subscribe({
               element: stack.head,
               next(newValue) {
                 this.element.textContent = newValue;
               },
             });
+            if (subs) context.subscriptions.push(subs);
             break;
         }
         break;
       case DomOperationType.Renderable:
-        curr.renderable.render(stack.head);
+        const binding = curr.renderable.render(stack.head);
+        if (binding) context.bindings.push(binding);
         break;
       default:
         console.log(curr);
@@ -247,7 +385,7 @@ interface Stack<T> {
 function flatten<T>(tree: T[]): T[] {
   const arr: T[] = [];
 
-  const stack = tree.slice(0).reverse();
+  const stack: (T | T[])[] = [tree];
   while (stack.length) {
     const curr = stack.pop();
     if (curr instanceof Array) {
@@ -271,6 +409,8 @@ export function view(tpl: any) {
 }
 
 function render(root: any, container: RenderTarget): any {
+  if (root === null || root === undefined) return root;
+
   if (root instanceof Array) {
     return flatten(root.map((elt) => render(elt, container)));
   }
@@ -281,15 +421,54 @@ function render(root: any, container: RenderTarget): any {
 
   if (root instanceof Promise) {
     let cancelled = false;
+    var anchor = new AnchorTarget(container);
+
     let bindings = root.then((e) => {
       if (!cancelled) {
-        return e.render(container);
+        return e.render(anchor);
       }
     });
     return {
       dispose() {
         cancelled = true;
         return bindings.then(disposeAll);
+      },
+    };
+  }
+
+  if (isSubscribable(root)) {
+    let binding: Disposable | null = null;
+    var anchor = new AnchorTarget(container);
+
+    const subs = root.subscribe({
+      next(value) {
+        disposeAll(binding);
+        binding = render(value, anchor);
+      },
+    });
+
+    return {
+      dispose() {
+        subs.unsubscribe();
+      },
+    };
+  }
+
+  if (root instanceof Node) {
+    container.appendChild(root);
+    return {
+      dispose() {
+        container.removeChild(root);
+      },
+    };
+  }
+
+  {
+    const textNode = document.createTextNode(root);
+    container.appendChild(textNode);
+    return {
+      dispose() {
+        textNode.remove();
       },
     };
   }
