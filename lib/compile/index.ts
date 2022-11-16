@@ -77,7 +77,7 @@ export function compile(rootTemplate: Template | CompileResult) {
       if (attr.type === AttributeType.Attribute) {
         setAttribute(dom, attr.name, attr.value);
       } else if (attr.type === AttributeType.ClassName) {
-        setClassName(dom, attr.value);
+        setClassName(dom, attr.value, attr.classes);
       } else if (attr.type === AttributeType.Event) {
         if (attr.handler instanceof Function)
           operationsMap.add(dom, {
@@ -388,7 +388,7 @@ export function compile(rootTemplate: Template | CompileResult) {
 
     return new CompileResult(childCustomizations);
   }
-  function setClassName(elt: Element, value: JSX.ClassName) {
+  function setClassName(elt: Element, value: JSX.ClassName, classes?: any) {
     if (!value) return;
 
     const lookup = operationsMap.get(elt);
@@ -407,24 +407,25 @@ export function compile(rootTemplate: Template | CompileResult) {
         (operation = {
           type: DomOperationType.SetClassName,
           expressions: [],
+          classes,
         })
       );
     }
 
     if (value instanceof Array) {
       for (const cl of value) {
-        setClassName(elt, cl);
+        setClassName(elt, cl, classes);
       }
     } else if (value instanceof State) {
       const { current } = value;
       if (current) {
         if (current instanceof Array) {
           for (const cl of value.current) {
-            elt.classList.add(cl);
+            elt.classList.add((classes && classes[cl]) || cl);
           }
         } else {
           for (const cl of value.current.split(' ')) {
-            elt.classList.add(cl);
+            elt.classList.add((classes && classes[cl]) || cl);
           }
         }
       }
@@ -434,7 +435,7 @@ export function compile(rootTemplate: Template | CompileResult) {
       });
     } else if (typeof value === 'string') {
       for (const cl of value.split(' ')) {
-        elt.classList.add(cl);
+        elt.classList.add((classes && classes[cl]) || cl);
       }
     } else if ('subscribe' in value) {
       operation.expressions.push({

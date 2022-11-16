@@ -13,12 +13,8 @@ import { ExpressionType } from '../jsx/expression';
 import { isSubscribable, Unsubscribable } from '../util/is-subscibable';
 import { Disposable } from 'lib/disposable';
 import { AnchorTarget } from './anchor-target';
-
-interface JsxFactoryOptions {
-  classes: {
-    [p: string]: string;
-  };
-}
+import { JsxFactoryOptions } from '../jsx/options';
+import { TemplateType } from '../jsx/template';
 
 export function jsxFactory(opts?: JsxFactoryOptions) {
   return {
@@ -28,7 +24,7 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
       ...children: unknown[]
     ): TagTemplate | Promise<TagTemplate> | undefined {
       if (name instanceof Function) {
-        return name(props, children);
+        return name(props, children, opts);
       }
 
       const promises: Promise<void>[] = [];
@@ -171,6 +167,8 @@ class TagTemplate {
           },
         });
         this.content.push({ type: DomOperationType.PopNode });
+      } else if (child.type === TemplateType.SetAttribute) {
+        debugger;
       } else {
         if (node.textContent || node.childNodes.length) {
           const textNode = document.createTextNode(child);

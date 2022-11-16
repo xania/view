@@ -90,13 +90,14 @@ export function execute(
           break;
         case DomOperationType.SetClassName:
           {
-            const { expressions } = operation;
+            const { expressions, classes } = operation;
             for (const classExpr of expressions) {
               switch (classExpr.type) {
                 case ExpressionType.Property:
                   const propValue = vitem[classExpr.name];
                   if (propValue !== null && propValue !== undefined)
-                    (stack.head as HTMLElement).className = propValue;
+                    (stack.head as HTMLElement).className =
+                      (classes && classes[propValue]) || propValue;
                   else (stack.head as HTMLElement).className = '';
                   break;
                 case ExpressionType.State:
@@ -104,20 +105,23 @@ export function execute(
                   const prev: string[] = [];
                   classExpr.state.subscribe({
                     prev,
+                    classes,
                     next(s: string | string[]) {
-                      const { prev } = this;
+                      const { prev, classes } = this;
                       for (const x of prev) {
                         stateElt.classList.remove(x);
                       }
                       prev.length = 0;
                       if (s instanceof Array) {
                         for (const x of s) {
-                          stateElt.classList.add(x);
-                          prev.push(x);
+                          const cls = (classes && classes[x]) || x;
+                          stateElt.classList.add(cls);
+                          prev.push(cls);
                         }
                       } else if (s) {
-                        stateElt.classList.add(s);
-                        prev.push(s);
+                        const cls = (classes && classes[s]) || s;
+                        stateElt.classList.add(cls);
+                        prev.push(cls);
                       }
                     },
                   });
