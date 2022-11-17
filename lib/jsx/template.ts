@@ -124,3 +124,9 @@ export type Template<T = unknown> =
   | SetAttributeTemplate
   | SubscribableTemplate
   | PromiseTemplate;
+
+export function isExpressionTemplate(
+  value: any
+): value is ExpressionTemplate<any> {
+  return value && value.type === TemplateType.Expression;
+}

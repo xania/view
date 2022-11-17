@@ -32,3 +32,7 @@ export interface RenderTarget {
 export interface Renderable {
   render(target: RenderTarget, context?: RenderContext): Disposable;
 }
+
+export function isRenderable(value: any): value is Renderable {
+  return value && value.render instanceof Function;
+}

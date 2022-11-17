@@ -1,4 +1,4 @@
-export function isSubscribable(value: any): value is Subscribable<unknown> {
+export function isSubscribable(value: any): value is Subscribable {
   return value && value.subscribe instanceof Function;
 }
 

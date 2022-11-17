@@ -10,11 +10,11 @@ export enum DomOperationType {
   SetClassName,
   SetTextContent,
   Renderable,
-  HandleEvent,
   AddEventListener,
   AppendChild,
   SelectNode,
   AttachTo,
+  AppendContent,
 }
 
 export interface PushFirstChildOperation {
@@ -45,6 +45,10 @@ export interface SetTextContentOperation {
   type: DomOperationType.SetTextContent;
   expression: JSX.Expression;
 }
+export interface AppendContentOperation {
+  type: DomOperationType.AppendContent;
+  expression: JSX.Expression;
+}
 
 export interface RenderableOperation {
   type: DomOperationType.Renderable;
@@ -54,11 +58,6 @@ export interface RenderableOperation {
 export interface AddEventListenerOperation {
   type: DomOperationType.AddEventListener;
   name: string;
-  handler: Function;
-}
-
-export interface HandleEventOperation {
-  type: DomOperationType.HandleEvent;
   handler: Function;
 }
 
@@ -86,6 +85,7 @@ export type DomRenderOperation =
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation
+  | AppendContentOperation
   | RenderableOperation
   | AppendChildOperation
   | SelectNodeOperation
@@ -95,6 +95,5 @@ export type DomEventOperation = AddEventListenerOperation;
 
 export type DomOperation =
   | DomNavigationOperation
-  | HandleEventOperation
   | AddEventListenerOperation
   | DomRenderOperation;
