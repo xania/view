@@ -102,7 +102,8 @@ export function execute(
                   break;
                 case ExpressionType.State:
                   const stateElt = stack.head as HTMLElement;
-                  const prev: string[] = [];
+                  const current = (classExpr.state as any)['current'];
+                  const prev: string[] = current ? [current] : [];
                   classExpr.state.subscribe({
                     prev,
                     classes,

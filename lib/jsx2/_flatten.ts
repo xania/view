@@ -1,4 +1,4 @@
-﻿export function flatten<T>(tree: T[]): T[] {
+﻿export function flatten<T>(tree: T | T[]): T[] {
   const arr: T[] = [];
 
   const stack: (T | T[])[] = [tree];

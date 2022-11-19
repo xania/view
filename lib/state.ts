@@ -1,19 +1,25 @@
+import { Subscribable } from './util/is-subscibable';
+
 interface Observable<T> {
   next(value: T): void;
 }
 
-export function useState<T>(value: T) {
-  return new State(value);
+export function useState<T>(value: T, distinct: boolean = true) {
+  return new State(value, distinct);
 }
 
 export class State<T> {
   observers: Observable<T>[] = [];
-  constructor(public current?: T) {}
+  constructor(public current?: T, private distinct: boolean = true) {}
 
   subscribe(observer: Observable<T>) {
     const { observers } = this;
     const len = observers.length;
     observers[len] = observer;
+
+    if (this.current) {
+      observer.next(this.current);
+    }
 
     return {
       unsubscribe() {
@@ -28,12 +34,16 @@ export class State<T> {
 
     const newValue =
       valueOrFunc instanceof Function ? valueOrFunc(preValue) : valueOrFunc;
-    if (newValue !== preValue) {
+    if (!this.distinct || newValue !== preValue) {
       this.current = newValue;
       for (const o of this.observers) {
         o.next(newValue);
       }
     }
+  }
+
+  bind<U, S>(func: (value: T | undefined, acc: U) => S) {
+    return (e: U) => this.map((x) => func(x, e));
   }
 
   reduce<U>(valueOrFunc: (value: T | undefined, acc: U) => T) {
@@ -50,7 +60,10 @@ export class State<T> {
     }
   }
 
-  map<U>(func: (x?: T) => U) {
+  when(func: (x?: T) => boolean) {
+    return this.map(func);
+  }
+  map<U>(func: (x?: T) => U): MappedState<T | undefined, U> {
     const { observers } = this;
     const mappedState = new MappedState<T | undefined, U>(this.current, func);
     observers.push(mappedState);
@@ -73,6 +86,12 @@ class MappedState<T, U> extends State<U> {
 
   next(newValue: T) {
     this.set(this.mapper(newValue));
+  }
+
+  then(func: (u: U) => void) {
+    return this.subscribe({
+      next: func,
+    });
   }
 }
 

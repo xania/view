@@ -78,9 +78,9 @@ interface DomTemplate {
   node: Node;
 }
 
-export interface ExpressionTemplate<T> {
+export interface ExpressionTemplate<T, U> {
   type: TemplateType.Expression;
-  expression: JSX.Expression<T>;
+  expression: JSX.Expression<T, U>;
 }
 
 interface ViewProviderTemplate {
@@ -110,13 +110,13 @@ export interface AttachTemplate {
   };
 }
 
-export type Template<T = unknown> =
+export type Template<T, U> =
   | TagTemplate
   | StateTemplate
   | DisposableTemplate
   | DomTemplate
   | RenderableTemplate
-  | ExpressionTemplate<T>
+  | ExpressionTemplate<T, U>
   | FragmentTemplate
   | TextTemplate
   | ViewProviderTemplate
@@ -127,6 +127,6 @@ export type Template<T = unknown> =
 
 export function isExpressionTemplate(
   value: any
-): value is ExpressionTemplate<any> {
+): value is ExpressionTemplate<any, any> {
   return value && value.type === TemplateType.Expression;
 }

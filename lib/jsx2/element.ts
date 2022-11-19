@@ -7,21 +7,22 @@ import {
   SetAttributeOperation,
   SetClassNameOperation,
   SetTextContentOperation,
+  UpdateAttributeOperation,
+  UpdateContentOperation,
 } from '../compile/dom-operation';
 import { JsxFactoryOptions } from '../jsx/options';
 import { flatten } from './_flatten';
 import { ExpressionType } from '../jsx/expression';
 import { TemplateInput } from './template-input';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
-import { isExpressionTemplate } from '../jsx/template';
+import { isExpression } from '../jsx/expression';
 import { disposeAll } from '../disposable';
 import { execute, ExecuteContext } from './execute';
 
 export class JsxElement {
   public templateNode: HTMLElement;
-  public events: { [name: string]: DomEventOperation[] } = {};
-  public eventTargets: { [name: string]: DomEventOperation[] } = {};
   public content: DomContentOperation[] = [];
+  public updates: DomUpdateOperation[] = [];
 
   constructor(public name: string) {
     this.templateNode = document.createElement(name);
@@ -42,9 +43,7 @@ export class JsxElement {
 
     if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
       if (attrValue instanceof Function) {
-        const eventOperations =
-          this.eventTargets[attrName] ?? (this.events[attrName] = []);
-        eventOperations.push({
+        this.content.push({
           type: DomOperationType.AddEventListener,
           name: attrName,
           handler: attrValue,
@@ -59,27 +58,54 @@ export class JsxElement {
         else if (isSubscribable(item)) {
           this.content.push({
             type: DomOperationType.SetClassName,
-            expressions: [
-              {
-                type: ExpressionType.State,
-                state: item,
-              },
-            ],
+            expression: {
+              type: ExpressionType.State,
+              state: item,
+            },
+            classes,
+          });
+        } else if (isExpression(item)) {
+          this.content.push({
+            type: DomOperationType.SetClassName,
+            expression: item,
             classes,
           });
         }
       }
+    } else if (isSubscribable(attrValue)) {
+      this.content.push({
+        type: DomOperationType.SetAttribute,
+        name: attrName,
+        expression: {
+          type: ExpressionType.State,
+          state: attrValue,
+        },
+      });
+    } else if (isExpression(attrValue)) {
+      if (attrValue.type === ExpressionType.Property) {
+        this.updates.push({
+          type: DomOperationType.UpdateAttribute,
+          property: attrValue.name,
+          name: attrName,
+        });
+      }
+      this.content.push({
+        type: DomOperationType.SetAttribute,
+        name: attrName,
+        expression: attrValue,
+      });
     } else {
-      node.setAttribute(attrName, attrValue);
+      (node as any)[attrName] = attrValue;
+      // node.setAttribute(attrName, attrValue);
     }
   }
 
-  appendTemplates(children: TemplateInput[]): Promise<void>[] | void {
+  appendContent(children: TemplateInput[]): Promise<void>[] | void {
     if (!(children instanceof Array)) return;
 
     const result: Promise<void>[] = [];
 
-    const { templateNode: node } = this;
+    const { templateNode } = this;
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
       if (child instanceof JsxElement) {
@@ -88,7 +114,7 @@ export class JsxElement {
         const nextChildren = children.slice(i + 1);
         result.push(
           child.then((resolved: any) => {
-            this.appendTemplates([resolved, ...nextChildren]);
+            this.appendContent([resolved, ...nextChildren]);
           })
         );
       } else if (isRenderable(child)) {
@@ -104,17 +130,28 @@ export class JsxElement {
             state: child,
           },
         });
-      } else if (isExpressionTemplate(child)) {
+      } else if (isExpression(child)) {
+        if (child.type === ExpressionType.Property)
+          this.updates.push({
+            type: DomOperationType.UpdateContent,
+            property: child.name,
+          });
         this.content.push({
           type: DomOperationType.AppendContent,
-          expression: child.expression,
+          expression: child,
         });
+      } else if (child instanceof Node) {
+        templateNode.appendChild(child);
       } else {
-        if (node.textContent || node.childNodes.length) {
+        if (
+          templateNode.textContent ||
+          templateNode.childNodes.length ||
+          this.content.length
+        ) {
           const textNode = document.createTextNode(child as any);
-          node.appendChild(textNode);
+          templateNode.appendChild(textNode);
         } else {
-          node.textContent = child as any;
+          templateNode.textContent = child as any;
         }
       }
     }
@@ -136,72 +173,64 @@ export class JsxElement {
         type: DomOperationType.PopNode,
       });
     }
-    for (const eventName in tag.events) {
-      const childEventOperations = tag.events[eventName];
-      if (childEventOperations.length > 0) {
-        const eventOperations =
-          this.events[eventName] ?? (this.events[eventName] = []);
-
-        eventOperations.push({
-          type: DomOperationType.PushChild,
-          index: node.childNodes.length,
-        });
-        for (const op of childEventOperations) {
-          eventOperations.push(op);
-        }
-        eventOperations.push({
-          type: DomOperationType.PopNode,
-        });
+    if (tag.updates.length > 0) {
+      this.updates.push({
+        type: DomOperationType.PushChild,
+        index: node.childNodes.length,
+      });
+      for (const op of tag.updates) {
+        this.updates.push(op);
       }
+      this.updates.push({
+        type: DomOperationType.PopNode,
+      });
     }
     this.templateNode.appendChild(tag.templateNode);
   }
 
-  listen(target: RenderTarget, root: HTMLElement, context: ExecuteContext) {
-    const events = this.events;
-    const eventNames = Object.keys(events);
-
-    for (const eventName of eventNames) {
-      const operations = events[eventName];
-      execute(operations, root, context);
-      target.addEventListener(eventName, function handler(event: Event) {
-        let closest = event.target as HTMLElement | null;
-        const { handlers } = context;
-        while (closest) {
-          for (const [node, handler] of handlers) {
-            if (node === closest) {
-              handler({ node: closest });
-            }
-          }
-          if (target instanceof Node) {
-            if (target === closest.parentElement) break;
-          } else {
-            for (const i in target.childNodes) {
-              if (target.childNodes[i] === closest) break;
-            }
-          }
-          closest = closest.parentElement;
-        }
-      });
-    }
-  }
+  // listen(target: RenderTarget, root: HTMLElement, context: ExecuteContext) {
+  //   if (this.events.length) {
+  //     execute(this.events, root, context);
+  //   }
+  //   // target.addEventListener(eventName, function handler(event: Event) {
+  //   //   let closest = event.target as HTMLElement | null;
+  //   //   const { handlers } = context;
+  //   //   while (closest) {
+  //   //     for (const [node, handler] of handlers) {
+  //   //       if (node === closest) {
+  //   //         handler({ node: closest });
+  //   //       }
+  //   //     }
+  //   //     if (target instanceof Node) {
+  //   //       if (target === closest.parentElement) break;
+  //   //     } else {
+  //   //       for (const i in target.childNodes) {
+  //   //         if (target.childNodes[i] === closest) break;
+  //   //       }
+  //   //     }
+  //   //     closest = closest.parentElement;
+  //   //   }
+  //   // });
+  // }
 
   render(target: RenderTarget) {
-    const clone = this.templateNode.cloneNode(true) as HTMLElement;
-    const executeContext: ExecuteContext = {
-      bindings: [],
-      subscriptions: [],
-      handlers: [],
-    };
-    this.listen(target, clone, executeContext);
-    execute(this.content, clone, executeContext);
-    target.appendChild(clone);
+    const root = this.templateNode.cloneNode(true) as HTMLElement;
+    const bindings: ExecuteContext['bindings'] = [];
+    const subscriptions: ExecuteContext['subscriptions'] = [];
+
+    execute(this.content, root, {
+      bindings,
+      subscriptions,
+      handlers: createEventManager(target),
+      values: null,
+    });
+    target.appendChild(root);
 
     return {
       dispose() {
-        disposeAll(executeContext.bindings);
-        clone.remove();
-        for (const sub of executeContext.subscriptions) {
+        disposeAll(bindings);
+        root.remove();
+        for (const sub of subscriptions) {
           sub.unsubscribe();
         }
       },
@@ -209,11 +238,57 @@ export class JsxElement {
   }
 }
 
-type DomEventOperation = DomNavigationOperation | AddEventListenerOperation;
 type DomContentOperation =
   | DomNavigationOperation
   | SetTextContentOperation
   | DomRenderOperation
   | DomNavigationOperation
   | SetAttributeOperation
-  | SetClassNameOperation;
+  | SetClassNameOperation
+  | AddEventListenerOperation;
+
+type DomUpdateOperation =
+  | DomNavigationOperation
+  | UpdateContentOperation
+  | UpdateAttributeOperation;
+
+export interface EventContext {
+  node: Node;
+  values?: any;
+}
+
+export function createEventManager(target: RenderTarget) {
+  const events: { [k: string]: EventContext[] } = {};
+  return {
+    push(node: Node, name: string, handler: Function, values?: any) {
+      if (name === 'blur') {
+        node.addEventListener(name, function (event: Event) {
+          handler({ node, values, event });
+        });
+      } else if (name in events) {
+        events[name].push({ node, values });
+      } else {
+        events[name] = [{ node, values }];
+        target.addEventListener(name, function (event: Event) {
+          let closest = event.target as HTMLElement | null;
+          const nodes = events[event.type];
+          while (closest) {
+            for (const ctx of nodes) {
+              if (ctx.node === closest) {
+                handler({ ...ctx, event });
+              }
+            }
+            if (target instanceof Node) {
+              if (target === closest.parentElement) break;
+            } else {
+              for (const i in target.childNodes) {
+                if (target.childNodes[i] === closest) break;
+              }
+            }
+            closest = closest.parentElement;
+          }
+        });
+      }
+    },
+  };
+}

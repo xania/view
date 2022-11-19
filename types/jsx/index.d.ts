@@ -18,6 +18,12 @@ interface SVGTagNameMap {
   };
 }
 
+type TagNameMap = {
+  [k in keyof HTMLElementTagNameMap]: HTMLElementTagNameMap[k];
+};
+
+type ddd = HTMLElementTagNameMap['input']['checked'];
+
 declare module JSX {
   type TagNameMap = HTMLElementTagNameMap &
     SVGTagNameMap & {
@@ -46,31 +52,50 @@ declare module JSX {
     ) => void;
   };
 
+  type ClassNamePrimitive = string | string | [];
   type ClassName =
-    | string
-    | Subscribable<string | string[]>
-    | Promise<string | string[]>
-    | ExpressionTemplate<any>;
+    | ClassNamePrimitive
+    | Subscribable<ClassNamePrimitive>
+    | Promise<ClassNamePrimitive>
+    | Expression<
+        any,
+        | ClassNamePrimitive
+        | Promise<ClassNamePrimitive>
+        | Subscribable<ClassNamePrimitive>
+      >;
+
+  type ContextFunction<T, U = any> = (
+    t: T,
+    context?: { index: number; node: Node }
+  ) => U | null | Subscribable<U> | Promise<U>;
 
   type IntrinsicElement<P extends keyof TagNameMap> = EventMap & {
     [K in Attributes<TagNameMap[P], string>]?: AttrValue<any>;
   } & {
     [K in Attributes<TagNameMap[P], number>]?: AttrValue<number>;
+  } & {
+    [K in Attributes<TagNameMap[P], boolean>]?: AttrValue<boolean>;
   } & { class?: ClassName | ClassName[]; style?: any; role?: string };
 
-  type AttrValue<T> = T | null | ExpressionTemplate<T>;
+  type dddd = IntrinsicElement<'input'>['checked'];
+
+  type AttrValue<T> =
+    | T
+    | null
+    | ExpressionTemplate<any, T>
+    | Expression<any, T>;
 
   type Attributes<T, U> = {
     [P in keyof T]: T[P] extends U ? P : never;
   }[keyof T];
 
-  interface ExpressionTemplate<T> {
+  interface ExpressionTemplate<T, U> {
     type: number;
-    expression: Expression<T>;
+    expression: Expression<T, U>;
   }
 
   interface EventContext<TEvent> {
-    node: Node;
+    node: any;
     index: number;
     event: TEvent;
     values: any;
@@ -81,6 +106,7 @@ declare module JSX {
     Property = 1,
     Function = 2,
     State = 3,
+    Promise = 4,
   }
 
   export interface PropertyExpression {
@@ -88,9 +114,9 @@ declare module JSX {
     name: string | number | symbol;
   }
 
-  export interface FunctionExpression<T> {
+  export interface FunctionExpression<T, U = string> {
     type: ExpressionType.Function;
-    func: (t: T, context?: { index: number; node: Node }) => string | null;
+    func: ContextFunction<T, U>;
     deps: (string | number | symbol)[];
   }
 
@@ -99,9 +125,9 @@ declare module JSX {
     state: Subscribable<any>;
   }
 
-  export type Expression<T = any> =
+  export type Expression<T = any, U = any> =
     | PropertyExpression
-    | FunctionExpression<T>
+    | FunctionExpression<T, U>
     | StateExpression;
 
   export interface NextObserver<T> {

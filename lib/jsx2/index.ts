@@ -13,7 +13,16 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
       ...children: TemplateInput[]
     ): JsxElement | Promise<JsxElement> | undefined {
       if (name instanceof Function) {
-        return name(props, children, opts);
+        try {
+          return name(props, children, opts);
+        } catch (err) {
+          // if is class then try with `new` operator
+          if (name.toString().startsWith('class')) {
+            return Reflect.construct(name, [props, children]);
+          } else {
+            throw err;
+          }
+        }
       }
 
       const promises: Promise<void>[] = [];
@@ -32,7 +41,7 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         }
       }
 
-      const result = tagTemplate.appendTemplates(flatten(children));
+      const result = tagTemplate.appendContent(flatten(children));
       if (result instanceof Array) {
         for (const p of result) promises.push(p);
       }
