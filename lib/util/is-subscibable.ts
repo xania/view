@@ -2,6 +2,10 @@ export function isSubscribable(value: any): value is Subscribable {
   return value && value.subscribe instanceof Function;
 }
 
+export function isNextObserver(value: any): value is JSX.NextObserver<any> {
+  return value && value.next instanceof Function;
+}
+
 export function isUnsubscribable(value: any): value is Unsubscribable {
   return value && value.unsubscribe instanceof Function;
 }

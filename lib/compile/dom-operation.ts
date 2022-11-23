@@ -14,9 +14,6 @@ export enum DomOperationType {
   AppendChild,
   SelectNode,
   AttachTo,
-  AppendContent,
-  UpdateContent,
-  UpdateAttribute,
 }
 
 export interface PushFirstChildOperation {
@@ -41,25 +38,13 @@ export interface SetAttributeOperation {
 export interface SetClassNameOperation {
   type: DomOperationType.SetClassName;
   expressions?: JSX.Expression[];
-  expression: JSX.Expression;
+  expression: JSX.Expression<any, any>;
   classes?: { [k: string]: string };
 }
 export interface SetTextContentOperation {
   type: DomOperationType.SetTextContent;
   expression: JSX.Expression;
-}
-export interface AppendContentOperation {
-  type: DomOperationType.AppendContent;
-  expression: JSX.Expression;
-}
-export interface UpdateContentOperation {
-  type: DomOperationType.UpdateContent;
-  property: string | number | symbol;
-}
-export interface UpdateAttributeOperation {
-  type: DomOperationType.UpdateAttribute;
-  name: string;
-  property: string | number | symbol;
+  textNodeIndex?: number;
 }
 
 export interface RenderableOperation {
@@ -97,9 +82,6 @@ export type DomRenderOperation =
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation
-  | AppendContentOperation
-  | UpdateContentOperation
-  | UpdateAttributeOperation
   | RenderableOperation
   | AppendChildOperation
   | SelectNodeOperation

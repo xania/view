@@ -1,5 +1,5 @@
 {
-  "include": ["lib", "types"],
+  "include": ["lib"],
   "compilerOptions": {
     "outDir": "dist/es2015",
     "module": "ES2015",
@@ -15,6 +15,7 @@
     "moduleResolution": "node",
     "baseUrl": "./",
     "target": "ES2015",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "typeRoots": ["types"]
   }
 }

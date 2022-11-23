@@ -1,8 +1,9 @@
 ﻿import { DomOperation, DomOperationType } from '../compile/dom-operation';
-import { ExpressionType } from '../jsx/expression';
-import { isSubscribable, Unsubscribable } from '../util/is-subscibable';
+import { ExpressionType, isExpression } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { flatten } from './_flatten';
+import { State } from '../state';
+import { isSubscribable } from '../util/is-subscibable';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation[],
@@ -11,6 +12,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
 ) {
   let nodeStack: Stack<Node> = { head: root, tail: null } as any;
   let operationStack: Stack<DomOperation> | null = arrayToStack(operations);
+  const values = context.data?.value;
 
   while (operationStack) {
     const curr = operationStack.head;
@@ -23,12 +25,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
         };
         break;
       case DomOperationType.AddEventListener:
-        context.handlers.push(
-          nodeStack.head as Node,
-          curr.name,
-          curr.handler,
-          context.values
-        );
+        context.push(nodeStack.head as Node, curr.name, curr.handler);
         break;
       case DomOperationType.PopNode:
         if (nodeStack.tail == null) {
@@ -40,10 +37,10 @@ export function execute<TExecuteContext extends ExecuteContext>(
         const attrExpr = curr.expression;
         switch (attrExpr.type) {
           case ExpressionType.Property:
-            const { values } = context;
             if (values) {
-              const attrValue = values[attrExpr.name];
-              if (isSubscribable(attrValue)) {
+              const attrValue =
+                attrExpr.name === null ? values : values[attrExpr.name];
+              if (attrValue instanceof State) {
                 operationStack = {
                   head: {
                     type: DomOperationType.SetAttribute,
@@ -55,7 +52,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
                   },
                   tail: operationStack,
                 };
-              } else (nodeStack.head as any)[curr.name] = values[attrExpr.name];
+              } else
+                (nodeStack.head as any)[curr.name] =
+                  attrExpr.name === null ? values : values[attrExpr.name];
             }
             break;
           case ExpressionType.State:
@@ -63,7 +62,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
               elt: nodeStack.head as HTMLElement,
               name: curr.name,
               next(s: string) {
-                (this.elt as any)[this.name] = s;
+                const { elt, name } = this;
+                (elt as any)[name] = s;
               },
             });
             break;
@@ -72,34 +72,52 @@ export function execute<TExecuteContext extends ExecuteContext>(
       case DomOperationType.SetClassName:
         const classes = curr.classes;
         const classExpr = curr.expression;
-        switch (classExpr.type) {
-          case ExpressionType.Property:
-            const propertyResult = context.values[classExpr.name];
-            if (isSubscribable(propertyResult)) {
+        switch (classExpr?.type) {
+          case ExpressionType.Init:
+            const initResult = classExpr.init(context.data, {
+              node: nodeStack.head,
+              key: context.key,
+              index: context.index,
+            });
+            if (isExpression(initResult)) {
               operationStack = {
                 head: {
                   type: DomOperationType.SetClassName,
-                  expression: {
-                    type: ExpressionType.State,
-                    state: propertyResult,
-                  },
+                  expression: initResult,
                   classes,
                 },
                 tail: operationStack,
               };
-            } else {
+            } else if (typeof initResult === 'string') {
+              const cl = (classes && classes[initResult]) || initResult;
               const elt = nodeStack.head as HTMLElement;
-              for (const x of flatten(propertyResult)) {
-                const cls = (classes && classes[x]) || x;
-                elt.classList.add(cls);
-              }
+              elt.classList.add(cl);
+            }
+            break;
+          case ExpressionType.Property:
+            const propertyResult =
+              classExpr.name === null ? values : values[classExpr.name];
+            // if (propertyResult instanceof State) {
+            //   operationStack = {
+            //     head: {
+            //       type: DomOperationType.SetClassName,
+            //       expression: {
+            //         type: ExpressionType.State,
+            //         state: propertyResult,
+            //       },
+            //       classes,
+            //     },
+            //     tail: operationStack,
+            //   };
+            // } else
+            const elt = nodeStack.head as HTMLElement;
+            for (const x of flatten(propertyResult)) {
+              const cls = (classes && classes[x]) || x;
+              elt.classList.add(cls);
             }
             break;
           case ExpressionType.Function:
-            const result = classExpr.func(context.values, {
-              index: -1,
-              node: nodeStack.head,
-            });
+            const result = classExpr.func(context.data);
             if (isSubscribable(result)) {
               operationStack = {
                 head: {
@@ -112,42 +130,116 @@ export function execute<TExecuteContext extends ExecuteContext>(
                 },
                 tail: operationStack,
               };
-            } else {
-              const elt = nodeStack.head as HTMLElement;
-              for (const x of flatten(result)) {
-                const cls = (classes && classes[x]) || x;
-                elt.classList.add(cls);
-              }
             }
             break;
           case ExpressionType.State:
             const prev: string[] = [];
             const subs = classExpr.state.subscribe({
               prev,
-              classes: classes,
+              classes,
               elt: nodeStack.head as HTMLElement,
-              next(s: string | string[]) {
-                const { prev, classes } = this;
+              next(s) {
+                const { prev, classes, elt } = this;
                 for (const x of prev) {
-                  this.elt.classList.remove(x);
+                  elt.classList.remove(x);
                 }
                 prev.length = 0;
                 for (const x of flatten(s)) {
                   const cls = (classes && classes[x]) || x;
-                  this.elt.classList.add(cls);
+                  elt.classList.add(cls);
                   prev.push(cls);
                 }
               },
             });
             if (subs) context.subscriptions.push(subs);
             break;
+          default:
+            if (classExpr) {
+              const elt = nodeStack.head as HTMLElement;
+              for (const x of flatten(classExpr.toString())) {
+                const cls = (classes && classes[x]) || x;
+                elt.classList.add(cls);
+              }
+            }
+            break;
         }
         break;
+      // case DomOperationType.SetTextContent:
+      //   const setTextContentExpr = curr.expression;
+      //   switch (setTextContentExpr.type) {
+      //     case ExpressionType.Function:
+      //       const result = setTextContentExpr.func(context.values, {
+      //         index: -1,
+      //         node: nodeStack.head,
+      //       });
+      //       if (result instanceof State) {
+      //         operationStack = {
+      //           head: {
+      //             type: DomOperationType.SetTextContent,
+      //             expression: {
+      //               type: ExpressionType.State,
+      //               state: result,
+      //             },
+      //           },
+      //           tail: operationStack,
+      //         };
+      //       }
+      //       break;
+      //     case ExpressionType.State:
+      //       const subs = setTextContentExpr.state.subscribe(
+      //         {
+      //           next(newValue, element) {
+      //             element.textContent = newValue;
+      //           },
+      //         },
+      //         nodeStack.head
+      //       );
+      //       if (subs) context.subscriptions.push(subs);
+      //       break;
+      //   }
+      //   break;
       case DomOperationType.SetTextContent:
-        const setTextContentExpr = curr.expression;
-        switch (setTextContentExpr.type) {
+        const setContentExpr = curr.expression;
+        switch (setContentExpr.type) {
+          case ExpressionType.Init:
+            const initResult = setContentExpr.init(context.data, {
+              node: nodeStack.head,
+              key: context.key,
+              index: context.index,
+            });
+            if (isExpression(initResult)) {
+              operationStack = {
+                head: {
+                  type: DomOperationType.SetTextContent,
+                  expression: initResult,
+                },
+                tail: operationStack,
+              };
+            } else if (initResult) {
+              if (curr.textNodeIndex !== undefined) {
+                nodeStack.head.childNodes[curr.textNodeIndex].textContent =
+                  initResult;
+              } else {
+                nodeStack.head.textContent = initResult;
+              }
+            }
+            break;
+          case ExpressionType.Property:
+            if (values) {
+              const newValue =
+                setContentExpr.name === null
+                  ? values
+                  : values[setContentExpr.name];
+              if (curr.textNodeIndex !== undefined) {
+                nodeStack.head.childNodes[curr.textNodeIndex].textContent =
+                  newValue;
+              } else {
+                nodeStack.head.textContent = newValue;
+              }
+            }
+            break;
           case ExpressionType.Function:
-            const result = setTextContentExpr.func(context.values, {
+            const result: JSX.Expression = setContentExpr.func(context.data, {
               index: -1,
               node: nodeStack.head,
             });
@@ -155,6 +247,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
               operationStack = {
                 head: {
                   type: DomOperationType.SetTextContent,
+                  textNodeIndex: curr.textNodeIndex,
                   expression: {
                     type: ExpressionType.State,
                     state: result,
@@ -164,57 +257,38 @@ export function execute<TExecuteContext extends ExecuteContext>(
               };
             }
             break;
+          // case ExpressionType.Property:
+          //   const propertyValue = context.values[appendContentExpr.name];
+          //   textNode.textContent = propertyValue;
+          //   if (propertyValue instanceof State) {
+          //     const subs = propertyValue.subscribe(
+          //       appendContentStateObserver,
+          //       textNode
+          //     );
+          //     if (subs) context.subscriptions.push(subs);
+          //   }
+          //   break;
           case ExpressionType.State:
-            const subs = setTextContentExpr.state.subscribe({
-              element: nodeStack.head,
-              next(newValue) {
-                this.element.textContent = newValue;
+            const { state } = setContentExpr;
+            const textNodeIndex = curr.textNodeIndex;
+            const textNode =
+              textNodeIndex === undefined
+                ? nodeStack.head
+                : nodeStack.head.childNodes[textNodeIndex];
+            const stateSubs = state.subscribe({
+              next(newValue: any) {
+                const { textNode } = this;
+                textNode.textContent = newValue;
               },
+              textNode: textNode as Text,
             });
-            if (subs) context.subscriptions.push(subs);
+            if (stateSubs) context.subscriptions.push(stateSubs);
             break;
-        }
-        break;
-      case DomOperationType.UpdateContent:
-        nodeStack.head.textContent = context.values[curr.property];
-        break;
-      case DomOperationType.UpdateAttribute:
-        (nodeStack.head as any)[curr.name] = context.values[curr.property];
-        break;
-      case DomOperationType.AppendContent:
-        const appendAppendContentExpr = curr.expression;
-        const textNode = document.createTextNode('');
-        nodeStack.head.appendChild(textNode);
-        switch (appendAppendContentExpr.type) {
-          case ExpressionType.Function:
-            const result = appendAppendContentExpr.func(context.values, {
-              index: -1,
+          case ExpressionType.Subscribable:
+            const subs = setContentExpr.subscribable.subscribe({
               node: nodeStack.head,
-            });
-            if (isSubscribable(result)) {
-              operationStack = {
-                head: {
-                  type: DomOperationType.AppendContent,
-                  expression: {
-                    type: ExpressionType.State,
-                    state: result,
-                  },
-                },
-                tail: operationStack,
-              };
-            }
-            break;
-          case ExpressionType.Property:
-            textNode.textContent = context.values[appendAppendContentExpr.name];
-            break;
-          case ExpressionType.State:
-            textNode.textContent = (appendAppendContentExpr.state as any)[
-              'current'
-            ];
-            const subs = appendAppendContentExpr.state.subscribe({
-              element: textNode,
-              next(newValue) {
-                this.element.textContent = newValue;
+              next(value: any) {
+                this.node.textContent = value;
               },
             });
             if (subs) context.subscriptions.push(subs);
@@ -226,7 +300,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
         if (binding) context.bindings.push(binding);
         break;
       default:
-        console.log(curr);
+        console.error(curr);
         break;
     }
   }
@@ -234,11 +308,11 @@ export function execute<TExecuteContext extends ExecuteContext>(
 
 export interface ExecuteContext<T = any> {
   bindings: Disposable[];
-  subscriptions: Unsubscribable[];
-  handlers: {
-    push(node: Node, name: string, handler: Function, values?: any): void;
-  };
-  values: T;
+  subscriptions: JSX.Unsubscribable[];
+  data: State<T>;
+  key: symbol;
+  index: number;
+  push(node: Node, name: string, handler: Function): void;
 }
 
 interface Stack<T> {
