@@ -4,7 +4,7 @@ import { isSubscribable } from '../util/is-subscibable';
 
 type ViewContextFunction<T> = (
   t: JSX.State<T>,
-  context: JSX.ViewContext
+  context: JSX.ViewContext<T>
 ) => any;
 
 export function useContext<T>() {

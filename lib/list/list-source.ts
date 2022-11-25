@@ -1,21 +1,27 @@
-﻿export function createListSource<T>(initial?: T[]) {
+﻿import { State, _flush } from '../state';
+
+export function createListSource<T>(initial?: T[]) {
   return new ListSource<T>(initial);
 }
 
 type ListObserver<T> = JSX.NextObserver<ListMutation<T>>;
 
 export class ListSource<T> {
-  private observers: ListObserver<T>[] = [];
+  public readonly observers: ListObserver<State<T>>[] = [];
+  public readonly properties: State<T>[] = [];
+  public readonly mapObservers: MapObserver<T>[] = [];
 
-  constructor(private items: T[] = []) {}
+  constructor(public value: (T | null)[] = []) {
+    const { properties } = this;
+    for (let i = 0; i < value.length; i++) {
+      var state = new State<T>(value[i], this.flush);
+      properties.push(state);
+    }
+  }
 
-  subscribe(observer: ListObserver<T>) {
+  subscribe(observer: ListObserver<State<T>>) {
     const { observers } = this;
     observers.push(observer);
-    observer.next({
-      type: ListMutationType.Reset,
-      items: this.items,
-    });
     return {
       unsubscribe() {
         const idx = observers.indexOf(observer);
@@ -27,30 +33,41 @@ export class ListSource<T> {
   }
 
   next(mut: ListMutation<T>) {
+    const { properties } = this;
+
+    const maput: any = {
+      ...mut,
+    };
     switch (mut.type) {
       case ListMutationType.Append:
-        this.items.push(mut.item);
-        break;
-      case ListMutationType.Reset:
-        this.items = mut.items;
+        this.value.push(mut.item);
+        properties.push((maput.item = new State<T>(mut.item, this.flush)));
         break;
       case ListMutationType.DeleteAt:
-        this.items.splice(mut.index, 1);
-        break;
-      case ListMutationType.UpdateAt:
-        this.items[mut.index] = mut.item;
+        this.value.splice(mut.index, 1);
+        properties.splice(mut.index, 1);
+
         break;
     }
 
     for (const o of this.observers) {
-      o.next(mut);
+      o.next(maput);
+    }
+
+    switch (maput.type) {
+      case ListMutationType.Append:
+        maput.item.flush();
+        break;
+      case ListMutationType.DeleteAt:
+        this.notifyMapObservers();
+        break;
     }
   }
 
   append(item: T) {
     this.next({
       type: ListMutationType.Append,
-      item,
+      item: item,
     });
   }
 
@@ -62,7 +79,7 @@ export class ListSource<T> {
   }
 
   delete(item: T) {
-    const index = this.items.indexOf(item);
+    const index = this.value.indexOf(item);
     if (index >= 0) {
       this.next({
         type: ListMutationType.DeleteAt,
@@ -71,42 +88,47 @@ export class ListSource<T> {
     }
   }
 
-  updateAt(index: number, updater: Updater<T>) {
-    const item = this.items[index];
-    this.next({
-      type: ListMutationType.UpdateAt,
-      index,
-      item: updater(item),
-    });
+  flush = () => {
+    if (_flush(this.properties)) {
+      this.notifyMapObservers();
+      return true;
+    }
+
+    return false;
+  };
+
+  notifyMapObservers(obs: MapObserver<T>[] = this.mapObservers) {
+    const items = this.value;
+    for (const o of obs) {
+      o.next(o.project(items as any[]));
+    }
   }
 
-  map<U>(project: (items: T[]) => U) {
+  map<U>(project: (items: (T | null)[]) => U) {
     const listSource = this;
     return {
       subscribe(o: JSX.NextObserver<U>) {
-        const sub = listSource.subscribe({
-          next() {
-            o.next(project(listSource.items));
-          },
-        });
+        (o as any)['project'] = project;
+        listSource.mapObservers.push(o as any);
+        listSource.notifyMapObservers([o as any]);
 
-        return sub;
+        return {
+          unsubscribe() {
+            const { mapObservers } = listSource;
+            const idx = mapObservers.indexOf(o as any);
+            mapObservers.splice(idx, 1);
+          },
+        };
       },
     };
   }
 }
 
 export enum ListMutationType {
-  Reset,
   Append,
   DeleteAt,
+  Flush,
   Delete,
-  UpdateAt,
-}
-
-interface ListResetMutation<T> {
-  type: ListMutationType.Reset;
-  items: T[];
 }
 
 interface ListAppendMutation<T> {
@@ -119,17 +141,20 @@ interface ListDeleteAtMutation {
   index: number;
 }
 
-interface ListUpdateAtMutation<T> {
-  type: ListMutationType.UpdateAt;
-  index: number;
-  item: T;
+interface ListFlushMutation<T> {
+  type: ListMutationType.Flush;
+  items: T[];
+}
+
+interface ListDeleteMutation {
+  type: ListMutationType.Delete;
+  delete: JSX.ViewContext<any>['key'];
 }
 
 type ListMutation<T> =
-  | ListResetMutation<T>
   | ListAppendMutation<T>
   | ListDeleteAtMutation
-  | ListUpdateAtMutation<T>;
+  | ListFlushMutation<T>
+  | ListDeleteMutation;
 
-type Updater<T> = (value?: T) => T;
-// type Func<T, U> = (value: T) => U;
+type MapObserver<T> = JSX.NextObserver<T> & { project(items: T[]): any };

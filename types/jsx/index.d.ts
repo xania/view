@@ -40,9 +40,9 @@ declare module JSX {
 
   type Element = any;
 
-  type EventMap = {
+  type EventMap<T> = {
     [P in keyof HTMLElementEventMap]?: (
-      e: EventContext<HTMLElementEventMap[P]>
+      e: EventContext<T, HTMLElementEventMap[P]>
     ) => void;
   };
 
@@ -65,7 +65,7 @@ declare module JSX {
     context?: { index: number; node: Node }
   ) => U | null | State<U> | Promise<U>;
 
-  type IntrinsicElement<P extends keyof TagNameMap> = EventMap & {
+  type IntrinsicElement<P extends keyof TagNameMap> = EventMap<any> & {
     [K in Attributes<TagNameMap[P], string>]?: AttrValue<any>;
   } & {
     [K in Attributes<TagNameMap[P], number>]?: AttrValue<number>;
@@ -76,8 +76,6 @@ declare module JSX {
     style?: any;
     role?: string;
   };
-
-  type dddd = IntrinsicElement<'input'>['checked'];
 
   type AttrValue<T> =
     | T
@@ -94,9 +92,9 @@ declare module JSX {
     expression: Expression<T, U>;
   }
 
-  interface EventContext<TEvent> extends ViewContext {
+  interface EventContext<T, TEvent> extends ViewContext<T> {
     event: TEvent;
-    values: any;
+    values: T;
   }
 
   export enum ExpressionType {
@@ -107,15 +105,15 @@ declare module JSX {
     Subscribable = 4,
   }
 
-  export interface ViewContext {
-    node: any;
-    key: symbol;
-    index: number;
+  export interface ViewContext<T> {
+    readonly node: any;
+    readonly key: symbol;
+    readonly data: State<T>;
   }
 
   export interface InitExpression<T> {
     type: ExpressionType.Init;
-    init: (t: State<T>, context: ViewContext) => JSX.Expression | null;
+    init: (t: State<T>, context: ViewContext<T>) => JSX.Expression | null;
   }
 
   export interface PropertyExpression {
@@ -150,9 +148,17 @@ declare module JSX {
     unsubscribe(): void;
   }
 
+  export interface Value<T> {
+    subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;
+    map<U>(func: (t: T) => U): Value<U>;
+    get<K extends keyof T>(name: K): State<T[K]>;
+  }
+
   export interface State<T> {
     subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;
-    map<U>(func: (t: T) => U): State<U>;
+    map<U>(func: (t: T) => U): Value<U>;
+    get<K extends keyof T>(name: K): State<T[K]>;
+    update(value: T): void;
   }
 
   export interface Subscribable<T> {

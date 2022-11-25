@@ -17,39 +17,22 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
       let virtualItems: VirtualItem[] = [];
 
       if (source instanceof Array) {
-        renderChildren(source);
+        renderChildren(source.map((e) => new State<T>(e)));
       } else if (source instanceof ListSource) {
         source.subscribe({
           next(mut) {
             switch (mut.type) {
-              case ListMutationType.Reset:
-                renderChildren(mut.items);
-                break;
               case ListMutationType.Append:
                 appendChild(mut.item);
                 break;
               case ListMutationType.DeleteAt:
                 deleteChild(mut.index);
                 break;
-              case ListMutationType.UpdateAt:
-                updateChild(mut.index, mut.item);
-                break;
             }
           },
         });
-      }
-
-      function updateChild(index: number, item: T) {
-        const virtualItem = virtualItems[index];
-        virtualItem.data.update(item);
-
-        let i = 0;
-        for (const child of children) {
-          if (child instanceof JsxElement) {
-            const root = virtualItem.elements[i++];
-            execute(child.updates, root, virtualItem);
-          }
-        }
+        renderChildren(source.properties);
+        source.flush();
       }
 
       function deleteChild(index: number) {
@@ -67,17 +50,13 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         }
 
         virtualItems.splice(index, 1);
-        for (let i = index; i < virtualItems.length; i++) {
-          virtualItems[i].index = i;
-        }
       }
 
-      function appendChild(item: T) {
+      function appendChild(item: State<T>) {
         var executeContext: VirtualItem = {
-          index: virtualItems.length,
           bindings: [],
           subscriptions: [],
-          data: new State(item),
+          data: item,
           elements: [],
           key: Symbol(),
           push: sharedEventHandler,
@@ -95,14 +74,13 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         }
       }
 
-      function renderChildren(source: T[]) {
+      function renderChildren(source: State<T>[]) {
         let v = 0,
           s = 0;
         const newItems: typeof virtualItems = new Array(source.length);
         while (v < virtualItems.length) {
           const virtualItem = virtualItems[v++];
-          if (virtualItem.data.value === source[s]) {
-            virtualItem.index = s;
+          if (virtualItem.data === source[s]) {
             newItems[s++] = virtualItem;
 
             // let index = 0;
@@ -131,11 +109,11 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         virtualItems = newItems;
 
         for (let i = s, length = source.length; i < length; i++) {
+          const data = source[i];
           var executeContext: VirtualItem = {
-            index: i,
             bindings: [],
             subscriptions: [],
-            data: new State(source[i]),
+            data,
             elements: [],
             key: Symbol(),
             push: sharedEventHandler,
@@ -149,9 +127,23 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
               executeContext.elements.push(root);
               execute(child.content, root, executeContext);
               target.appendChild(root);
-              executeContext.data.flush();
             }
           }
+
+          data.subscribe({
+            executeContext,
+            next() {
+              const virtualItem = this.executeContext;
+
+              let i = 0;
+              for (const child of children) {
+                if (child instanceof JsxElement) {
+                  const root = virtualItem.elements[i++];
+                  execute(child.updates, root, virtualItem);
+                }
+              }
+            },
+          });
         }
 
         virtualItems.length = source.length;

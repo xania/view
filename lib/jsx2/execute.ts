@@ -3,7 +3,6 @@ import { ExpressionType, isExpression } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { flatten } from './_flatten';
 import { State } from '../state';
-import { isSubscribable } from '../util/is-subscibable';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation[],
@@ -37,25 +36,21 @@ export function execute<TExecuteContext extends ExecuteContext>(
         const attrExpr = curr.expression;
         switch (attrExpr.type) {
           case ExpressionType.Property:
-            if (values) {
-              const attrValue =
-                attrExpr.name === null ? values : values[attrExpr.name];
-              if (attrValue instanceof State) {
-                operationStack = {
-                  head: {
-                    type: DomOperationType.SetAttribute,
-                    name: curr.name,
-                    expression: {
-                      type: ExpressionType.State,
-                      state: attrValue,
-                    },
-                  },
-                  tail: operationStack,
-                };
-              } else
-                (nodeStack.head as any)[curr.name] =
-                  attrExpr.name === null ? values : values[attrExpr.name];
-            }
+            const attrValue =
+              attrExpr.name === null
+                ? context.data
+                : context.data.get(attrExpr.name);
+            operationStack = {
+              head: {
+                type: DomOperationType.SetAttribute,
+                name: curr.name,
+                expression: {
+                  type: ExpressionType.State,
+                  state: attrValue,
+                },
+              },
+              tail: operationStack,
+            };
             break;
           case ExpressionType.State:
             attrExpr.state.subscribe({
@@ -77,7 +72,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
             const initResult = classExpr.init(context.data, {
               node: nodeStack.head,
               key: context.key,
-              index: context.index,
+              data: context.data,
             });
             if (isExpression(initResult)) {
               operationStack = {
@@ -96,41 +91,20 @@ export function execute<TExecuteContext extends ExecuteContext>(
             break;
           case ExpressionType.Property:
             const propertyResult =
-              classExpr.name === null ? values : values[classExpr.name];
-            // if (propertyResult instanceof State) {
-            //   operationStack = {
-            //     head: {
-            //       type: DomOperationType.SetClassName,
-            //       expression: {
-            //         type: ExpressionType.State,
-            //         state: propertyResult,
-            //       },
-            //       classes,
-            //     },
-            //     tail: operationStack,
-            //   };
-            // } else
-            const elt = nodeStack.head as HTMLElement;
-            for (const x of flatten(propertyResult)) {
-              const cls = (classes && classes[x]) || x;
-              elt.classList.add(cls);
-            }
-            break;
-          case ExpressionType.Function:
-            const result = classExpr.func(context.data);
-            if (isSubscribable(result)) {
-              operationStack = {
-                head: {
-                  type: DomOperationType.SetClassName,
-                  expression: {
-                    type: ExpressionType.State,
-                    state: result,
-                  },
-                  classes,
+              classExpr.name === null
+                ? context.data
+                : context.data.get(classExpr.name);
+            operationStack = {
+              head: {
+                type: DomOperationType.SetClassName,
+                expression: {
+                  type: ExpressionType.State,
+                  state: propertyResult,
                 },
-                tail: operationStack,
-              };
-            }
+                classes,
+              },
+              tail: operationStack,
+            };
             break;
           case ExpressionType.State:
             const prev: string[] = [];
@@ -164,40 +138,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
             break;
         }
         break;
-      // case DomOperationType.SetTextContent:
-      //   const setTextContentExpr = curr.expression;
-      //   switch (setTextContentExpr.type) {
-      //     case ExpressionType.Function:
-      //       const result = setTextContentExpr.func(context.values, {
-      //         index: -1,
-      //         node: nodeStack.head,
-      //       });
-      //       if (result instanceof State) {
-      //         operationStack = {
-      //           head: {
-      //             type: DomOperationType.SetTextContent,
-      //             expression: {
-      //               type: ExpressionType.State,
-      //               state: result,
-      //             },
-      //           },
-      //           tail: operationStack,
-      //         };
-      //       }
-      //       break;
-      //     case ExpressionType.State:
-      //       const subs = setTextContentExpr.state.subscribe(
-      //         {
-      //           next(newValue, element) {
-      //             element.textContent = newValue;
-      //           },
-      //         },
-      //         nodeStack.head
-      //       );
-      //       if (subs) context.subscriptions.push(subs);
-      //       break;
-      //   }
-      //   break;
+
       case DomOperationType.SetTextContent:
         const setContentExpr = curr.expression;
         switch (setContentExpr.type) {
@@ -205,7 +146,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
             const initResult = setContentExpr.init(context.data, {
               node: nodeStack.head,
               key: context.key,
-              index: context.index,
+              data: context.data,
             });
             if (isExpression(initResult)) {
               operationStack = {
@@ -226,31 +167,17 @@ export function execute<TExecuteContext extends ExecuteContext>(
             break;
           case ExpressionType.Property:
             if (values) {
-              const newValue =
+              const property =
                 setContentExpr.name === null
-                  ? values
-                  : values[setContentExpr.name];
-              if (curr.textNodeIndex !== undefined) {
-                nodeStack.head.childNodes[curr.textNodeIndex].textContent =
-                  newValue;
-              } else {
-                nodeStack.head.textContent = newValue;
-              }
-            }
-            break;
-          case ExpressionType.Function:
-            const result: JSX.Expression = setContentExpr.func(context.data, {
-              index: -1,
-              node: nodeStack.head,
-            });
-            if (isSubscribable(result)) {
+                  ? context.data
+                  : context.data.get(setContentExpr.name);
               operationStack = {
                 head: {
                   type: DomOperationType.SetTextContent,
                   textNodeIndex: curr.textNodeIndex,
                   expression: {
                     type: ExpressionType.State,
-                    state: result,
+                    state: property,
                   },
                 },
                 tail: operationStack,
@@ -310,8 +237,7 @@ export interface ExecuteContext<T = any> {
   bindings: Disposable[];
   subscriptions: JSX.Unsubscribable[];
   data: State<T>;
-  key: symbol;
-  index: number;
+  readonly key: JSX.ViewContext<T>['key'];
   push(node: Node, name: string, handler: Function): void;
 }
 

@@ -55,9 +55,8 @@ export class JsxElement {
           this.content.push({
             type: DomOperationType.SetClassName,
             expression: {
-              type: ExpressionType.Function,
-              func: item,
-              deps: [],
+              type: ExpressionType.Init,
+              init: item as any,
             },
             classes,
           });
@@ -171,9 +170,8 @@ export class JsxElement {
       } else if (child instanceof Function) {
         addTextContentExpr(
           {
-            type: ExpressionType.Function,
-            func: child,
-            deps: [],
+            type: ExpressionType.Init,
+            init: child as any,
           },
           this.content
         );
@@ -301,12 +299,10 @@ type DomContentOperation =
   | SetClassNameOperation
   | AddEventListenerOperation;
 
-export interface EventContext<TEvent> extends JSX.EventContext<TEvent> {
+export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {
   node: Node;
   values: any;
-  index: number;
   event: TEvent;
-  view: JSX.ViewContext;
 }
 
 export function createExecuteContext<T>(target: RenderTarget, values?: T) {
@@ -330,13 +326,7 @@ export function createEventHandler(target: RenderTarget) {
     this: ExecuteContext<T>,
     node: Node,
     name: string,
-    handler: (evnt: {
-      node: Node;
-      values: T | undefined;
-      index: number;
-      key: symbol;
-      event: Event;
-    }) => any
+    handler: (evnt: EventContext<T, any>) => any
   ) {
     const context = this;
     if (name === 'blur') {
@@ -347,7 +337,7 @@ export function createEventHandler(target: RenderTarget) {
           values: value,
           event,
           key: context.key,
-          index: context.index,
+          data: context.data,
         });
       });
     } else if (name in events) {
@@ -363,8 +353,8 @@ export function createEventHandler(target: RenderTarget) {
               handler({
                 node: closest,
                 values: pair.context.data.value,
-                index: pair.context.index,
                 key: pair.context.key,
+                data: pair.context.data,
                 event,
               });
             }
