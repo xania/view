@@ -119,7 +119,7 @@ export function compile(rootTemplate: Template | CompileResult) {
         break;
       case TemplateType.State:
         const state = template.state;
-        const stateNode = document.createTextNode(state.current);
+        const stateNode = document.createTextNode(state.value);
         target.appendChild(stateNode);
         operationsMap.add(stateNode, {
           type: DomOperationType.SetTextContent,

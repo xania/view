@@ -4,14 +4,13 @@ abstract class Value<T> implements JSX.Value<T> {
   observers: JSX.NextObserver<T>[] = [];
   properties: Value<any>[] = [];
 
-  constructor(public value: T | null = null) {}
+  constructor(public value?: T) {}
 
   [previous]: T | undefined;
 
   abstract flush(): boolean;
 
-  toString = () => this.value;
-  valueOf = () => this.value;
+  toString = () => (this.value ? this.value.toString() : '');
 
   [Symbol.asyncIterator] = (): AsyncIterator<T> => {
     const state = this;
@@ -42,8 +41,13 @@ abstract class Value<T> implements JSX.Value<T> {
   };
 
   subscribe<O extends JSX.NextObserver<T>>(observer: O) {
-    const { observers } = this;
+    const { observers, value } = this;
     observers.push(observer as any);
+
+    if (value !== undefined) {
+      (observer as any)[previous] = value;
+      observer.next(value);
+    }
 
     return {
       unsubscribe() {
@@ -67,15 +71,15 @@ abstract class Value<T> implements JSX.Value<T> {
     return property;
   }
 
-  map = <U>(project: (value: T) => U | null): JSX.Value<U> => {
-    const mapper = new StateMap<T, U>(project, this.flush);
+  map = <U>(project: (value: T | undefined) => U): JSX.Value<U> => {
+    const mapper = new StateMap<T, U>(this as any, project, this.flush);
     this.properties.push(mapper);
     return mapper;
   };
 }
 
 export class State<T> extends Value<T> {
-  constructor(value: T | null, public flush = () => _flush([this])) {
+  constructor(value: T | undefined, public flush = () => _flush([this])) {
     super(value);
   }
 
@@ -90,7 +94,7 @@ export class State<T> extends Value<T> {
   };
 }
 
-export function useState<T>(value: T | null) {
+export function useState<T>(value?: T) {
   return new State<T>(value);
 }
 
@@ -99,7 +103,7 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
     public parent: Value<T>,
     public name: K,
     public flush: () => boolean,
-    value: T[K] | null = null
+    value?: T[K]
   ) {
     super(value);
   }
@@ -127,12 +131,17 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
   };
 }
 
-class StateMap<T, U> extends Value<U> {
-  constructor(public project: (t: T) => U | null, public flush: () => boolean) {
-    super(null);
+export class StateMap<T, U> extends Value<U> {
+  constructor(
+    public parent: { value: T },
+    public project: (t: T) => U,
+    public flush: () => boolean
+  ) {
+    super(project(parent.value));
   }
 }
-type Updater<T> = (value: T | null) => T | void;
+
+type Updater<T> = (value?: T) => T | void;
 
 type LinkedList<T> = null | { head: T; tail: LinkedList<T> };
 
@@ -145,7 +154,7 @@ export function _flush(root: Item[]) {
 }
 
 type Item = {
-  value: any | null;
+  value?: any;
   [previous]?: any;
   observers: JSX.NextObserver<any>[];
   properties: Value<any>[];

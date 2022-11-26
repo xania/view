@@ -1,17 +1,17 @@
-﻿import { State, _flush } from '../state';
+﻿import { State, StateMap, _flush } from '../state';
 
 export function createListSource<T>(initial?: T[]) {
   return new ListSource<T>(initial);
 }
 
-type ListObserver<T> = JSX.NextObserver<ListMutation<T>>;
+type ListObserver<T> = JSX.NextObserver<ListMutation<State<T>>>;
 
 export class ListSource<T> {
-  public readonly observers: ListObserver<State<T>>[] = [];
+  public readonly observers: ListObserver<T>[] = [];
   public readonly properties: State<T>[] = [];
-  public readonly mapObservers: MapObserver<T>[] = [];
+  public readonly mapObservers: MapObserver<T, any>[] = [];
 
-  constructor(public value: (T | null)[] = []) {
+  constructor(public value: T[] = []) {
     const { properties } = this;
     for (let i = 0; i < value.length; i++) {
       var state = new State<T>(value[i], this.flush);
@@ -19,9 +19,14 @@ export class ListSource<T> {
     }
   }
 
-  subscribe(observer: ListObserver<State<T>>) {
-    const { observers } = this;
+  subscribe(observer: ListObserver<T>) {
+    const { observers, properties } = this;
     observers.push(observer);
+    if (properties.length)
+      observer.next({
+        type: ListMutationType.Flush,
+        items: properties,
+      });
     return {
       unsubscribe() {
         const idx = observers.indexOf(observer);
@@ -97,15 +102,19 @@ export class ListSource<T> {
     return false;
   };
 
-  notifyMapObservers(obs: MapObserver<T>[] = this.mapObservers) {
+  notifyMapObservers(obs: MapObserver<T, any>[] = this.mapObservers) {
     const items = this.value;
     for (const o of obs) {
-      o.next(o.project(items as any[]));
+      o.next(o.project(items));
     }
   }
 
-  map<U>(project: (items: (T | null)[]) => U) {
+  map<U>(project: (items: T[]) => U) {
     const listSource = this;
+
+    // const sss = new StateMap<T[], U>(this, project, this.flush);
+    // this.mapObservers.push(sss);
+
     return {
       subscribe(o: JSX.NextObserver<U>) {
         (o as any)['project'] = project;
@@ -157,4 +166,4 @@ type ListMutation<T> =
   | ListFlushMutation<T>
   | ListDeleteMutation;
 
-type MapObserver<T> = JSX.NextObserver<T> & { project(items: T[]): any };
+type MapObserver<T, U> = JSX.NextObserver<T[]> & { project(items: T[]): U };

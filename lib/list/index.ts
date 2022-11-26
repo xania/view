@@ -32,7 +32,6 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           },
         });
         renderChildren(source.properties);
-        source.flush();
       }
 
       function deleteChild(index: number) {

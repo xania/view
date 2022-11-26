@@ -92,7 +92,7 @@ export class JsxElement {
           if (item.type === ExpressionType.Property) this.updates.push(op);
         }
       }
-    } else if (attrValue instanceof State) {
+    } else if (isSubscribable(attrValue)) {
       this.content.push({
         type: DomOperationType.SetAttribute,
         name: attrName,
@@ -239,31 +239,6 @@ export class JsxElement {
 
     this.templateNode.appendChild(tag.templateNode);
   }
-
-  // listen(target: RenderTarget, root: HTMLElement, context: ExecuteContext) {
-  //   if (this.events.length) {
-  //     execute(this.events, root, context);
-  //   }
-  //   // target.addEventListener(eventName, function handler(event: Event) {
-  //   //   let closest = event.target as HTMLElement | null;
-  //   //   const { handlers } = context;
-  //   //   while (closest) {
-  //   //     for (const [node, handler] of handlers) {
-  //   //       if (node === closest) {
-  //   //         handler({ node: closest });
-  //   //       }
-  //   //     }
-  //   //     if (target instanceof Node) {
-  //   //       if (target === closest.parentElement) break;
-  //   //     } else {
-  //   //       for (const i in target.childNodes) {
-  //   //         if (target.childNodes[i] === closest) break;
-  //   //       }
-  //   //     }
-  //   //     closest = closest.parentElement;
-  //   //   }
-  //   // });
-  // }
 
   render(target: RenderTarget) {
     const root = this.templateNode.cloneNode(true) as HTMLElement;
