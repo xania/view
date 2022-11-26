@@ -1,4 +1,6 @@
-﻿import { State, StateMap, _flush } from '../state';
+﻿import { State, _flush } from '../state';
+
+const previous: unique symbol = Symbol();
 
 export function createListSource<T>(initial?: T[]) {
   return new ListSource<T>(initial);
@@ -105,15 +107,16 @@ export class ListSource<T> {
   notifyMapObservers(obs: MapObserver<T, any>[] = this.mapObservers) {
     const items = this.value;
     for (const o of obs) {
-      o.next(o.project(items));
+      const newValue = o.project(items);
+      if (((o as any)[previous]! += newValue)) {
+        (o as any)[previous] = newValue;
+        o.next(o.project(items));
+      }
     }
   }
 
   map<U>(project: (items: T[]) => U) {
     const listSource = this;
-
-    // const sss = new StateMap<T[], U>(this, project, this.flush);
-    // this.mapObservers.push(sss);
 
     return {
       subscribe(o: JSX.NextObserver<U>) {
