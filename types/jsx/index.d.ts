@@ -108,7 +108,7 @@ declare module JSX {
   export interface ViewContext<T> {
     readonly node: any;
     readonly key: symbol;
-    readonly data: State<T>;
+    readonly data?: State<T>;
   }
 
   export interface InitExpression<T> {

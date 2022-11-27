@@ -1,9 +1,9 @@
+import { Subscribable } from 'rxjs';
 import { Disposable } from '../disposable';
 import { Renderable, RenderTarget } from '../jsx';
-import { State } from '../state';
 
 export interface IfProps {
-  condition: State<boolean>;
+  condition: Subscribable<boolean>;
 }
 
 export function If(props: IfProps, children: Renderable[]) {

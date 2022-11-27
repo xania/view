@@ -283,10 +283,12 @@ export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {
 export function createExecuteContext<T>(target: RenderTarget, values?: T) {
   const bindings: Disposable[] = [];
   const subscriptions: JSX.Unsubscribable[] = [];
+  const elements: Node[] = [];
 
   return {
     bindings,
     subscriptions,
+    elements,
     data: new State(values),
     push: createEventHandler(target),
   } as ExecuteContext<T>;
@@ -306,7 +308,7 @@ export function createEventHandler(target: RenderTarget) {
     const context = this;
     if (name === 'blur') {
       node.addEventListener(name, function (event: Event) {
-        const { value } = context.data;
+        const value = context.data?.value;
         handler({
           node,
           values: value,
@@ -327,7 +329,7 @@ export function createEventHandler(target: RenderTarget) {
             if (pair.node === closest) {
               handler({
                 node: closest,
-                values: pair.context.data.value,
+                values: pair.context.data?.value,
                 key: pair.context.key,
                 data: pair.context.data,
                 event,

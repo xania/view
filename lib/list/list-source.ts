@@ -108,7 +108,7 @@ export class ListSource<T> {
     const items = this.value;
     for (const o of obs) {
       const newValue = o.project(items);
-      if (((o as any)[previous]! += newValue)) {
+      if ((o as any)[previous]! !== newValue) {
         (o as any)[previous] = newValue;
         o.next(o.project(items));
       }
@@ -128,7 +128,11 @@ export class ListSource<T> {
           unsubscribe() {
             const { mapObservers } = listSource;
             const idx = mapObservers.indexOf(o as any);
-            mapObservers.splice(idx, 1);
+            if (idx >= 0) {
+              mapObservers.splice(idx, 1);
+            } else {
+              debugger;
+            }
           },
         };
       },
