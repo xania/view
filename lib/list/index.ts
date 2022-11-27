@@ -1,7 +1,6 @@
 ﻿import { createEventHandler, JsxElement } from '../jsx2/element';
 import { RenderTarget } from '../jsx';
 import { execute, ExecuteContext } from '../jsx2/execute';
-// import { State } from '../state';
 import { ListMutationType, ListSource } from './list-source';
 import { State } from '../state';
 
@@ -23,7 +22,10 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           next(mut) {
             switch (mut.type) {
               case ListMutationType.Append:
-                appendChild(mut.item);
+                renderChild(mut.item);
+                break;
+              case ListMutationType.Insert:
+                renderChild(mut.item, mut.index);
                 break;
               case ListMutationType.DeleteAt:
                 deleteChild(mut.index);
@@ -51,7 +53,10 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         virtualItems.splice(index, 1);
       }
 
-      function appendChild(item: State<T>) {
+      function renderChild(
+        item: State<T>,
+        index: number = virtualItems.length
+      ) {
         var executeContext: VirtualItem = {
           bindings: [],
           subscriptions: [],
@@ -61,14 +66,26 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           push: sharedEventHandler,
         };
 
-        virtualItems.push(executeContext);
+        let insertBeforeElt: HTMLElement | null = null;
+        if (index < virtualItems.length) {
+          virtualItems.splice(index, 0, executeContext);
+          for (let i = index + 1; i < virtualItems.length; i++) {
+            const next = virtualItems[i];
+            if (next.elements.length) {
+              insertBeforeElt = next.elements[0];
+              break;
+            }
+          }
+        } else virtualItems.push(executeContext);
 
         for (const child of children) {
           if (child instanceof JsxElement) {
             const root = child.templateNode.cloneNode(true) as HTMLElement;
             executeContext.elements.push(root);
             execute(child.content, root, executeContext);
-            target.appendChild(root);
+
+            if (insertBeforeElt) target.insertBefore(root, insertBeforeElt);
+            else target.appendChild(root);
           }
         }
       }
@@ -81,17 +98,6 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           const virtualItem = virtualItems[v++];
           if (virtualItem.data === source[s]) {
             newItems[s++] = virtualItem;
-
-            // let index = 0;
-            // for (const child of children) {
-            //   if (child instanceof JsxElement) {
-            //     execute(
-            //       child.updates,
-            //       virtualItem.elements[index++],
-            //       virtualItem
-            //     );
-            //   }
-            // }
           } else {
             for (const binding of virtualItem.bindings) {
               binding.dispose();

@@ -4,7 +4,7 @@ abstract class Value<T> implements JSX.Value<T> {
   observers: JSX.NextObserver<T>[] = [];
   properties: Value<any>[] = [];
 
-  constructor(public value?: T) {}
+  constructor(public value: T) {}
 
   [previous]: T | undefined;
 
@@ -79,7 +79,7 @@ abstract class Value<T> implements JSX.Value<T> {
 }
 
 export class State<T> extends Value<T> {
-  constructor(value: T | undefined, public flush = () => _flush([this])) {
+  constructor(value: T, public flush = () => _flush([this])) {
     super(value);
   }
 
@@ -94,8 +94,10 @@ export class State<T> extends Value<T> {
   };
 }
 
-export function useState<T>(value?: T) {
-  return new State<T>(value);
+export function useState<T>(): State<T | undefined>;
+export function useState<T>(value: T): State<T>;
+export function useState(value?: any) {
+  return new State(value);
 }
 
 class StateProperty<T, K extends keyof T> extends Value<T[K]> {
@@ -103,7 +105,7 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
     public parent: Value<T>,
     public name: K,
     public flush: () => boolean,
-    value?: T[K]
+    value: T[K]
   ) {
     super(value);
   }

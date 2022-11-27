@@ -296,7 +296,11 @@ export function createExecuteContext<T>(target: RenderTarget, values?: T) {
 
 export function createEventHandler(target: RenderTarget) {
   const events: {
-    [k: string]: { context: ExecuteContext<any>; node: Node }[];
+    [k: string]: {
+      context: ExecuteContext<any>;
+      node: Node;
+      handler: (evnt: EventContext<any, any>) => any;
+    }[];
   } = {};
 
   return function pushHandler<T>(
@@ -318,16 +322,16 @@ export function createEventHandler(target: RenderTarget) {
         });
       });
     } else if (name in events) {
-      events[name].push({ context, node });
+      events[name].push({ context, node, handler });
     } else {
-      events[name] = [{ context, node }];
+      events[name] = [{ context, node, handler }];
       target.addEventListener(name, function (event: Event) {
         let closest = event.target as HTMLElement | null;
         const nodes = events[event.type];
         while (closest) {
           for (const pair of nodes) {
             if (pair.node === closest) {
-              handler({
+              pair.handler({
                 node: closest,
                 values: pair.context.data?.value,
                 key: pair.context.key,
