@@ -112,12 +112,20 @@ export class ListSource<T> {
   }
 
   delete(item: T) {
-    const index = this.value.indexOf(item);
-    if (index >= 0) {
-      this.next({
-        type: ListMutationType.DeleteAt,
-        index,
-      });
+    let index = 0;
+    for (const x of this.properties) {
+      const included = x[_included] ?? true;
+      if (x.value === item) {
+        if (included) {
+          this.next({
+            type: ListMutationType.DeleteAt,
+            index,
+          });
+        }
+        break;
+      } else if (included) {
+        index++;
+      }
     }
   }
 
