@@ -7,7 +7,7 @@ export interface IfProps {
   condition: Subscribable<boolean>;
 }
 
-export function If(props: IfProps, children: Renderable[]) {
+export function If<T>(props: IfProps, children: Renderable<T>[]) {
   return {
     render(target: RenderTarget) {
       const { condition } = props;

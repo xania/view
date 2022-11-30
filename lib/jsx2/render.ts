@@ -1,5 +1,4 @@
 ﻿import { Disposable, disposeAll } from '../disposable';
-import { isExpressionTemplate } from '../jsx/template';
 import { isSubscribable } from '../util/is-subscibable';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
 import { AnchorTarget } from './anchor-target';
@@ -17,7 +16,7 @@ export function render<T = any>(
   }
 
   if (isRenderable(root)) {
-    return root.render(container);
+    return root.render(container, null as any);
   }
 
   if (root instanceof Promise) {
@@ -64,15 +63,15 @@ export function render<T = any>(
     };
   }
 
-  if (isExpressionTemplate(root)) {
-    return root;
-  } else {
-    const textNode = document.createTextNode(root.toString());
-    container.appendChild(textNode);
-    return {
-      dispose() {
-        textNode.remove();
-      },
-    };
-  }
+  // if (isExpressionTemplate(root)) {
+  //   return root;
+  // } else {
+  //   const textNode = document.createTextNode(root.toString());
+  //   container.appendChild(textNode);
+  //   return {
+  //     dispose() {
+  //       textNode.remove();
+  //     },
+  //   };
+  // }
 }

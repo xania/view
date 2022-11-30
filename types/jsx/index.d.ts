@@ -53,8 +53,8 @@ declare module JSX {
     | ClassNamePrimitive
     | State<ClassNamePrimitive>
     | Promise<ClassNamePrimitive>
+    | Template
     | Expression<
-        any,
         | ClassNamePrimitive
         | Promise<ClassNamePrimitive>
         | State<ClassNamePrimitive>
@@ -77,11 +77,7 @@ declare module JSX {
     role?: string;
   };
 
-  type AttrValue<T> =
-    | T
-    | null
-    | ExpressionTemplate<any, T>
-    | Expression<any, T>;
+  type AttrValue<T> = T | null | Template | Expression<any, T>;
 
   type Attributes<T, U> = {
     [P in keyof T]: T[P] extends U ? P : never;
@@ -94,7 +90,6 @@ declare module JSX {
 
   interface EventContext<T, TEvent> extends ViewContext<T> {
     event: TEvent;
-    values: T;
   }
 
   export enum ExpressionType {
@@ -107,8 +102,7 @@ declare module JSX {
 
   export interface ViewContext<T> {
     readonly node: any;
-    readonly key: symbol;
-    readonly data?: State<T>;
+    readonly data: State<T>;
   }
 
   export interface InitExpression<T> {
@@ -136,6 +130,8 @@ declare module JSX {
     type: ExpressionType.Subscribable;
     subscribable: Subscribable<U>;
   }
+
+  export type Template = {};
 
   export type Expression<T = any, U = any> =
     | InitExpression<T>

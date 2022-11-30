@@ -1,4 +1,6 @@
+import { Unsubscribable } from '../util/is-subscibable';
 import { Disposable } from '../disposable';
+import { State } from '../state';
 
 // export class RenderResult {
 //   readonly nodes: Node[] = [];
@@ -13,9 +15,8 @@ import { Disposable } from '../disposable';
 //     }
 //   }
 // }
-export interface RenderContext {
-  values: any;
-  remove(): unknown;
+export interface RenderContext<T> {
+  data: State<T>;
 }
 
 export interface RenderTarget {
@@ -29,10 +30,13 @@ export interface RenderTarget {
   set textContent(value: string | null);
 }
 
-export interface Renderable {
-  render(target: RenderTarget, context?: RenderContext): Disposable;
+export interface Renderable<T> {
+  render(
+    target: RenderTarget,
+    context: RenderContext<T>
+  ): Disposable | Unsubscribable;
 }
 
-export function isRenderable(value: any): value is Renderable {
+export function isRenderable(value: any): value is Renderable<any> {
   return value && value.render instanceof Function;
 }

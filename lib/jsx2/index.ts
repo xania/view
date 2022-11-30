@@ -30,11 +30,7 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
       if (props) {
         for (const attrName in props) {
           const attrValue = props[attrName];
-          const result = tagTemplate.setProp(
-            attrName,
-            attrValue,
-            opts?.classes
-          );
+          const result = tagTemplate.setProp(attrName, attrValue, opts);
           if (result) {
             promises.push(result);
           }
@@ -63,3 +59,5 @@ export function view(tpl: any) {
     },
   };
 }
+
+export * from './render';

@@ -18,10 +18,10 @@ export class AnchorTarget implements RenderTarget {
   appendChild(node: Node): void {
     this.parent.insertBefore(node, this.anchorElt);
   }
-  addEventListener(type: string, handler: (evt: Event) => void): void {
+  addEventListener(): void {
     throw new Error('addEventListener Method not implemented.');
   }
-  removeEventListener(type: string, handler: (evt: Event) => void): void {
+  removeEventListener(): void {
     throw new Error('removeEventListener Method not implemented.');
   }
   insertBefore: <T extends Node>(node: T, child: Node | null) => T = () => {
@@ -34,6 +34,6 @@ export class AnchorTarget implements RenderTarget {
     };
 
   set textContent(value: string | null) {
-    throw new Error('textContent Method not implemented.');
+    throw new Error('textContent Method not implemented.' + value);
   }
 }

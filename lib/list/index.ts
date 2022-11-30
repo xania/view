@@ -62,7 +62,6 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           subscriptions: [],
           data: item,
           elements: [],
-          key: Symbol(),
           push: sharedEventHandler,
         };
 
@@ -120,7 +119,6 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
             subscriptions: [],
             data,
             elements: [],
-            key: Symbol(),
             push: sharedEventHandler,
           };
 

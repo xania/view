@@ -1,18 +1,24 @@
 ﻿import { State } from '../state';
 import { ExpressionType } from '../jsx/expression';
 import { isSubscribable } from '../util/is-subscibable';
+import { Template, TemplateType } from '../jsx/template';
 
 type ViewContextFunction<T> = (
   t: JSX.State<T>,
   context: JSX.ViewContext<T>
 ) => any;
 
+function expr(expr: JSX.Expression): Template {
+  return {
+    type: TemplateType.Expression,
+    expr,
+  };
+}
+
 export function useContext<T>() {
-  return function <U>(
-    nameOrGetter: keyof T | ViewContextFunction<T>
-  ): JSX.Expression<T, U> {
+  return function (nameOrGetter: keyof T | ViewContextFunction<T>): Template {
     if (nameOrGetter instanceof Function)
-      return {
+      return expr({
         type: ExpressionType.Init,
         init(values, context) {
           const result = nameOrGetter(values, context);
@@ -29,11 +35,11 @@ export function useContext<T>() {
           }
           return result;
         },
-      };
+      });
     else
-      return {
+      return expr({
         type: ExpressionType.Property,
         name: nameOrGetter,
-      };
+      });
   };
 }

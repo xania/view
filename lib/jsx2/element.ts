@@ -13,15 +13,15 @@ import { flatten } from './_flatten';
 import { ExpressionType } from '../jsx/expression';
 import { TemplateInput } from './template-input';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
-import { isExpression } from '../jsx/expression';
 import { Disposable, disposeAll } from '../disposable';
 import { execute, ExecuteContext } from './execute';
 import { State } from '../state';
 import { isSubscribable } from '../util/is-subscibable';
+import { isTemplate, TemplateType } from '../jsx/template';
 
 export class JsxElement {
   public templateNode: HTMLElement;
-  public content: DomContentOperation[] = [];
+  public content: DomContentOperation<any>[] = [];
   public updates: DomUpdateOperation[] = [];
 
   constructor(public name: string) {
@@ -31,12 +31,12 @@ export class JsxElement {
   setProp(
     attrName: string,
     attrValue: any,
-    classes?: JsxFactoryOptions['classes']
+    options?: JsxFactoryOptions
   ): Promise<void> | void {
     if (attrValue === null || attrValue === undefined) return;
 
     if (attrValue instanceof Promise) {
-      return attrValue.then((v) => this.setProp(attrName, v, classes));
+      return attrValue.then((v) => this.setProp(attrName, v, options));
     }
 
     const { templateNode: node } = this;
@@ -58,9 +58,10 @@ export class JsxElement {
               type: ExpressionType.Init,
               init: item as any,
             },
-            classes,
+            classes: options?.classes,
           });
         } else if (typeof item === 'string') {
+          const classes = options?.classes;
           for (const cls of item.split(' ')) {
             if (cls) node.classList.add((classes && classes[cls]) || cls);
           }
@@ -71,7 +72,7 @@ export class JsxElement {
               type: ExpressionType.State,
               state: item,
             },
-            classes,
+            classes: options?.classes,
           });
         } else if (item instanceof State) {
           this.content.push({
@@ -80,16 +81,21 @@ export class JsxElement {
               type: ExpressionType.State,
               state: item,
             },
-            classes,
+            classes: options?.classes,
           });
-        } else if (isExpression(item)) {
-          const op: DomUpdateOperation = {
-            type: DomOperationType.SetClassName,
-            expression: item,
-            classes,
-          };
-          this.content.push(op);
-          if (item.type === ExpressionType.Property) this.updates.push(op);
+        } else if (isTemplate(item)) {
+          switch (item.type) {
+            case TemplateType.Expression:
+              const op: DomUpdateOperation = {
+                type: DomOperationType.SetClassName,
+                expression: item.expr,
+                classes: options?.classes,
+              };
+              this.content.push(op);
+              if (item.expr.type === ExpressionType.Property)
+                this.updates.push(op);
+              break;
+          }
         }
       }
     } else if (isSubscribable(attrValue)) {
@@ -101,21 +107,23 @@ export class JsxElement {
           state: attrValue,
         },
       });
-    } else if (isExpression(attrValue)) {
-      this.content.push({
-        type: DomOperationType.SetAttribute,
-        name: attrName,
-        expression: attrValue,
-      });
+    } else if (isTemplate(attrValue)) {
+      switch (attrValue.type) {
+        case TemplateType.Expression:
+          this.content.push({
+            type: DomOperationType.SetAttribute,
+            name: attrName,
+            expression: attrValue.expr,
+          });
+          break;
+      }
     } else {
       (node as any)[attrName] = attrValue;
     }
   }
 
-  appendContent(children: TemplateInput[]): Promise<void>[] | void {
+  appendContent(children: TemplateInput[]): Promise<void> | void {
     if (!(children instanceof Array)) return;
-
-    const result: Promise<void>[] = [];
 
     const { templateNode } = this;
     const createTextNodes =
@@ -123,7 +131,7 @@ export class JsxElement {
 
     const addTextContentExpr = (
       expr: JSX.Expression,
-      operations: DomOperation[],
+      operations: DomOperation<any>[],
       createNode: boolean = true
     ) => {
       if (createTextNodes) {
@@ -152,11 +160,9 @@ export class JsxElement {
         this.appendElement(child);
       } else if (child instanceof Promise) {
         const nextChildren = children.slice(i + 1);
-        result.push(
-          child.then((resolved: any) => {
-            this.appendContent([resolved, ...nextChildren]);
-          })
-        );
+        return child.then((resolved: any) => {
+          this.appendContent([resolved, ...nextChildren]);
+        });
       } else if (child instanceof State) {
         addTextContentExpr(
           {
@@ -167,6 +173,19 @@ export class JsxElement {
         );
       } else if (child instanceof Node) {
         templateNode.appendChild(child);
+      } else if ((child as any)['attachTo'] instanceof Function) {
+        this.content.push({
+          type: DomOperationType.Renderable,
+          renderable: {
+            child: child as { attachTo: Function },
+            render(elt: HTMLElement) {
+              this.child.attachTo(elt);
+              return {
+                dispose() {},
+              };
+            },
+          },
+        });
       } else if (child instanceof Function) {
         addTextContentExpr(
           {
@@ -180,11 +199,24 @@ export class JsxElement {
           type: DomOperationType.Renderable,
           renderable: child,
         });
-      } else if (isExpression(child)) {
-        if (child.type === ExpressionType.Property) {
-          addTextContentExpr(child, this.updates, false);
+      } else if (isTemplate(child)) {
+        switch (child.type) {
+          case TemplateType.Expression:
+            if (child.expr.type === ExpressionType.Property) {
+              addTextContentExpr(child.expr, this.updates, false);
+            }
+            addTextContentExpr(child.expr, this.content);
+            break;
+          case TemplateType.Attribute:
+            const result = this.setProp(child.name, child.value, child.options);
+            if (result instanceof Promise) {
+              const nextChildren = children.slice(i + 1);
+              return result.then(() => {
+                this.appendContent(nextChildren);
+              });
+            }
+            break;
         }
-        addTextContentExpr(child, this.content);
       } else if (isSubscribable(child)) {
         addTextContentExpr(
           {
@@ -206,8 +238,6 @@ export class JsxElement {
         }
       }
     }
-
-    return result;
   }
 
   appendElement(tag: JsxElement) {
@@ -245,8 +275,8 @@ export class JsxElement {
     const bindings: ExecuteContext['bindings'] = [];
     const subscriptions: ExecuteContext['subscriptions'] = [];
 
-    execute(this.content, root, createExecuteContext(target, null));
     target.appendChild(root);
+    execute(this.content, root, createExecuteContext(target, null));
 
     return {
       dispose() {
@@ -265,20 +295,16 @@ type DomUpdateOperation =
   | SetTextContentOperation
   | SetClassNameOperation;
 
-type DomContentOperation =
+type DomContentOperation<T> =
   | DomNavigationOperation
   | SetTextContentOperation
-  | DomRenderOperation
+  | DomRenderOperation<T>
   | DomNavigationOperation
   | SetAttributeOperation
   | SetClassNameOperation
   | AddEventListenerOperation;
 
-export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {
-  node: Node;
-  values: any;
-  event: TEvent;
-}
+export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
 
 export function createExecuteContext<T>(target: RenderTarget, values?: T) {
   const bindings: Disposable[] = [];
@@ -312,12 +338,9 @@ export function createEventHandler(target: RenderTarget) {
     const context = this;
     if (name === 'blur') {
       node.addEventListener(name, function (event: Event) {
-        const value = context.data?.value;
         handler({
           node,
-          values: value,
           event,
-          key: context.key,
           data: context.data,
         });
       });
@@ -333,8 +356,6 @@ export function createEventHandler(target: RenderTarget) {
             if (pair.node === closest) {
               pair.handler({
                 node: closest,
-                values: pair.context.data?.value,
-                key: pair.context.key,
                 data: pair.context.data,
                 event,
               });

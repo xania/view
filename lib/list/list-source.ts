@@ -111,11 +111,11 @@ export class ListSource<T> {
     });
   }
 
-  delete(item: T) {
+  delete(item: JSX.State<T>) {
     let index = 0;
     for (const x of this.properties) {
       const included = x[_included] ?? true;
-      if (x.value === item) {
+      if (x === item) {
         if (included) {
           this.next({
             type: ListMutationType.DeleteAt,

@@ -1,4 +1,3 @@
-import { AttachTemplate } from '../jsx';
 import { Renderable } from '../jsx';
 
 export enum DomOperationType {
@@ -13,7 +12,6 @@ export enum DomOperationType {
   AddEventListener,
   AppendChild,
   SelectNode,
-  AttachTo,
 }
 
 export interface PushFirstChildOperation {
@@ -47,9 +45,9 @@ export interface SetTextContentOperation {
   textNodeIndex?: number;
 }
 
-export interface RenderableOperation {
+export interface RenderableOperation<T> {
   type: DomOperationType.Renderable;
-  renderable: Renderable;
+  renderable: Renderable<T> & { [key: string | number | symbol]: any };
 }
 
 export interface AddEventListenerOperation {
@@ -67,29 +65,23 @@ export interface SelectNodeOperation {
   type: DomOperationType.SelectNode;
 }
 
-export interface AttachToNodeOperation {
-  type: DomOperationType.AttachTo;
-  attachable: AttachTemplate['attachable'];
-}
-
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
   | PushChildOperation
   | PopNodeOperation;
 
-export type DomRenderOperation =
+export type DomRenderOperation<T> =
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation
-  | RenderableOperation
+  | RenderableOperation<T>
   | AppendChildOperation
-  | SelectNodeOperation
-  | AttachToNodeOperation;
+  | SelectNodeOperation;
 
 export type DomEventOperation = AddEventListenerOperation;
 
-export type DomOperation =
+export type DomOperation<T> =
   | DomNavigationOperation
   | AddEventListenerOperation
-  | DomRenderOperation;
+  | DomRenderOperation<T>;

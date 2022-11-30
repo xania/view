@@ -1,5 +1,5 @@
 ﻿export interface JsxFactoryOptions {
-  classes: {
+  classes?: {
     [p: string]: string;
   };
 }

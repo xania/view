@@ -1,5 +1,5 @@
-import { JsxFactoryOptions } from 'lib/jsx/options';
-import { AttributeType, SetAttributeTemplate, TemplateType } from '../jsx';
+import { JsxFactoryOptions } from '../jsx/options';
+import { Template, TemplateType } from '../jsx';
 
 export interface CssProps {
   value: JSX.ClassName;
@@ -7,15 +7,13 @@ export interface CssProps {
 
 export function Css(
   props: CssProps,
-  _: any,
-  opts?: JsxFactoryOptions
-): SetAttributeTemplate {
+  _: never,
+  options?: JsxFactoryOptions
+): Template {
   return {
-    type: TemplateType.SetAttribute,
-    attr: {
-      type: AttributeType.ClassName,
-      value: props.value,
-      classes: opts?.classes,
-    },
+    type: TemplateType.Attribute,
+    name: 'class',
+    value: props.value,
+    options,
   };
 }

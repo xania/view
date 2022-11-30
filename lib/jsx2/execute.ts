@@ -3,14 +3,16 @@ import { ExpressionType, isExpression } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { flatten } from './_flatten';
 import { State } from '../state';
+import { Unsubscribable } from '../util/is-subscibable';
 
 export function execute<TExecuteContext extends ExecuteContext>(
-  operations: DomOperation[],
+  operations: DomOperation<any>[],
   root: HTMLElement,
   context: TExecuteContext
 ) {
   let nodeStack: Stack<Node> = { head: root, tail: null } as any;
-  let operationStack: Stack<DomOperation> | null = arrayToStack(operations);
+  let operationStack: Stack<DomOperation<any>> | null =
+    arrayToStack(operations);
   const values = context.data?.value;
 
   while (operationStack) {
@@ -75,7 +77,6 @@ export function execute<TExecuteContext extends ExecuteContext>(
           case ExpressionType.Init:
             const initResult = classExpr.init(classData, {
               node: nodeStack.head,
-              key: context.key,
               data: classData,
             });
             if (isExpression(initResult)) {
@@ -152,7 +153,6 @@ export function execute<TExecuteContext extends ExecuteContext>(
           case ExpressionType.Init:
             const initResult = setContentExpr.init(data, {
               node: nodeStack.head,
-              key: context.key,
               data,
             });
             if (isExpression(initResult)) {
@@ -231,8 +231,18 @@ export function execute<TExecuteContext extends ExecuteContext>(
         }
         break;
       case DomOperationType.Renderable:
-        const binding = curr.renderable.render(nodeStack.head);
-        if (binding) context.bindings.push(binding);
+        const binding: null | Disposable | Unsubscribable =
+          curr.renderable.render(nodeStack.head, context);
+        if (binding) {
+          if ('dispose' in binding && binding.dispose instanceof Function)
+            context.bindings.push(binding);
+          else if (
+            'unsubscribe' in binding &&
+            binding.unsubscribe instanceof Function
+          ) {
+            context.subscriptions.push(binding);
+          }
+        }
         break;
       default:
         console.error(curr);
@@ -245,8 +255,7 @@ export interface ExecuteContext<T = any> {
   bindings: Disposable[];
   subscriptions: JSX.Unsubscribable[];
   elements: HTMLElement[];
-  data?: State<T>;
-  readonly key: JSX.ViewContext<T>['key'];
+  data: State<T>;
   push(node: Node, name: string, handler: Function): void;
 }
 

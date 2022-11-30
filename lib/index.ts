@@ -1,4 +1,3 @@
-export * from './jsx';
-export * from './render';
+export * from './jsx2';
 export * from './state';
 export * from './directives';
