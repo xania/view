@@ -1,8 +1,9 @@
 {
-  "version": "0.4.3",
+  "version": "0.4.4",
   "license": "MIT",
   "main": "dist/es2015/index.js",
-  "module": "index.ts",
+  "module": "lib/index.ts",
+  "private": false,
   "files": [
     "types",
     "dist",
@@ -13,8 +14,9 @@
   },
   "scripts": {
     "start": "npx webpack -w --mode=development",
-    "build": "npx rimraf dist && npx tsc && npx webpack --mode=development",
-    "clean": "npx rimraf dist"
+    "build": "npx tsc && npx webpack --mode=development",
+    "clean": "npx rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "prettier": {
     "printWidth": 80,
