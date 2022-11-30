@@ -1,7 +1,7 @@
 ﻿import { State } from '../state';
-import { ExpressionType } from '../jsx/expression';
+import { ExpressionType } from './expression';
 import { isSubscribable } from '../util/is-subscibable';
-import { Template, TemplateType } from '../jsx/template';
+import { Template, TemplateType } from './template';
 
 type ViewContextFunction<T> = (
   t: JSX.State<T>,

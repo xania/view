@@ -8,16 +8,16 @@
   SetClassNameOperation,
   SetTextContentOperation,
 } from '../compile/dom-operation';
-import { JsxFactoryOptions } from '../jsx/options';
+import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
-import { ExpressionType } from '../jsx/expression';
+import { ExpressionType } from './expression';
 import { TemplateInput } from './template-input';
-import { isRenderable, RenderTarget } from '../jsx/renderable';
+import { isRenderable, RenderTarget } from './renderable';
 import { Disposable, disposeAll } from '../disposable';
-import { execute, ExecuteContext } from './execute';
+import { execute, ExecuteContext } from '../render/execute';
 import { State } from '../state';
 import { isSubscribable } from '../util/is-subscibable';
-import { isTemplate, TemplateType } from '../jsx/template';
+import { isTemplate, TemplateType } from './template';
 
 export class JsxElement {
   public templateNode: HTMLElement;
@@ -220,8 +220,8 @@ export class JsxElement {
       } else if (isSubscribable(child)) {
         addTextContentExpr(
           {
-            type: ExpressionType.Subscribable,
-            subscribable: child,
+            type: ExpressionType.State,
+            state: child,
           },
           this.content
         );

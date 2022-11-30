@@ -1,7 +1,7 @@
 ﻿import { Subscribable } from 'rxjs';
 import { Renderable, RenderTarget } from '../jsx';
-import { createExecuteContext, JsxElement } from './element';
-import { execute } from './execute';
+import { createExecuteContext, JsxElement } from '../jsx/element';
+import { execute } from '../render/execute';
 
 export interface IfProps {
   condition: Subscribable<boolean>;

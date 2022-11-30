@@ -1,9 +1,9 @@
 ﻿import { Disposable, disposeAll } from '../disposable';
 import { isSubscribable } from '../util/is-subscibable';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
-import { AnchorTarget } from './anchor-target';
-import { TemplateInput } from './template-input';
-import { flatten } from './_flatten';
+import { AnchorTarget } from '../jsx2/anchor-target';
+import { TemplateInput } from '../jsx/template-input';
+import { flatten } from '../jsx/_flatten';
 
 export function render<T = any>(
   root: TemplateInput<T>,

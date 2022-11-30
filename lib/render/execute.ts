@@ -1,7 +1,7 @@
 ﻿import { DomOperation, DomOperationType } from '../compile/dom-operation';
 import { ExpressionType, isExpression } from '../jsx/expression';
 import { Disposable } from '../disposable';
-import { flatten } from './_flatten';
+import { flatten } from '../jsx/_flatten';
 import { State } from '../state';
 import { Unsubscribable } from '../util/is-subscibable';
 
@@ -218,15 +218,6 @@ export function execute<TExecuteContext extends ExecuteContext>(
               textNode: textNode as Text,
             });
             if (stateSubs) context.subscriptions.push(stateSubs);
-            break;
-          case ExpressionType.Subscribable:
-            const subs = setContentExpr.subscribable.subscribe({
-              node: nodeStack.head,
-              next(value: any) {
-                this.node.textContent = value;
-              },
-            });
-            if (subs) context.subscriptions.push(subs);
             break;
         }
         break;

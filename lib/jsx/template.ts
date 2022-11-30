@@ -1,4 +1,4 @@
-import { JsxFactoryOptions } from './options';
+import { JsxFactoryOptions } from './factory';
 
 export enum TemplateType {
   Attribute,

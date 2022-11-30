@@ -1,6 +1,6 @@
-﻿import { createEventHandler, JsxElement } from '../jsx2/element';
+﻿import { createEventHandler, JsxElement } from '../jsx/element';
 import { RenderTarget } from '../jsx';
-import { execute, ExecuteContext } from '../jsx2/execute';
+import { execute, ExecuteContext } from '../render/execute';
 import { ListMutationType, ListSource } from './list-source';
 import { State } from '../state';
 

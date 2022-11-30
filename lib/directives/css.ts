@@ -1,4 +1,4 @@
-import { JsxFactoryOptions } from '../jsx/options';
+import { JsxFactoryOptions } from '../jsx/factory';
 import { Template, TemplateType } from '../jsx';
 
 export interface CssProps {

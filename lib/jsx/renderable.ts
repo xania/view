@@ -2,19 +2,6 @@ import { Unsubscribable } from '../util/is-subscibable';
 import { Disposable } from '../disposable';
 import { State } from '../state';
 
-// export class RenderResult {
-//   readonly nodes: Node[] = [];
-
-//   constructor(public values: any) {}
-
-//   dispose() {
-//     const { nodes } = this;
-
-//     for (const elt of nodes) {
-//       (elt as any).remove();
-//     }
-//   }
-// }
 export interface RenderContext<T> {
   data: State<T>;
 }
