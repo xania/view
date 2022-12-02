@@ -156,7 +156,7 @@ export function _flush(root: Item[]) {
 }
 
 type Item = {
-  value?: any;
+  snapshot?: any;
   [previous]?: any;
   observers: JSX.NextObserver<any>[];
   properties: Value<any>[];
@@ -174,7 +174,7 @@ function digest(root: Item[]) {
   while (stack.length) {
     let [state, parentdependency] = stack.pop() as StackItem;
 
-    const newValue = state.value;
+    const newValue = state.snapshot;
     const oldValue = state[previous];
     let currdep: Dependency = { list: null };
     if (newValue !== oldValue) {

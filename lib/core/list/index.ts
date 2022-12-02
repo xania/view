@@ -38,6 +38,9 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
                 break;
               case ListMutationType.Flush:
                 break;
+              case ListMutationType.Move:
+                moveChild(mut.from, mut.to);
+                break;
             }
           },
         });
@@ -57,6 +60,30 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           }
         }
         virtualItems.length = 0;
+      }
+
+      function moveChild(fromIdx: number, toIdx: number) {
+        if (fromIdx === toIdx) return;
+        const from = virtualItems[fromIdx];
+        const to = virtualItems[toIdx];
+
+        const referenceNode =
+          fromIdx < toIdx ? to.nextSibling : to.firstElement;
+        for (const elt of from.elements) {
+          target.insertBefore(elt, referenceNode);
+        }
+
+        if (fromIdx < toIdx) {
+          for (let i = fromIdx; i < toIdx; i++) {
+            virtualItems[i] = virtualItems[i + 1];
+          }
+          virtualItems[toIdx] = from;
+        } else {
+          for (let i = fromIdx; i > toIdx; i--) {
+            virtualItems[i] = virtualItems[i - 1];
+          }
+          virtualItems[toIdx] = from;
+        }
       }
 
       function deleteChild(index: number) {

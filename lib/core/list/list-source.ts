@@ -65,6 +65,14 @@ export class ListSource<T> {
         this.snapshot.splice(mut.index, 1);
         properties.splice(mut.index, 1);
         break;
+      case ListMutationType.Move:
+        const stmp = this.snapshot[mut.from];
+        this.snapshot[mut.from] = this.snapshot[mut.to];
+        this.snapshot[mut.to] = stmp;
+        const ptmp = this.properties[mut.from];
+        this.properties[mut.from] = this.properties[mut.to];
+        this.properties[mut.to] = ptmp;
+        break;
       case ListMutationType.Filter:
         let index = 0;
         for (let i = 0; i < this.properties.length; i++) {
@@ -101,9 +109,6 @@ export class ListSource<T> {
     }
 
     switch (maput.type) {
-      case ListMutationType.Append:
-        maput.item.flush();
-        break;
       case ListMutationType.DeleteAt:
         this.notifyMapObservers();
         break;
@@ -120,7 +125,15 @@ export class ListSource<T> {
   update = (updater: (data: T[]) => T[] | void) => {
     const newSnapshot = updater(this.snapshot) ?? this.snapshot;
     const mutations = reconcile(this.properties, newSnapshot);
-    console.log(mutations);
+    for (const o of this.observers) {
+      for (const mut of mutations) {
+        o.next(mut);
+      }
+    }
+
+    this.flush();
+
+    // console.log(mutations);
     // this.flush();
   };
 

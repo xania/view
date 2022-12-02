@@ -5,6 +5,9 @@
   Filter,
   Insert,
   Clear,
+  Concat,
+  Truncate,
+  Move,
 }
 
 interface ListClearMutation {
@@ -37,10 +40,76 @@ interface ListFilterMutation<T> {
   predicate: (t: T) => boolean;
 }
 
+interface ListConcatMutation<T> {
+  type: ListMutationType.Concat;
+  values: T[];
+}
+
+interface ListTruncateMutation {
+  type: ListMutationType.Truncate;
+  length: number;
+}
+
+interface ListMoveMutation {
+  type: ListMutationType.Move;
+  from: number;
+  to: number;
+}
+
 export type ListMutation<T> =
   | ListAppendMutation<T>
   | ListDeleteAtMutation
   | ListFlushMutation<T>
   | ListFilterMutation<T>
   | ListInsertMutation<T>
-  | ListClearMutation;
+  | ListClearMutation
+  | ListConcatMutation<T>
+  | ListTruncateMutation
+  | ListMoveMutation;
+
+/*
+  
+enum ArrayMutationType {
+  Move,
+  Insert,
+  Concat,
+  Truncate,
+  RemoveAt,
+}
+
+interface MoveMutation<T> {
+  type: ArrayMutationType.Move;
+  value: T;
+  from: number;
+  to: number;
+}
+
+interface InsertMutation<T> {
+  type: ArrayMutationType.Insert;
+  value: T;
+  index: number;
+}
+
+interface PushMutation<T> {
+  type: ArrayMutationType.Concat;
+  values: T[];
+}
+
+interface TruncateMutation {
+  type: ArrayMutationType.Truncate;
+  length: number;
+}
+
+interface RemoveAtMutation {
+  type: ArrayMutationType.RemoveAt;
+  index: number;
+}
+
+type ArrayMutation<T> =
+  | MoveMutation<T>
+  | PushMutation<T>
+  | InsertMutation<T>
+  | RemoveAtMutation
+  | TruncateMutation;
+
+  */
