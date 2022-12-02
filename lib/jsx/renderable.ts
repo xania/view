@@ -1,4 +1,3 @@
-import { Unsubscribable } from '../util/observables';
 import { Disposable } from '../disposable';
 import { State } from '../state';
 
@@ -21,7 +20,7 @@ export interface Renderable<T> {
   render(
     target: RenderTarget,
     context: RenderContext<T>
-  ): Disposable | Unsubscribable;
+  ): Disposable | JSX.Unsubscribable;
 }
 
 export function isRenderable(value: any): value is Renderable<any> {

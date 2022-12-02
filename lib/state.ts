@@ -10,7 +10,7 @@ abstract class Value<T> implements JSX.Value<T> {
 
   abstract flush(): boolean;
 
-  toString = () => (this.snapshot ? this.snapshot.toString() : '');
+  toString = () => (this.snapshot ? (this.snapshot as any).toString() : '');
 
   [Symbol.asyncIterator] = (): AsyncIterator<T> => {
     const state = this;

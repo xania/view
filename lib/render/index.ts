@@ -65,7 +65,7 @@ export function render<T = any>(
 
   {
     // if all previous fail then add the root as text node to the provided container
-    const textNode = document.createTextNode(root.toString());
+    const textNode = document.createTextNode((root as any).toString());
     container.appendChild(textNode);
     return {
       dispose() {
