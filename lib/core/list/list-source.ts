@@ -1,4 +1,4 @@
-﻿import { State, _flush } from '../state';
+﻿import { State, _flush } from '../../state';
 
 const _previous: unique symbol = Symbol();
 const _included: unique symbol = Symbol();
@@ -51,6 +51,10 @@ export class ListSource<T> {
       ...mut,
     };
     switch (mut.type) {
+      case ListMutationType.Clear:
+        this.value.length = 0;
+        properties.length = 0;
+        break;
       case ListMutationType.Append:
         this.value.push(mut.item);
         properties.push((maput.item = new State<T>(mut.item, this.flush)));
@@ -111,7 +115,12 @@ export class ListSource<T> {
     });
   }
 
-  delete(item: JSX.State<T>) {
+  update = (updater: (data: T[]) => void) => {
+    updater(this.value);
+    this.flush();
+  }
+
+  delete = (item: JSX.State<T>) => {
     let index = 0;
     for (const x of this.properties) {
       const included = x[_included] ?? true;
@@ -137,6 +146,12 @@ export class ListSource<T> {
 
     return false;
   };
+
+  clear() {
+    this.next({
+      type: ListMutationType.Clear,
+    });
+  }
 
   notifyMapObservers(obs: MapObserver<T, any>[] = this.mapObservers) {
     const items = this.value;
@@ -187,6 +202,11 @@ export enum ListMutationType {
   Flush,
   Filter,
   Insert,
+  Clear
+}
+
+interface ListClearMutation {
+  type: ListMutationType.Clear;
 }
 
 interface ListAppendMutation<T> {
@@ -220,6 +240,7 @@ type ListMutation<T> =
   | ListDeleteAtMutation
   | ListFlushMutation<T>
   | ListFilterMutation<T>
-  | ListInsertMutation<T>;
+  | ListInsertMutation<T>
+  | ListClearMutation;
 
 type MapObserver<T, U> = JSX.NextObserver<T[]> & { project(items: T[]): U };

@@ -1,5 +1,5 @@
 ﻿import { RenderTarget } from '../jsx/renderable';
-import { render } from '../render/index';
+import { render } from './index';
 
 export function view(tpl: any) {
   return {

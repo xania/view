@@ -1,9 +1,9 @@
-﻿import { DomOperation, DomOperationType } from '../compile/dom-operation';
+﻿import { DomOperation, DomOperationType } from './dom-operation';
 import { ExpressionType, isExpression } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { flatten } from '../jsx/_flatten';
 import { State } from '../state';
-import { Unsubscribable } from '../util/is-subscibable';
+// import { Unsubscribable } from '../util/observables';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -222,7 +222,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
         }
         break;
       case DomOperationType.Renderable:
-        const binding: null | Disposable | Unsubscribable =
+        const binding: null | Disposable | JSX.Unsubscribable =
           curr.renderable.render(nodeStack.head, context);
         if (binding) {
           if ('dispose' in binding && binding.dispose instanceof Function)

@@ -1,7 +1,7 @@
 ﻿import { Disposable, disposeAll } from '../disposable';
-import { isSubscribable } from '../util/is-subscibable';
+import { isSubscribable } from '../util/observables';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
-import { AnchorTarget } from '../jsx2/anchor-target';
+import { AnchorTarget } from './anchor-target';
 import { TemplateInput } from '../jsx/template-input';
 import { flatten } from '../jsx/_flatten';
 
@@ -63,7 +63,6 @@ export function render<T = any>(
     };
   }
 
-
   {
     // if all previous fail then add the root as text node to the provided container
     const textNode = document.createTextNode(root.toString());
@@ -74,7 +73,6 @@ export function render<T = any>(
       },
     };
   }
-
 
   // if (isExpressionTemplate(root)) {
   //   return root;

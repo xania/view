@@ -1,6 +1,6 @@
 ﻿import { State } from '../state';
 import { ExpressionType } from './expression';
-import { isSubscribable } from '../util/is-subscibable';
+import { isSubscribable } from '../util/observables';
 import { Template, TemplateType } from './template';
 
 type ViewContextFunction<T> = (

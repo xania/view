@@ -1,12 +1,14 @@
-﻿import { createEventHandler, JsxElement } from '../jsx/element';
-import { RenderTarget } from '../jsx';
-import { execute, ExecuteContext } from '../render/execute';
+﻿import { createEventHandler, JsxElement } from '../../jsx/element';
+import { RenderTarget } from '../../jsx';
+import { execute, ExecuteContext } from '../../render/execute';
 import { ListMutationType, ListSource } from './list-source';
-import { State } from '../state';
+import { State } from '../../state';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
 }
+
+export * from './list-source';
 
 export function List<T>(props: ListProps<T>, children: JsxElement[]) {
   return {
@@ -30,10 +32,30 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
               case ListMutationType.DeleteAt:
                 deleteChild(mut.index);
                 break;
+              case ListMutationType.Clear:
+                clear();
+                break;
+              case ListMutationType.Flush:
+                break;
             }
           },
         });
         renderChildren(source.properties);
+      }
+
+      function clear() {
+        for(const vi of virtualItems) {
+          for (const binding of vi.bindings) {
+            binding.dispose();
+          }
+          for (const subscription of vi.subscriptions) {
+            subscription.unsubscribe();
+          }
+          for (const elt of vi.elements) {
+            elt.remove();
+          }
+        }
+        virtualItems.length = 0;
       }
 
       function deleteChild(index: number) {
@@ -63,7 +85,23 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
           data: item,
           elements: [],
           push: sharedEventHandler,
-        };
+          get nextSibling() {
+            const { elements } = this;
+            if (elements.length) {
+              const last = elements[elements.length - 1];
+              return last.nextSibling;
+            }
+            return null;
+          },
+          get firstElement() {
+            const { elements } = this;
+            if (elements.length) {
+              const first = elements[0];
+              return first;
+            }
+            return null;
+          }
+      };
 
         let insertBeforeElt: HTMLElement | null = null;
         if (index < virtualItems.length) {
@@ -120,6 +158,23 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
             data,
             elements: [],
             push: sharedEventHandler,
+            get nextSibling() {
+              const { elements } = this;
+              if (elements.length) {
+                const last = elements[elements.length - 1];
+                return last.nextSibling;
+              }
+              return null;
+            },
+            get firstElement() {
+              const { elements } = this;
+              if (elements.length) {
+                const first = elements[0];
+                return first;
+              }
+              return null;
+            }
+
           };
 
           virtualItems[i] = executeContext;
@@ -157,4 +212,92 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
 
 interface VirtualItem extends ExecuteContext {
   elements: HTMLElement[];
+  nextSibling: ChildNode | null;
+  firstElement: HTMLElement | null;
+}
+
+
+function reconcileArrays(parentNode: RenderTarget, a: VirtualItem[], b: VirtualItem[]) {
+
+  function insertBefore(vi: VirtualItem, node: ChildNode | null) {
+    for(const elt of vi.elements) {
+      parentNode.insertBefore(elt, node);
+    }
+  }
+
+  function remove(vi: VirtualItem) {
+    for (const binding of vi.bindings) {
+      binding.dispose();
+    }
+    for (const subscription of vi.subscriptions) {
+      subscription.unsubscribe();
+    }
+    for (const elt of vi.elements) {
+      elt.remove();
+    }
+  }
+
+  function replaceChild(vx: VirtualItem, vy: VirtualItem) {
+    const x = vx.elements;
+    const y = vy.elements;
+    for(let i=0, len = x.length > y.length ? y.length : x.length ; i <len ; i++) {
+      
+    }
+    console.log(vx, vy);
+  }
+
+  let bLength = b.length,
+      aEnd = a.length,
+      bEnd = bLength,
+      aStart = 0,
+      bStart = 0,
+      after = a[aEnd - 1].nextSibling,
+      map = null;
+  while (aStart < aEnd || bStart < bEnd) {
+    if (a[aStart] === b[bStart]) {
+      aStart++;
+      bStart++;
+      continue;
+    }
+    while (a[aEnd - 1] === b[bEnd - 1]) {
+      aEnd--;
+      bEnd--;
+    }
+    if (aEnd === aStart) {
+      const node = bEnd < bLength ? bStart ? b[bStart - 1].nextSibling : b[bEnd - bStart].firstElement : after;
+      while (bStart < bEnd) insertBefore(b[bStart++], node);
+    } else if (bEnd === bStart) {
+      while (aStart < aEnd) {
+        if (!map || !map.has(a[aStart])) remove(a[aStart]);
+        aStart++;
+      }
+    } else if (a[aStart] === b[bEnd - 1] && b[bStart] === a[aEnd - 1]) {
+      const node = a[--aEnd].nextSibling;
+      insertBefore(b[bStart++], a[aStart++].nextSibling);
+      insertBefore(b[--bEnd], node);
+      a[aEnd] = b[bEnd];
+    } else {
+      if (!map) {
+        map = new Map();
+        let i = bStart;
+        while (i < bEnd) map.set(b[i], i++);
+      }
+      const index = map.get(a[aStart]);
+      if (index != null) {
+        if (bStart < index && index < bEnd) {
+          let i = aStart,
+              sequence = 1,
+              t;
+          while (++i < aEnd && i < bEnd) {
+            if ((t = map.get(a[i])) == null || t !== index + sequence) break;
+            sequence++;
+          }
+          if (sequence > index - bStart) {
+            const node = a[aStart].firstElement;
+            while (bStart < index) insertBefore(b[bStart++], node);
+          } else replaceChild(b[bStart++], a[aStart++]);
+        } else aStart++;
+      } else remove(a[aStart++]);
+    }
+  }
 }

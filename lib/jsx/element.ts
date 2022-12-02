@@ -7,7 +7,7 @@
   SetAttributeOperation,
   SetClassNameOperation,
   SetTextContentOperation,
-} from '../compile/dom-operation';
+} from '../render/dom-operation';
 import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
 import { ExpressionType } from './expression';
@@ -16,7 +16,7 @@ import { isRenderable, RenderTarget } from './renderable';
 import { Disposable, disposeAll } from '../disposable';
 import { execute, ExecuteContext } from '../render/execute';
 import { State } from '../state';
-import { isSubscribable } from '../util/is-subscibable';
+import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
 
 export class JsxElement {

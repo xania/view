@@ -1,4 +1,4 @@
-import { Unsubscribable } from '../util/is-subscibable';
+import { Unsubscribable } from '../util/observables';
 import { Disposable } from '../disposable';
 import { State } from '../state';
 
