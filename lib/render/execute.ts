@@ -13,7 +13,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
   let nodeStack: Stack<Node> = { head: root, tail: null } as any;
   let operationStack: Stack<DomOperation<any>> | null =
     arrayToStack(operations);
-  const values = context.data?.value;
+  const values = context.data?.snapshot;
 
   while (operationStack) {
     const curr = operationStack.head;

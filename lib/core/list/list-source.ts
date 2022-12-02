@@ -1,4 +1,6 @@
 ﻿import { State, _flush } from '../../state';
+import { ListMutation, ListMutationType } from './mutation';
+import { reconcile } from './reconcile';
 
 const _previous: unique symbol = Symbol();
 const _included: unique symbol = Symbol();
@@ -18,10 +20,10 @@ export class ListSource<T> {
   public readonly properties: ListItem<T>[] = [];
   public readonly mapObservers: MapObserver<T, any>[] = [];
 
-  constructor(public value: T[] = []) {
+  constructor(public snapshot: T[] = []) {
     const { properties } = this;
-    for (let i = 0; i < value.length; i++) {
-      var state = new State<T>(value[i], this.flush);
+    for (let i = 0; i < snapshot.length; i++) {
+      var state = new State<T>(snapshot[i], this.flush);
       properties.push(state);
     }
   }
@@ -52,22 +54,22 @@ export class ListSource<T> {
     };
     switch (mut.type) {
       case ListMutationType.Clear:
-        this.value.length = 0;
+        this.snapshot.length = 0;
         properties.length = 0;
         break;
       case ListMutationType.Append:
-        this.value.push(mut.item);
+        this.snapshot.push(mut.item);
         properties.push((maput.item = new State<T>(mut.item, this.flush)));
         break;
       case ListMutationType.DeleteAt:
-        this.value.splice(mut.index, 1);
+        this.snapshot.splice(mut.index, 1);
         properties.splice(mut.index, 1);
         break;
       case ListMutationType.Filter:
         let index = 0;
         for (let i = 0; i < this.properties.length; i++) {
           const prop = this.properties[i];
-          const include = mut.predicate(prop.value);
+          const include = mut.predicate(prop.snapshot);
           if (include !== (prop[_included] ?? true)) {
             prop[_included] = include;
             if (include) {
@@ -115,10 +117,12 @@ export class ListSource<T> {
     });
   }
 
-  update = (updater: (data: T[]) => void) => {
-    updater(this.value);
-    this.flush();
-  }
+  update = (updater: (data: T[]) => T[] | void) => {
+    const newSnapshot = updater(this.snapshot) ?? this.snapshot;
+    const mutations = reconcile(this.properties, newSnapshot);
+    console.log(mutations);
+    // this.flush();
+  };
 
   delete = (item: JSX.State<T>) => {
     let index = 0;
@@ -136,7 +140,7 @@ export class ListSource<T> {
         index++;
       }
     }
-  }
+  };
 
   flush = () => {
     if (_flush(this.properties)) {
@@ -154,7 +158,7 @@ export class ListSource<T> {
   }
 
   notifyMapObservers(obs: MapObserver<T, any>[] = this.mapObservers) {
-    const items = this.value;
+    const items = this.snapshot;
     for (const o of obs) {
       const newValue = o.project(items);
       if ((o as any)[_previous]! !== newValue) {
@@ -196,51 +200,6 @@ export class ListSource<T> {
   }
 }
 
-export enum ListMutationType {
-  Append,
-  DeleteAt,
-  Flush,
-  Filter,
-  Insert,
-  Clear
-}
-
-interface ListClearMutation {
-  type: ListMutationType.Clear;
-}
-
-interface ListAppendMutation<T> {
-  type: ListMutationType.Append;
-  item: T;
-}
-
-interface ListInsertMutation<T> {
-  type: ListMutationType.Insert;
-  item: T;
-  index: number;
-}
-
-interface ListDeleteAtMutation {
-  type: ListMutationType.DeleteAt;
-  index: number;
-}
-
-interface ListFlushMutation<T> {
-  type: ListMutationType.Flush;
-  items: T[];
-}
-
-interface ListFilterMutation<T> {
-  type: ListMutationType.Filter;
-  predicate: (t: T) => boolean;
-}
-
-type ListMutation<T> =
-  | ListAppendMutation<T>
-  | ListDeleteAtMutation
-  | ListFlushMutation<T>
-  | ListFilterMutation<T>
-  | ListInsertMutation<T>
-  | ListClearMutation;
-
-type MapObserver<T, U> = JSX.NextObserver<T[]> & { project(items: T[]): U };
+type MapObserver<T, U> = JSX.NextObserver<T[]> & {
+  project(items: T[]): U;
+};

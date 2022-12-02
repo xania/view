@@ -29,7 +29,6 @@
   "author": "Ibrahim ben Salah",
   "devDependencies": {
     "mini-css-extract-plugin": "2.4.4",
-    "prettier": "2.4.1",
     "sass": "1.43.4",
     "ts-loader": "9.3.1",
     "tslib": "^1.11.1",

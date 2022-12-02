@@ -4,21 +4,21 @@ abstract class Value<T> implements JSX.Value<T> {
   observers: JSX.NextObserver<T>[] = [];
   properties: Value<any>[] = [];
 
-  constructor(public value: T) {}
+  constructor(public snapshot: T) {}
 
   [previous]: T | undefined;
 
   abstract flush(): boolean;
 
-  toString = () => (this.value ? this.value.toString() : '');
+  toString = () => (this.snapshot ? this.snapshot.toString() : '');
 
   [Symbol.asyncIterator] = (): AsyncIterator<T> => {
     const state = this;
     let subscription: JSX.Unsubscribable | null = null;
     function sub(resolver: (v: IteratorResult<T>) => void) {
       if (subscription == null) {
-        if (state.value !== null && state.value !== undefined)
-          resolver({ value: state.value });
+        if (state.snapshot !== null && state.snapshot !== undefined)
+          resolver({ value: state.snapshot });
       }
       subscription = state.subscribe({
         next(value: T) {
@@ -32,7 +32,7 @@ abstract class Value<T> implements JSX.Value<T> {
       },
       return() {
         if (subscription) subscription.unsubscribe();
-        return Promise.resolve({ value: state.value, done: true });
+        return Promise.resolve({ value: state.snapshot, done: true });
       },
       throw(err) {
         return Promise.resolve(err);
@@ -41,7 +41,7 @@ abstract class Value<T> implements JSX.Value<T> {
   };
 
   subscribe<O extends JSX.NextObserver<T>>(observer: O) {
-    const { observers, value } = this;
+    const { observers, snapshot: value } = this;
     observers.push(observer as any);
 
     if (value !== undefined) {
@@ -60,7 +60,7 @@ abstract class Value<T> implements JSX.Value<T> {
   }
 
   get<K extends keyof T>(k: K) {
-    const { value, properties } = this;
+    const { snapshot: value, properties } = this;
     const keyValue: any =
       value === undefined || value === null ? null : value[k];
 
@@ -79,17 +79,17 @@ abstract class Value<T> implements JSX.Value<T> {
 }
 
 export class State<T> extends Value<T> {
-  constructor(value: T, public flush = () => _flush([this])) {
-    super(value);
+  constructor(snapshot: T, public flush = () => _flush([this])) {
+    super(snapshot);
   }
 
   update = (valueOrUpdater: T | Updater<T>) => {
     const value =
       valueOrUpdater instanceof Function
-        ? valueOrUpdater(this.value)
+        ? valueOrUpdater(this.snapshot)
         : valueOrUpdater;
 
-    if (value !== undefined) this.value = value;
+    if (value !== undefined) this.snapshot = value;
     this.flush();
   };
 }
@@ -113,17 +113,17 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
   update = (valueOrUpdater: T[K] | Updater<T[K]>) => {
     let newValue =
       valueOrUpdater instanceof Function
-        ? valueOrUpdater(this.value)
+        ? valueOrUpdater(this.snapshot)
         : valueOrUpdater;
 
     let parent = this.parent;
     while (parent) {
-      const parentValue = parent.value;
+      const parentValue = parent.snapshot;
       if (parentValue) {
         parentValue[this.name] = newValue as any;
         break;
       } else {
-        parent.value = newValue = { [this.name]: newValue } as any;
+        parent.snapshot = newValue = { [this.name]: newValue } as any;
       }
       if (parent instanceof StateProperty) parent = parent.parent;
       else break;
@@ -209,15 +209,15 @@ function digest(root: Item[]) {
 
     if (newValue === null || newValue === undefined) {
       for (const p of state.properties) {
-        p.value = null;
+        p.snapshot = null;
         stack.push([p, currdep]);
       }
     } else
       for (const p of state.properties) {
         if (p instanceof StateProperty) {
-          p.value = newValue[p.name];
+          p.snapshot = newValue[p.name];
         } else if (p instanceof StateMap) {
-          p.value = p.project(newValue);
+          p.snapshot = p.project(newValue);
         }
         stack.push([p, currdep]);
       }
