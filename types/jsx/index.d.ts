@@ -112,7 +112,7 @@ declare module JSX {
 
   export interface PropertyExpression {
     type: ExpressionType.Property;
-    name: string | number | symbol | null;
+    name: string | number | symbol;
   }
 
   export interface FunctionExpression<T, U = string> {
@@ -154,8 +154,10 @@ declare module JSX {
     subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;
     map<U>(func: (t?: T) => U): Value<U>;
     get<K extends keyof T>(name: K): State<T[K]>;
-    update(value: T): void;
+    update(value: T | Updater<T>): void;
   }
+
+  type Updater<T> = (t: T) => void | T;
 
   export interface Subscribable<T> {
     subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;

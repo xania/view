@@ -44,6 +44,7 @@ export class JsxElement {
     if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
       if (attrValue instanceof Function) {
         this.content.push({
+          key: Symbol(),
           type: DomOperationType.AddEventListener,
           name: attrName,
           handler: attrValue,
@@ -53,6 +54,7 @@ export class JsxElement {
       for (const item of flatten(attrValue)) {
         if (item instanceof Function) {
           this.content.push({
+            key: Symbol(),
             type: DomOperationType.SetClassName,
             expression: {
               type: ExpressionType.Init,
@@ -67,6 +69,7 @@ export class JsxElement {
           }
         } else if (isSubscribable(item)) {
           this.content.push({
+            key: Symbol(),
             type: DomOperationType.SetClassName,
             expression: {
               type: ExpressionType.State,
@@ -76,6 +79,7 @@ export class JsxElement {
           });
         } else if (item instanceof State) {
           this.content.push({
+            key: Symbol(),
             type: DomOperationType.SetClassName,
             expression: {
               type: ExpressionType.State,
@@ -87,6 +91,7 @@ export class JsxElement {
           switch (item.type) {
             case TemplateType.Expression:
               const op: DomUpdateOperation = {
+                key: Symbol(),
                 type: DomOperationType.SetClassName,
                 expression: item.expr,
                 classes: options?.classes,
@@ -100,6 +105,7 @@ export class JsxElement {
       }
     } else if (isSubscribable(attrValue)) {
       this.content.push({
+        key: Symbol(),
         type: DomOperationType.SetAttribute,
         name: attrName,
         expression: {
@@ -111,6 +117,7 @@ export class JsxElement {
       switch (attrValue.type) {
         case TemplateType.Expression:
           this.content.push({
+            key: Symbol(),
             type: DomOperationType.SetAttribute,
             name: attrName,
             expression: attrValue.expr,
@@ -141,12 +148,14 @@ export class JsxElement {
           templateNode.appendChild(textNode);
         }
         operations.push({
+          key: Symbol(),
           type: DomOperationType.SetTextContent,
           expression: expr,
           textNodeIndex: textNodeIndex,
         });
       } else {
         operations.push({
+          key: Symbol(),
           type: DomOperationType.SetTextContent,
           expression: expr,
         });
@@ -175,6 +184,7 @@ export class JsxElement {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
         this.content.push({
+          key: Symbol(),
           type: DomOperationType.Renderable,
           renderable: {
             child: child as { attachTo: Function },
@@ -196,6 +206,7 @@ export class JsxElement {
         );
       } else if (isRenderable(child)) {
         this.content.push({
+          key: Symbol(),
           type: DomOperationType.Renderable,
           renderable: child,
         });
@@ -244,6 +255,7 @@ export class JsxElement {
     const { templateNode: node } = this;
     if (tag.content.length > 0) {
       this.content.push({
+        key: Symbol(),
         type: DomOperationType.PushChild,
         index: node.childNodes.length,
       });
@@ -251,11 +263,13 @@ export class JsxElement {
         this.content.push(op);
       }
       this.content.push({
+        key: Symbol(),
         type: DomOperationType.PopNode,
       });
     }
     if (tag.updates.length > 0) {
       this.updates.push({
+        key: Symbol(),
         type: DomOperationType.PushChild,
         index: node.childNodes.length,
       });
@@ -263,6 +277,7 @@ export class JsxElement {
         this.updates.push(op);
       }
       this.updates.push({
+        key: Symbol(),
         type: DomOperationType.PopNode,
       });
     }

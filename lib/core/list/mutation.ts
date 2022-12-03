@@ -8,6 +8,12 @@
   Concat,
   Truncate,
   Move,
+  Update,
+}
+
+interface ListUpdateMutation {
+  type: ListMutationType.Update;
+  index: number;
 }
 
 interface ListClearMutation {
@@ -65,7 +71,8 @@ export type ListMutation<T> =
   | ListClearMutation
   | ListConcatMutation<T>
   | ListTruncateMutation
-  | ListMoveMutation;
+  | ListMoveMutation
+  | ListUpdateMutation;
 
 /*
   

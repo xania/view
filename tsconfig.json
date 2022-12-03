@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "dist/es2015",
     "module": "ES2015",
-    "lib": ["dom", "ES2015"],
+    "lib": ["dom", "ESNext", "ES2018.AsyncIterable"],
     "importHelpers": true,
     "declaration": true,
     "sourceMap": true,

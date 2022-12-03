@@ -3,8 +3,9 @@ import { ListMutation, ListMutationType } from './mutation';
 
 export function reconcile<T>(
   innerArr: State<T>[],
-  newArr: T[]
+  newArr: T[] | void
 ): ListMutation<State<T>>[] {
+  if (!newArr)return[];
   console.warn('reconcile is buggy, use it if you intent to fix it');
   let innerLen = innerArr.length;
   let newLen = newArr.length;

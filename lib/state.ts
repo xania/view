@@ -1,14 +1,14 @@
-﻿const previous: unique symbol = Symbol();
+﻿export const _previous: unique symbol = Symbol();
 
 abstract class Value<T> implements JSX.Value<T> {
-  observers: JSX.NextObserver<T>[] = [];
-  properties: Value<any>[] = [];
+  observers?: JSX.NextObserver<T>[];
+  properties?: Value<any>[];
 
   constructor(public snapshot: T) {}
 
-  [previous]: T | undefined;
+  [_previous]: T | undefined;
 
-  abstract flush(): boolean;
+  abstract flush(dirty: DirtyItem): boolean;
 
   toString = () => (this.snapshot ? (this.snapshot as any).toString() : '');
 
@@ -34,18 +34,20 @@ abstract class Value<T> implements JSX.Value<T> {
         if (subscription) subscription.unsubscribe();
         return Promise.resolve({ value: state.snapshot, done: true });
       },
-      throw(err) {
+      throw(err: any) {
         return Promise.resolve(err);
       },
     };
   };
 
   subscribe<O extends JSX.NextObserver<T>>(observer: O) {
-    const { observers, snapshot: value } = this;
+    const { snapshot: value } = this;
+
+    const observers = this.observers ?? (this.observers = []);
     observers.push(observer as any);
 
     if (value !== undefined) {
-      (observer as any)[previous] = value;
+      (observer as any)[_previous] = value;
       observer.next(value);
     }
 
@@ -60,26 +62,30 @@ abstract class Value<T> implements JSX.Value<T> {
   }
 
   get<K extends keyof T>(k: K) {
-    const { snapshot: value, properties } = this;
+    const { snapshot: value } = this;
     const keyValue: any =
       value === undefined || value === null ? null : value[k];
+
+    const properties = this.properties ?? (this.properties = []);
 
     const property: StateProperty<T, K> =
       (properties as any)[k] ??
       new StateProperty<T, K>(this, k, this.flush, keyValue);
-    this.properties.push(property);
+
+    properties.push(property);
     return property;
   }
 
   map = <U>(project: (value: T | undefined) => U): JSX.Value<U> => {
     const mapper = new StateMap<T, U>(this as any, project, this.flush);
-    this.properties.push(mapper);
+    const properties = this.properties ?? (this.properties = []);
+    properties.push(mapper);
     return mapper;
   };
 }
 
 export class State<T> extends Value<T> {
-  constructor(snapshot: T, public flush = () => _flush([this])) {
+  constructor(snapshot: T, public flush = (dirty: DirtyItem) => _flush(dirty)) {
     super(snapshot);
   }
 
@@ -89,8 +95,8 @@ export class State<T> extends Value<T> {
         ? valueOrUpdater(this.snapshot)
         : valueOrUpdater;
 
-    if (value !== undefined) this.snapshot = value;
-    this.flush();
+    if (value) this.snapshot = value;
+    this.flush(this);
   };
 }
 
@@ -104,7 +110,7 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
   constructor(
     public parent: Value<T>,
     public name: K,
-    public flush: () => boolean,
+    public flush: (dirty: DirtyItem) => boolean,
     value: T[K]
   ) {
     super(value);
@@ -129,7 +135,7 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
       else break;
     }
 
-    this.flush();
+    this.flush(this);
   };
 }
 
@@ -137,7 +143,7 @@ export class StateMap<T, U> extends Value<U> {
   constructor(
     public parent: { value: T },
     public project: (t: T) => U,
-    public flush: () => boolean
+    public flush: (dirty: DirtyItem) => boolean
   ) {
     super(project(parent.value));
   }
@@ -147,24 +153,32 @@ type Updater<T> = (value?: T) => T | void;
 
 type LinkedList<T> = null | { head: T; tail: LinkedList<T> };
 
-export function _flush(root: Item[]) {
-  const dirty = digest(root);
+export function _flush(item: DirtyItem) {
+  const items: DirtyItem[] = [item];
+  let root = item;
+  while (root.parent) {
+    root = root.parent;
+    items.push(root);
+  }
+
+  const dirty = digest(items);
   for (const o of dirty as any) {
-    o.next(o[previous]);
+    o.next(o[_previous]);
   }
   return dirty.length > 0;
 }
 
-type Item = {
+export type DirtyItem = {
+  parent?: DirtyItem;
   snapshot?: any;
-  [previous]?: any;
-  observers: JSX.NextObserver<any>[];
-  properties: Value<any>[];
+  [_previous]?: any;
+  observers?: JSX.NextObserver<any>[];
+  properties?: Value<any>[];
 };
 
-function digest(root: Item[]) {
-  type Dependency = { list: LinkedList<Item> };
-  type StackItem = [Item, Dependency];
+export function digest(root: DirtyItem[]) {
+  type Dependency = { list: LinkedList<DirtyItem> };
+  type StackItem = [DirtyItem, Dependency];
   const stack: StackItem[] = [];
   const dirty: { value?: any; observers: JSX.NextObserver<any>[] }[] = [];
 
@@ -175,20 +189,20 @@ function digest(root: Item[]) {
     let [state, parentdependency] = stack.pop() as StackItem;
 
     const newValue = state.snapshot;
-    const oldValue = state[previous];
+    const oldValue = state[_previous];
     let currdep: Dependency = { list: null };
     if (newValue !== oldValue) {
-      state[previous] = newValue;
+      state[_previous] = newValue;
       if (state.observers && state.observers.length) {
         for (const o of state.observers as any) {
-          o[previous] = newValue;
+          o[_previous] = newValue;
           dirty.push(o);
         }
       }
       let list = parentdependency.list;
       while (list) {
         for (const o of list.head.observers as any) {
-          o[previous] = newValue;
+          o[_previous] = newValue;
           dirty.push(o);
         }
         list = list.tail;
@@ -199,28 +213,34 @@ function digest(root: Item[]) {
 
       if (state.observers && state.observers.length) {
         for (const o of state.observers as any) {
-          if (o[previous] !== newValue) {
-            o[previous] = newValue;
+          if (o[_previous] !== newValue) {
+            o[_previous] = newValue;
             dirty.push(o);
           }
         }
       }
     }
 
-    if (newValue === null || newValue === undefined) {
-      for (const p of state.properties) {
-        p.snapshot = null;
-        stack.push([p, currdep]);
-      }
-    } else
-      for (const p of state.properties) {
-        if (p instanceof StateProperty) {
-          p.snapshot = newValue[p.name];
-        } else if (p instanceof StateMap) {
-          p.snapshot = p.project(newValue);
+    const { properties } = state;
+    if (properties) {
+      let length = properties.length;
+      if (newValue === null || newValue === undefined) {
+        while (length--) {
+          const p = properties[length];
+          p.snapshot = null;
+          stack.push([p, currdep]);
         }
-        stack.push([p, currdep]);
-      }
+      } else
+        while (length--) {
+          const p = properties[length];
+          if (p instanceof StateProperty) {
+            p.snapshot = newValue[p.name];
+          } else if (p instanceof StateMap) {
+            p.snapshot = p.project(newValue);
+          }
+          stack.push([p, currdep]);
+        }
+    }
   }
 
   return dirty;

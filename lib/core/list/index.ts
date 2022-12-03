@@ -10,6 +10,7 @@ export interface ListProps<T> {
 }
 
 export * from './list-source';
+export * from './mutation';
 
 export function List<T>(props: ListProps<T>, children: JsxElement[]) {
   return {
@@ -41,25 +42,59 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
               case ListMutationType.Move:
                 moveChild(mut.from, mut.to);
                 break;
+              case ListMutationType.Update:
+                updateChild(mut.index);
+                break;
             }
           },
         });
         renderChildren(source.properties);
       }
 
-      function clear() {
-        for (const vi of virtualItems) {
-          for (const binding of vi.bindings) {
-            binding.dispose();
+      function clear(
+        firstIdx: number = 0,
+        lastIdx: number = virtualItems.length - 1
+      ) {
+        if (lastIdx <= firstIdx) return;
+
+        const rangeObj = new Range();
+        rangeObj.setStartBefore(virtualItems[firstIdx].firstElement as Node);
+        rangeObj.setEndAfter(virtualItems[lastIdx].lastElement as Node);
+
+        rangeObj.deleteContents();
+
+        for (let i = firstIdx; i <= lastIdx; i++) {
+          const vi = virtualItems[i];
+          const { bindings, subscriptions } = vi;
+
+          let blength = bindings.length;
+          while (blength--) {
+            bindings[blength].dispose();
           }
-          for (const subscription of vi.subscriptions) {
-            subscription.unsubscribe();
+
+          let slength = subscriptions.length;
+          while (slength--) {
+            subscriptions[slength].unsubscribe();
           }
-          for (const elt of vi.elements) {
-            elt.remove();
-          }
+
+          // let elength = elements.length;
+          // while (elength--) {
+          //   elements[elength].remove();
+          // }
         }
         virtualItems.length = 0;
+      }
+
+      function updateChild(index: number) {
+        var vi = virtualItems[index];
+
+        let elementIdx = 0;
+        for (const child of children) {
+          if (child instanceof JsxElement) {
+            const root = vi.elements[elementIdx++];
+            execute(child.updates, root, vi);
+          }
+        }
       }
 
       function moveChild(fromIdx: number, toIdx: number) {
@@ -87,20 +122,29 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
       }
 
       function deleteChild(index: number) {
-        const virtualItem = virtualItems[index];
+        const vi = virtualItems[index];
+        const { bindings, subscriptions, elements } = vi;
 
-        for (const binding of virtualItem.bindings) {
-          binding.dispose();
-        }
-        for (const subscription of virtualItem.subscriptions) {
-          subscription.unsubscribe();
-        }
-
-        for (const elt of virtualItem.elements) {
-          elt.remove();
+        let blength = bindings.length;
+        while (blength--) {
+          bindings[blength].dispose();
         }
 
-        virtualItems.splice(index, 1);
+        let slength = subscriptions.length;
+        while (slength--) {
+          subscriptions[slength].unsubscribe();
+        }
+
+        let elength = elements.length;
+        while (elength--) {
+          elements[elength].remove();
+        }
+
+        const len = virtualItems.length;
+        for (let i = index + 1; i < len; i++) {
+          virtualItems[i - 1] = virtualItems[i];
+        }
+        virtualItems.length = len - 1;
       }
 
       function renderChild(
@@ -118,6 +162,14 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
             if (elements.length) {
               const last = elements[elements.length - 1];
               return last.nextSibling;
+            }
+            return null;
+          },
+          get lastElement() {
+            const { elements } = this;
+            if (elements.length) {
+              const last = elements[elements.length - 1];
+              return last;
             }
             return null;
           },
@@ -194,6 +246,14 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
               }
               return null;
             },
+            get lastElement() {
+              const { elements } = this;
+              if (elements.length) {
+                const last = elements[elements.length - 1];
+                return last;
+              }
+              return null;
+            },
             get firstElement() {
               const { elements } = this;
               if (elements.length) {
@@ -239,8 +299,9 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
 
 interface VirtualItem extends ExecuteContext {
   elements: HTMLElement[];
-  nextSibling: ChildNode | null;
+  nextSibling: Node | null;
   firstElement: HTMLElement | null;
+  lastElement: HTMLElement | null;
 }
 
 // function reconcileArrays(

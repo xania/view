@@ -1,9 +1,9 @@
-﻿import { State, _flush } from '../../state';
+﻿import { digest, DirtyItem, State, _flush } from '../../state';
 import { ListMutation, ListMutationType } from './mutation';
-import { reconcile } from './reconcile';
 
 const _previous: unique symbol = Symbol();
 const _included: unique symbol = Symbol();
+const _index: unique symbol = Symbol();
 
 export function createListSource<T>(initial?: T[]) {
   return new ListSource<T>(initial);
@@ -13,6 +13,7 @@ type ListObserver<T> = JSX.NextObserver<ListMutation<State<T>>>;
 
 interface ListItem<T> extends State<T> {
   [_included]?: boolean;
+  [_index]: number;
 }
 
 export class ListSource<T> {
@@ -23,7 +24,8 @@ export class ListSource<T> {
   constructor(public snapshot: T[] = []) {
     const { properties } = this;
     for (let i = 0; i < snapshot.length; i++) {
-      var state = new State<T>(snapshot[i], this.flush);
+      var state: ListItem<T> = new State<T>(snapshot[i], this.flushItem) as any;
+      state[_index] = i;
       properties.push(state);
     }
   }
@@ -59,11 +61,19 @@ export class ListSource<T> {
         break;
       case ListMutationType.Append:
         this.snapshot.push(mut.item);
-        properties.push((maput.item = new State<T>(mut.item, this.flush)));
+        const state: ListItem<T> = new State<T>(
+          mut.item,
+          this.flushItem
+        ) as any;
+        state[_index] = properties.length;
+        properties.push((maput.item = state));
         break;
       case ListMutationType.DeleteAt:
         this.snapshot.splice(mut.index, 1);
         properties.splice(mut.index, 1);
+        for (let i = mut.index, len = properties.length; i < len; i++) {
+          properties[i][_index] = i;
+        }
         break;
       case ListMutationType.Move:
         const stmp = this.snapshot[mut.from];
@@ -71,7 +81,9 @@ export class ListSource<T> {
         this.snapshot[mut.to] = stmp;
         const ptmp = this.properties[mut.from];
         this.properties[mut.from] = this.properties[mut.to];
+        this.properties[mut.from][_index] = mut.from;
         this.properties[mut.to] = ptmp;
+        this.properties[mut.to][_index] = mut.to;
         break;
       case ListMutationType.Filter:
         let index = 0;
@@ -124,14 +136,36 @@ export class ListSource<T> {
 
   update = (updater: (data: T[]) => T[] | void) => {
     const newSnapshot = updater(this.snapshot) ?? this.snapshot;
-    const mutations = reconcile(this.properties, newSnapshot);
-    for (const o of this.observers) {
-      for (const mut of mutations) {
-        o.next(mut);
-      }
+
+    const { properties } = this;
+    let idx = 0,
+      slen = newSnapshot.length,
+      plen = properties.length;
+    while (idx < slen && idx < plen) {
+      const prop = properties[idx];
+      prop.snapshot = newSnapshot[idx];
+      idx++;
+      this.flushItem(prop);
     }
 
-    this.flush();
+    if (idx < plen) {
+      properties.length = idx;
+    } else
+      while (idx < slen) {
+        this.next({
+          type: ListMutationType.Append,
+          item: newSnapshot[idx++],
+        });
+      }
+
+    // const mutations = reconcile(this.properties, newSnapshot);
+    // for (const o of this.observers) {
+    //   for (const mut of mutations) {
+    //     o.next(mut);
+    //   }
+    // }
+
+    // for (const prop of properties) this.flushItem(prop);
 
     // console.log(mutations);
     // this.flush();
@@ -139,7 +173,9 @@ export class ListSource<T> {
 
   delete = (item: JSX.State<T>) => {
     let index = 0;
-    for (const x of this.properties) {
+    const { properties } = this;
+    for (let i = 0, len = properties.length; i < len; i++) {
+      const x = properties[i];
       const included = x[_included] ?? true;
       if (x === item) {
         if (included) {
@@ -155,13 +191,35 @@ export class ListSource<T> {
     }
   };
 
-  flush = () => {
-    if (_flush(this.properties)) {
-      this.notifyMapObservers();
-      return true;
-    }
+  flushItem = (item: DirtyItem) => {
+    if (!item.parent) {
+      const idx = (item as ListItem<T>)[_index];
+      this.next({
+        type: ListMutationType.Update,
+        index: idx,
+      });
+    } else {
+      const items: DirtyItem[] = [item];
+      let root = item;
+      while (root.parent) {
+        root = root.parent;
+        items.push(root);
+      }
 
+      const dirty = digest(items);
+      for (const o of dirty as any) {
+        o.next(o[_previous]);
+      }
+    }
     return false;
+    // return dirty.length > 0;
+
+    // if (_flush(items)) {
+    //   this.notifyMapObservers();
+    //   return true;
+    // }
+
+    // return false;
   };
 
   clear() {
