@@ -1,10 +1,11 @@
 ﻿import { DomOperation, DomOperationType } from './dom-operation';
-import { ExpressionType, isExpression } from '../jsx/expression';
+import { ExpressionType } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { flatten } from '../jsx/_flatten';
-import { State } from '../state';
 
-export function execute<TExecuteContext extends ExecuteContext>(
+export function execute<
+  TExecuteContext extends ExecuteContext<Record<string | number | symbol, any>>
+>(
   operations: DomOperation<any>[],
   root: HTMLElement,
   context: TExecuteContext
@@ -36,10 +37,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
         const attrExpr = curr.expression;
         switch (attrExpr.type) {
           case ExpressionType.Property:
-            const attrValue =
-              attrExpr.name === null
-                ? context.data
-                : context.data?.get(attrExpr.name);
+            const attrValue = context.data[attrExpr.name];
             if (attrValue) {
               operationStack = {
                 head: {
@@ -73,29 +71,29 @@ export function execute<TExecuteContext extends ExecuteContext>(
         const classData = context.data;
         if (classData === undefined) break;
         switch (classExpr?.type) {
-          case ExpressionType.Init:
-            const initResult = classExpr.init(classData, {
-              node: nodeStack.head,
-              data: classData,
-            });
-            if (isExpression(initResult)) {
-              operationStack = {
-                head: {
-                  key: curr.key,
-                  type: DomOperationType.SetClassName,
-                  expression: initResult,
-                  classes,
-                },
-                tail: operationStack,
-              };
-            } else if (typeof initResult === 'string') {
-              const cl = (classes && classes[initResult]) || initResult;
-              const elt = nodeStack.head as HTMLElement;
-              elt.classList.add(cl);
-            }
-            break;
+          // case ExpressionType.Init:
+          //   const initResult = classExpr.init(classData, {
+          //     node: nodeStack.head,
+          //     data: classData,
+          //   });
+          //   if (isExpression(initResult)) {
+          //     operationStack = {
+          //       head: {
+          //         key: curr.key,
+          //         type: DomOperationType.SetClassName,
+          //         expression: initResult,
+          //         classes,
+          //       },
+          //       tail: operationStack,
+          //     };
+          //   } else if (typeof initResult === 'string') {
+          //     const cl = (classes && classes[initResult]) || initResult;
+          //     const elt = nodeStack.head as HTMLElement;
+          //     elt.classList.add(cl);
+          //   }
+          //   break;
           case ExpressionType.Property:
-            const propertyValue = context.data.snapshot[classExpr.name];
+            const propertyValue = context.data[classExpr.name];
             const elt = nodeStack.head as HTMLElement;
             if (propertyValue) {
               (context.data as any)[curr.key] = propertyValue;
@@ -155,31 +153,31 @@ export function execute<TExecuteContext extends ExecuteContext>(
         const data = context.data;
         if (data === undefined) break;
         switch (setContentExpr.type) {
-          case ExpressionType.Init:
-            const initResult = setContentExpr.init(data, {
-              node: nodeStack.head,
-              data,
-            });
-            if (isExpression(initResult)) {
-              operationStack = {
-                head: {
-                  key: curr.key,
-                  type: DomOperationType.SetTextContent,
-                  expression: initResult,
-                },
-                tail: operationStack,
-              };
-            } else if (initResult) {
-              if (curr.textNodeIndex !== undefined) {
-                nodeStack.head.childNodes[curr.textNodeIndex].textContent =
-                  initResult;
-              } else {
-                nodeStack.head.textContent = initResult;
-              }
-            }
-            break;
+          // case ExpressionType.Init:
+          //   const initResult = setContentExpr.init(data, {
+          //     node: nodeStack.head,
+          //     data,
+          //   });
+          //   if (isExpression(initResult)) {
+          //     operationStack = {
+          //       head: {
+          //         key: curr.key,
+          //         type: DomOperationType.SetTextContent,
+          //         expression: initResult,
+          //       },
+          //       tail: operationStack,
+          //     };
+          //   } else if (initResult) {
+          //     if (curr.textNodeIndex !== undefined) {
+          //       nodeStack.head.childNodes[curr.textNodeIndex].textContent =
+          //         initResult;
+          //     } else {
+          //       nodeStack.head.textContent = initResult;
+          //     }
+          //   }
+          //   break;
           case ExpressionType.Property:
-            const snapshot = context.data.snapshot;
+            const snapshot = context.data;
             const { textNodeIndex: sTextNodeIndex } = curr;
             const sTextNode =
               sTextNodeIndex === undefined
@@ -240,7 +238,7 @@ export interface ExecuteContext<T = any> {
   bindings: Disposable[];
   subscriptions: JSX.Unsubscribable[];
   elements: HTMLElement[];
-  data: State<T>;
+  data: T;
   push(node: Node, name: string, handler: Function): void;
 }
 

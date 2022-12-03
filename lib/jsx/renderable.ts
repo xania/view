@@ -1,8 +1,7 @@
 import { Disposable } from '../disposable';
-import { State } from '../state';
 
 export interface RenderContext<T> {
-  data: State<T>;
+  data: T;
 }
 
 export interface RenderTarget {

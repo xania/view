@@ -1,5 +1,5 @@
 ﻿export enum ListMutationType {
-  Append,
+  Push,
   DeleteAt,
   Flush,
   Filter,
@@ -13,7 +13,8 @@
 
 interface ListUpdateMutation {
   type: ListMutationType.Update;
-  index: number;
+  offset: number;
+  length: number;
 }
 
 interface ListClearMutation {
@@ -21,7 +22,7 @@ interface ListClearMutation {
 }
 
 interface ListAppendMutation<T> {
-  type: ListMutationType.Append;
+  type: ListMutationType.Push;
   item: T;
 }
 
@@ -36,11 +37,6 @@ interface ListDeleteAtMutation {
   index: number;
 }
 
-interface ListFlushMutation<T> {
-  type: ListMutationType.Flush;
-  items: T[];
-}
-
 interface ListFilterMutation<T> {
   type: ListMutationType.Filter;
   predicate: (t: T) => boolean;
@@ -48,7 +44,7 @@ interface ListFilterMutation<T> {
 
 interface ListConcatMutation<T> {
   type: ListMutationType.Concat;
-  values: T[];
+  items: ArrayLike<T>;
 }
 
 interface ListTruncateMutation {
@@ -65,7 +61,6 @@ interface ListMoveMutation {
 export type ListMutation<T> =
   | ListAppendMutation<T>
   | ListDeleteAtMutation
-  | ListFlushMutation<T>
   | ListFilterMutation<T>
   | ListInsertMutation<T>
   | ListClearMutation

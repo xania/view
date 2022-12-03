@@ -2,7 +2,6 @@
 import { RenderTarget } from '../../jsx';
 import { execute, ExecuteContext } from '../../render/execute';
 import { ListSource } from './list-source';
-import { State } from '../../state';
 import { ListMutationType } from './mutation';
 
 export interface ListProps<T> {
@@ -12,7 +11,10 @@ export interface ListProps<T> {
 export * from './list-source';
 export * from './mutation';
 
-export function List<T>(props: ListProps<T>, children: JsxElement[]) {
+export function List<T extends any>(
+  props: ListProps<T>,
+  children: JsxElement[]
+) {
   return {
     render(target: RenderTarget) {
       const sharedEventHandler = createEventHandler(target);
@@ -20,12 +22,12 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
       let virtualItems: VirtualItem[] = [];
 
       if (source instanceof Array) {
-        renderChildren(source.map((e) => new State<T>(e)));
+        renderChildren(source);
       } else if (source instanceof ListSource) {
         source.subscribe({
           next(mut) {
             switch (mut.type) {
-              case ListMutationType.Append:
+              case ListMutationType.Push:
                 renderChild(mut.item);
                 break;
               case ListMutationType.Insert:
@@ -37,18 +39,19 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
               case ListMutationType.Clear:
                 clear();
                 break;
-              case ListMutationType.Flush:
-                break;
               case ListMutationType.Move:
                 moveChild(mut.from, mut.to);
                 break;
               case ListMutationType.Update:
-                updateChild(mut.index);
+                updateChild(mut.offset, mut.length);
+                break;
+              case ListMutationType.Concat:
+                renderChildren(mut.items);
                 break;
             }
           },
         });
-        renderChildren(source.properties);
+        renderChildren(source);
       }
 
       function clear(
@@ -85,14 +88,16 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         virtualItems.length = 0;
       }
 
-      function updateChild(index: number) {
-        var vi = virtualItems[index];
+      function updateChild(offset: number, length: number) {
+        for (let i = offset; i < length; i++) {
+          var vi = virtualItems[i];
 
-        let elementIdx = 0;
-        for (const child of children) {
-          if (child instanceof JsxElement) {
-            const root = vi.elements[elementIdx++];
-            execute(child.updates, root, vi);
+          let elementIdx = 0;
+          for (const child of children) {
+            if (child instanceof JsxElement) {
+              const root = vi.elements[elementIdx++];
+              execute(child.updates, root, vi);
+            }
           }
         }
       }
@@ -147,14 +152,11 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         virtualItems.length = len - 1;
       }
 
-      function renderChild(
-        item: State<T>,
-        index: number = virtualItems.length
-      ) {
+      function renderChild(item: T, index: number = virtualItems.length) {
         var executeContext: VirtualItem = {
           bindings: [],
           subscriptions: [],
-          data: item,
+          data: item as any,
           elements: [],
           push: sharedEventHandler,
           get nextSibling() {
@@ -207,35 +209,12 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
         }
       }
 
-      function renderChildren(source: State<T>[]) {
-        let v = 0,
-          s = 0;
-        const newItems: typeof virtualItems = new Array(source.length);
-        while (v < virtualItems.length) {
-          const virtualItem = virtualItems[v++];
-          if (virtualItem.data === source[s]) {
-            newItems[s++] = virtualItem;
-          } else {
-            for (const binding of virtualItem.bindings) {
-              binding.dispose();
-            }
-            for (const subscription of virtualItem.subscriptions) {
-              subscription.unsubscribe();
-            }
-
-            for (const elt of virtualItem.elements) {
-              elt.remove();
-            }
-          }
-        }
-        virtualItems = newItems;
-
-        for (let i = s, length = source.length; i < length; i++) {
-          const data = source[i];
+      function renderChildren(source: ArrayLike<T>) {
+        for (let i = 0, length = source.length; i < length; i++) {
           var executeContext: VirtualItem = {
             bindings: [],
             subscriptions: [],
-            data,
+            data: source[i] as any,
             elements: [],
             push: sharedEventHandler,
             get nextSibling() {
@@ -264,7 +243,7 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
             },
           };
 
-          virtualItems[i] = executeContext;
+          virtualItems.push(executeContext);
 
           for (const child of children) {
             if (child instanceof JsxElement) {
@@ -275,29 +254,27 @@ export function List<T>(props: ListProps<T>, children: JsxElement[]) {
             }
           }
 
-          data.subscribe({
-            executeContext,
-            next() {
-              const virtualItem = this.executeContext;
+          // data.subscribe({
+          //   executeContext,
+          //   next() {
+          //     const virtualItem = this.executeContext;
 
-              let i = 0;
-              for (const child of children) {
-                if (child instanceof JsxElement) {
-                  const root = virtualItem.elements[i++];
-                  execute(child.updates, root, virtualItem);
-                }
-              }
-            },
-          });
+          //     let i = 0;
+          //     for (const child of children) {
+          //       if (child instanceof JsxElement) {
+          //         const root = virtualItem.elements[i++];
+          //         execute(child.updates, root, virtualItem);
+          //       }
+          //     }
+          //   },
+          // });
         }
-
-        virtualItems.length = source.length;
       }
     },
   };
 }
 
-interface VirtualItem extends ExecuteContext {
+interface VirtualItem extends ExecuteContext<Record<any, any>> {
   elements: HTMLElement[];
   nextSibling: Node | null;
   firstElement: HTMLElement | null;
