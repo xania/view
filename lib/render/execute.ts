@@ -1,259 +1,359 @@
 ﻿import { DomOperation, DomOperationType } from './dom-operation';
 import { ExpressionType } from '../jsx/expression';
 import { Disposable } from '../disposable';
-import { flatten } from '../jsx/_flatten';
+import { _context } from './symbols';
+import { ExecuteContext } from './execute-context';
 
-export function execute<
-  TExecuteContext extends ExecuteContext<Record<string | number | symbol, any>>
->(
+export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
-  root: HTMLElement,
-  context: TExecuteContext
+  contexts: ArrayLike<TExecuteContext>,
+  rootNode?: Node
 ) {
-  let nodeStack: Stack<Node> = { head: root, tail: null } as any;
-  let operationStack: Stack<DomOperation<any>> | null =
-    arrayToStack(operations);
-
-  while (operationStack) {
-    const curr = operationStack.head;
-    operationStack = operationStack.tail;
-    switch (curr.type) {
-      case DomOperationType.PushChild:
-        nodeStack = {
-          head: nodeStack.head.childNodes[curr.index],
-          tail: nodeStack,
-        };
-        break;
-      case DomOperationType.AddEventListener:
-        context.push(nodeStack.head as Node, curr.name, curr.handler);
-        break;
-      case DomOperationType.PopNode:
-        if (nodeStack.tail == null) {
-          throw Error('reached end of stack');
-        }
-        nodeStack = nodeStack.tail;
-        break;
-      case DomOperationType.SetAttribute:
-        const attrExpr = curr.expression;
-        switch (attrExpr.type) {
-          case ExpressionType.Property:
-            const attrValue = context.data[attrExpr.name];
-            if (attrValue) {
-              operationStack = {
-                head: {
-                  key: curr.key,
-                  type: DomOperationType.SetAttribute,
-                  name: curr.name,
-                  expression: {
-                    type: ExpressionType.State,
-                    state: attrValue,
-                  },
-                },
-                tail: operationStack,
-              };
-            }
-            break;
-          case ExpressionType.State:
-            attrExpr.state.subscribe({
-              elt: nodeStack.head as HTMLElement,
-              name: curr.name,
-              next(s: string) {
-                const { elt, name } = this;
-                (elt as any)[name] = s;
-              },
-            });
-            break;
-        }
-        break;
-      case DomOperationType.SetClassName:
-        const classes = curr.classes;
-        const classExpr = curr.expression;
-        const classData = context.data;
-        if (classData === undefined) break;
-        switch (classExpr?.type) {
-          // case ExpressionType.Init:
-          //   const initResult = classExpr.init(classData, {
-          //     node: nodeStack.head,
-          //     data: classData,
-          //   });
-          //   if (isExpression(initResult)) {
-          //     operationStack = {
-          //       head: {
-          //         key: curr.key,
-          //         type: DomOperationType.SetClassName,
-          //         expression: initResult,
-          //         classes,
-          //       },
-          //       tail: operationStack,
-          //     };
-          //   } else if (typeof initResult === 'string') {
-          //     const cl = (classes && classes[initResult]) || initResult;
-          //     const elt = nodeStack.head as HTMLElement;
-          //     elt.classList.add(cl);
-          //   }
-          //   break;
-          case ExpressionType.Property:
-            const propertyValue = context.data[classExpr.name];
-            const elt = nodeStack.head as HTMLElement;
-            if (propertyValue) {
-              (context.data as any)[curr.key] = propertyValue;
-              if (propertyValue instanceof Array) {
-                for (let i = 0, len = propertyValue.length; i < len; i++) {
-                  elt.classList.add(propertyValue[i]);
-                }
-              } else {
-                elt.classList.add(propertyValue);
-              }
-            } else {
-              const prevValue = (context.data as any)[curr.key];
-              if (prevValue instanceof Array) {
-                for (let i = 0, len = prevValue.length; i < len; i++) {
-                  elt.classList.remove(prevValue[i]);
-                }
-              } else if (prevValue) {
-                elt.classList.remove(prevValue);
-              }
-            }
-            break;
-          case ExpressionType.State:
-            const prev: string[] = [];
-            const subs = classExpr.state.subscribe({
-              prev,
-              classes,
-              elt: nodeStack.head as HTMLElement,
-              next(s) {
-                const { prev, classes, elt } = this;
-                for (const x of prev) {
-                  elt.classList.remove(x);
-                }
-                prev.length = 0;
-                for (const x of flatten(s)) {
-                  const cls = (classes && classes[x]) || x;
-                  elt.classList.add(cls);
-                  prev.push(cls);
-                }
-              },
-            });
-            if (subs) context.subscriptions.push(subs);
-            break;
-          default:
-            if (classExpr) {
-              const elt = nodeStack.head as HTMLElement;
-              for (const x of flatten(classExpr.toString())) {
-                const cls = (classes && classes[x]) || x;
-                elt.classList.add(cls);
-              }
-            }
-            break;
-        }
-        break;
-
-      case DomOperationType.SetTextContent:
-        const setContentExpr = curr.expression;
-        const data = context.data;
-        if (data === undefined) break;
-        switch (setContentExpr.type) {
-          // case ExpressionType.Init:
-          //   const initResult = setContentExpr.init(data, {
-          //     node: nodeStack.head,
-          //     data,
-          //   });
-          //   if (isExpression(initResult)) {
-          //     operationStack = {
-          //       head: {
-          //         key: curr.key,
-          //         type: DomOperationType.SetTextContent,
-          //         expression: initResult,
-          //       },
-          //       tail: operationStack,
-          //     };
-          //   } else if (initResult) {
-          //     if (curr.textNodeIndex !== undefined) {
-          //       nodeStack.head.childNodes[curr.textNodeIndex].textContent =
-          //         initResult;
-          //     } else {
-          //       nodeStack.head.textContent = initResult;
-          //     }
-          //   }
-          //   break;
-          case ExpressionType.Property:
-            const snapshot = context.data;
-            const { textNodeIndex: sTextNodeIndex } = curr;
-            const sTextNode =
-              sTextNodeIndex === undefined
-                ? nodeStack.head
-                : nodeStack.head.childNodes[sTextNodeIndex];
-            if (snapshot) {
-              const propertyValue = snapshot[setContentExpr.name];
-
-              if (propertyValue === undefined) {
-                sTextNode.textContent = '';
-              } else {
-                sTextNode.textContent = propertyValue;
-              }
-            } else {
-              sTextNode.textContent = '';
-            }
-            break;
-          case ExpressionType.State:
-            const { state } = setContentExpr;
-            const textNodeIndex = curr.textNodeIndex;
-            const textNode =
-              textNodeIndex === undefined
-                ? nodeStack.head
-                : nodeStack.head.childNodes[textNodeIndex];
-            const stateSubs = state.subscribe({
-              next(newValue: any) {
-                const { textNode } = this;
-                textNode.textContent = newValue;
-              },
-              textNode: textNode as Text,
-            });
-            if (stateSubs) context.subscriptions.push(stateSubs);
-            break;
-        }
-        break;
-      case DomOperationType.Renderable:
-        const binding: null | Disposable | JSX.Unsubscribable =
-          curr.renderable.render(nodeStack.head, context);
-        if (binding) {
-          if ('dispose' in binding && binding.dispose instanceof Function)
-            context.bindings.push(binding);
-          else if (
-            'unsubscribe' in binding &&
-            binding.unsubscribe instanceof Function
-          ) {
-            context.subscriptions.push(binding);
+  let nodeStack: Stack<Node> = { head: rootNode, length: 0 } as any;
+  for (
+    let contextIdx = 0,
+      contextsLen = contexts.length | 0,
+      operationLen = operations.length | 0;
+    contextIdx < contextsLen;
+    contextIdx++
+  ) {
+    const context = contexts[contextIdx];
+    for (let operationIdx = 0; operationIdx < operationLen; operationIdx++) {
+      const op = operations[operationIdx];
+      switch (op.type) {
+        case DomOperationType.Deferred:
+          (context as any)[op.nodeKey] = nodeStack.head;
+          break;
+        case DomOperationType.Clone:
+          const root = op.templateNode.cloneNode(true) as HTMLElement;
+          (root as any)[_context] = context;
+          if (context.rootElement) {
+            const { moreRootElements } = context;
+            if (moreRootElements) moreRootElements.push(root);
+            else context.moreRootElements = [root];
+          } else {
+            context.rootElement = root;
           }
-        }
-        break;
-      default:
-        console.error(curr);
-        break;
+          nodeStack.head = root;
+          nodeStack[0] = root;
+          nodeStack.length = 1;
+          break;
+        // case DomOperationType.UpdateRoot:
+        //   const { combine, state, key } = op;
+        //   const newValue = combine(state, context) ?? null;
+        //   const prevValue = context[key] ?? null;
+        //   if (prevValue !== newValue) {
+        //     (context as any)[key] = newValue;
+
+        //     const selectRoot =
+        //       op.index === 0
+        //         ? context.rootElement
+        //         : (context.moreRootElements as any)[op.index - 1];
+        //     nodeStack.head = selectRoot;
+        //     nodeStack[0] = selectRoot;
+        //     nodeStack.length = 1;
+        //   } else {
+        //     operationIdx = operationLen;
+        //   }
+        //   break;
+        // case DomOperationType.SelectRoot:
+        //   if (context[op.dependency] !== context[op.key]) {
+        //     const selectRoot =
+        //       op.index === 0
+        //         ? context.rootElement
+        //         : (context.moreRootElements as any)[op.index - 1];
+        //     nodeStack.head = selectRoot;
+        //     nodeStack[0] = selectRoot;
+        //     nodeStack.length = 1;
+        //   } else {
+        //     operationIdx = operationLen;
+        //   }
+        //   break;
+        case DomOperationType.PushFirstChild:
+          let firstChild = nodeStack.head.firstChild as HTMLElement;
+          nodeStack[nodeStack.length] = firstChild;
+          nodeStack.head = firstChild;
+          nodeStack.length++;
+          break;
+        case DomOperationType.PushNextSibling:
+          let nextSibling = nodeStack.head.nextSibling as HTMLElement;
+          for (let i = 1; i < op.offset; i++) {
+            nextSibling = nextSibling.nextSibling as HTMLElement;
+          }
+          nodeStack[nodeStack.length - 1] = nextSibling;
+          nodeStack.head = nextSibling;
+          break;
+        case DomOperationType.PushChild:
+          let childNode = nodeStack.head.firstChild as HTMLElement;
+          for (let i = 0; i < op.index; i++) {
+            childNode = childNode.nextSibling as HTMLElement;
+          }
+          nodeStack[nodeStack.length] = childNode;
+          nodeStack.head = childNode;
+          nodeStack.length++;
+          break;
+        case DomOperationType.PopNode:
+          if (nodeStack.length === 0) {
+            throw Error('reached end of stack');
+          }
+          const length = nodeStack.length - 1;
+          nodeStack.length = length;
+          nodeStack.head = nodeStack[length - 1];
+          break;
+        case DomOperationType.SetAttribute:
+          const attrExpr = op.expression;
+          switch (attrExpr.type) {
+            case ExpressionType.Property:
+              //              const attrValue = context.data[attrExpr.name];
+              // if (attrValue) {
+              //   operationStack = {
+              //     head: {
+              //       key: curr.key,
+              //       type: DomOperationType.SetAttribute,
+              //       name: curr.name,
+              //       expression: {
+              //         type: ExpressionType.State,
+              //         state: attrValue,
+              //       },
+              //     },
+              //     tail: operationStack,
+              //   };
+              // }
+              break;
+            case ExpressionType.State:
+              attrExpr.state.subscribe({
+                elt: nodeStack.head as HTMLElement,
+                name: op.name,
+                next(s: string) {
+                  const { elt, name } = this;
+                  (elt as any)[name] = s;
+                },
+              });
+              break;
+          }
+          break;
+        case DomOperationType.SetClassName:
+          const classExpr = op.expression;
+          let classValue: any;
+
+          switch (classExpr.type) {
+            // case ExpressionType.Init:
+            //   const initResult = classExpr.init(classData, {
+            //     node: nodeStack.head,
+            //     data: classData,
+            //   });
+            //   if (isExpression(initResult)) {
+            //     operationStack = {
+            //       head: {
+            //         key: curr.key,
+            //         type: DomOperationType.SetClassName,
+            //         expression: initResult,
+            //         classes,
+            //       },
+            //       tail: operationStack,
+            //     };
+            //   } else if (typeof initResult === 'string') {
+            //     const cl = (classes && classes[initResult]) || initResult;
+            //     const elt = nodeStack.head as HTMLElement;
+            //     elt.classList.add(cl);
+            //   }
+            //   break;
+            case ExpressionType.Property:
+              classValue = context[classExpr.name];
+              break;
+            // case ExpressionType.State:
+            //   const prev: string[] = [];
+            //   const subs = classExpr.state.subscribe({
+            //     prev,
+            //     classes,
+            //     elt: nodeStack.head as HTMLElement,
+            //     next(input) {
+            //       const s = input instanceof Function ? input(context) : input;
+            //       const { prev, classes, elt } = this;
+            //       for (const x of prev) {
+            //         elt.classList.remove(x);
+            //       }
+            //       prev.length = 0;
+            //       for (const x of flatten(s)) {
+            //         const cls = (classes && classes[x]) || x;
+            //         elt.classList.add(cls);
+            //         prev.push(cls);
+            //       }
+            //     },
+            //   });
+            //   if (subs)
+            //     if (context.subscriptions) context.subscriptions.push(subs);
+            //     else context.subscriptions = [subs];
+            //   break;
+            default:
+              classValue = classExpr.toString();
+              // if (classExpr) {
+              //   const elt = nodeStack.head as HTMLElement;
+              //   for (const x of flatten()) {
+              //     const cls = (classes && classes[x]) || x;
+              //     elt.classList.add(cls);
+              //   }
+              // }
+              break;
+          }
+
+          const elt = nodeStack.head as HTMLElement;
+          const classList = elt.classList;
+
+          // const prevValue = context[op.key];
+          // (context as any)[op.key] = classValue;
+          // if (prevValue instanceof Array) {
+          //   for (let i = 0, len = prevValue.length; i < len; i++) {
+          //     classList.remove(prevValue[i]);
+          //   }
+          // } else if (prevValue) {
+          //   classList.remove(prevValue);
+          // }
+
+          if (classValue instanceof Array) {
+            for (let i = 0, len = classValue.length; i < len; i++) {
+              const cls = classValue[i];
+              classList.add(cls);
+            }
+          } else if (classValue) {
+            classList.add(classValue);
+          }
+          break;
+
+        // case DomOperationType.SetClassModule:
+        //   const classModuleExpr = op.expression;
+        //   let classModuleValue: any;
+        //   if (classModuleExpr === _self) {
+        //     classModuleValue = context;
+        //   } else {
+        //     switch (classModuleExpr.type) {
+        //       case ExpressionType.Property:
+        //         classValue = context[classModuleExpr.name];
+        //         break;
+        //       default:
+        //         classModuleValue = classModuleExpr.toString();
+        //         break;
+        //     }
+        //     const prevValue = context[op.key];
+        //     const nextValue: string[] = [];
+
+        //     (context as any)[op.key] = nextValue;
+
+        //     const elt = nodeStack.head as HTMLElement;
+        //     const classList = elt.classList;
+        //     if (prevValue instanceof Array) {
+        //       for (let i = 0, len = prevValue.length; i < len; i++) {
+        //         classList.remove(prevValue[i]);
+        //       }
+        //     }
+        //     const classes = op.classes;
+        //     if (classModuleValue instanceof Array) {
+        //       for (let i = 0, len = classModuleValue.length; i < len; i++) {
+        //         const x = classModuleValue[i];
+        //         const cls = classes ? classes[x] : x;
+        //         classList.add(cls);
+        //         nextValue.push(cls);
+        //       }
+        //     } else if (classModuleValue) {
+        //       const cls = classes
+        //         ? classes[classModuleValue]
+        //         : classModuleValue;
+        //       classList.add(cls);
+        //       nextValue.push(cls);
+        //     }
+        //   }
+        //   break;
+
+        case DomOperationType.SetTextContent:
+          const setContentExpr = op.expression;
+          let propertyValue: any;
+
+          switch (setContentExpr.type) {
+            case ExpressionType.Init:
+              //   const initResult = setContentExpr.init(data, {
+              //     node: nodeStack.head,
+              //     data,
+              //   });
+              //   if (isExpression(initResult)) {
+              //     operationStack = {
+              //       head: {
+              //         key: curr.key,
+              //         type: DomOperationType.SetTextContent,
+              //         expression: initResult,
+              //       },
+              //       tail: operationStack,
+              //     };
+              //   } else if (initResult) {
+              //     if (curr.textNodeIndex !== undefined) {
+              //       nodeStack.head.childNodes[curr.textNodeIndex].textContent =
+              //         initResult;
+              //     } else {
+              //       nodeStack.head.textContent = initResult;
+              //     }
+              //   }
+              break;
+            case ExpressionType.Property:
+              propertyValue = context[setContentExpr.name];
+              break;
+            // case ExpressionType.State:
+            //   const { state } = setContentExpr;
+            //   const textNode = curr.isExclusive
+            //     ? nodeStack.head
+            //     : nodeStack.head.childNodes[curr.textNodeIndex];
+            //   const stateSubs = state.subscribe({
+            //     next(newValue: any) {
+            //       const { textNode } = this;
+            //       textNode.textContent = newValue;
+            //     },
+            //     textNode: textNode as Text,
+            //   });
+            //   if (stateSubs)
+            //     if (context.subscriptions)
+            //       context.subscriptions.push(stateSubs);
+            //     else context.subscriptions = [stateSubs];
+            //   break;
+          }
+
+          // if (propertyValue !== context[op.key]) {
+          // (context as any)[op.key] = propertyValue;
+
+          if (op.isExclusive) {
+            (context as any)[op.nodeKey] = nodeStack.head;
+            (nodeStack.head as HTMLElement).textContent = propertyValue ?? '';
+          } else {
+            let textNodeIndex = +op.textNodeIndex;
+            let textNode = nodeStack.head.firstChild as Text;
+            while (textNodeIndex--) {
+              textNode = textNode.nextSibling as Text;
+            }
+            (context as any)[op.nodeKey] = textNode;
+            textNode.data = propertyValue ?? '';
+          }
+          // }
+
+          break;
+        case DomOperationType.Renderable:
+          const binding: null | Disposable | JSX.Unsubscribable =
+            op.renderable.render(nodeStack.head, { data: context });
+          if (binding) {
+            if ('dispose' in binding && binding.dispose instanceof Function)
+              if (context.bindings) context.bindings.push(binding);
+              else context.bindings = [binding];
+            else if (
+              'unsubscribe' in binding &&
+              binding.unsubscribe instanceof Function
+            ) {
+              if (context.subscriptions) context.subscriptions.push(binding);
+              else context.subscriptions = [binding];
+            }
+          }
+          break;
+        default:
+          console.error(op);
+          break;
+      }
     }
   }
 }
 
-export interface ExecuteContext<T = any> {
-  bindings: Disposable[];
-  subscriptions: JSX.Unsubscribable[];
-  elements: HTMLElement[];
-  data: T;
-  push(node: Node, name: string, handler: Function): void;
-}
-
-interface Stack<T> {
-  head: T;
-  tail: Stack<T> | null;
-}
-
-function arrayToStack<T>(arr: T[]): Stack<T> | null {
-  let stack: Stack<T> | null = null;
-  for (let i = arr.length - 1; i >= 0; i--) {
-    stack = {
-      head: arr[i],
-      tail: stack,
-    };
-  }
-  return stack;
-}
+type Stack<T> = { [i: number]: T } & { head: T; length: number };

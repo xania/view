@@ -5,6 +5,7 @@ export interface RenderContext<T> {
 }
 
 export interface RenderTarget {
+  firstChild: Node['firstChild'];
   childNodes: ArrayLike<Node>;
   removeChild(node: Node): void;
   appendChild(node: Node): void;

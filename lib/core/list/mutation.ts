@@ -1,6 +1,7 @@
 ﻿export enum ListMutationType {
   Push,
   DeleteAt,
+  Delete,
   Flush,
   Filter,
   Insert,
@@ -11,14 +12,15 @@
   Update,
 }
 
-interface ListUpdateMutation {
+export interface ListUpdateMutation<T> {
   type: ListMutationType.Update;
-  offset: number;
-  length: number;
+  items: ArrayLike<T>;
 }
 
-interface ListClearMutation {
+export interface ListClearMutation<T> {
   type: ListMutationType.Clear;
+  firstItem: T;
+  lastItem: T;
 }
 
 interface ListAppendMutation<T> {
@@ -37,6 +39,11 @@ interface ListDeleteAtMutation {
   index: number;
 }
 
+export interface ListDeleteMutation<T> {
+  type: ListMutationType.Delete;
+  item: T;
+}
+
 interface ListFilterMutation<T> {
   type: ListMutationType.Filter;
   predicate: (t: T) => boolean;
@@ -52,66 +59,20 @@ interface ListTruncateMutation {
   length: number;
 }
 
-interface ListMoveMutation {
+export interface ListMoveMutation<T> {
   type: ListMutationType.Move;
-  from: number;
-  to: number;
+  item: T;
+  beforeItem: T;
 }
 
 export type ListMutation<T> =
   | ListAppendMutation<T>
   | ListDeleteAtMutation
+  | ListDeleteMutation<T>
   | ListFilterMutation<T>
   | ListInsertMutation<T>
-  | ListClearMutation
+  | ListClearMutation<T>
   | ListConcatMutation<T>
   | ListTruncateMutation
-  | ListMoveMutation
-  | ListUpdateMutation;
-
-/*
-  
-enum ArrayMutationType {
-  Move,
-  Insert,
-  Concat,
-  Truncate,
-  RemoveAt,
-}
-
-interface MoveMutation<T> {
-  type: ArrayMutationType.Move;
-  value: T;
-  from: number;
-  to: number;
-}
-
-interface InsertMutation<T> {
-  type: ArrayMutationType.Insert;
-  value: T;
-  index: number;
-}
-
-interface PushMutation<T> {
-  type: ArrayMutationType.Concat;
-  values: T[];
-}
-
-interface TruncateMutation {
-  type: ArrayMutationType.Truncate;
-  length: number;
-}
-
-interface RemoveAtMutation {
-  type: ArrayMutationType.RemoveAt;
-  index: number;
-}
-
-type ArrayMutation<T> =
-  | MoveMutation<T>
-  | PushMutation<T>
-  | InsertMutation<T>
-  | RemoveAtMutation
-  | TruncateMutation;
-
-  */
+  | ListMoveMutation<T>
+  | ListUpdateMutation<T>;

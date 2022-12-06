@@ -15,6 +15,7 @@
     "moduleResolution": "node",
     "target": "ES2015",
     "esModuleInterop": true,
-    "typeRoots": ["types"]
+    "typeRoots": ["types"],
+    "baseUrl": "./"
   }
 }

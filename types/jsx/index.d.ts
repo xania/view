@@ -88,7 +88,7 @@ declare module JSX {
     expression: Expression<T, U>;
   }
 
-  interface EventContext<T, TEvent> extends ViewContext<T> {
+  interface EventContext<T, TEvent = any> extends ViewContext<T> {
     event: TEvent;
   }
 
@@ -98,6 +98,7 @@ declare module JSX {
     Function = 2,
     State = 3,
     Subscribable = 4,
+    Curry = 5,
   }
 
   export interface ViewContext<T> {
@@ -113,6 +114,7 @@ declare module JSX {
   export interface PropertyExpression {
     type: ExpressionType.Property;
     name: string | number | symbol;
+    readonly: boolean;
   }
 
   export interface FunctionExpression<T, U = string> {
@@ -131,6 +133,16 @@ declare module JSX {
     subscribable: Subscribable<U>;
   }
 
+  export interface StateCurryExpression<T, S, U> {
+    type: ExpressionType.Curry;
+    stateCurry: {
+      state: { snapshot: S };
+      combine(state: S, context: T): U;
+    };
+  }
+
+  interface StateCurry {}
+
   export type Template = {};
 
   export type Expression<T = any, U = any> =
@@ -138,7 +150,8 @@ declare module JSX {
     | PropertyExpression
     | FunctionExpression<T, U>
     | StateExpression<U>
-    | SubscribableExpression<U>;
+    | SubscribableExpression<U>
+    | StateCurryExpression<T, any, U>;
 
   export interface Unsubscribable {
     unsubscribe(): void;

@@ -1,3 +1,2 @@
 ﻿export * from './subscribe';
-export * from './map';
-// export * from './update';
+export * from './notify';

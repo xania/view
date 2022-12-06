@@ -1,6 +1,6 @@
 ﻿import { Renderable, RenderTarget } from '../jsx';
-import { createExecuteContext, JsxElement } from '../jsx/element';
-import { execute } from '../render/execute';
+import { JsxElement } from '../jsx/element';
+import { ExecuteContext } from '../render/execute-context';
 
 export interface IfProps {
   condition: JSX.Subscribable<boolean>;
@@ -11,7 +11,7 @@ export function If<T>(props: IfProps, children: Renderable<T>[]) {
     render(target: RenderTarget) {
       const { condition } = props;
 
-      const executeContext = createExecuteContext(target, null);
+      const executeContext: ExecuteContext = {};
 
       var sub = condition.subscribe({
         next(b) {
@@ -20,23 +20,38 @@ export function If<T>(props: IfProps, children: Renderable<T>[]) {
               if (child instanceof JsxElement) {
                 const root = child.templateNode.cloneNode(true) as HTMLElement;
                 executeContext.elements.push(root);
-                execute(child.content, root, executeContext);
+                // execute(child.content, root, executeContext);
                 target.appendChild(root);
               }
             }
           } else {
-            for (const binding of executeContext.bindings) {
-              binding.dispose();
+            const { bindings, subscriptions, rootElement, moreRootElements } =
+              executeContext;
+            if (bindings) {
+              for (const binding of bindings) {
+                binding.dispose();
+              }
+              bindings.length = 0;
             }
-            executeContext.bindings.length = 0;
-            for (const subscription of executeContext.subscriptions) {
-              subscription.unsubscribe();
+
+            if (subscriptions) {
+              for (const subscription of subscriptions) {
+                subscription.unsubscribe();
+              }
+              subscriptions.length = 0;
             }
-            executeContext.subscriptions.length = 0;
-            for (const elt of executeContext.elements) {
-              elt.remove();
+
+            if (rootElement) {
+              rootElement.remove();
+              executeContext.rootElement = undefined;
             }
-            executeContext.elements.length = 0;
+
+            if (moreRootElements) {
+              for (const elt of moreRootElements) {
+                elt.remove();
+              }
+              moreRootElements.length = 0;
+            }
           }
         },
       });

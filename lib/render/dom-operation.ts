@@ -1,4 +1,4 @@
-import { Renderable } from '../jsx';
+import { Deferred, Renderable } from '../jsx';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -7,32 +7,38 @@ export enum DomOperationType {
   PopNode,
   SetAttribute,
   SetClassName,
+  SetClassModule,
   SetTextContent,
   Renderable,
-  AddEventListener,
   AppendChild,
-  SelectNode,
+  Deferred,
+  Clone,
+}
+
+export interface DeferredOperation<TContext> {
+  type: DomOperationType.Deferred;
+  deferred: Deferred<TContext, any>;
+  operation: DomOperationType.SetClassName;
+  nodeKey: symbol;
+  valueKey: symbol;
 }
 
 export interface PushFirstChildOperation {
-  key: symbol;
   type: DomOperationType.PushFirstChild;
 }
 export interface PushNextSiblingOperation {
-  key: symbol;
   type: DomOperationType.PushNextSibling;
+  offset: number;
 }
 export interface PushChildOperation {
-  key: symbol;
   type: DomOperationType.PushChild;
   index: number;
 }
 export interface PopNodeOperation {
-  key: symbol;
   type: DomOperationType.PopNode;
+  index: number;
 }
 export interface SetAttributeOperation {
-  key: symbol;
   type: DomOperationType.SetAttribute;
   name: string;
   expression: JSX.Expression;
@@ -43,37 +49,65 @@ export interface SetClassNameOperation {
   type: DomOperationType.SetClassName;
   expressions?: JSX.Expression[];
   expression: JSX.Expression<any, any>;
-  classes?: { [k: string]: string };
-}
-export interface SetTextContentOperation {
-  key: symbol;
-  type: DomOperationType.SetTextContent;
-  expression: JSX.Expression;
-  textNodeIndex?: number;
 }
 
-export interface RenderableOperation<T> {
+export interface SetClassModuleOperation {
   key: symbol;
+  type: DomOperationType.SetClassModule;
+  expressions?: JSX.Expression[];
+  expression: JSX.Expression<any, any>;
+  classes?: { [k: string]: string };
+}
+
+interface SetExclusiveTextContentOperation {
+  key: symbol;
+  nodeKey: symbol;
+  type: DomOperationType.SetTextContent;
+  expression: JSX.Expression;
+  isExclusive: true;
+}
+
+export interface SetSharedTextContentOperation {
+  key: symbol;
+  nodeKey: symbol;
+  type: DomOperationType.SetTextContent;
+  expression: JSX.Expression;
+  textNodeIndex: number;
+  isExclusive: false;
+}
+
+export type SetTextContentOperation =
+  | SetExclusiveTextContentOperation
+  | SetSharedTextContentOperation;
+
+export interface RenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
 }
 
-export interface AddEventListenerOperation {
-  key: symbol;
-  type: DomOperationType.AddEventListener;
-  name: string;
-  handler: Function;
-}
-
 export interface AppendChildOperation {
-  key: symbol;
   type: DomOperationType.AppendChild;
   node: Node;
 }
 
-export interface SelectNodeOperation {
-  key: symbol;
-  type: DomOperationType.SelectNode;
+// export interface SelectRootOperation {
+//   type: DomOperationType.SelectRoot;
+//   index: number;
+//   dependency: string | number | symbol;
+//   key: symbol;
+// }
+
+// export interface UpdateRootOperation<TContext, TState, TResult = any> {
+//   type: DomOperationType.UpdateRoot;
+//   index: number;
+//   state: TState;
+//   combine: JsxContext<TState, TContext, TResult>['combine'];
+//   key: symbol;
+// }
+
+export interface CloneOperation {
+  type: DomOperationType.Clone;
+  templateNode: Node;
 }
 
 export type DomNavigationOperation =
@@ -85,14 +119,17 @@ export type DomNavigationOperation =
 export type DomRenderOperation<T> =
   | SetAttributeOperation
   | SetClassNameOperation
+  | SetClassModuleOperation
   | SetTextContentOperation
   | RenderableOperation<T>
   | AppendChildOperation
-  | SelectNodeOperation;
-
-export type DomEventOperation = AddEventListenerOperation;
+  | DeferredOperation<T>;
 
 export type DomOperation<T> =
   | DomNavigationOperation
-  | AddEventListenerOperation
-  | DomRenderOperation<T>;
+  | DomRenderOperation<T>
+  | CloneOperation;
+
+(window as any)['operationName'] = function (op: DomOperation<any>) {
+  return DomOperationType[op.type];
+};

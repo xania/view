@@ -1,11 +1,12 @@
 ﻿import {
-  AddEventListenerOperation,
+  CloneOperation,
   DomNavigationOperation,
-  DomOperation,
   DomOperationType,
   DomRenderOperation,
+  DeferredOperation,
   SetAttributeOperation,
   SetClassNameOperation,
+  SetSharedTextContentOperation,
   SetTextContentOperation,
 } from '../render/dom-operation';
 import { JsxFactoryOptions } from './factory';
@@ -13,16 +14,19 @@ import { flatten } from './_flatten';
 import { ExpressionType } from './expression';
 import { TemplateInput } from './template-input';
 import { isRenderable, RenderTarget } from './renderable';
-import { Disposable, disposeAll } from '../disposable';
-import { execute, ExecuteContext } from '../render/execute';
+import { disposeAll } from '../disposable';
+import { execute } from '../render/execute';
 import { State } from '../state';
 import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
+import { JsxEvent, listen } from '../render/listen';
+import { Deferred } from './context';
+import { ExecuteContext } from '../render/execute-context';
 
 export class JsxElement {
   public templateNode: HTMLElement;
-  public content: DomContentOperation<any>[] = [];
-  public updates: DomUpdateOperation[] = [];
+  public contentOps: DomContentOperation<any>[] = [];
+  public events: JsxEvent[] = [];
 
   constructor(public name: string) {
     this.templateNode = document.createElement(name);
@@ -43,69 +47,50 @@ export class JsxElement {
 
     if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
       if (attrValue instanceof Function) {
-        this.content.push({
-          key: Symbol(),
-          type: DomOperationType.AddEventListener,
+        this.events.push({
           name: attrName,
           handler: attrValue,
+          nav: [],
         });
       }
     } else if (attrName === 'class') {
       for (const item of flatten(attrValue)) {
-        if (item instanceof Function) {
-          this.content.push({
-            key: Symbol(),
-            type: DomOperationType.SetClassName,
-            expression: {
-              type: ExpressionType.Init,
-              init: item as any,
-            },
-            classes: options?.classes,
-          });
-        } else if (typeof item === 'string') {
+        if (typeof item === 'string') {
           const classes = options?.classes;
           for (const cls of item.split(' ')) {
             if (cls) node.classList.add((classes && classes[cls]) || cls);
           }
-        } else if (isSubscribable(item)) {
-          this.content.push({
-            key: Symbol(),
-            type: DomOperationType.SetClassName,
-            expression: {
-              type: ExpressionType.State,
-              state: item,
-            },
-            classes: options?.classes,
+        } else if (item instanceof Deferred) {
+          this.contentOps.push({
+            type: DomOperationType.Deferred,
+            nodeKey: Symbol(),
+            valueKey: Symbol(),
+            deferred: item,
+            operation: DomOperationType.SetClassName,
           });
-        } else if (item instanceof State) {
-          this.content.push({
-            key: Symbol(),
-            type: DomOperationType.SetClassName,
-            expression: {
-              type: ExpressionType.State,
-              state: item,
-            },
-            classes: options?.classes,
-          });
-        } else if (isTemplate(item)) {
-          switch (item.type) {
-            case TemplateType.Expression:
-              const op: DomUpdateOperation = {
+        } else {
+          const expr = toExpression(item);
+          if (expr) {
+            const classes = options?.classes;
+            if (classes) {
+              this.contentOps.push({
+                key: Symbol(),
+                type: DomOperationType.SetClassModule,
+                classes: classes,
+                expression: expr,
+              });
+            } else {
+              this.contentOps.push({
                 key: Symbol(),
                 type: DomOperationType.SetClassName,
-                expression: item.expr,
-                classes: options?.classes,
-              };
-              this.content.push(op);
-              if (item.expr.type === ExpressionType.Property)
-                this.updates.push(op);
-              break;
+                expression: expr,
+              });
+            }
           }
         }
       }
     } else if (isSubscribable(attrValue)) {
-      this.content.push({
-        key: Symbol(),
+      this.contentOps.push({
         type: DomOperationType.SetAttribute,
         name: attrName,
         expression: {
@@ -116,8 +101,7 @@ export class JsxElement {
     } else if (isTemplate(attrValue)) {
       switch (attrValue.type) {
         case TemplateType.Expression:
-          this.content.push({
-            key: Symbol(),
+          this.contentOps.push({
             type: DomOperationType.SetAttribute,
             name: attrName,
             expression: attrValue.expr,
@@ -133,31 +117,45 @@ export class JsxElement {
     if (!(children instanceof Array)) return;
 
     const { templateNode } = this;
-    const createTextNodes =
-      children.length > 0 || templateNode.childNodes.length > 0;
 
-    const addTextContentExpr = (
-      expr: JSX.Expression,
-      operations: DomOperation<any>[],
-      createNode: boolean = true
-    ) => {
-      if (createTextNodes) {
-        const textNodeIndex = templateNode.childNodes.length;
-        if (createNode) {
-          const textNode = document.createTextNode('');
-          templateNode.appendChild(textNode);
-        }
-        operations.push({
+    const addTextContentExpr = (expr: JSX.Expression) => {
+      const { contentOps: content } = this;
+
+      const precedingContentOps = content.filter(
+        (c) => c.type === DomOperationType.SetTextContent
+      );
+
+      if (precedingContentOps.length === 0) {
+        this.contentOps.push({
           key: Symbol(),
+          nodeKey: Symbol(),
           type: DomOperationType.SetTextContent,
           expression: expr,
-          textNodeIndex: textNodeIndex,
+          isExclusive: true,
         });
       } else {
-        operations.push({
+        if (precedingContentOps.length === 1) {
+          const firstContentOp =
+            precedingContentOps[0] as SetSharedTextContentOperation;
+          if (firstContentOp.type === DomOperationType.SetTextContent) {
+            const textNodeIndex = templateNode.childNodes.length;
+            const textNode = document.createTextNode('');
+            templateNode.appendChild(textNode);
+            firstContentOp.isExclusive = false;
+            firstContentOp.textNodeIndex = textNodeIndex;
+          }
+        }
+        const textNodeIndex = templateNode.childNodes.length;
+        const textNode = document.createTextNode('');
+        templateNode.appendChild(textNode);
+
+        content.push({
           key: Symbol(),
+          nodeKey: Symbol(),
           type: DomOperationType.SetTextContent,
           expression: expr,
+          isExclusive: false,
+          textNodeIndex: textNodeIndex,
         });
       }
     };
@@ -173,18 +171,14 @@ export class JsxElement {
           this.appendContent([resolved, ...nextChildren]);
         });
       } else if (child instanceof State) {
-        addTextContentExpr(
-          {
-            type: ExpressionType.State,
-            state: child,
-          },
-          this.content
-        );
+        addTextContentExpr({
+          type: ExpressionType.State,
+          state: child,
+        });
       } else if (child instanceof Node) {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
-        this.content.push({
-          key: Symbol(),
+        this.contentOps.push({
           type: DomOperationType.Renderable,
           renderable: {
             child: child as { attachTo: Function },
@@ -197,26 +191,19 @@ export class JsxElement {
           },
         });
       } else if (child instanceof Function) {
-        addTextContentExpr(
-          {
-            type: ExpressionType.Init,
-            init: child as any,
-          },
-          this.content
-        );
+        addTextContentExpr({
+          type: ExpressionType.Init,
+          init: child as any,
+        });
       } else if (isRenderable(child)) {
-        this.content.push({
-          key: Symbol(),
+        this.contentOps.push({
           type: DomOperationType.Renderable,
           renderable: child,
         });
       } else if (isTemplate(child)) {
         switch (child.type) {
           case TemplateType.Expression:
-            if (child.expr.type === ExpressionType.Property) {
-              addTextContentExpr(child.expr, this.updates, false);
-            }
-            addTextContentExpr(child.expr, this.content);
+            addTextContentExpr(child.expr);
             break;
           case TemplateType.Attribute:
             const result = this.setProp(child.name, child.value, child.options);
@@ -229,18 +216,15 @@ export class JsxElement {
             break;
         }
       } else if (isSubscribable(child)) {
-        addTextContentExpr(
-          {
-            type: ExpressionType.State,
-            state: child,
-          },
-          this.content
-        );
+        addTextContentExpr({
+          type: ExpressionType.State,
+          state: child,
+        });
       } else {
         if (
           templateNode.textContent ||
           templateNode.childNodes.length ||
-          this.content.length
+          this.contentOps.length
         ) {
           const textNode = document.createTextNode(child as any);
           templateNode.appendChild(textNode);
@@ -252,33 +236,30 @@ export class JsxElement {
   }
 
   appendElement(tag: JsxElement) {
-    const { templateNode: node } = this;
-    if (tag.content.length > 0) {
-      this.content.push({
-        key: Symbol(),
-        type: DomOperationType.PushChild,
-        index: node.childNodes.length,
-      });
-      for (const op of tag.content) {
-        this.content.push(op);
+    const { templateNode: node, contentOps: content } = this;
+    const childIndex = node.childNodes.length;
+    if (tag.contentOps.length > 0) {
+      pushChildAt(content, childIndex);
+      for (let i = 0; i < tag.contentOps.length; i++) {
+        this.contentOps.push(tag.contentOps[i]);
       }
-      this.content.push({
-        key: Symbol(),
+      this.contentOps.push({
         type: DomOperationType.PopNode,
+        index: childIndex,
       });
     }
-    if (tag.updates.length > 0) {
-      this.updates.push({
-        key: Symbol(),
-        type: DomOperationType.PushChild,
-        index: node.childNodes.length,
-      });
-      for (const op of tag.updates) {
-        this.updates.push(op);
-      }
-      this.updates.push({
-        key: Symbol(),
-        type: DomOperationType.PopNode,
+
+    for (const ev of tag.events) {
+      this.events.push({
+        name: ev.name,
+        nav: [
+          {
+            type: DomOperationType.PushChild,
+            index: childIndex,
+          },
+          ...ev.nav,
+        ],
+        handler: ev.handler,
       });
     }
 
@@ -286,106 +267,102 @@ export class JsxElement {
   }
 
   render(target: RenderTarget) {
-    const root = this.templateNode.cloneNode(true) as HTMLElement;
-    const bindings: ExecuteContext['bindings'] = [];
-    const subscriptions: ExecuteContext['subscriptions'] = [];
+    const context: ExecuteContext = {};
+    const cloneOp: CloneOperation = {
+      type: DomOperationType.Clone,
+      templateNode: this.templateNode,
+    };
+    // createEventListener(target);
 
-    target.appendChild(root);
-    execute(this.content, root, createExecuteContext(target, null));
+    for (const ev of this.events) {
+      listen(target, ev);
+    }
+
+    execute([cloneOp, ...this.contentOps], [context]);
+
+    if (context.rootElement) target.appendChild(context.rootElement);
 
     return {
       dispose() {
-        disposeAll(bindings);
-        root.remove();
-        for (const sub of subscriptions) {
-          sub.unsubscribe();
-        }
+        if (context.bindings) disposeAll(context.bindings);
+        if (context.rootElement) context.rootElement.remove();
+        if (context.moreRootElements)
+          for (const root of context.moreRootElements) root.remove();
+        if (context.subscriptions)
+          for (const sub of context.subscriptions) {
+            sub.unsubscribe();
+          }
       },
     };
   }
 }
 
-type DomUpdateOperation =
-  | DomNavigationOperation
-  | SetTextContentOperation
-  | SetClassNameOperation;
-
 type DomContentOperation<T> =
   | DomNavigationOperation
   | SetTextContentOperation
   | DomRenderOperation<T>
-  | DomNavigationOperation
   | SetAttributeOperation
   | SetClassNameOperation
-  | AddEventListenerOperation;
+  | DeferredOperation<T>;
 
 export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
 
-export function createExecuteContext<T>(target: RenderTarget, values?: T) {
-  const bindings: Disposable[] = [];
-  const subscriptions: JSX.Unsubscribable[] = [];
-  const elements: Node[] = [];
+function pushChildAt(
+  operations: DomContentOperation<any>[],
+  childIndex: number
+) {
+  if (childIndex === 0) {
+    operations.push({ type: DomOperationType.PushFirstChild });
+    return;
+  }
+  const length = operations.length;
+  if (length > 2) {
+    const op = operations[length - 1];
+    if (op.type === DomOperationType.PopNode) {
+      const previousChildIndex = op.index;
+      operations.pop();
+      operations.push({
+        type: DomOperationType.PushNextSibling,
+        offset: childIndex - previousChildIndex,
+      });
 
-  return {
-    bindings,
-    subscriptions,
-    elements,
-    data: new State(values),
-    push: createEventHandler(target),
-  } as ExecuteContext<T>;
+      return;
+    }
+  }
+
+  operations.push({
+    type: DomOperationType.PushChild,
+    index: childIndex,
+  });
 }
 
-export function createEventHandler(target: RenderTarget) {
-  const events: {
-    [k: string]: {
-      context: ExecuteContext<any>;
-      node: Node;
-      handler: (evnt: EventContext<any, any>) => any;
-    }[];
-  } = {};
-
-  return function pushHandler<T>(
-    this: ExecuteContext<T>,
-    node: Node,
-    name: string,
-    handler: (evnt: EventContext<T, any>) => any
-  ) {
-    const context = this;
-    if (name === 'blur') {
-      node.addEventListener(name, function (event: Event) {
-        handler({
-          node,
-          event,
-          data: context.data,
-        });
-      });
-    } else if (name in events) {
-      events[name].push({ context, node, handler });
-    } else {
-      events[name] = [{ context, node, handler }];
-      target.addEventListener(name, function (event: Event) {
-        let closest = event.target as HTMLElement | null;
-        const nodes = events[event.type];
-        while (closest) {
-          for (const pair of nodes) {
-            if (pair.node === closest) {
-              pair.handler({
-                node: closest,
-                data: pair.context.data,
-                event,
-              });
-            }
-          }
-          if (target instanceof Node) {
-            if (target === closest.parentElement) break;
-          } else {
-            for (const i in target.childNodes) {
-              if (target.childNodes[i] === closest) break;
-            }
-          }
-          closest = closest.parentElement;
-        }
-      });
+function toExpression(item: any): JSX.Expression | null {
+  if (item instanceof Function) {
+    return {
+      type: ExpressionType.Init,
+      init: item as any,
+    };
+  } else if (isSubscribable(item)) {
+    return {
+      type: ExpressionType.State,
+      state: item,
+    };
+  } else if (item instanceof State) {
+    return {
+      type: ExpressionType.State,
+      state: item,
+    };
+  } else if (isTemplate(item)) {
+    switch (item.type) {
+      case TemplateType.Expression:
+        return item.expr;
     }
-  };
+  }
+
+  // addTextContentExpr({
+  //   type: ExpressionType.Curry,
+  //   stateCurry: child,
+  // });
+
+  return null;
 }

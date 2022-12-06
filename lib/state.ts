@@ -85,7 +85,7 @@ abstract class Value<T> implements JSX.Value<T> {
 }
 
 export class State<T> extends Value<T> {
-  constructor(snapshot: T, public flush = (dirty: DirtyItem) => _flush(dirty)) {
+  constructor(snapshot: T, public flush = _flush) {
     super(snapshot);
   }
 
@@ -162,10 +162,12 @@ export function _flush(item: DirtyItem) {
   }
 
   const dirty = digest(items);
-  for (const o of dirty as any) {
+  let dirtyLength = dirty.length;
+  while (dirtyLength--) {
+    const o = dirty[dirtyLength] as any;
     o.next(o[_previous]);
   }
-  return dirty.length > 0;
+  return dirtyLength > 0;
 }
 
 export type DirtyItem = {
@@ -183,9 +185,11 @@ export function digest(root: DirtyItem[]) {
   const dirty: { value?: any; observers: JSX.NextObserver<any>[] }[] = [];
 
   const rootDep: Dependency = { list: null };
-  for (const r of root) stack.push([r, rootDep]);
 
-  while (stack.length) {
+  for (let i = 0, len = root.length | 0; i < len; i++)
+    stack.push([root[i], rootDep]);
+
+  while (stack.length | 0) {
     let [state, parentdependency] = stack.pop() as StackItem;
 
     const newValue = state.snapshot;
@@ -193,18 +197,22 @@ export function digest(root: DirtyItem[]) {
     let currdep: Dependency = { list: null };
     if (newValue !== oldValue) {
       state[_previous] = newValue;
-      if (state.observers && state.observers.length) {
-        for (const o of state.observers as any) {
+      const { observers } = state;
+      if (observers) {
+        let observerLen = observers.length | 0;
+        while (observerLen--) {
+          const o = observers[observerLen] as any;
           o[_previous] = newValue;
           dirty.push(o);
         }
       }
       let list = parentdependency.list;
       while (list) {
-        for (const o of list.head.observers as any) {
-          o[_previous] = newValue;
-          dirty.push(o);
-        }
+        if (list.head.observers)
+          for (const o of list.head.observers as any) {
+            o[_previous] = newValue;
+            dirty.push(o);
+          }
         list = list.tail;
       }
       parentdependency.list = null;

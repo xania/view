@@ -1,6 +1,7 @@
 ﻿import { RenderTarget } from '../jsx/renderable';
 
 export class AnchorTarget implements RenderTarget {
+  firstChild: ChildNode | null;
   childNodes: ArrayLike<Node>;
   anchorElt: Comment;
 
@@ -9,13 +10,19 @@ export class AnchorTarget implements RenderTarget {
    */
   constructor(public parent: RenderTarget) {
     this.childNodes = parent.childNodes;
-    this.anchorElt = document.createComment('anchor');
+    this.anchorElt = this.firstChild = document.createComment('anchor');
+
     parent.appendChild(this.anchorElt);
   }
   removeChild(node: Node): void {
+    if (node === this.firstChild) {
+      this.firstChild = node.nextSibling;
+    }
     this.parent.removeChild(node);
   }
   appendChild(node: Node): void {
+    const { firstChild } = this;
+    if (firstChild === null) this.firstChild = node as ChildNode;
     this.parent.insertBefore(node, this.anchorElt);
   }
   addEventListener(): void {
