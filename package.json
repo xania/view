@@ -1,20 +1,26 @@
 {
-  "version": "0.4.6",
+  "version": "0.4.8",
   "license": "MIT",
-  "main": "dist/es2015/index.js",
-  "module": "lib/index.ts",
+  "main": "./dist/main.js",
+  "module": "./dist/main.mjs",
+  "typings": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/main.mjs",
+      "require": "./dist/main.js"
+    }
+  },
   "private": false,
   "files": [
     "types",
-    "dist",
-    "lib"
+    "dist"
   ],
   "engines": {
     "node": ">=10"
   },
   "scripts": {
-    "start": "npx webpack -w --mode=development",
-    "build": "npx tsc && npx webpack --mode=development",
+    "start": "npx vite",
+    "build": "npx vite build",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
@@ -28,17 +34,14 @@
   "name": "@xania/view",
   "author": "Ibrahim ben Salah",
   "devDependencies": {
-    "mini-css-extract-plugin": "2.4.4",
+    "@rollup/plugin-typescript": "^10.0.1",
+    "rollup-plugin-typescript-paths": "^1.4.0",
     "sass": "1.43.4",
-    "ts-loader": "9.3.1",
     "tslib": "^1.11.1",
-    "typescript": "^4.5.4",
-    "webpack": "5.64.0",
-    "webpack-cli": "^4.9.1"
+    "typescript": "^4.5.4"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xania/view.git"
-  },
-  "peerDependencies": {}
+  }
 }
