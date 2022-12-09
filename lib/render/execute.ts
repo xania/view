@@ -266,7 +266,17 @@ export function execute<TExecuteContext extends ExecuteContext>(
 
         case DomOperationType.SetTextContent:
           const setContentExpr = op.expression;
-          let propertyValue: any;
+          let textNode: Node;
+          if (op.isExclusive) {
+            textNode = nodeStack.head;
+          } else {
+            let textNodeIndex = +op.textNodeIndex;
+            textNode = nodeStack.head.firstChild as Text;
+            while (textNodeIndex--) {
+              textNode = textNode.nextSibling as Text;
+            }
+          }
+          (context as any)[op.nodeKey] = textNode;
 
           switch (setContentExpr.type) {
             case ExpressionType.Init:
@@ -293,44 +303,24 @@ export function execute<TExecuteContext extends ExecuteContext>(
               //   }
               break;
             case ExpressionType.Property:
-              propertyValue = context[setContentExpr.name];
+              textNode.textContent = context[setContentExpr.name] ?? '';
               break;
-            // case ExpressionType.State:
-            //   const { state } = setContentExpr;
-            //   const textNode = curr.isExclusive
-            //     ? nodeStack.head
-            //     : nodeStack.head.childNodes[curr.textNodeIndex];
-            //   const stateSubs = state.subscribe({
-            //     next(newValue: any) {
-            //       const { textNode } = this;
-            //       textNode.textContent = newValue;
-            //     },
-            //     textNode: textNode as Text,
-            //   });
-            //   if (stateSubs)
-            //     if (context.subscriptions)
-            //       context.subscriptions.push(stateSubs);
-            //     else context.subscriptions = [stateSubs];
-            //   break;
+            case ExpressionType.State:
+              const { state } = setContentExpr;
+              textNode.textContent = (state as any)['snapshot'];
+              const stateSubs = state.subscribe({
+                textNode,
+                next(newValue) {
+                  this.textNode.textContent = newValue;
+                },
+              });
+              if (stateSubs) {
+                if (context.subscriptions)
+                  context.subscriptions.push(stateSubs);
+                else context.subscriptions = [stateSubs];
+              }
+              break;
           }
-
-          // if (propertyValue !== context[op.key]) {
-          // (context as any)[op.key] = propertyValue;
-
-          if (op.isExclusive) {
-            (context as any)[op.nodeKey] = nodeStack.head;
-            (nodeStack.head as HTMLElement).textContent = propertyValue ?? '';
-          } else {
-            let textNodeIndex = +op.textNodeIndex;
-            let textNode = nodeStack.head.firstChild as Text;
-            while (textNodeIndex--) {
-              textNode = textNode.nextSibling as Text;
-            }
-            (context as any)[op.nodeKey] = textNode;
-            textNode.data = propertyValue ?? '';
-          }
-          // }
-
           break;
         case DomOperationType.Renderable:
           const binding: null | Disposable | JSX.Unsubscribable =
