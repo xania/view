@@ -77,7 +77,6 @@ export function List<T extends ExecuteContext>(
           subscribe<any, any>(op.deferred, {
             next([item, newValue]: any) {
               if (!item) return;
-              console.log(op.deferred);
               const ref = (item as any)[op.nodeKey] as HTMLElement;
               const prevValue = item[op.valueKey];
               if (prevValue !== newValue) {

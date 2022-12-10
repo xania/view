@@ -3,6 +3,7 @@ import { ExpressionType } from '../jsx/expression';
 import { Disposable } from '../disposable';
 import { _context } from './symbols';
 import { ExecuteContext } from './execute-context';
+import { JsxElement } from '../jsx/element';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -161,31 +162,51 @@ export function execute<TExecuteContext extends ExecuteContext>(
             case ExpressionType.Property:
               classValue = context[classExpr.name];
               break;
-            // case ExpressionType.State:
-            //   const prev: string[] = [];
-            //   const subs = classExpr.state.subscribe({
-            //     prev,
-            //     classes,
-            //     elt: nodeStack.head as HTMLElement,
-            //     next(input) {
-            //       const s = input instanceof Function ? input(context) : input;
-            //       const { prev, classes, elt } = this;
-            //       for (const x of prev) {
-            //         elt.classList.remove(x);
-            //       }
-            //       prev.length = 0;
-            //       for (const x of flatten(s)) {
-            //         const cls = (classes && classes[x]) || x;
-            //         elt.classList.add(cls);
-            //         prev.push(cls);
-            //       }
-            //     },
-            //   });
-            //   if (subs)
-            //     if (context.subscriptions) context.subscriptions.push(subs);
-            //     else context.subscriptions = [subs];
-            //   break;
+            case ExpressionType.State:
+              const prev: string[] = [];
+              const subs = classExpr.state.subscribe({
+                prev,
+                classes: op.classes,
+                elt: nodeStack.head as HTMLElement,
+                next(input) {
+                  const s = input instanceof Function ? input(context) : input;
+                  const { prev, classes, elt } = this;
+                  for (const x of prev) {
+                    elt.classList.remove(x);
+                  }
+                  prev.length = 0;
+                  if (s instanceof Array) {
+                    const stack = [s];
+                    while (stack.length) {
+                      const curr = stack.pop();
+                      if (curr instanceof Array) {
+                        for (let i = 0, len = curr.length; i < len; i++) {
+                          stack.push(curr[i]);
+                        }
+                      } else if (curr) {
+                        const cls = classes ? classes[curr] : curr;
+                        elt.classList.add(cls);
+                        prev.push(cls);
+                      }
+                    }
+                  } else {
+                    const cls = classes ? classes[s] : s;
+                    elt.classList.add(cls);
+                    prev.push(cls);
+                  }
+                  // for (const x of flatten(s)) {
+                  //   const cls = (classes && classes[x]) || x;
+                  //   elt.classList.add(cls);
+                  //   prev.push(cls);
+                  // }
+                },
+              });
+              if (subs)
+                if (context.subscriptions) context.subscriptions.push(subs);
+                else context.subscriptions = [subs];
+              break;
             default:
+              console.error('not supported ', classExpr);
               classValue = classExpr.toString();
               // if (classExpr) {
               //   const elt = nodeStack.head as HTMLElement;
@@ -310,8 +331,27 @@ export function execute<TExecuteContext extends ExecuteContext>(
               textNode.textContent = (state as any)['snapshot'];
               const stateSubs = state.subscribe({
                 textNode,
+                disposePrev: undefined as Function | undefined,
                 next(newValue) {
-                  this.textNode.textContent = newValue;
+                  if (newValue instanceof JsxElement) {
+                    const { disposePrev, textNode } = this;
+                    if (disposePrev instanceof Function) {
+                      disposePrev();
+                    }
+                    const parent = textNode.parentElement;
+                    if (parent) {
+                      const execContext: ExecuteContext = {};
+                      const clone = newValue.templateNode.cloneNode(true);
+                      execute(newValue.contentOps, [execContext]);
+                      parent.insertBefore(clone, this.textNode);
+
+                      this.disposePrev = function () {
+                        parent.removeChild(clone);
+                      };
+                    }
+                  } else {
+                    this.textNode.textContent = newValue;
+                  }
                 },
               });
               if (stateSubs) {
@@ -339,7 +379,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
           }
           break;
         default:
-          console.error(op);
+          console.error('not supported', op);
           break;
       }
     }

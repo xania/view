@@ -4,12 +4,18 @@ import { isRenderable, RenderTarget } from '../jsx/renderable';
 import { AnchorTarget } from './anchor-target';
 import { TemplateInput } from '../jsx/template-input';
 import { flatten } from '../jsx/_flatten';
+import { JsxElement } from '../jsx/element';
+import { renderElement } from './render-element';
 
 export function render<T = any>(
   root: TemplateInput<T>,
   container: RenderTarget
 ): any {
   if (root === null || root === undefined) return root;
+
+  if (root instanceof JsxElement) {
+    return renderElement(root, container);
+  }
 
   if (root instanceof Array) {
     return flatten(root.map((elt) => render(elt, container)));

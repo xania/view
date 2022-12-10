@@ -15,7 +15,6 @@ import { ExpressionType } from './expression';
 import { TemplateInput } from './template-input';
 import { isRenderable, RenderTarget } from './renderable';
 import { disposeAll } from '../disposable';
-import { execute } from '../render/execute';
 import { State } from '../state';
 import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
@@ -71,21 +70,12 @@ export class JsxElement {
         } else {
           const expr = toExpression(item);
           if (expr) {
-            const classes = options?.classes;
-            if (classes) {
-              this.contentOps.push({
-                key: Symbol(),
-                type: DomOperationType.SetClassModule,
-                classes: classes,
-                expression: expr,
-              });
-            } else {
-              this.contentOps.push({
-                key: Symbol(),
-                type: DomOperationType.SetClassName,
-                expression: expr,
-              });
-            }
+            this.contentOps.push({
+              key: Symbol(),
+              type: DomOperationType.SetClassName,
+              expression: expr,
+              classes: options?.classes,
+            });
           }
         }
       }
@@ -131,7 +121,7 @@ export class JsxElement {
           nodeKey: Symbol(),
           type: DomOperationType.SetTextContent,
           expression: expr,
-          isExclusive: true,
+          // isExclusive: true,
         });
       } else {
         if (precedingContentOps.length === 1) {
@@ -264,36 +254,6 @@ export class JsxElement {
     }
 
     this.templateNode.appendChild(tag.templateNode);
-  }
-
-  render(target: RenderTarget) {
-    const context: ExecuteContext = {};
-    const cloneOp: CloneOperation = {
-      type: DomOperationType.Clone,
-      templateNode: this.templateNode,
-    };
-    // createEventListener(target);
-
-    for (const ev of this.events) {
-      listen(target, ev);
-    }
-
-    execute([cloneOp, ...this.contentOps], [context]);
-
-    if (context.rootElement) target.appendChild(context.rootElement);
-
-    return {
-      dispose() {
-        if (context.bindings) disposeAll(context.bindings);
-        if (context.rootElement) context.rootElement.remove();
-        if (context.moreRootElements)
-          for (const root of context.moreRootElements) root.remove();
-        if (context.subscriptions)
-          for (const sub of context.subscriptions) {
-            sub.unsubscribe();
-          }
-      },
-    };
   }
 }
 

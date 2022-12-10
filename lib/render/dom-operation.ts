@@ -7,7 +7,6 @@ export enum DomOperationType {
   PopNode,
   SetAttribute,
   SetClassName,
-  SetClassModule,
   SetTextContent,
   Renderable,
   AppendChild,
@@ -47,13 +46,6 @@ export interface SetAttributeOperation {
 export interface SetClassNameOperation {
   key: symbol;
   type: DomOperationType.SetClassName;
-  expressions?: JSX.Expression[];
-  expression: JSX.Expression<any, any>;
-}
-
-export interface SetClassModuleOperation {
-  key: symbol;
-  type: DomOperationType.SetClassModule;
   expressions?: JSX.Expression[];
   expression: JSX.Expression<any, any>;
   classes?: { [k: string]: string };
@@ -119,7 +111,6 @@ export type DomNavigationOperation =
 export type DomRenderOperation<T> =
   | SetAttributeOperation
   | SetClassNameOperation
-  | SetClassModuleOperation
   | SetTextContentOperation
   | RenderableOperation<T>
   | AppendChildOperation
