@@ -3,8 +3,8 @@ import { ExpressionType } from './expression';
 import { Template, TemplateType } from './template';
 
 export class Context<T> {
-  defer<U>(value: U) {
-    return new Deferred(value);
+  lazy<U>(value: U) {
+    return new Lazy(value);
   }
 
   readonly(name: keyof T) {
@@ -20,7 +20,7 @@ export class Context<T> {
   }
 }
 
-export class Deferred<T, U> {
+export class Lazy<T, U> {
   constructor(public value: U) {}
 
   select(context: T) {

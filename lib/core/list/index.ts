@@ -4,7 +4,7 @@ import { ListSource } from './list-source';
 import { ListMutationType } from './mutation';
 import {
   CloneOperation,
-  DeferredOperation,
+  LazyOperation,
   DomOperation,
   DomOperationType,
 } from '../../render/dom-operation';
@@ -32,7 +32,7 @@ export function List<T extends ExecuteContext>(
   const updateOperations: DomOperation<T>[] = [];
 
   let renderOperations: DomOperation<T>[] = [];
-  let deferredOperations: DeferredOperation<T>[] = [];
+  let lazyOperations: LazyOperation<T>[] = [];
   for (let child of _children) {
     if (child instanceof JsxElement) {
       const { contentOps } = child;
@@ -55,8 +55,8 @@ export function List<T extends ExecuteContext>(
           }
         }
 
-        if (op.type === DomOperationType.Deferred) {
-          deferredOperations.push(op);
+        if (op.type === DomOperationType.Lazy) {
+          lazyOperations.push(op);
         }
       }
     }
@@ -73,11 +73,11 @@ export function List<T extends ExecuteContext>(
       if (source instanceof Array) {
         renderChildren(source);
       } else if (source instanceof ListSource) {
-        for (const op of deferredOperations) {
-          subscribe<any, any>(op.deferred, {
+        for (const op of lazyOperations) {
+          subscribe<any, any>(op.lazy, {
             next([item, newValue]: any) {
               if (!item) return;
-              console.log(op.deferred);
+              console.log(op.lazy);
               const ref = (item as any)[op.nodeKey] as HTMLElement;
               const prevValue = item[op.valueKey];
               if (prevValue !== newValue) {

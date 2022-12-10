@@ -21,7 +21,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
     for (let operationIdx = 0; operationIdx < operationLen; operationIdx++) {
       const op = operations[operationIdx];
       switch (op.type) {
-        case DomOperationType.Deferred:
+        case DomOperationType.Lazy:
           (context as any)[op.nodeKey] = nodeStack.head;
           break;
         case DomOperationType.Clone:
@@ -317,18 +317,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
           // if (propertyValue !== context[op.key]) {
           // (context as any)[op.key] = propertyValue;
 
-          if (op.isExclusive) {
-            (context as any)[op.nodeKey] = nodeStack.head;
-            (nodeStack.head as HTMLElement).textContent = propertyValue ?? '';
-          } else {
-            let textNodeIndex = +op.textNodeIndex;
-            let textNode = nodeStack.head.firstChild as Text;
-            while (textNodeIndex--) {
-              textNode = textNode.nextSibling as Text;
-            }
-            (context as any)[op.nodeKey] = textNode;
-            textNode.data = propertyValue ?? '';
-          }
+          (context as any)[op.nodeKey] = nodeStack.head;
+          (nodeStack.head as HTMLElement).textContent = propertyValue ?? '';
           // }
 
           break;
