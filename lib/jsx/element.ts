@@ -1,13 +1,14 @@
 ﻿import {
+  AppendChildOperation,
   CloneOperation,
   DomNavigationOperation,
   DomOperationType,
   DomRenderOperation,
-  DeferredOperation,
+  LazyOperation,
   SetAttributeOperation,
   SetClassNameOperation,
-  SetSharedTextContentOperation,
   SetTextContentOperation,
+  SubscribableOperation,
 } from '../render/dom-operation';
 import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
@@ -19,7 +20,7 @@ import { State } from '../state';
 import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
 import { JsxEvent, listen } from '../render/listen';
-import { Deferred } from './context';
+import { Lazy } from './context';
 import { ExecuteContext } from '../render/execute-context';
 
 export class JsxElement {
@@ -59,12 +60,12 @@ export class JsxElement {
           for (const cls of item.split(' ')) {
             if (cls) node.classList.add((classes && classes[cls]) || cls);
           }
-        } else if (item instanceof Deferred) {
+        } else if (item instanceof Lazy) {
           this.contentOps.push({
-            type: DomOperationType.Deferred,
+            type: DomOperationType.Lazy,
             nodeKey: Symbol(),
             valueKey: Symbol(),
-            deferred: item,
+            lazy: item,
             operation: DomOperationType.SetClassName,
           });
         } else {
@@ -106,49 +107,61 @@ export class JsxElement {
   appendContent(children: TemplateInput[]): Promise<void> | void {
     if (!(children instanceof Array)) return;
 
-    const { templateNode } = this;
+    const { templateNode, contentOps } = this;
 
-    const addTextContentExpr = (expr: JSX.Expression) => {
-      const { contentOps: content } = this;
+    function addTextContentExpr(expr: JSX.Expression) {
+      const newOperation: SetTextContentOperation = {
+        key: Symbol(),
+        nodeKey: Symbol(),
+        type: DomOperationType.SetTextContent,
+        expression: expr,
+      };
 
-      const precedingContentOps = content.filter(
-        (c) => c.type === DomOperationType.SetTextContent
-      );
-
-      if (precedingContentOps.length === 0) {
-        this.contentOps.push({
-          key: Symbol(),
-          nodeKey: Symbol(),
-          type: DomOperationType.SetTextContent,
-          expression: expr,
-          // isExclusive: true,
-        });
-      } else {
-        if (precedingContentOps.length === 1) {
-          const firstContentOp =
-            precedingContentOps[0] as SetSharedTextContentOperation;
-          if (firstContentOp.type === DomOperationType.SetTextContent) {
-            const textNodeIndex = templateNode.childNodes.length;
+      if (templateNode.childNodes.length === 0) {
+        for (let i = contentOps.length - 1; i >= 0; i--) {
+          const prevOperation = contentOps[i];
+          if (prevOperation.type === DomOperationType.SetTextContent) {
+            // found a text content operation at i that uses current templateNode exclusively
+            // create a TextNode inside templateNode for this operation to use instead
             const textNode = document.createTextNode('');
             templateNode.appendChild(textNode);
-            firstContentOp.isExclusive = false;
-            firstContentOp.textNodeIndex = textNodeIndex;
+            const pushFirstChild: DomContentOperation<any> = {
+              type: DomOperationType.PushFirstChild,
+            };
+            const popFirstChild: DomContentOperation<any> = {
+              type: DomOperationType.PopNode,
+              index: 0,
+            };
+            contentOps.splice(
+              i,
+              1,
+              pushFirstChild,
+              prevOperation,
+              popFirstChild
+            );
           }
         }
-        const textNodeIndex = templateNode.childNodes.length;
+      }
+
+      const childIndex = templateNode.childNodes.length;
+      if (childIndex === 0) {
+        contentOps.push(newOperation);
+      } else {
+        addShared();
+      }
+
+      function addShared() {
         const textNode = document.createTextNode('');
         templateNode.appendChild(textNode);
 
-        content.push({
-          key: Symbol(),
-          nodeKey: Symbol(),
-          type: DomOperationType.SetTextContent,
-          expression: expr,
-          isExclusive: false,
-          textNodeIndex: textNodeIndex,
+        pushChildAt(contentOps, childIndex);
+        contentOps.push(newOperation);
+        contentOps.push({
+          type: DomOperationType.PopNode,
+          index: childIndex,
         });
       }
-    };
+    }
 
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
@@ -168,7 +181,9 @@ export class JsxElement {
       } else if (child instanceof Node) {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
-        this.contentOps.push({
+        const anchor = document.createComment('<-- anchor: attach-to -->');
+        templateNode.appendChild(anchor);
+        contentOps.push({
           type: DomOperationType.Renderable,
           renderable: {
             child: child as { attachTo: Function },
@@ -179,16 +194,20 @@ export class JsxElement {
               };
             },
           },
+          anchor,
         });
-      } else if (child instanceof Function) {
-        addTextContentExpr({
-          type: ExpressionType.Init,
-          init: child as any,
-        });
+        // } else if (child instanceof Function) {
+        //   addTextContentExpr({
+        //     type: ExpressionType.Init,
+        //     init: child as any,
+        //   });
       } else if (isRenderable(child)) {
-        this.contentOps.push({
+        const anchor = document.createComment('<-- anchor: renderable -->');
+        templateNode.appendChild(anchor);
+        contentOps.push({
           type: DomOperationType.Renderable,
           renderable: child,
+          anchor,
         });
       } else if (isTemplate(child)) {
         switch (child.type) {
@@ -206,9 +225,12 @@ export class JsxElement {
             break;
         }
       } else if (isSubscribable(child)) {
-        addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
+        const anchor = document.createComment('<-- anchor: subscribable -->');
+        templateNode.appendChild(anchor);
+        contentOps.push({
+          type: DomOperationType.Subscribable,
+          subscribable: child,
+          anchor,
         });
       } else {
         if (
@@ -263,7 +285,9 @@ type DomContentOperation<T> =
   | DomRenderOperation<T>
   | SetAttributeOperation
   | SetClassNameOperation
-  | DeferredOperation<T>;
+  | LazyOperation<T>
+  | SubscribableOperation<T>
+  | AppendChildOperation;
 
 export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
 

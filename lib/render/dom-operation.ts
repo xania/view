@@ -1,4 +1,4 @@
-import { Deferred, Renderable } from '../jsx';
+import { Lazy, Renderable } from '../jsx';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -9,14 +9,15 @@ export enum DomOperationType {
   SetClassName,
   SetTextContent,
   Renderable,
+  Subscribable,
   AppendChild,
-  Deferred,
+  Lazy,
   Clone,
 }
 
-export interface DeferredOperation<TContext> {
-  type: DomOperationType.Deferred;
-  deferred: Deferred<TContext, any>;
+export interface LazyOperation<TContext> {
+  type: DomOperationType.Lazy;
+  lazy: Lazy<TContext, any>;
   operation: DomOperationType.SetClassName;
   nodeKey: symbol;
   valueKey: symbol;
@@ -51,35 +52,28 @@ export interface SetClassNameOperation {
   classes?: { [k: string]: string };
 }
 
-interface SetExclusiveTextContentOperation {
+export interface SetTextContentOperation {
   key: symbol;
   nodeKey: symbol;
   type: DomOperationType.SetTextContent;
   expression: JSX.Expression;
-  isExclusive: true;
 }
-
-export interface SetSharedTextContentOperation {
-  key: symbol;
-  nodeKey: symbol;
-  type: DomOperationType.SetTextContent;
-  expression: JSX.Expression;
-  textNodeIndex: number;
-  isExclusive: false;
-}
-
-export type SetTextContentOperation =
-  | SetExclusiveTextContentOperation
-  | SetSharedTextContentOperation;
 
 export interface RenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
+  anchor: Node;
 }
 
 export interface AppendChildOperation {
   type: DomOperationType.AppendChild;
   node: Node;
+}
+
+export interface SubscribableOperation<T> {
+  type: DomOperationType.Subscribable;
+  subscribable: JSX.Subscribable<T>;
+  anchor: Node;
 }
 
 // export interface SelectRootOperation {
@@ -114,7 +108,8 @@ export type DomRenderOperation<T> =
   | SetTextContentOperation
   | RenderableOperation<T>
   | AppendChildOperation
-  | DeferredOperation<T>;
+  | LazyOperation<T>
+  | SubscribableOperation<T>;
 
 export type DomOperation<T> =
   | DomNavigationOperation

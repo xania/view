@@ -22,7 +22,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
     for (let operationIdx = 0; operationIdx < operationLen; operationIdx++) {
       const op = operations[operationIdx];
       switch (op.type) {
-        case DomOperationType.Deferred:
+        case DomOperationType.Lazy:
           (context as any)[op.nodeKey] = nodeStack.head;
           break;
         case DomOperationType.Clone:
@@ -287,16 +287,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
 
         case DomOperationType.SetTextContent:
           const setContentExpr = op.expression;
-          let textNode: Node;
-          if (op.isExclusive) {
-            textNode = nodeStack.head;
-          } else {
-            let textNodeIndex = +op.textNodeIndex;
-            textNode = nodeStack.head.firstChild as Text;
-            while (textNodeIndex--) {
-              textNode = textNode.nextSibling as Text;
-            }
-          }
+          const textNode: Node = nodeStack.head;
           (context as any)[op.nodeKey] = textNode;
 
           switch (setContentExpr.type) {
