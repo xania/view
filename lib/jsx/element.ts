@@ -58,12 +58,22 @@ export class JsxElement {
             if (cls) node.classList.add((classes && classes[cls]) || cls);
           }
         } else if (item instanceof Lazy) {
+          const valueKey = Symbol();
           this.contentOps.push({
             type: DomOperationType.Lazy,
             nodeKey: Symbol(),
-            valueKey: Symbol(),
+            valueKey: valueKey,
             lazy: item,
-            operation: DomOperationType.SetClassName,
+            operation: {
+              type: DomOperationType.SetClassName,
+              expression: {
+                type: ExpressionType.Property,
+                name: valueKey,
+                readonly: true,
+              },
+              classes: options?.classes,
+              key: Symbol(),
+            },
           });
         } else {
           const expr = toExpression(item);
@@ -77,6 +87,23 @@ export class JsxElement {
           }
         }
       }
+    } else if (attrValue instanceof Lazy) {
+      const valueKey = Symbol();
+      this.contentOps.push({
+        type: DomOperationType.Lazy,
+        nodeKey: Symbol(),
+        valueKey,
+        lazy: attrValue,
+        operation: {
+          type: DomOperationType.SetAttribute,
+          expression: {
+            type: ExpressionType.Property,
+            name: valueKey,
+            readonly: true,
+          },
+          name: attrName,
+        },
+      });
     } else if (isSubscribable(attrValue)) {
       this.contentOps.push({
         type: DomOperationType.SetAttribute,

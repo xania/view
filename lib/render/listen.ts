@@ -10,7 +10,11 @@ export interface JsxEvent {
 }
 
 export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
-  container.addEventListener(jsxEvent.name, handler);
+  container.addEventListener(
+    jsxEvent.name === 'blur' ? 'focusout' : jsxEvent.name,
+    handler,
+    true
+  );
 
   return {
     dispose() {

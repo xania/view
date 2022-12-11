@@ -1,4 +1,4 @@
-import { Lazy, Renderable } from '../jsx';
+import { Lazy, Renderable, RenderTarget } from '../jsx';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -18,7 +18,7 @@ export enum DomOperationType {
 export interface LazyOperation<TContext> {
   type: DomOperationType.Lazy;
   lazy: Lazy<TContext, any>;
-  operation: DomOperationType.SetClassName;
+  operation: SetClassNameOperation | SetAttributeOperation;
   nodeKey: symbol;
   valueKey: symbol;
 }
@@ -94,6 +94,7 @@ export interface SubscribableOperation<T> {
 export interface CloneOperation {
   type: DomOperationType.Clone;
   templateNode: Node;
+  target: RenderTarget;
 }
 
 export type DomNavigationOperation =

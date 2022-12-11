@@ -6,11 +6,12 @@ import { ExecuteContext } from './execute-context';
 import { execute } from './execute';
 import { listen } from './listen';
 
-export function renderElement(element: JsxElement, target: RenderTarget) {
+export function renderElement2(element: JsxElement, target: RenderTarget) {
   const context: ExecuteContext = {};
   const cloneOp: CloneOperation = {
     type: DomOperationType.Clone,
     templateNode: element.templateNode,
+    target,
   };
   // createEventListener(target);
 
@@ -20,7 +21,7 @@ export function renderElement(element: JsxElement, target: RenderTarget) {
 
   execute([cloneOp, ...element.contentOps], [context]);
 
-  if (context.rootElement) target.appendChild(context.rootElement);
+  // if (context.rootElement) target.appendChild(context.rootElement);
 
   return {
     dispose() {

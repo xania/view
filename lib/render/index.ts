@@ -4,7 +4,11 @@ import { isRenderable, RenderTarget } from '../jsx/renderable';
 import { TemplateInput } from '../jsx/template-input';
 import { flatten } from '../jsx/_flatten';
 import { JsxElement } from '../jsx/element';
-import { renderElement } from './render-element';
+import { renderElement2 } from './render-element';
+import { compile } from './compile';
+import { execute } from './execute';
+import { ExecuteContext } from './execute-context';
+import { listen } from './listen';
 
 export function render<T = any>(
   root: TemplateInput<T>,
@@ -12,17 +16,17 @@ export function render<T = any>(
 ): any {
   if (root === null || root === undefined) return root;
 
-  if (root instanceof JsxElement) {
-    return renderElement(root, container);
-  }
+  // if (root instanceof JsxElement) {
+  //   return renderElement(root, container);
+  // }
 
-  if (root instanceof Array) {
-    return flatten(root.map((elt) => render(elt, container)));
-  }
+  // if (root instanceof Array) {
+  //   return flatten(root.map((elt) => render(elt, container)));
+  // }
 
-  if (isRenderable(root)) {
-    return root.render(container, null as any);
-  }
+  // if (isRenderable(root)) {
+  //   return root.render(container, null as any);
+  // }
 
   if (root instanceof Promise) {
     let cancelled = false;
@@ -38,44 +42,51 @@ export function render<T = any>(
         return bindings.then(disposeAll);
       },
     };
+  } else {
+    const execContext: ExecuteContext = {};
+    const { renderOperations, events } = compile(root, container);
+
+    execute(renderOperations, [execContext]);
+
+    for (const evt of events) listen(container, evt);
   }
 
-  if (isSubscribable(root)) {
-    let binding: Disposable | null = null;
+  // if (isSubscribable(root)) {
+  //   let binding: Disposable | null = null;
 
-    const subs = root.subscribe({
-      next(value) {
-        disposeAll(binding);
-        binding = render(value, container);
-      },
-    });
+  //   const subs = root.subscribe({
+  //     next(value) {
+  //       disposeAll(binding);
+  //       binding = render(value, container);
+  //     },
+  //   });
 
-    return {
-      dispose() {
-        subs.unsubscribe();
-      },
-    };
-  }
+  //   return {
+  //     dispose() {
+  //       subs.unsubscribe();
+  //     },
+  //   };
+  // }
 
-  if (root instanceof Node) {
-    container.appendChild(root);
-    return {
-      dispose() {
-        container.removeChild(root);
-      },
-    };
-  }
+  // if (root instanceof Node) {
+  //   container.appendChild(root);
+  //   return {
+  //     dispose() {
+  //       container.removeChild(root);
+  //     },
+  //   };
+  // }
 
-  {
-    // if all previous fail then add the root as text node to the provided container
-    const textNode = document.createTextNode((root as any).toString());
-    container.appendChild(textNode);
-    return {
-      dispose() {
-        textNode.remove();
-      },
-    };
-  }
+  // {
+  //   // if all previous fail then add the root as text node to the provided container
+  //   const textNode = document.createTextNode((root as any).toString());
+  //   container.appendChild(textNode);
+  //   return {
+  //     dispose() {
+  //       textNode.remove();
+  //     },
+  //   };
+  // }
 
   // if (isExpressionTemplate(root)) {
   //   return root;

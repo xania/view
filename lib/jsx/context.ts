@@ -25,6 +25,9 @@ export class Lazy<T, U> {
 
   select(context: T) {
     notify(this, [context, this.value]);
+    return () => {
+      notify(this, [context, null]);
+    };
   }
 }
 

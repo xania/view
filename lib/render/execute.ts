@@ -28,6 +28,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
           break;
         case DomOperationType.Clone:
           const root = op.templateNode.cloneNode(true) as HTMLElement;
+          op.target.appendChild(root);
           (root as any)[_context] = context;
           if (context.rootElement) {
             const { moreRootElements } = context;
@@ -75,7 +76,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
           const attrExpr = op.expression;
           switch (attrExpr.type) {
             case ExpressionType.Property:
-              //              const attrValue = context.data[attrExpr.name];
+              const attrValue = context[attrExpr.name];
+              const elt = nodeStack.head as any;
+              elt[op.name] = attrValue;
               // if (attrValue) {
               //   operationStack = {
               //     head: {

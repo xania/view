@@ -19,7 +19,7 @@ export function If<T>(props: IfProps, children: Renderable<T>[]) {
             for (const child of children) {
               if (child instanceof JsxElement) {
                 const root = child.templateNode.cloneNode(true) as HTMLElement;
-                executeContext.elements.push(root);
+                executeContext.rootElement = root;
                 // execute(child.content, root, executeContext);
                 target.appendChild(root);
               }
