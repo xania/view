@@ -17,7 +17,7 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
     if (!root) return;
     const context: ExecuteContext = (root as any)[_context];
 
-    let node: Node = context.rootElement as Node;
+    let node: Node = context?.rootElement as Node;
     if (!node) return;
 
     const { nav: navOps } = jsxEvent;

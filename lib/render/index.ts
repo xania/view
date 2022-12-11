@@ -1,7 +1,6 @@
 ﻿import { Disposable, disposeAll } from '../disposable';
 import { isSubscribable } from '../util/observables';
 import { isRenderable, RenderTarget } from '../jsx/renderable';
-import { AnchorTarget } from './anchor-target';
 import { TemplateInput } from '../jsx/template-input';
 import { flatten } from '../jsx/_flatten';
 import { JsxElement } from '../jsx/element';
@@ -27,11 +26,10 @@ export function render<T = any>(
 
   if (root instanceof Promise) {
     let cancelled = false;
-    var anchor = new AnchorTarget(container);
 
     let bindings = root.then((e) => {
       if (!cancelled) {
-        return render(e, anchor);
+        return render(e, container);
       }
     });
     return {
@@ -44,12 +42,11 @@ export function render<T = any>(
 
   if (isSubscribable(root)) {
     let binding: Disposable | null = null;
-    var anchor = new AnchorTarget(container);
 
     const subs = root.subscribe({
       next(value) {
         disposeAll(binding);
-        binding = render(value, anchor);
+        binding = render(value, container);
       },
     });
 

@@ -62,7 +62,7 @@ export interface SetTextContentOperation {
 export interface RenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
-  anchor: Node;
+  anchorIdx: number;
 }
 
 export interface AppendChildOperation {
@@ -73,7 +73,7 @@ export interface AppendChildOperation {
 export interface SubscribableOperation<T> {
   type: DomOperationType.Subscribable;
   subscribable: JSX.Subscribable<T>;
-  anchor: Node;
+  anchorIdx: number;
 }
 
 // export interface SelectRootOperation {

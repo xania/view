@@ -1,6 +1,5 @@
 ﻿import {
   AppendChildOperation,
-  CloneOperation,
   DomNavigationOperation,
   DomOperationType,
   DomRenderOperation,
@@ -14,14 +13,12 @@ import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
 import { ExpressionType } from './expression';
 import { TemplateInput } from './template-input';
-import { isRenderable, RenderTarget } from './renderable';
-import { disposeAll } from '../disposable';
+import { isRenderable } from './renderable';
 import { State } from '../state';
 import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
-import { JsxEvent, listen } from '../render/listen';
+import { JsxEvent } from '../render/listen';
 import { Lazy } from './context';
-import { ExecuteContext } from '../render/execute-context';
 
 export class JsxElement {
   public templateNode: HTMLElement;
@@ -182,7 +179,6 @@ export class JsxElement {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
         const anchor = document.createComment('<-- anchor: attach-to -->');
-        templateNode.appendChild(anchor);
         contentOps.push({
           type: DomOperationType.Renderable,
           renderable: {
@@ -194,8 +190,10 @@ export class JsxElement {
               };
             },
           },
-          anchor,
+          anchorIdx: templateNode.childNodes.length,
         });
+        templateNode.appendChild(anchor);
+
         // } else if (child instanceof Function) {
         //   addTextContentExpr({
         //     type: ExpressionType.Init,
@@ -203,12 +201,12 @@ export class JsxElement {
         //   });
       } else if (isRenderable(child)) {
         const anchor = document.createComment('<-- anchor: renderable -->');
-        templateNode.appendChild(anchor);
         contentOps.push({
           type: DomOperationType.Renderable,
           renderable: child,
-          anchor,
+          anchorIdx: templateNode.childNodes.length,
         });
+        templateNode.appendChild(anchor);
       } else if (isTemplate(child)) {
         switch (child.type) {
           case TemplateType.Expression:
@@ -225,12 +223,9 @@ export class JsxElement {
             break;
         }
       } else if (isSubscribable(child)) {
-        const anchor = document.createComment('<-- anchor: subscribable -->');
-        templateNode.appendChild(anchor);
-        contentOps.push({
-          type: DomOperationType.Subscribable,
-          subscribable: child,
-          anchor,
+        addTextContentExpr({
+          type: ExpressionType.State,
+          state: child,
         });
       } else {
         if (
@@ -248,8 +243,8 @@ export class JsxElement {
   }
 
   appendElement(tag: JsxElement) {
-    const { templateNode: node, contentOps: content } = this;
-    const childIndex = node.childNodes.length;
+    const { templateNode, contentOps: content } = this;
+    const childIndex = templateNode.childNodes.length;
     if (tag.contentOps.length > 0) {
       pushChildAt(content, childIndex);
       for (let i = 0; i < tag.contentOps.length; i++) {

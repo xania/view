@@ -34,16 +34,14 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         for (const attrName in props) {
           const attrValue = props[attrName];
           const result = tagTemplate.setProp(attrName, attrValue, opts);
-          if (result) {
+          if (result instanceof Promise) {
             promises.push(result);
           }
         }
       }
 
-      const result = tagTemplate.appendContent(flatten(children));
-      if (result instanceof Array) {
-        for (const p of result) promises.push(p);
-      }
+      const result = flatten(tagTemplate.appendContent(flatten(children)));
+      for (const p of result) if (p instanceof Promise) promises.push(p);
 
       if (promises.length > 0)
         return Promise.all(promises).then(() => tagTemplate);

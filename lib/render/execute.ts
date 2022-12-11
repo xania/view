@@ -4,6 +4,7 @@ import { Disposable } from '../disposable';
 import { _context } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { JsxElement } from '../jsx/element';
+import { AnchorTarget } from './anchor-target';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -39,37 +40,6 @@ export function execute<TExecuteContext extends ExecuteContext>(
           nodeStack[0] = root;
           nodeStack.length = 1;
           break;
-        // case DomOperationType.UpdateRoot:
-        //   const { combine, state, key } = op;
-        //   const newValue = combine(state, context) ?? null;
-        //   const prevValue = context[key] ?? null;
-        //   if (prevValue !== newValue) {
-        //     (context as any)[key] = newValue;
-
-        //     const selectRoot =
-        //       op.index === 0
-        //         ? context.rootElement
-        //         : (context.moreRootElements as any)[op.index - 1];
-        //     nodeStack.head = selectRoot;
-        //     nodeStack[0] = selectRoot;
-        //     nodeStack.length = 1;
-        //   } else {
-        //     operationIdx = operationLen;
-        //   }
-        //   break;
-        // case DomOperationType.SelectRoot:
-        //   if (context[op.dependency] !== context[op.key]) {
-        //     const selectRoot =
-        //       op.index === 0
-        //         ? context.rootElement
-        //         : (context.moreRootElements as any)[op.index - 1];
-        //     nodeStack.head = selectRoot;
-        //     nodeStack[0] = selectRoot;
-        //     nodeStack.length = 1;
-        //   } else {
-        //     operationIdx = operationLen;
-        //   }
-        //   break;
         case DomOperationType.PushFirstChild:
           let firstChild = nodeStack.head.firstChild as HTMLElement;
           nodeStack[nodeStack.length] = firstChild;
@@ -319,43 +289,26 @@ export function execute<TExecuteContext extends ExecuteContext>(
               break;
             case ExpressionType.State:
               const { state } = setContentExpr;
-              textNode.textContent = (state as any)['snapshot'];
-              const stateSubs = state.subscribe({
-                textNode,
-                disposePrev: undefined as Function | undefined,
-                next(newValue) {
-                  if (newValue instanceof JsxElement) {
-                    const { disposePrev, textNode } = this;
-                    if (disposePrev instanceof Function) {
-                      disposePrev();
-                    }
-                    const parent = textNode.parentElement;
-                    if (parent) {
-                      const execContext: ExecuteContext = {};
-                      const clone = newValue.templateNode.cloneNode(true);
-                      execute(newValue.contentOps, [execContext]);
-                      parent.insertBefore(clone, this.textNode);
 
-                      this.disposePrev = function () {
-                        parent.removeChild(clone);
-                      };
-                    }
-                  } else {
-                    this.textNode.textContent = newValue;
-                  }
+              const stateSubscription = state.subscribe({
+                textNode: nodeStack.head,
+                next(newValue) {
+                  this.textNode.textContent = newValue;
                 },
               });
-              if (stateSubs) {
+              if (stateSubscription) {
                 if (context.subscriptions)
-                  context.subscriptions.push(stateSubs);
-                else context.subscriptions = [stateSubs];
+                  context.subscriptions.push(stateSubscription);
+                else context.subscriptions = [stateSubscription];
               }
               break;
           }
           break;
         case DomOperationType.Renderable:
+          const renderContainer = nodeStack.head;
+          const anchorTarget = new AnchorTarget(renderContainer, op.anchorIdx);
           const binding: null | Disposable | JSX.Unsubscribable =
-            op.renderable.render(nodeStack.head, { data: context });
+            op.renderable.render(anchorTarget, { data: context });
           if (binding) {
             if ('dispose' in binding && binding.dispose instanceof Function)
               if (context.bindings) context.bindings.push(binding);
@@ -368,6 +321,46 @@ export function execute<TExecuteContext extends ExecuteContext>(
               else context.subscriptions = [binding];
             }
           }
+          break;
+
+        case DomOperationType.Subscribable:
+          const { subscribable, anchorIdx } = op;
+
+          const container = nodeStack.head;
+          const anchor = container.childNodes[anchorIdx];
+
+          const stateSubs = subscribable.subscribe({
+            anchor: anchor,
+            disposePrev: undefined as Function | undefined,
+            container: nodeStack.head,
+            next(newValue) {
+              const { disposePrev, anchor, container } = this;
+              if (disposePrev instanceof Function) {
+                disposePrev();
+              }
+              if (newValue instanceof JsxElement) {
+                const execContext: ExecuteContext = {};
+                const clone = newValue.templateNode.cloneNode(true);
+                execute(newValue.contentOps, [execContext]);
+                container.insertBefore(clone, anchor);
+
+                this.disposePrev = function () {
+                  container.removeChild(clone);
+                };
+              } else {
+                const textNode = document.createTextNode(newValue);
+                container.insertBefore(textNode, anchor);
+                this.disposePrev = function () {
+                  container.removeChild(textNode);
+                };
+              }
+            },
+          });
+          if (stateSubs) {
+            if (context.subscriptions) context.subscriptions.push(stateSubs);
+            else context.subscriptions = [stateSubs];
+          }
+
           break;
         default:
           console.error('not supported', op);
