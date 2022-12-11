@@ -10,7 +10,15 @@ export interface JsxEvent {
 }
 
 export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
-  container.addEventListener(jsxEvent.name, (domEvent) => {
+  container.addEventListener(jsxEvent.name, handler);
+
+  return {
+    dispose() {
+      container.removeEventListener(jsxEvent.name, handler);
+    },
+  };
+
+  function handler(domEvent: Event) {
     const target = domEvent.target as Node;
     const root = resolveRootNode(container, target);
 
@@ -43,7 +51,7 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
       };
       jsxEvent.handler(e);
     }
-  });
+  }
 }
 
 function resolveRootNode(container: RenderTarget, node: Node) {
