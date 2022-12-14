@@ -1,7 +1,7 @@
-﻿import { RenderTarget } from '../jsx';
+﻿import { Anchor, RenderTarget } from '../jsx';
 import { DomNavigationOperation, DomOperationType } from './dom-operation';
 import { ExecuteContext } from './execute-context';
-import { _context } from './symbols';
+import { contextKey } from './symbols';
 
 export interface JsxEvent {
   name: string;
@@ -11,7 +11,7 @@ export interface JsxEvent {
 
 export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
   container.addEventListener(
-    jsxEvent.name === 'blur' ? 'focusout' : jsxEvent.name,
+    jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any),
     handler,
     true
   );
@@ -27,7 +27,7 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
     const root = resolveRootNode(container, target);
 
     if (!root) return;
-    const context: ExecuteContext = (root as any)[_context];
+    const context: ExecuteContext = (root as any)[contextKey];
 
     let node: Node = context?.rootElement as Node;
     if (!node) return;
@@ -60,7 +60,8 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
 
 function resolveRootNode(container: RenderTarget, node: Node) {
   let root = node;
-  const rootParent = container.firstChild?.parentElement;
+  const rootParent =
+    container instanceof Anchor ? container.container : container;
   while (root && root.parentNode !== rootParent) {
     root = root.parentNode as Node;
   }

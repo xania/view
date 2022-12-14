@@ -1,7 +1,6 @@
 ﻿import { DomOperation, DomOperationType } from './dom-operation';
 import { ExpressionType } from '../jsx/expression';
 import { ExecuteContext } from './execute-context';
-import { _context } from './symbols';
 
 export function update<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -20,15 +19,51 @@ export function update<TExecuteContext extends ExecuteContext>(
       switch (op.type) {
         case DomOperationType.SetTextContent:
           const setContentExpr = op.expression;
-          let node = context[op.nodeKey] as HTMLElement;
 
           switch (setContentExpr.type) {
             case ExpressionType.Property:
               let propertyValue = context[setContentExpr.name];
+              let node = context[op.nodeKey] as HTMLElement;
               node.textContent = propertyValue ?? '';
               break;
           }
 
+          break;
+        case DomOperationType.SetClassName:
+          const setClassExpr = op.expression;
+          const classes = op.classes;
+          const classList = context[op.nodeKey].classList;
+
+          const prevValue = context[op.prevKey] || [];
+          if (prevValue instanceof Array) {
+            for (const cls of prevValue) {
+              classList.remove(cls);
+            }
+          }
+
+          let classValue;
+          switch (setClassExpr.type) {
+            case ExpressionType.Property:
+              classValue = context[setClassExpr.name];
+              break;
+            case ExpressionType.Function:
+              classValue = setClassExpr.func(context);
+              break;
+          }
+
+          if (classValue instanceof Array) {
+            for (const x of classValue) {
+              const cls = classes ? classes[x] : x;
+              classList.add(cls);
+              prevValue.push(cls);
+            }
+          } else if (classValue) {
+            const cls = classes ? classes[classValue] : classValue;
+            classList.add(cls);
+            prevValue.push(cls);
+          }
+
+          (context as any)[op.prevKey] = prevValue;
           break;
         default:
           console.error(op);

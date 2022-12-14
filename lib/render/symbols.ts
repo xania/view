@@ -1,1 +1,1 @@
-﻿export const _context: unique symbol = Symbol();
+﻿export const contextKey: unique symbol = Symbol();

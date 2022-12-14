@@ -1,15 +1,14 @@
 ﻿import { DomOperation, DomOperationType } from './dom-operation';
 import { ExpressionType } from '../jsx/expression';
 import { Disposable } from '../disposable';
-import { _context } from './symbols';
+import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
-import { JsxElement } from '../jsx/element';
-import { AnchorTarget } from './anchor-target';
+import { Anchor, RenderTarget } from '../jsx';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
   contexts: ArrayLike<TExecuteContext>,
-  rootNode?: Node
+  rootNode?: RenderTarget
 ) {
   let nodeStack: Stack<Node> = { head: rootNode, length: 0 } as any;
   for (
@@ -28,8 +27,13 @@ export function execute<TExecuteContext extends ExecuteContext>(
           break;
         case DomOperationType.Clone:
           const root = op.templateNode.cloneNode(true) as HTMLElement;
-          op.target.appendChild(root);
-          (root as any)[_context] = context;
+          const { target } = op;
+          if (target instanceof Anchor) {
+            target.container.insertBefore(root, target.child);
+          } else {
+            target.appendChild(root);
+          }
+          (root as any)[contextKey] = context;
           if (context.rootElement) {
             const { moreRootElements } = context;
             if (moreRootElements) moreRootElements.push(root);
@@ -108,6 +112,10 @@ export function execute<TExecuteContext extends ExecuteContext>(
           break;
         case DomOperationType.SetClassName:
           const classExpr = op.expression;
+          const elt = nodeStack.head as HTMLElement;
+          (context as any)[op.nodeKey] = elt;
+          const prevValue: string[] = [];
+          (context as any)[op.prevKey] = prevValue;
           let classValue: any;
 
           switch (classExpr.type) {
@@ -132,6 +140,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
             //     elt.classList.add(cl);
             //   }
             //   break;
+            case ExpressionType.Function:
+              classValue = classExpr.func(context);
+              break;
             case ExpressionType.Property:
               classValue = context[classExpr.name];
               break;
@@ -191,7 +202,6 @@ export function execute<TExecuteContext extends ExecuteContext>(
               break;
           }
 
-          const elt = nodeStack.head as HTMLElement;
           const classList = elt.classList;
 
           // const prevValue = context[op.key];
@@ -204,13 +214,18 @@ export function execute<TExecuteContext extends ExecuteContext>(
           //   classList.remove(prevValue);
           // }
 
+          const classes = op.classes;
           if (classValue instanceof Array) {
             for (let i = 0, len = classValue.length; i < len; i++) {
-              const cls = classValue[i];
+              const x = classValue[i];
+              const cls = classes ? classes[x] : x;
               classList.add(cls);
+              prevValue.push(cls);
             }
           } else if (classValue) {
-            classList.add(classValue);
+            const cls = classes ? classes[classValue] : classValue;
+            classList.add(cls);
+            prevValue.push(cls);
           }
           break;
 
@@ -264,29 +279,29 @@ export function execute<TExecuteContext extends ExecuteContext>(
           (context as any)[op.nodeKey] = textNode;
 
           switch (setContentExpr.type) {
-            case ExpressionType.Init:
-              //   const initResult = setContentExpr.init(data, {
-              //     node: nodeStack.head,
-              //     data,
-              //   });
-              //   if (isExpression(initResult)) {
-              //     operationStack = {
-              //       head: {
-              //         key: curr.key,
-              //         type: DomOperationType.SetTextContent,
-              //         expression: initResult,
-              //       },
-              //       tail: operationStack,
-              //     };
-              //   } else if (initResult) {
-              //     if (curr.textNodeIndex !== undefined) {
-              //       nodeStack.head.childNodes[curr.textNodeIndex].textContent =
-              //         initResult;
-              //     } else {
-              //       nodeStack.head.textContent = initResult;
-              //     }
-              //   }
-              break;
+            // case ExpressionType.Init:
+            //   //   const initResult = setContentExpr.init(data, {
+            //   //     node: nodeStack.head,
+            //   //     data,
+            //   //   });
+            //   //   if (isExpression(initResult)) {
+            //   //     operationStack = {
+            //   //       head: {
+            //   //         key: curr.key,
+            //   //         type: DomOperationType.SetTextContent,
+            //   //         expression: initResult,
+            //   //       },
+            //   //       tail: operationStack,
+            //   //     };
+            //   //   } else if (initResult) {
+            //   //     if (curr.textNodeIndex !== undefined) {
+            //   //       nodeStack.head.childNodes[curr.textNodeIndex].textContent =
+            //   //         initResult;
+            //   //     } else {
+            //   //       nodeStack.head.textContent = initResult;
+            //   //     }
+            //   //   }
+            //   break;
             case ExpressionType.Property:
               textNode.textContent = context[setContentExpr.name] ?? '';
               break;
@@ -308,10 +323,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
           }
           break;
         case DomOperationType.Renderable:
-          const renderContainer = nodeStack.head;
-          const anchorTarget = new AnchorTarget(renderContainer, op.anchorIdx);
           const binding: null | Disposable | JSX.Unsubscribable =
-            op.renderable.render(anchorTarget, { data: context });
+            op.renderable.render(new Anchor(nodeStack.head), { data: context });
           if (binding) {
             if ('dispose' in binding && binding.dispose instanceof Function)
               if (context.bindings) context.bindings.push(binding);
@@ -326,45 +339,44 @@ export function execute<TExecuteContext extends ExecuteContext>(
           }
           break;
 
-        case DomOperationType.Subscribable:
-          const { subscribable, anchorIdx } = op;
+        // case DomOperationType.Subscribable:
+        //   const { subscribable } = op;
 
-          const container = nodeStack.head;
-          const anchor = container.childNodes[anchorIdx];
+        //   const anchor = nodeStack.head;
+        //   console.log(anchor);
 
-          const stateSubs = subscribable.subscribe({
-            anchor: anchor,
-            disposePrev: undefined as Function | undefined,
-            container: nodeStack.head,
-            next(newValue) {
-              const { disposePrev, anchor, container } = this;
-              if (disposePrev instanceof Function) {
-                disposePrev();
-              }
-              if (newValue instanceof JsxElement) {
-                const execContext: ExecuteContext = {};
-                const clone = newValue.templateNode.cloneNode(true);
-                execute(newValue.contentOps, [execContext]);
-                container.insertBefore(clone, anchor);
+        //   const stateSubs = subscribable.subscribe({
+        //     anchor: anchor,
+        //     disposePrev: undefined as Function | undefined,
+        //     container: nodeStack.head,
+        //     next(newValue) {
+        //       // const { disposePrev, anchor, container } = this;
+        //       // if (disposePrev instanceof Function) {
+        //       //   disposePrev();
+        //       // }
+        //       // if (newValue instanceof JsxElement) {
+        //       //   const execContext: ExecuteContext = {};
+        //       //   // const clone = newValue.templateNode.cloneNode(true);
+        //       //   execute(newValue.contentOps, [execContext]);
+        //       //   // container.insertBefore(clone, anchor);
+        //       //   this.disposePrev = function () {
+        //       //     // container.removeChild(clone);
+        //       //   };
+        //       // } else {
+        //       //   const textNode = document.createTextNode(newValue);
+        //       //   container.insertBefore(textNode, anchor);
+        //       //   this.disposePrev = function () {
+        //       //     container.removeChild(textNode);
+        //       //   };
+        //       // }
+        //     },
+        //   });
+        //   if (stateSubs) {
+        //     if (context.subscriptions) context.subscriptions.push(stateSubs);
+        //     else context.subscriptions = [stateSubs];
+        //   }
 
-                this.disposePrev = function () {
-                  container.removeChild(clone);
-                };
-              } else {
-                const textNode = document.createTextNode(newValue);
-                container.insertBefore(textNode, anchor);
-                this.disposePrev = function () {
-                  container.removeChild(textNode);
-                };
-              }
-            },
-          });
-          if (stateSubs) {
-            if (context.subscriptions) context.subscriptions.push(stateSubs);
-            else context.subscriptions = [stateSubs];
-          }
-
-          break;
+        //   break;
         default:
           console.error('not supported', op);
           break;

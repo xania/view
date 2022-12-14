@@ -18,6 +18,13 @@ export class Context<T> {
       readonly,
     });
   }
+
+  map<U>(func: (c: T) => U) {
+    return expr({
+      type: ExpressionType.Function,
+      func,
+    });
+  }
 }
 
 export class Lazy<T, U> {

@@ -1,5 +1,5 @@
 ﻿import { ExpressionType } from '../jsx/expression';
-import { JsxElement } from '../jsx/element';
+import { JsxElement, pushChildAt } from '../jsx/element';
 import {
   CloneOperation,
   DomOperation,
@@ -8,81 +8,138 @@ import {
 } from './dom-operation';
 import { JsxEvent } from './listen';
 import { TemplateInput } from '../jsx/template-input';
-import { flatten } from '../jsx/_flatten';
-import { RenderTarget } from '../jsx';
+import { Anchor, isRenderable } from '../jsx';
 import { subscribe } from '../rx';
-import { execute } from './execute';
+import { update } from './update';
+import { isSubscribable } from '../util/observables';
 
-export function compile<T = any>(
-  children: TemplateInput,
-  target: RenderTarget
-) {
-  const updateOperations: DomOperation<T>[] = [];
-  const renderOperations: DomOperation<T>[] = [];
-  const lazyOperations: LazyOperation<T>[] = [];
-  const events: JsxEvent[] = [];
+export function compile(children: TemplateInput, target: HTMLElement | Anchor) {
+  var compileResult = new CompileResult<any>(target);
+  return flatTemplates(children, compileResult.add).then((_) => {
+    for (const op of compileResult.lazyOperations) {
+      subscribe<any, any>(op.lazy, {
+        next([item, newValue]: any) {
+          if (!item) return;
+          item[op.valueKey] = newValue;
+          update([op.operation], [item]);
 
-  for (let child of flatten(children)) {
+          // if (prevValue) {
+          //   ref.classList.remove(prevValue);
+          // }
+
+          // if (newValue) {
+          //   const classes = jsxOpts?.classes;
+          //   const cls = classes ? classes[newValue] : newValue;
+          //   item[op.valueKey] = cls;
+
+          //   ref.classList.add(cls);
+          // }
+        },
+      });
+    }
+    return compileResult;
+  });
+}
+
+class CompileResult<T> {
+  updateOperations: DomOperation<T>[] = [];
+  renderOperations: DomOperation<T>[] = [];
+  lazyOperations: LazyOperation<T>[] = [];
+  events: JsxEvent[] = [];
+  // observables: JSX.Subscribable<T>[] = [];
+
+  constructor(public target: HTMLElement | Anchor) {}
+
+  addAnchoredOperation(op: DomOperation<T>) {
+    const { target } = this;
+    if (target instanceof Anchor) {
+    } else {
+      const anchorIdx = target.childNodes.length;
+      const anchor = document.createComment('-- root anchor --');
+      target.appendChild(anchor);
+      pushChildAt(this.renderOperations, anchorIdx);
+      this.renderOperations.push(op, {
+        type: DomOperationType.PopNode,
+        index: anchorIdx,
+      });
+    }
+  }
+
+  add = (child: any): void => {
     if (child instanceof JsxElement) {
-      for (const evt of child.events) events.push(evt);
+      for (const evt of child.events) this.events.push(evt);
 
       const { contentOps } = child;
       const cloneOp: CloneOperation = {
         type: DomOperationType.Clone,
         templateNode: child.templateNode,
-        target,
+        target: this.target,
       };
 
-      renderOperations.push(cloneOp);
+      this.renderOperations.push(cloneOp);
 
       for (let i = 0, len = contentOps.length; i < len; i++) {
         const op = contentOps[i];
-        renderOperations.push(op);
+        this.renderOperations.push(op);
 
         if (op.type === DomOperationType.SetTextContent) {
           const expr = op.expression;
           if (expr.type === ExpressionType.Property && !expr.readonly) {
-            updateOperations.push(op);
+            this.updateOperations.push(op);
+          }
+        }
+
+        if (op.type === DomOperationType.SetClassName) {
+          const expr = op.expression;
+          if (expr.type === ExpressionType.Function) {
+            this.updateOperations.push(op);
           }
         }
 
         if (op.type === DomOperationType.Lazy) {
-          lazyOperations.push(op);
+          this.lazyOperations.push(op);
         }
       }
-    } else {
+    } else if (isSubscribable(child)) {
+      this.addAnchoredOperation({
+        type: DomOperationType.Subscribable,
+        subscribable: child,
+      });
+      // this.observables.push(child);
+    } else if (isRenderable(child)) {
+      this.addAnchoredOperation({
+        type: DomOperationType.Renderable,
+        renderable: child,
+      });
+    }
+
+    //   }
+    else {
       console.error('Not supported', child);
+    }
+  };
+}
+
+type Tree<T> = T | Tree<T>[];
+export async function flatTemplates<T, U>(
+  tree: Tree<T | null>,
+  map: (x: T) => U
+): Promise<U[]> {
+  const arr: U[] = [];
+
+  const stack: Tree<T | null>[] = [tree];
+  while (stack.length) {
+    const curr = stack.pop();
+    if (curr instanceof Array) {
+      for (let i = curr.length - 1; i >= 0; i--) {
+        stack.push(curr[i]);
+      }
+    } else if (curr instanceof Promise) {
+      stack.push(await curr);
+    } else if (curr) {
+      arr.push(map(curr));
     }
   }
 
-  for (const op of lazyOperations) {
-    subscribe<any, any>(op.lazy, {
-      next([item, newValue]: any) {
-        if (!item) return;
-        const ref = (item as any)[op.nodeKey] as HTMLElement;
-        item[op.valueKey] = newValue;
-
-        execute([op.operation], [item], ref);
-
-        // if (prevValue) {
-        //   ref.classList.remove(prevValue);
-        // }
-
-        // if (newValue) {
-        //   const classes = jsxOpts?.classes;
-        //   const cls = classes ? classes[newValue] : newValue;
-        //   item[op.valueKey] = cls;
-
-        //   ref.classList.add(cls);
-        // }
-      },
-    });
-  }
-
-  return {
-    updateOperations,
-    renderOperations,
-    lazyOperations,
-    events,
-  };
+  return arr;
 }

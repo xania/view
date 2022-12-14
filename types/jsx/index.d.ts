@@ -120,7 +120,7 @@ declare module JSX {
   export interface FunctionExpression<T, U = string> {
     type: ExpressionType.Function;
     func: ContextFunction<T, U>;
-    deps: (string | number | symbol)[];
+    // deps: (string | number | symbol)[];
   }
 
   export interface StateExpression<U> {

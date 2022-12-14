@@ -45,7 +45,8 @@ export interface SetAttributeOperation {
 }
 
 export interface SetClassNameOperation {
-  key: symbol;
+  nodeKey: symbol;
+  prevKey: symbol;
   type: DomOperationType.SetClassName;
   expressions?: JSX.Expression[];
   expression: JSX.Expression<any, any>;
@@ -62,7 +63,7 @@ export interface SetTextContentOperation {
 export interface RenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
-  anchorIdx: number;
+  // anchorIdx: number;
 }
 
 export interface AppendChildOperation {
@@ -73,7 +74,7 @@ export interface AppendChildOperation {
 export interface SubscribableOperation<T> {
   type: DomOperationType.Subscribable;
   subscribable: JSX.Subscribable<T>;
-  anchorIdx: number;
+  // anchorIdx: number;
 }
 
 // export interface SelectRootOperation {

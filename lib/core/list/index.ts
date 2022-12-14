@@ -2,9 +2,9 @@
 import { execute } from '../../render/execute';
 import { ListSource } from './list-source';
 import { ListMutationType } from './mutation';
-import { ExecuteContext } from '../../render/execute-context';
+import { disposeContext, ExecuteContext } from '../../render/execute-context';
 import { listen } from '../../render/listen';
-import { RenderTarget } from '../../jsx';
+import { Anchor, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 
@@ -23,10 +23,10 @@ export function List<T extends ExecuteContext>(
     throw new Error('move than 1 child is not supported');
 
   return {
-    render(target: RenderTarget) {
+    async render(target: RenderTarget) {
       const source = props.source;
 
-      const { updateOperations, renderOperations, events } = compile(
+      const { updateOperations, renderOperations, events } = await compile(
         _children,
         target
       );
@@ -46,7 +46,7 @@ export function List<T extends ExecuteContext>(
               //   renderChild(mut.item, mut.index);
               //   break;
               case ListMutationType.Delete:
-                deleteChild(mut.item);
+                disposeContext(mut.item);
                 break;
               case ListMutationType.Clear:
                 clear(mut.firstItem, mut.lastItem);
@@ -71,6 +71,7 @@ export function List<T extends ExecuteContext>(
         const lastElement = findLastElement(to) as Node;
 
         if (
+          !(target instanceof Anchor) &&
           firstElement === target.firstChild &&
           lastElement.nextSibling === null
         ) {
@@ -96,33 +97,6 @@ export function List<T extends ExecuteContext>(
           for (const elt of from.moreRootElements) {
             target.insertBefore(elt, referenceNode);
           }
-      }
-
-      function deleteChild(xc: ExecuteContext) {
-        const { bindings, subscriptions, rootElement, moreRootElements } = xc;
-
-        if (bindings) {
-          let blength = bindings.length;
-          while (blength--) {
-            bindings[blength].dispose();
-          }
-        }
-
-        if (subscriptions) {
-          let slength = subscriptions.length;
-          while (slength--) {
-            subscriptions[slength].unsubscribe();
-          }
-        }
-
-        if (rootElement) rootElement.remove();
-
-        if (moreRootElements) {
-          let elength = moreRootElements.length;
-          while (elength--) {
-            moreRootElements[elength].remove();
-          }
-        }
       }
 
       function renderChildren(source: ArrayLike<ExecuteContext>) {

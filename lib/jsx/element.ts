@@ -1,6 +1,7 @@
 ﻿import {
   AppendChildOperation,
   DomNavigationOperation,
+  DomOperation,
   DomOperationType,
   DomRenderOperation,
   LazyOperation,
@@ -58,13 +59,15 @@ export class JsxElement {
             if (cls) node.classList.add((classes && classes[cls]) || cls);
           }
         } else if (item instanceof Lazy) {
-          const valueKey = Symbol();
+          const valueKey = Symbol('value');
+          const nodeKey = Symbol('node');
           this.contentOps.push({
             type: DomOperationType.Lazy,
-            nodeKey: Symbol(),
+            nodeKey,
             valueKey: valueKey,
             lazy: item,
             operation: {
+              prevKey: Symbol('prev'),
               type: DomOperationType.SetClassName,
               expression: {
                 type: ExpressionType.Property,
@@ -72,14 +75,15 @@ export class JsxElement {
                 readonly: true,
               },
               classes: options?.classes,
-              key: Symbol(),
+              nodeKey,
             },
           });
         } else {
           const expr = toExpression(item);
           if (expr) {
             this.contentOps.push({
-              key: Symbol(),
+              prevKey: Symbol('prev'),
+              nodeKey: Symbol('node'),
               type: DomOperationType.SetClassName,
               expression: expr,
               classes: options?.classes,
@@ -88,10 +92,10 @@ export class JsxElement {
         }
       }
     } else if (attrValue instanceof Lazy) {
-      const valueKey = Symbol();
+      const valueKey = Symbol('value');
       this.contentOps.push({
         type: DomOperationType.Lazy,
-        nodeKey: Symbol(),
+        nodeKey: Symbol('node'),
         valueKey,
         lazy: attrValue,
         operation: {
@@ -205,21 +209,29 @@ export class JsxElement {
       } else if (child instanceof Node) {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
+        const anchorIdx = templateNode.childNodes.length;
+        pushChildAt(contentOps, anchorIdx);
+
         const anchor = document.createComment('<-- anchor: attach-to -->');
-        contentOps.push({
-          type: DomOperationType.Renderable,
-          renderable: {
-            child: child as { attachTo: Function },
-            render(elt: HTMLElement) {
-              this.child.attachTo(elt);
-              return {
-                dispose() {},
-              };
+        templateNode.appendChild(anchor);
+        contentOps.push(
+          {
+            type: DomOperationType.Renderable,
+            renderable: {
+              child: child as { attachTo: Function },
+              render(elt: HTMLElement) {
+                this.child.attachTo(elt);
+                return {
+                  dispose() {},
+                };
+              },
             },
           },
-          anchorIdx: templateNode.childNodes.length,
-        });
-        templateNode.appendChild(anchor);
+          {
+            type: DomOperationType.PopNode,
+            index: anchorIdx,
+          }
+        );
 
         // } else if (child instanceof Function) {
         //   addTextContentExpr({
@@ -227,13 +239,20 @@ export class JsxElement {
         //     init: child as any,
         //   });
       } else if (isRenderable(child)) {
+        const anchorIdx = templateNode.childNodes.length;
+        pushChildAt(contentOps, anchorIdx);
         const anchor = document.createComment('<-- anchor: renderable -->');
-        contentOps.push({
-          type: DomOperationType.Renderable,
-          renderable: child,
-          anchorIdx: templateNode.childNodes.length,
-        });
         templateNode.appendChild(anchor);
+        contentOps.push(
+          {
+            type: DomOperationType.Renderable,
+            renderable: child,
+          },
+          {
+            type: DomOperationType.PopNode,
+            index: anchorIdx,
+          }
+        );
       } else if (isTemplate(child)) {
         switch (child.type) {
           case TemplateType.Expression:
@@ -301,7 +320,7 @@ export class JsxElement {
   }
 }
 
-type DomContentOperation<T> =
+export type DomContentOperation<T> =
   | DomNavigationOperation
   | SetTextContentOperation
   | DomRenderOperation<T>
@@ -313,8 +332,8 @@ type DomContentOperation<T> =
 
 export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
 
-function pushChildAt(
-  operations: DomContentOperation<any>[],
+export function pushChildAt(
+  operations: DomOperation<any>[],
   childIndex: number
 ) {
   if (childIndex === 0) {
@@ -344,10 +363,11 @@ function pushChildAt(
 
 function toExpression(item: any): JSX.Expression | null {
   if (item instanceof Function) {
-    return {
-      type: ExpressionType.Init,
-      init: item as any,
-    };
+    return null;
+    // return {
+    //   type: ExpressionType.Init,
+    //   init: item as any,
+    // };
   } else if (isSubscribable(item)) {
     return {
       type: ExpressionType.State,
