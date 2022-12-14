@@ -5,7 +5,7 @@ export interface Observable {
 }
 
 interface NextObserver<T> {
-  [_previous]: T;
+  // [_previous]: T;
   next(value: T): any;
 }
 

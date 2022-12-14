@@ -4,7 +4,7 @@ import { Template, TemplateType } from './template';
 
 export class Context<T> {
   lazy<U>(value: U) {
-    return new Lazy(value);
+    return new Lazy<T, U>(value);
   }
 
   readonly(name: keyof T) {
@@ -30,10 +30,21 @@ export class Context<T> {
 export class Lazy<T, U> {
   constructor(public value: U) {}
 
+  attachables: [HTMLElement, Function][] = [];
+
   select(context: T) {
     notify(this, [context, this.value]);
     return () => {
       notify(this, [context, null]);
+    };
+  }
+
+  attach(func: (x: JSX.ViewContext<T>) => void) {
+    const { attachables } = this;
+    return {
+      attachTo(x: HTMLElement) {
+        attachables.push([x, func]);
+      },
     };
   }
 }

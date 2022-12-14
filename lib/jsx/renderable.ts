@@ -50,6 +50,10 @@ export type RenderTarget = HTMLElement | Anchor;
 //   set textContent(value: string | null);
 // }
 
+export interface Attachable {
+  attachTo(elt: HTMLElement): any;
+}
+
 export interface Renderable<T> {
   render(
     target: RenderTarget,

@@ -1,4 +1,4 @@
-import { Lazy, Renderable, RenderTarget } from '../jsx';
+import { Attachable, Lazy, Renderable, RenderTarget } from '../jsx';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -9,6 +9,7 @@ export enum DomOperationType {
   SetClassName,
   SetTextContent,
   Renderable,
+  Attachable,
   Subscribable,
   AppendChild,
   Lazy,
@@ -39,6 +40,7 @@ export interface PopNodeOperation {
   index: number;
 }
 export interface SetAttributeOperation {
+  nodeKey: symbol;
   type: DomOperationType.SetAttribute;
   name: string;
   expression: JSX.Expression;
@@ -60,10 +62,14 @@ export interface SetTextContentOperation {
   expression: JSX.Expression;
 }
 
-export interface RenderableOperation<T> {
+export interface DomRenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
-  // anchorIdx: number;
+}
+
+export interface DomAttachableOperation {
+  type: DomOperationType.Attachable;
+  attachable: Attachable;
 }
 
 export interface AppendChildOperation {
@@ -108,7 +114,7 @@ export type DomRenderOperation<T> =
   | SetAttributeOperation
   | SetClassNameOperation
   | SetTextContentOperation
-  | RenderableOperation<T>
+  | DomRenderableOperation<T>
   | AppendChildOperation
   | LazyOperation<T>
   | SubscribableOperation<T>;
@@ -116,6 +122,7 @@ export type DomRenderOperation<T> =
 export type DomOperation<T> =
   | DomNavigationOperation
   | DomRenderOperation<T>
+  | DomAttachableOperation
   | CloneOperation;
 
 (window as any)['operationName'] = function (op: DomOperation<any>) {

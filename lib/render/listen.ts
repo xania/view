@@ -58,7 +58,7 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
   }
 }
 
-function resolveRootNode(container: RenderTarget, node: Node) {
+export function resolveRootNode(container: RenderTarget, node: Node) {
   let root = node;
   const rootParent =
     container instanceof Anchor ? container.container : container;

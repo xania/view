@@ -6,7 +6,7 @@ import {
   DomOperationType,
   LazyOperation,
 } from './dom-operation';
-import { JsxEvent } from './listen';
+import { JsxEvent, resolveRootNode } from './listen';
 import { TemplateInput } from '../jsx/template-input';
 import { Anchor, isRenderable } from '../jsx';
 import { subscribe } from '../rx';
@@ -22,6 +22,21 @@ export function compile(children: TemplateInput, target: HTMLElement | Anchor) {
           if (!item) return;
           item[op.valueKey] = newValue;
           update([op.operation], [item]);
+
+          const { attachables } = op.lazy;
+          if (attachables?.length) {
+            const node = item[op.nodeKey];
+            const rootNode = resolveRootNode(target, node);
+            if (rootNode) {
+              for (const [n, f] of op.lazy.attachables) {
+                if (rootNode.contains(n))
+                  f({
+                    data: item,
+                    node: n,
+                  } as JSX.ViewContext<any>);
+              }
+            }
+          }
 
           // if (prevValue) {
           //   ref.classList.remove(prevValue);

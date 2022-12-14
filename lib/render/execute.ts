@@ -78,11 +78,14 @@ export function execute<TExecuteContext extends ExecuteContext>(
           break;
         case DomOperationType.SetAttribute:
           const attrExpr = op.expression;
+
+          const attrElt = nodeStack.head as any;
+          (context as any)[op.nodeKey] = attrElt;
+
           switch (attrExpr.type) {
             case ExpressionType.Property:
               const attrValue = context[attrExpr.name];
-              const elt = nodeStack.head as any;
-              elt[op.name] = attrValue;
+              attrElt[op.name] = attrValue;
               // if (attrValue) {
               //   operationStack = {
               //     head: {
@@ -321,6 +324,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
               }
               break;
           }
+          break;
+        case DomOperationType.Attachable:
+          op.attachable.attachTo(nodeStack.head as HTMLElement);
           break;
         case DomOperationType.Renderable:
           const binding: null | Disposable | JSX.Unsubscribable =

@@ -1,6 +1,6 @@
 ﻿import { render } from '.';
 import { disposeAll } from '../disposable';
-import { Anchor } from '../jsx';
+import { Anchor, RenderTarget } from '../jsx';
 import { JsxElement } from '../jsx/element';
 import { isSubscribable } from '../util/observables';
 
@@ -8,7 +8,11 @@ export function view(tpl: any): any {
   if (tpl instanceof JsxElement) {
     return tpl;
   } else if (tpl instanceof Promise) {
-    return tpl.then(view);
+    return {
+      render(target: RenderTarget) {
+        return tpl.then((resolved) => render(view(resolved), target));
+      },
+    };
   } else if (isSubscribable(tpl)) {
     return {
       observable: tpl,

@@ -1,14 +1,7 @@
 ﻿import {
-  AppendChildOperation,
-  DomNavigationOperation,
   DomOperation,
   DomOperationType,
-  DomRenderOperation,
-  LazyOperation,
-  SetAttributeOperation,
-  SetClassNameOperation,
   SetTextContentOperation,
-  SubscribableOperation,
 } from '../render/dom-operation';
 import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
@@ -93,12 +86,14 @@ export class JsxElement {
       }
     } else if (attrValue instanceof Lazy) {
       const valueKey = Symbol('value');
+      const nodeKey = Symbol('value');
       this.contentOps.push({
         type: DomOperationType.Lazy,
-        nodeKey: Symbol('node'),
+        nodeKey: nodeKey,
         valueKey,
         lazy: attrValue,
         operation: {
+          nodeKey: nodeKey,
           type: DomOperationType.SetAttribute,
           expression: {
             type: ExpressionType.Property,
@@ -110,6 +105,7 @@ export class JsxElement {
       });
     } else if (isSubscribable(attrValue)) {
       this.contentOps.push({
+        nodeKey: Symbol('node'),
         type: DomOperationType.SetAttribute,
         name: attrName,
         expression: {
@@ -121,6 +117,7 @@ export class JsxElement {
       switch (attrValue.type) {
         case TemplateType.Expression:
           this.contentOps.push({
+            nodeKey: Symbol('node'),
             type: DomOperationType.SetAttribute,
             name: attrName,
             expression: attrValue.expr,
@@ -209,29 +206,10 @@ export class JsxElement {
       } else if (child instanceof Node) {
         templateNode.appendChild(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
-        const anchorIdx = templateNode.childNodes.length;
-        pushChildAt(contentOps, anchorIdx);
-
-        const anchor = document.createComment('<-- anchor: attach-to -->');
-        templateNode.appendChild(anchor);
-        contentOps.push(
-          {
-            type: DomOperationType.Renderable,
-            renderable: {
-              child: child as { attachTo: Function },
-              render(elt: HTMLElement) {
-                this.child.attachTo(elt);
-                return {
-                  dispose() {},
-                };
-              },
-            },
-          },
-          {
-            type: DomOperationType.PopNode,
-            index: anchorIdx,
-          }
-        );
+        contentOps.push({
+          type: DomOperationType.Attachable,
+          attachable: child,
+        });
 
         // } else if (child instanceof Function) {
         //   addTextContentExpr({
@@ -320,15 +298,17 @@ export class JsxElement {
   }
 }
 
-export type DomContentOperation<T> =
-  | DomNavigationOperation
-  | SetTextContentOperation
-  | DomRenderOperation<T>
-  | SetAttributeOperation
-  | SetClassNameOperation
-  | LazyOperation<T>
-  | SubscribableOperation<T>
-  | AppendChildOperation;
+export type DomContentOperation<T> = DomOperation<T>;
+// | DomNavigationOperation
+// | SetTextContentOperation
+// | DomRenderOperation<T>
+// | DomAttachableOperation
+// | Attachable
+// | SetAttributeOperation
+// | SetClassNameOperation
+// | LazyOperation<T>
+// | SubscribableOperation<T>
+// | AppendChildOperation;
 
 export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
 

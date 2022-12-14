@@ -65,6 +65,17 @@ export function update<TExecuteContext extends ExecuteContext>(
 
           (context as any)[op.prevKey] = prevValue;
           break;
+        case DomOperationType.SetAttribute:
+          const setAttrExpr = op.expression;
+          const node = context[op.nodeKey];
+          switch (setAttrExpr.type) {
+            case ExpressionType.Property:
+              const newValue = context[setAttrExpr.name];
+              node[op.name] = newValue;
+
+              break;
+          }
+          break;
         default:
           console.error(op);
           break;
