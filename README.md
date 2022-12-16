@@ -1,20 +1,84 @@
 # @xania/view
 
-@xania/view is a JavaScript view library for building user interfaces
+Xania (package name '@xania/view') is a JavaScript view library for building user interfaces
 
 #### Goal
 
-Goal of _Xania_ is to 'fix' React. Keep using the good parts (JSX is king, fractal-unidirectional data flow) but prevent issues (stale closures) from happening so that we don't have to solve them using hooks.
+Goal of _Xania_ is to 'fix' React. Keep using the good parts (JSX is king, unidirectional data flow) but prevent issues (stale closures) from happening so that we don't have to solve them.
 
 Also, goal is to proof simple design is the best design:
 
 - supports all primitives of the platform
 - easy to understand and intuitive (for you to judge)
-- fastest, literally (see [benchmark](https://krausest.github.io/js-framework-benchmark/2022/table_chrome_104_windows.html))
+- being the fastest, literally (see [benchmark](https://krausest.github.io/js-framework-benchmark/2022/table_chrome_104_windows.html))
 
-##### 1. Prevent issues.
+## Starting new project
 
-Most of the issues in React are caused by the re-rendering of the component on state change. All these hooks have cascading issues, it's funny that some hooks are introduced to mitigate issues from other hooks and also introduce new issues.
+```powershell
+npm init @xania/app hello-world
+```
+
+```powershell
+cd hello-world
+npm start
+
+VITE v3.2.4  ready in 150 ms
+➜  Local:   http://localhost:3000/
+```
+
+## Existing project
+
+1. install package
+
+```powershell
+npm i @xania/view
+```
+
+2. add jsx support through configuration in tsconfig.json
+
+```json
+/** /tsconfig.json */
+{
+  "compilerOptions": {
+    ...
+    "jsxFactory": "jsx.createElement",
+    "jsx": "react",
+    "jsxFragmentFactory": "jsx.createFragment",
+    "typeRoots" : ["@xania/view/types"]
+  }
+}
+```
+
+3. Create components using the jsx syntax
+
+```typescript
+/* time.tsx */
+import { jsxFactory } from "@xania/view"
+const jsx = jsxFactory(/** factory options **/);
+
+export function Time() {
+  const state = useState("");
+  setInterval(_ => state.update(new Date().toLocalTimeString(); ), 1000);
+  return state;
+}
+
+```
+
+4. Render to HTML
+
+```typescript
+/* app.tsx */
+import { render } from '@xania/view';
+import Time from './time';
+
+render(<Time />, document.body);
+```
+
+### How is _Xania_ better than _React_?
+
+##### 1. _Xania_ solves common issues.
+
+Most of the issues in React are caused by the re-rendering of the component on state change. All these hooks have cascading issues, it's funny that some hooks are introduced to mitigate issues from other hooks and in the process introduce new issues.
 
 - ~~useEffect~~
 - ~~useCallback~~
@@ -24,9 +88,9 @@ Most of the issues in React are caused by the re-rendering of the component on s
 - ~~cache~~
 - ...
 
-So how can we update the view without re-rendering? The solution is examined by _Xania_ is fine-grained reactivity.
+So how can _Xania_ update the view without re-rendering? The solution is examined by _Xania_ is fine-grained reactivity and binding to state objects and observables.
 
-##### 2. Use the platform
+##### 2. _Xania_ uses the platform
 
 First class support for
 
@@ -37,7 +101,8 @@ First class support for
 - arrays (just like React)
 
 Javascript is expressive and is getting better. While async/await was introduced in 2017, React still lacking bullet proof support for it (encountered by first use of `use` hook, unless you haven't used it already). Seeing this I don't dare dreaming of support of async iterators.
-So we fixed that:
+
+Observables support in _React_ is even worse, first read blog by Dan Abramov on useInterval, then take a look at `Clock` component in the [xania project](#starting-new-project)
 
 ##### Work in progress
 
