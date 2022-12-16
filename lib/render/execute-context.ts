@@ -8,6 +8,8 @@ export interface ExecuteContext extends Record<string | number | symbol, any> {
 }
 
 export function disposeContext(xc: ExecuteContext) {
+  if (!xc) return;
+
   const { bindings, subscriptions, rootElement, moreRootElements } = xc;
 
   if (bindings) {

@@ -38,10 +38,6 @@ export class ListSource<T> {
     }
   }
 
-  get length() {
-    return this.snapshot.length;
-  }
-
   subscribe(observer: ListObserver<T>) {
     const { observers } = this;
     observers.push(observer);
@@ -136,6 +132,8 @@ export class ListSource<T> {
     //     this.notifyMapObservers();
     //     break;
     // }
+
+    this.notifyMapObservers();
   }
 
   push(item: T) {
@@ -188,14 +186,9 @@ export class ListSource<T> {
       const o = observers[olen];
       o.next(mut);
     }
-  }
 
-  updatePartial = (items: ListItem<T>[]) => {
-    this.next({
-      type: ListMutationType.Update,
-      items,
-    });
-  };
+    this.notifyMapObservers();
+  }
 
   update = (updater?: (data: List<T>) => ArrayLike<T> | void) => {
     if (updater instanceof Function) {
@@ -212,6 +205,8 @@ export class ListSource<T> {
         const o = observers[olen];
         o.next(mut);
       }
+
+      this.notifyMapObservers();
     }
 
     // const { properties } = this;
@@ -277,6 +272,8 @@ export class ListSource<T> {
         break;
       }
     }
+
+    this.notifyMapObservers();
   };
 
   // flushItem = (item: DirtyItem) => {
@@ -327,6 +324,8 @@ export class ListSource<T> {
         const o = observers[olen];
         o.next(mut);
       }
+
+      this.notifyMapObservers();
     }
   }
 
@@ -356,8 +355,6 @@ export class ListSource<T> {
             const idx = mapObservers.indexOf(o as any);
             if (idx >= 0) {
               mapObservers.splice(idx, 1);
-            } else {
-              debugger;
             }
           },
         };
