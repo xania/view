@@ -124,8 +124,10 @@ render(<MyComponent />, document.body);
 
 ```jsx
 function MyComponent() {
-  const [count, updateCount] = useState(0);
-  return <button click={(_) => updateCount(count + 1)}>Count: {count}</button>;
+  const count = useState(0);
+  return (
+    <button click={(_) => count.update((x) => x + 1)}>Count: {count}</button>
+  );
 }
 ```
 
@@ -146,14 +148,12 @@ function MyComponent() {
 
 ```jsx
 async function MyComponent() {
-  const ditto = await fetch('https://pokeapi.co/api/v2/pokemon/ditto').then(
-    (e) => e.json()
-  );
+  const ditto = await fetchPokemon();
   return <div>{ditto.name}</div>;
 }
 ```
 
-##### Support for async iterator (work in progress)
+##### Support for async iterator (experimental / work in progress)
 
 Not sure if one would expect this to end up with one final div and auto dispose all the previous, or all div's should be retained
 
