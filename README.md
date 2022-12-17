@@ -2,6 +2,10 @@
 
 Xania (package name '@xania/view') is a JavaScript view library for building user interfaces
 
+#### Playground
+
+https://stackblitz.com/edit/vitejs-vite-njpme2?file=src/App.tsx
+
 #### Goal
 
 Goal of _Xania_ is to 'fix' React. Keep using the good parts (JSX is king, unidirectional data flow) but prevent issues (stale closures) from happening so that we don't have to solve them.
