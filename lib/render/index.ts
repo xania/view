@@ -32,7 +32,7 @@ export function render<T = any>(
 
       execute(renderOperations, [execContext], container);
 
-      for (const evt of events) listen(container, evt);
+      for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
       // for (const obs of observables) {
       //   const subs = obs.subscribe({
       //     binding: null as Promise<Disposable | null> | null,

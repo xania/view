@@ -28,7 +28,7 @@ export function compile(children: TemplateInput, target: HTMLElement | Anchor) {
             const node = item[op.nodeKey];
             const rootNode = resolveRootNode(target, node);
             if (rootNode) {
-              for (const [n, f] of op.lazy.attachables) {
+              for (const [n, f] of attachables) {
                 if (rootNode.contains(n))
                   f({
                     data: item,
@@ -60,7 +60,7 @@ class CompileResult<T> {
   updateOperations: DomOperation<T>[] = [];
   renderOperations: DomOperation<T>[] = [];
   lazyOperations: LazyOperation<T>[] = [];
-  events: JsxEvent[] = [];
+  events: [JsxEvent, number][] = [];
   // observables: JSX.Subscribable<T>[] = [];
 
   constructor(public target: HTMLElement | Anchor) {}
@@ -77,12 +77,16 @@ class CompileResult<T> {
         type: DomOperationType.PopNode,
         index: anchorIdx,
       });
+      this.rootCount++;
     }
   }
 
+  private rootCount: number = 0;
+
   add = (child: any): void => {
     if (child instanceof JsxElement) {
-      for (const evt of child.events) this.events.push(evt);
+      const rootIndex = this.rootCount++;
+      for (const evt of child.events) this.events.push([evt, rootIndex]);
 
       const { contentOps } = child;
       const cloneOp: CloneOperation = {

@@ -31,7 +31,7 @@ export function List<T extends ExecuteContext>(
         target
       );
 
-      for (const evt of events) listen(target, evt);
+      for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);
 
       if (source instanceof Array) {
         renderChildren(source);

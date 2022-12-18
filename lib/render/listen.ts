@@ -9,7 +9,11 @@ export interface JsxEvent {
   handler: (e: JSX.EventContext<any, any>) => any;
 }
 
-export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
+export function listen(
+  container: RenderTarget,
+  jsxEvent: JsxEvent,
+  rootIdx: number
+) {
   container.addEventListener(
     jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any),
     handler,
@@ -28,11 +32,11 @@ export function listen(container: RenderTarget, jsxEvent: JsxEvent) {
 
     if (!root) return;
     const context: ExecuteContext = (root as any)[contextKey];
-
-    let node: Node = context?.rootElement as Node;
-    if (!node) return;
+    if (root !== getRootElementAt(context, rootIdx)) return;
 
     const { nav: navOps } = jsxEvent;
+
+    let node = root;
     for (let i = 0, navLen = navOps.length; i < navLen; i++) {
       const nav = navOps[i];
       switch (nav.type) {
@@ -67,4 +71,13 @@ export function resolveRootNode(container: RenderTarget, node: Node) {
   }
 
   return root;
+}
+
+function getRootElementAt(context: ExecuteContext, rootIdx: number) {
+  if (rootIdx === 0) return context.rootElement;
+
+  if (rootIdx > 0 && context?.moreRootElements)
+    return context.moreRootElements[rootIdx - 1];
+
+  return null;
 }
