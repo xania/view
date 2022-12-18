@@ -3,7 +3,7 @@
 export class TagTemplateNode implements TemplateNode {
   public classList: string[] = [];
   public childNodes: TemplateNode[] = [];
-  attrs: Record<string, any> = {};
+  public attrs: Record<string, any> = {};
 
   constructor(public name: string) {}
 }
