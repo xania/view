@@ -1,4 +1,5 @@
 import { Attachable, Lazy, Renderable, RenderTarget } from '../jsx';
+import { TagTemplateNode } from '../jsx/template-node';
 
 export enum DomOperationType {
   PushFirstChild,
@@ -100,7 +101,7 @@ export interface SubscribableOperation<T> {
 
 export interface CloneOperation {
   type: DomOperationType.Clone;
-  templateNode: Node;
+  templateNode: TagTemplateNode;
   target: RenderTarget;
 }
 

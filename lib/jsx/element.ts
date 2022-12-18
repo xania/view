@@ -13,14 +13,19 @@ import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
 import { JsxEvent } from '../render/listen';
 import { Lazy } from './context';
+import {
+  AnchorTemplateNode,
+  TagTemplateNode,
+  TextTemplateNode,
+} from './template-node';
 
 export class JsxElement {
-  public templateNode: HTMLElement;
+  public templateNode: TagTemplateNode;
   public contentOps: DomContentOperation<any>[] = [];
   public events: JsxEvent[] = [];
 
   constructor(public name: string) {
-    this.templateNode = document.createElement(name);
+    this.templateNode = new TagTemplateNode(name);
   }
 
   setProp(
@@ -49,7 +54,7 @@ export class JsxElement {
         if (typeof item === 'string') {
           const classes = options?.classes;
           for (const cls of item.split(' ')) {
-            if (cls) node.classList.add((classes && classes[cls]) || cls);
+            if (cls) node.classList.push((classes && classes[cls]) || cls);
           }
         } else if (item instanceof Lazy) {
           const valueKey = Symbol('value');
@@ -125,7 +130,7 @@ export class JsxElement {
           break;
       }
     } else {
-      (node as any)[attrName] = attrValue;
+      node.attrs[attrName] = attrValue;
     }
   }
 
@@ -148,8 +153,8 @@ export class JsxElement {
           if (prevOperation.type === DomOperationType.SetTextContent) {
             // found a text content operation at i that uses current templateNode exclusively
             // create a TextNode inside templateNode for this operation to use instead
-            const textNode = document.createTextNode('');
-            templateNode.appendChild(textNode);
+            const textNode = new TextTemplateNode('');
+            templateNode.childNodes.push(textNode);
             const pushFirstChild: DomContentOperation<any> = {
               type: DomOperationType.PushFirstChild,
             };
@@ -176,8 +181,8 @@ export class JsxElement {
       }
 
       function addShared() {
-        const textNode = document.createTextNode('');
-        templateNode.appendChild(textNode);
+        const textNode = new TextTemplateNode('');
+        templateNode.childNodes.push(textNode);
 
         pushChildAt(contentOps, childIndex);
         contentOps.push(newOperation);
@@ -204,7 +209,7 @@ export class JsxElement {
           state: child,
         });
       } else if (child instanceof Node) {
-        templateNode.appendChild(child);
+        templateNode.childNodes.push(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
         contentOps.push({
           type: DomOperationType.Attachable,
@@ -219,8 +224,8 @@ export class JsxElement {
       } else if (isRenderable(child)) {
         const anchorIdx = templateNode.childNodes.length;
         pushChildAt(contentOps, anchorIdx);
-        const anchor = document.createComment('<-- anchor: renderable -->');
-        templateNode.appendChild(anchor);
+        const anchor = new AnchorTemplateNode('renderable');
+        templateNode.childNodes.push(anchor);
         contentOps.push(
           {
             type: DomOperationType.Renderable,
@@ -252,16 +257,7 @@ export class JsxElement {
           state: child,
         });
       } else {
-        if (
-          templateNode.textContent ||
-          templateNode.childNodes.length ||
-          this.contentOps.length
-        ) {
-          const textNode = document.createTextNode(child as any);
-          templateNode.appendChild(textNode);
-        } else {
-          templateNode.textContent = child as any;
-        }
+        templateNode.childNodes.push(new TextTemplateNode(child as string));
       }
     }
   }
@@ -294,7 +290,7 @@ export class JsxElement {
       });
     }
 
-    this.templateNode.appendChild(tag.templateNode);
+    this.templateNode.childNodes.push(tag.templateNode);
   }
 }
 
