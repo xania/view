@@ -141,11 +141,11 @@ class StateProperty<T, K extends keyof T> extends Value<T[K]> {
 
 export class StateMap<T, U> extends Value<U> {
   constructor(
-    public parent: { value: T },
+    public parent: { snapshot: T },
     public project: (t: T) => U,
     public flush: (dirty: DirtyItem) => boolean
   ) {
-    super(project(parent.value));
+    super(project(parent.snapshot));
   }
 }
 

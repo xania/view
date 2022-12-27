@@ -158,6 +158,7 @@ declare module JSX {
   }
 
   export interface Value<T> {
+    snapshot: T;
     subscribe<O extends NextObserver<T>>(observer: O): Unsubscribable;
     map<U>(func: (t?: T) => U): Value<U>;
     get<K extends keyof T>(name: K): State<T[K]>;
