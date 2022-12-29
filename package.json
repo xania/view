@@ -4,6 +4,7 @@
   "main": "./dist/main.js",
   "module": "./dist/main.mjs",
   "typings": "./dist/index.d.ts",
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/main.mjs",
