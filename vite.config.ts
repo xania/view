@@ -23,6 +23,9 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [],
+      output: {
+        sourcemap: true,
+      },
       plugins: [
         typescript({
           declaration: true,

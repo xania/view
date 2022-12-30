@@ -210,6 +210,11 @@ export class JsxElement {
         });
       } else if (child instanceof Node) {
         templateNode.childNodes.push(child);
+      } else if (isSubscribable(child)) {
+        addTextContentExpr({
+          type: ExpressionType.State,
+          state: child,
+        });
       } else if ((child as any)['attachTo'] instanceof Function) {
         contentOps.push({
           type: DomOperationType.Attachable,
@@ -251,11 +256,6 @@ export class JsxElement {
             }
             break;
         }
-      } else if (isSubscribable(child)) {
-        addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
-        });
       } else {
         templateNode.childNodes.push(new TextTemplateNode(child as string));
       }
