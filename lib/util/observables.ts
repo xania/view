@@ -1,4 +1,4 @@
-export function isSubscribable(value: any): value is JSX.Subscribable<any> {
+export function isSubscribable(value: any): value is JSX.Observable<any> {
   return value && value.subscribe instanceof Function;
 }
 

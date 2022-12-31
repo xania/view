@@ -108,12 +108,12 @@ class CompileResult<T> {
           }
         }
 
-        if (op.type === DomOperationType.SetClassName) {
-          const expr = op.expression;
-          if (expr.type === ExpressionType.Function) {
-            this.updateOperations.push(op);
-          }
-        }
+        // if (op.type === DomOperationType.SetClassName) {
+        //   // const expr = op.expression;
+        //   // if (expr.type === ExpressionType.Function) {
+        //   //   this.updateOperations.push(op);
+        //   // }
+        // }
 
         if (op.type === DomOperationType.Lazy) {
           this.lazyOperations.push(op);
@@ -122,7 +122,7 @@ class CompileResult<T> {
     } else if (isSubscribable(child)) {
       this.addAnchoredOperation({
         type: DomOperationType.Subscribable,
-        subscribable: child,
+        observable: child,
       });
       // this.observables.push(child);
     } else if (isRenderable(child)) {

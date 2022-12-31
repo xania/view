@@ -46,9 +46,6 @@ export function update<TExecuteContext extends ExecuteContext>(
             case ExpressionType.Property:
               classValue = context[setClassExpr.name];
               break;
-            case ExpressionType.Function:
-              classValue = setClassExpr.func(context);
-              break;
           }
 
           if (classValue instanceof Array) {

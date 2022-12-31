@@ -16,12 +16,18 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
       ...children: TemplateInput[]
     ): JsxElement | Promise<JsxElement> | undefined {
       if (name instanceof Function) {
+        let args =
+          children instanceof Array
+            ? props === null || props === undefined
+              ? { children }
+              : { ...props, children }
+            : props;
         try {
-          return name(props, children, opts);
+          return name(args, opts);
         } catch (err) {
           // if is class then try with `new` operator
           if (name.toString().startsWith('class')) {
-            return Reflect.construct(name, [props, children]);
+            return Reflect.construct(name, args);
           } else {
             throw err;
           }

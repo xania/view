@@ -52,7 +52,7 @@ export interface SetClassNameOperation {
   prevKey: symbol;
   type: DomOperationType.SetClassName;
   expressions?: JSX.Expression[];
-  expression: JSX.Expression<any, any>;
+  expression: JSX.Expression;
   classes?: { [k: string]: string };
 }
 
@@ -78,9 +78,9 @@ export interface AppendChildOperation {
   node: Node;
 }
 
-export interface SubscribableOperation<T> {
+export interface ObservableOperation<T> {
   type: DomOperationType.Subscribable;
-  subscribable: JSX.Subscribable<T>;
+  observable: JSX.Observable<T>;
   // anchorIdx: number;
 }
 
@@ -118,7 +118,7 @@ export type DomRenderOperation<T> =
   | DomRenderableOperation<T>
   | AppendChildOperation
   | LazyOperation<T>
-  | SubscribableOperation<T>;
+  | ObservableOperation<T>;
 
 export type DomOperation<T> =
   | DomNavigationOperation

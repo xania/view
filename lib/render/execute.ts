@@ -102,8 +102,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
               //   };
               // }
               break;
-            case ExpressionType.State:
-              attrExpr.state.subscribe({
+            case ExpressionType.Observable:
+              attrExpr.observable.subscribe({
                 elt: nodeStack.head as HTMLElement,
                 name: op.name,
                 next(s: string) {
@@ -144,15 +144,12 @@ export function execute<TExecuteContext extends ExecuteContext>(
             //     elt.classList.add(cl);
             //   }
             //   break;
-            case ExpressionType.Function:
-              classValue = classExpr.func(context);
-              break;
             case ExpressionType.Property:
               classValue = context[classExpr.name];
               break;
-            case ExpressionType.State:
+            case ExpressionType.Observable:
               const prev: string[] = [];
-              const subs = classExpr.state.subscribe({
+              const subs = classExpr.observable.subscribe({
                 prev,
                 classes: op.classes,
                 elt: nodeStack.head as HTMLElement,
@@ -309,10 +306,10 @@ export function execute<TExecuteContext extends ExecuteContext>(
             case ExpressionType.Property:
               textNode.textContent = context[setContentExpr.name] ?? '';
               break;
-            case ExpressionType.State:
-              const { state } = setContentExpr;
+            case ExpressionType.Observable:
+              const { observable } = setContentExpr;
 
-              const stateSubscription = state.subscribe({
+              const stateSubscription = observable.subscribe({
                 textNode: nodeStack.head,
                 next(newValue) {
                   this.textNode.textContent = newValue;

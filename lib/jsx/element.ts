@@ -8,7 +8,6 @@ import { flatten } from './_flatten';
 import { ExpressionType } from './expression';
 import { TemplateInput } from './template-input';
 import { isRenderable } from './renderable';
-import { State } from '../state';
 import { isSubscribable } from '../util/observables';
 import { isTemplate, TemplateType } from './template';
 import { JsxEvent } from '../render/listen';
@@ -114,8 +113,8 @@ export class JsxElement {
         type: DomOperationType.SetAttribute,
         name: attrName,
         expression: {
-          type: ExpressionType.State,
-          state: attrValue,
+          type: ExpressionType.Observable,
+          observable: attrValue,
         },
       });
     } else if (isTemplate(attrValue)) {
@@ -203,18 +202,13 @@ export class JsxElement {
         return child.then((resolved: any) => {
           this.appendContent([resolved, ...nextChildren]);
         });
-      } else if (child instanceof State) {
+      } else if (isSubscribable(child)) {
         addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
+          type: ExpressionType.Observable,
+          observable: child,
         });
       } else if (child instanceof Node) {
         templateNode.childNodes.push(child);
-      } else if (isSubscribable(child)) {
-        addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
-        });
       } else if ((child as any)['attachTo'] instanceof Function) {
         contentOps.push({
           type: DomOperationType.Attachable,
@@ -346,13 +340,8 @@ function toExpression(item: any): JSX.Expression | null {
     // };
   } else if (isSubscribable(item)) {
     return {
-      type: ExpressionType.State,
-      state: item,
-    };
-  } else if (item instanceof State) {
-    return {
-      type: ExpressionType.State,
-      state: item,
+      type: ExpressionType.Observable,
+      observable: item,
     };
   } else if (isTemplate(item)) {
     switch (item.type) {

@@ -4,7 +4,7 @@ import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
 
 export interface IfProps {
-  condition: JSX.Subscribable<boolean>;
+  condition: JSX.Observable<boolean>;
 }
 
 export function If<T>(props: IfProps, children: Renderable<T>[]) {
