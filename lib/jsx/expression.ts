@@ -2,6 +2,9 @@ export enum ExpressionType {
   Property = 1,
   Function = 2,
   State = 3,
+  Subscribable = 4,
+  If = 4,
+  Call = 5,
 }
 
 export function isExpression(value: any): value is JSX.Expression<any, any> {

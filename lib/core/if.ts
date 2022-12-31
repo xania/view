@@ -1,4 +1,5 @@
 ﻿import { Renderable, RenderTarget } from '../jsx';
+import { ExpressionType } from '../jsx/expression';
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
@@ -9,6 +10,9 @@ export interface IfProps {
 
 export function If<T>(props: IfProps, children: Renderable<T>[]) {
   return {
+    ssr() {
+      return { type: ExpressionType.If, condition: props.condition, children };
+    },
     async render(target: RenderTarget) {
       const { condition } = props;
 

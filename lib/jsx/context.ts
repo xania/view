@@ -47,6 +47,10 @@ export class Lazy<T, U> {
       },
     };
   }
+
+  ssr() {
+    return 'new Lazy("' + this.value + '")';
+  }
 }
 
 function expr(expr: JSX.Expression): Template {

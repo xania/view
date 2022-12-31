@@ -125,7 +125,3 @@ export type DomOperation<T> =
   | DomRenderOperation<T>
   | DomAttachableOperation
   | CloneOperation;
-
-(window as any)['operationName'] = function (op: DomOperation<any>) {
-  return DomOperationType[op.type];
-};

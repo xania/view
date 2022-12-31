@@ -41,14 +41,12 @@ export class JsxElement {
 
     const { templateNode: node } = this;
 
-    if (('on' + attrName).toLocaleLowerCase() in HTMLElement.prototype) {
-      if (attrValue instanceof Function) {
-        this.events.push({
-          name: attrName,
-          handler: attrValue,
-          nav: [],
-        });
-      }
+    if (attrValue instanceof Function) {
+      this.events.push({
+        name: attrName,
+        handler: attrValue,
+        nav: [],
+      });
     } else if (attrName === 'class') {
       for (const item of flatten(attrValue)) {
         if (typeof item === 'string') {
@@ -91,7 +89,7 @@ export class JsxElement {
       }
     } else if (attrValue instanceof Lazy) {
       const valueKey = Symbol('value');
-      const nodeKey = Symbol('value');
+      const nodeKey = Symbol('node');
       this.contentOps.push({
         type: DomOperationType.Lazy,
         nodeKey: nodeKey,
@@ -208,8 +206,6 @@ export class JsxElement {
           type: ExpressionType.State,
           state: child,
         });
-      } else if (child instanceof Node) {
-        templateNode.childNodes.push(child);
       } else if ((child as any)['attachTo'] instanceof Function) {
         contentOps.push({
           type: DomOperationType.Attachable,

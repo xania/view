@@ -8,12 +8,12 @@ import {
 } from './dom-operation';
 import { JsxEvent, resolveRootNode } from './listen';
 import { TemplateInput } from '../jsx/template-input';
-import { Anchor, isRenderable } from '../jsx';
+import { Anchor, isRenderable, RenderTarget } from '../jsx';
 import { subscribe } from '../rx';
 import { update } from './update';
 import { isSubscribable } from '../util/observables';
 
-export function compile(children: TemplateInput, target: HTMLElement | Anchor) {
+export function compile(children: TemplateInput, target: RenderTarget) {
   var compileResult = new CompileResult<any>(target);
   return flatTemplates(children, compileResult.add).then((_) => {
     for (const op of compileResult.lazyOperations) {
@@ -56,14 +56,14 @@ export function compile(children: TemplateInput, target: HTMLElement | Anchor) {
   });
 }
 
-class CompileResult<T> {
+export class CompileResult<T> {
   updateOperations: DomOperation<T>[] = [];
   renderOperations: DomOperation<T>[] = [];
   lazyOperations: LazyOperation<T>[] = [];
   events: [JsxEvent, number][] = [];
   // observables: JSX.Subscribable<T>[] = [];
 
-  constructor(public target: HTMLElement | Anchor) {}
+  constructor(public target: RenderTarget) {}
 
   addAnchoredOperation(op: DomOperation<T>) {
     const { target } = this;
@@ -137,6 +137,10 @@ class CompileResult<T> {
       console.error('Not supported', child);
     }
   };
+
+  ssr() {
+    return "console.log('compile result');";
+  }
 }
 
 type Tree<T> = T | Tree<T>[];

@@ -1,4 +1,5 @@
-﻿import { _flush } from '../../state';
+﻿import { ExpressionType } from '../../jsx/expression';
+import { _flush } from '../../state';
 import {
   ListClearMutation,
   ListDeleteMutation,
@@ -32,6 +33,7 @@ export class ListSource<T> {
   public readonly mapObservers: MapObserver<T, any>[] = [];
 
   constructor(public readonly snapshot: ListItem<T>[] = []) {
+    let length = snapshot.length;
     while (length--) {
       const item = snapshot[length];
       item[_index] = length;
@@ -357,6 +359,13 @@ export class ListSource<T> {
               mapObservers.splice(idx, 1);
             }
           },
+        };
+      },
+      ssr() {
+        return {
+          type: ExpressionType.Call,
+          func: 'map',
+          source: listSource.snapshot,
         };
       },
     };

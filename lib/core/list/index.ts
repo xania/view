@@ -7,6 +7,7 @@ import { listen } from '../../render/listen';
 import { Anchor, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
+import { ExpressionType } from '../../jsx/expression';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -23,6 +24,13 @@ export function List<T extends ExecuteContext>(
     throw new Error('move than 1 child is not supported');
 
   return {
+    ssr() {
+      return {
+        type: ExpressionType.Call,
+        name: 'List',
+        args: [props, _children],
+      };
+    },
     async render(target: RenderTarget) {
       const source = props.source;
 

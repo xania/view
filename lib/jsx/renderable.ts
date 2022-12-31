@@ -5,7 +5,7 @@ export interface RenderContext<T> {
 }
 
 export class Anchor {
-  public container: HTMLElement;
+  public container: RenderContainer;
   constructor(public child: Node) {
     if (!child.parentElement) throw Error('invalid operation');
     this.container = child.parentElement;
@@ -17,18 +17,18 @@ export class Anchor {
 
   addEventListener<K extends keyof HTMLElementEventMap>(
     type: K,
-    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+    listener: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
     options?: boolean | AddEventListenerOptions
   ): void {
     this.container.addEventListener(type, listener, options);
   }
 
-  removeEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
+  removeEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
     options?: boolean | EventListenerOptions
   ): void {
-    this.container.removeEventListener(type, listener, options);
+    this.container.removeEventListener(type, handler, options);
   }
 
   insertBefore<T extends Node>(node: T, child: Node | null): T {
@@ -36,8 +36,25 @@ export class Anchor {
   }
 }
 
-export type RenderTarget = HTMLElement | Anchor;
+export type RenderTarget = RenderContainer | Anchor;
 
+export interface RenderContainer {
+  insertBefore: Node['insertBefore'];
+  addEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
+    opts?: boolean | EventListenerOptions
+  ): void;
+  removeEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
+    opts?: boolean | EventListenerOptions
+  ): void;
+  childNodes: ArrayLike<Node>;
+  firstChild: Node['firstChild'];
+  textContent: Node['textContent'];
+  appendChild(node: Node): void;
+}
 // export interface RenderTarget {
 //   firstChild: Node['firstChild'];
 //   childNodes: ArrayLike<Node>;

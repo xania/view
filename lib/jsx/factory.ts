@@ -8,6 +8,12 @@ export interface JsxFactoryOptions {
   };
 }
 
+type CreateIntrinsicElement = (
+  name: string,
+  props: any,
+  ...children: TemplateInput[]
+) => JsxElement | Promise<JsxElement> | undefined;
+
 export function jsxFactory(opts?: JsxFactoryOptions) {
   return {
     createElement(
@@ -50,5 +56,7 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
     createFragment(_: null, children: any[]) {
       return flatten(children);
     },
+  } as {
+    createElement: CreateIntrinsicElement;
   };
 }
