@@ -1,4 +1,6 @@
 import { Attachable, Lazy, Renderable, RenderTarget } from '../jsx';
+import { Expression } from '../jsx/expression';
+import { Observable } from '../jsx/observables';
 import { TagTemplateNode } from '../jsx/template-node';
 
 export enum DomOperationType {
@@ -15,6 +17,7 @@ export enum DomOperationType {
   AppendChild,
   Lazy,
   Clone,
+  AppendText,
 }
 
 export interface LazyOperation<TContext> {
@@ -44,15 +47,15 @@ export interface SetAttributeOperation {
   nodeKey: symbol;
   type: DomOperationType.SetAttribute;
   name: string;
-  expression: JSX.Expression;
+  expression: Expression;
 }
 
 export interface SetClassNameOperation {
   nodeKey: symbol;
   prevKey: symbol;
   type: DomOperationType.SetClassName;
-  expressions?: JSX.Expression[];
-  expression: JSX.Expression<any, any>;
+  expressions?: Expression[];
+  expression: Expression;
   classes?: { [k: string]: string };
 }
 
@@ -60,7 +63,7 @@ export interface SetTextContentOperation {
   key: symbol;
   nodeKey: symbol;
   type: DomOperationType.SetTextContent;
-  expression: JSX.Expression;
+  expression: Expression;
 }
 
 export interface DomRenderableOperation<T> {
@@ -78,9 +81,9 @@ export interface AppendChildOperation {
   node: Node;
 }
 
-export interface SubscribableOperation<T> {
+export interface ObservableOperation<T> {
   type: DomOperationType.Subscribable;
-  subscribable: JSX.Subscribable<T>;
+  observable: Observable<T>;
   // anchorIdx: number;
 }
 
@@ -105,6 +108,11 @@ export interface CloneOperation {
   target: RenderTarget;
 }
 
+export interface AppendTextOperation {
+  type: DomOperationType.AppendText;
+  value: string;
+}
+
 export type DomNavigationOperation =
   | PushFirstChildOperation
   | PushNextSiblingOperation
@@ -118,7 +126,8 @@ export type DomRenderOperation<T> =
   | DomRenderableOperation<T>
   | AppendChildOperation
   | LazyOperation<T>
-  | SubscribableOperation<T>;
+  | ObservableOperation<T>
+  | AppendTextOperation;
 
 export type DomOperation<T> =
   | DomNavigationOperation

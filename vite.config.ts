@@ -3,7 +3,6 @@ import { defineConfig } from 'vite';
 
 import typescript from '@rollup/plugin-typescript';
 import path from 'path';
-import { typescriptPaths } from 'rollup-plugin-typescript-paths';
 
 export default defineConfig({
   resolve: {
@@ -15,7 +14,6 @@ export default defineConfig({
     ],
   },
   build: {
-    manifest: true,
     minify: true,
     reportCompressedSize: true,
     lib: {
@@ -25,12 +23,11 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [],
+      output: {
+        sourcemap: true,
+      },
       plugins: [
-        typescriptPaths({
-          preserveExtensions: true,
-        }),
         typescript({
-          sourceMap: true,
           declaration: true,
           outDir: 'dist',
         }),

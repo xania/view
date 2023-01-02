@@ -22,12 +22,19 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
       ...children: TemplateInput[]
     ): JsxElement | Promise<JsxElement> | undefined {
       if (name instanceof Function) {
+        let args =
+          children instanceof Array && children.length > 0
+            ? props === null || props === undefined
+              ? { children }
+              : { ...props, children }
+            : props;
         try {
-          return name(props, children, opts);
+          return name(args, opts);
         } catch (err) {
+          4;
           // if is class then try with `new` operator
           if (name.toString().startsWith('class')) {
-            return Reflect.construct(name, [props, children]);
+            return Reflect.construct(name, args);
           } else {
             throw err;
           }
@@ -53,8 +60,8 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         return Promise.all(promises).then(() => tagTemplate);
       else return tagTemplate;
     },
-    createFragment(_: null, children: any[]) {
-      return flatten(children);
+    createFragment(props: { children: JSX.Children }) {
+      return flatten(props?.children);
     },
   } as {
     createElement: CreateIntrinsicElement;

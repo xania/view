@@ -1,9 +1,8 @@
 import { JsxFactoryOptions } from './factory';
 
 export enum TemplateType {
-  Attribute,
-  Init,
-  Expression,
+  Attribute = 9384756781,
+  Init = 9384756782,
 }
 
 export interface AttributeTemplate {
@@ -16,20 +15,14 @@ export interface InitTemplate {
   type: TemplateType.Init;
   init: Function;
 }
-export interface ExpressionTemplate {
-  type: TemplateType.Expression;
-  expr: JSX.Expression;
-}
 
 // type Primitive = string | number | boolean | Date;
 
-export type Template = AttributeTemplate | InitTemplate | ExpressionTemplate;
+export type Template = AttributeTemplate | InitTemplate;
 
 export function isTemplate(value: any): value is Template {
   return (
     value &&
-    (value.type === TemplateType.Expression ||
-      value.type === TemplateType.Attribute ||
-      value.type === TemplateType.Init)
+    (value.type === TemplateType.Attribute || value.type === TemplateType.Init)
   );
 }

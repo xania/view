@@ -2,7 +2,7 @@
 import { disposeAll } from '../disposable';
 import { Anchor, RenderTarget } from '../jsx';
 import { JsxElement } from '../jsx/element';
-import { isSubscribable } from '../util/observables';
+import { isSubscribable } from '../jsx/observables';
 
 export function view(tpl: any): any {
   if (tpl instanceof JsxElement) {
@@ -17,7 +17,7 @@ export function view(tpl: any): any {
     return {
       observable: tpl,
       render(target: HTMLElement | Anchor) {
-        const observable: JSX.Subscribable<any> = tpl;
+        const observable: JSX.Observable<any> = tpl;
         return observable.subscribe({
           bindings: null,
           next(tpl) {

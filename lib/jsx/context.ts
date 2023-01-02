@@ -1,6 +1,6 @@
 ﻿import { notify } from '../rx';
-import { ExpressionType } from './expression';
-import { Template, TemplateType } from './template';
+import { ViewContext } from './element';
+import { Expression, ExpressionType } from './expression';
 
 export class Context<T> {
   lazy<U>(value: U) {
@@ -11,19 +11,19 @@ export class Context<T> {
     return this.get(name, true);
   }
 
-  get(name: keyof T, readonly: boolean = false) {
-    return expr({
+  get(name: keyof T, readonly: boolean = false): Expression {
+    return {
       type: ExpressionType.Property,
       name,
       readonly,
-    });
+    };
   }
 
-  map<U>(func: (c: T) => U) {
-    return expr({
+  map<U>(func: (c: T) => U): Expression {
+    return {
       type: ExpressionType.Function,
       func,
-    });
+    };
   }
 }
 
@@ -39,7 +39,7 @@ export class Lazy<T, U> {
     };
   }
 
-  attach(func: (x: JSX.ViewContext<T>) => void) {
+  attach(func: (x: ViewContext<T>) => void) {
     const { attachables } = this;
     return {
       attachTo(x: HTMLElement) {
@@ -51,13 +51,6 @@ export class Lazy<T, U> {
   ssr() {
     return 'new Lazy("' + this.value + '")';
   }
-}
-
-function expr(expr: JSX.Expression): Template {
-  return {
-    type: TemplateType.Expression,
-    expr,
-  };
 }
 
 export function useContext<T>() {

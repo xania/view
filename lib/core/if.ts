@@ -1,23 +1,23 @@
-﻿import { Renderable, RenderTarget } from '../jsx';
-import { ExpressionType } from '../jsx/expression';
+﻿import { RenderTarget } from '../jsx';
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
 
 export interface IfProps {
-  condition: JSX.Subscribable<boolean>;
+  condition: JSX.Observable<boolean>;
+  children: JSX.Children;
 }
 
-export function If<T>(props: IfProps, children: Renderable<T>[]) {
+export function If(props: IfProps) {
   return {
-    ssr() {
-      return { type: ExpressionType.If, condition: props.condition, children };
-    },
+    // ssr() {
+    //   return { type: ExpressionType.If, condition: props.condition, children };
+    // },
     async render(target: RenderTarget) {
       const { condition } = props;
 
       const executeContext: ExecuteContext = {};
-      const { renderOperations } = await compile(children, target);
+      const { renderOperations } = await compile(props.children, target);
       const subscription = condition.subscribe({
         next(b) {
           if (b) {

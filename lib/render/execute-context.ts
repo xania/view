@@ -1,8 +1,9 @@
 ﻿import { Disposable } from '../disposable';
+import { Unsubscribable } from '../jsx/observables';
 
 export interface ExecuteContext extends Record<string | number | symbol, any> {
   bindings?: Disposable[];
-  subscriptions?: JSX.Unsubscribable[];
+  subscriptions?: Unsubscribable[];
   rootElement?: HTMLElement;
   moreRootElements?: HTMLElement[];
 }

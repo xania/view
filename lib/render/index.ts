@@ -1,4 +1,4 @@
-﻿import { Anchor } from '../jsx/renderable';
+﻿import { Anchor, RenderContainer } from '../jsx/renderable';
 import { TemplateInput } from '../jsx/template-input';
 import { compile } from './compile';
 import { execute } from './execute';
@@ -7,7 +7,7 @@ import { listen } from './listen';
 
 export function render<T = any>(
   root: TemplateInput<T>,
-  container: HTMLElement | Anchor
+  container: RenderContainer | Anchor
 ): any {
   if (root === null || root === undefined) return root;
 

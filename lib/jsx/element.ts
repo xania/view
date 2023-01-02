@@ -5,11 +5,10 @@
 } from '../render/dom-operation';
 import { JsxFactoryOptions } from './factory';
 import { flatten } from './_flatten';
-import { ExpressionType } from './expression';
+import { Expression, ExpressionType, isExpression } from './expression';
 import { TemplateInput } from './template-input';
 import { isRenderable } from './renderable';
-import { State } from '../state';
-import { isSubscribable } from '../util/observables';
+import { isSubscribable } from './observables';
 import { isTemplate, TemplateType } from './template';
 import { JsxEvent } from '../render/listen';
 import { Lazy } from './context';
@@ -43,7 +42,7 @@ export class JsxElement {
 
     if (attrValue instanceof Function) {
       this.events.push({
-        name: attrName,
+        name: attrName as keyof HTMLElementEventMap,
         handler: attrValue,
         nav: [],
       });
@@ -112,21 +111,17 @@ export class JsxElement {
         type: DomOperationType.SetAttribute,
         name: attrName,
         expression: {
-          type: ExpressionType.State,
-          state: attrValue,
+          type: ExpressionType.Observable,
+          observable: attrValue,
         },
       });
-    } else if (isTemplate(attrValue)) {
-      switch (attrValue.type) {
-        case TemplateType.Expression:
-          this.contentOps.push({
-            nodeKey: Symbol('node'),
-            type: DomOperationType.SetAttribute,
-            name: attrName,
-            expression: attrValue.expr,
-          });
-          break;
-      }
+    } else if (isExpression(attrValue)) {
+      this.contentOps.push({
+        nodeKey: Symbol('node'),
+        type: DomOperationType.SetAttribute,
+        name: attrName,
+        expression: attrValue,
+      });
     } else {
       node.attrs[attrName] = attrValue;
     }
@@ -137,7 +132,7 @@ export class JsxElement {
 
     const { templateNode, contentOps } = this;
 
-    function addTextContentExpr(expr: JSX.Expression) {
+    function addTextContentExpr(expr: Expression) {
       const newOperation: SetTextContentOperation = {
         key: Symbol(),
         nodeKey: Symbol(),
@@ -201,10 +196,10 @@ export class JsxElement {
         return child.then((resolved: any) => {
           this.appendContent([resolved, ...nextChildren]);
         });
-      } else if (child instanceof State) {
+      } else if (isSubscribable(child)) {
         addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
+          type: ExpressionType.Observable,
+          observable: child,
         });
       } else if ((child as any)['attachTo'] instanceof Function) {
         contentOps.push({
@@ -232,11 +227,10 @@ export class JsxElement {
             index: anchorIdx,
           }
         );
+      } else if (isExpression(child)) {
+        addTextContentExpr(child);
       } else if (isTemplate(child)) {
         switch (child.type) {
-          case TemplateType.Expression:
-            addTextContentExpr(child.expr);
-            break;
           case TemplateType.Attribute:
             const result = this.setProp(child.name, child.value, child.options);
             if (result instanceof Promise) {
@@ -247,11 +241,6 @@ export class JsxElement {
             }
             break;
         }
-      } else if (isSubscribable(child)) {
-        addTextContentExpr({
-          type: ExpressionType.State,
-          state: child,
-        });
       } else {
         templateNode.childNodes.push(new TextTemplateNode(child as string));
       }
@@ -302,7 +291,14 @@ export type DomContentOperation<T> = DomOperation<T>;
 // | SubscribableOperation<T>
 // | AppendChildOperation;
 
-export interface EventContext<T, TEvent> extends JSX.EventContext<T, TEvent> {}
+export interface EventContext<T, TEvent = any> extends ViewContext<T> {
+  event: TEvent;
+}
+
+export interface ViewContext<T> {
+  readonly node: any;
+  readonly data: T;
+}
 
 export function pushChildAt(
   operations: DomOperation<any>[],
@@ -333,7 +329,7 @@ export function pushChildAt(
   });
 }
 
-function toExpression(item: any): JSX.Expression | null {
+function toExpression(item: any): Expression | null {
   if (item instanceof Function) {
     return null;
     // return {
@@ -342,19 +338,11 @@ function toExpression(item: any): JSX.Expression | null {
     // };
   } else if (isSubscribable(item)) {
     return {
-      type: ExpressionType.State,
-      state: item,
+      type: ExpressionType.Observable,
+      observable: item,
     };
-  } else if (item instanceof State) {
-    return {
-      type: ExpressionType.State,
-      state: item,
-    };
-  } else if (isTemplate(item)) {
-    switch (item.type) {
-      case TemplateType.Expression:
-        return item.expr;
-    }
+  } else if (isExpression(item)) {
+    return item;
   }
 
   // addTextContentExpr({

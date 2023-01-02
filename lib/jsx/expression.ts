@@ -1,19 +1,38 @@
+import { Observable } from './observables';
+
 export enum ExpressionType {
-  Property = 1,
-  Function = 2,
-  State = 3,
-  Subscribable = 4,
-  If = 4,
-  Call = 5,
+  Property = 3563461,
+  Function = 3563462,
+  Observable = 3563463,
 }
 
-export function isExpression(value: any): value is JSX.Expression<any, any> {
+export type Expression<T = any> =
+  | ObservableExpression<T>
+  | PropertyExpression<T>
+  | FunctionExpression<any, T>;
+
+interface PropertyExpression<T = any> {
+  type: ExpressionType.Property;
+  name: keyof T;
+  readonly: boolean;
+}
+
+interface ObservableExpression<T = any> {
+  type: ExpressionType.Observable;
+  observable: Observable<T>;
+}
+
+interface FunctionExpression<T = any, U = any> {
+  type: ExpressionType.Function;
+  func: (data: T) => U;
+}
+
+export function isExpression(value: any): value is Expression {
   return (
     value &&
     value['type'] !== null &&
     value['type'] !== undefined &&
-    (value.type === ExpressionType.State ||
-      value.type === ExpressionType.Property ||
-      value.type === ExpressionType.Function)
+    value.type >= ExpressionType.Property &&
+    value.type <= ExpressionType.Observable
   );
 }

@@ -1,35 +1,35 @@
-﻿import { JsxElement } from '../../jsx/element';
-import { execute } from '../../render/execute';
+﻿import { execute } from '../../render/execute';
 import { ListSource } from './list-source';
 import { ListMutationType } from './mutation';
 import { disposeContext, ExecuteContext } from '../../render/execute-context';
 import { listen } from '../../render/listen';
-import { Anchor, RenderTarget } from '../../jsx';
+import { Anchor, Context, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
-import { ExpressionType } from '../../jsx/expression';
+import { flatten } from '../../jsx/_flatten';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
+  children: (row: Context<T>) => JSX.Children;
 }
 
 export * from './list-source';
 export * from './mutation';
 
-export function List<T extends ExecuteContext>(
-  props: ListProps<T>,
-  _children: JsxElement[]
-) {
+export function List<T extends ExecuteContext>(props: ListProps<T>) {
+  const row = new Context<T>();
+  const _children = flatten(props.children, row);
   if (_children.length > 1)
     throw new Error('move than 1 child is not supported');
 
   return {
     ssr() {
-      return {
-        type: ExpressionType.Call,
-        name: 'List',
-        args: [props, _children],
-      };
+      return 'list';
+      // return {
+      //   type: ExpressionType.Call,
+      //   name: 'List',
+      //   args: [props, _children],
+      // };
     },
     async render(target: RenderTarget) {
       const source = props.source;

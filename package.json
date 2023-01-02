@@ -1,13 +1,15 @@
 {
-  "version": "0.4.9",
+  "name": "@xania/view",
+  "version": "0.4.11",
   "license": "MIT",
-  "main": "./dist/main.js",
-  "module": "./dist/main.mjs",
+  "main": "./dist/main.cjs",
+  "module": "./dist/main.js",
   "typings": "./dist/index.d.ts",
+  "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/main.mjs",
-      "require": "./dist/main.js"
+      "import": "./dist/main.js",
+      "require": "./dist/main.cjs"
     }
   },
   "private": false,
@@ -31,14 +33,13 @@
     "trailingComma": "es5",
     "tabWidth": 2
   },
-  "name": "@xania/view",
   "author": "Ibrahim ben Salah",
-  "devDependencies": {
+  "peerDependencies": {
     "@rollup/plugin-typescript": "^10.0.1",
     "rollup-plugin-typescript-paths": "^1.4.0",
-    "sass": "1.43.4",
-    "tslib": "^1.11.1",
-    "typescript": "^4.5.4"
+    "sass": "^1.57.1",
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4"
   },
   "repository": {
     "type": "git",

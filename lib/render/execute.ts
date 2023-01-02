@@ -1,6 +1,5 @@
 ﻿import { DomOperation, DomOperationType } from './dom-operation';
 import { ExpressionType } from '../jsx/expression';
-import { Disposable } from '../disposable';
 import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { Anchor, RenderTarget } from '../jsx';
@@ -23,6 +22,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
     for (let operationIdx = 0; operationIdx < operationLen; operationIdx++) {
       const op = operations[operationIdx];
       switch (op.type) {
+        case DomOperationType.AppendText:
+          nodeStack.head.appendChild(document.createTextNode(op.value));
+          break;
         case DomOperationType.Lazy:
           (context as any)[op.nodeKey] = nodeStack.head;
           break;
@@ -102,8 +104,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
               //   };
               // }
               break;
-            case ExpressionType.State:
-              attrExpr.state.subscribe({
+            case ExpressionType.Observable:
+              attrExpr.observable.subscribe({
                 elt: nodeStack.head as HTMLElement,
                 name: op.name,
                 next(s: string) {
@@ -144,15 +146,12 @@ export function execute<TExecuteContext extends ExecuteContext>(
             //     elt.classList.add(cl);
             //   }
             //   break;
-            case ExpressionType.Function:
-              classValue = classExpr.func(context);
-              break;
             case ExpressionType.Property:
               classValue = context[classExpr.name];
               break;
-            case ExpressionType.State:
+            case ExpressionType.Observable:
               const prev: string[] = [];
-              const subs = classExpr.state.subscribe({
+              const subs = classExpr.observable.subscribe({
                 prev,
                 classes: op.classes,
                 elt: nodeStack.head as HTMLElement,
@@ -193,9 +192,13 @@ export function execute<TExecuteContext extends ExecuteContext>(
                 if (context.subscriptions) context.subscriptions.push(subs);
                 else context.subscriptions = [subs];
               break;
+
+            case ExpressionType.Function:
+              classValue = classExpr.func(context);
+              break;
             default:
               console.error('not supported ', classExpr);
-              classValue = classExpr.toString();
+              // classValue = classExpr.toString();
               // if (classExpr) {
               //   const elt = nodeStack.head as HTMLElement;
               //   for (const x of flatten()) {
@@ -309,10 +312,10 @@ export function execute<TExecuteContext extends ExecuteContext>(
             case ExpressionType.Property:
               textNode.textContent = context[setContentExpr.name] ?? '';
               break;
-            case ExpressionType.State:
-              const { state } = setContentExpr;
+            case ExpressionType.Observable:
+              const { observable } = setContentExpr;
 
-              const stateSubscription = state.subscribe({
+              const stateSubscription = observable.subscribe({
                 textNode: nodeStack.head,
                 next(newValue) {
                   this.textNode.textContent = newValue;
@@ -330,8 +333,9 @@ export function execute<TExecuteContext extends ExecuteContext>(
           op.attachable.attachTo(nodeStack.head as HTMLElement);
           break;
         case DomOperationType.Renderable:
-          const binding: null | Disposable | JSX.Unsubscribable =
-            op.renderable.render(new Anchor(nodeStack.head), { data: context });
+          const binding = op.renderable.render(new Anchor(nodeStack.head), {
+            data: context,
+          });
           if (binding) {
             if ('dispose' in binding && binding.dispose instanceof Function)
               if (context.bindings) context.bindings.push(binding);

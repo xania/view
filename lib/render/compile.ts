@@ -1,5 +1,5 @@
 ﻿import { ExpressionType } from '../jsx/expression';
-import { JsxElement, pushChildAt } from '../jsx/element';
+import { JsxElement, pushChildAt, ViewContext } from '../jsx/element';
 import {
   CloneOperation,
   DomOperation,
@@ -11,7 +11,7 @@ import { TemplateInput } from '../jsx/template-input';
 import { Anchor, isRenderable, RenderTarget } from '../jsx';
 import { subscribe } from '../rx';
 import { update } from './update';
-import { isSubscribable } from '../util/observables';
+import { isSubscribable } from '../jsx/observables';
 
 export function compile(children: TemplateInput, target: RenderTarget) {
   var compileResult = new CompileResult<any>(target);
@@ -33,7 +33,7 @@ export function compile(children: TemplateInput, target: RenderTarget) {
                   f({
                     data: item,
                     node: n,
-                  } as JSX.ViewContext<any>);
+                  } as ViewContext<any>);
               }
             }
           }
@@ -61,7 +61,6 @@ export class CompileResult<T> {
   renderOperations: DomOperation<T>[] = [];
   lazyOperations: LazyOperation<T>[] = [];
   events: [JsxEvent, number][] = [];
-  // observables: JSX.Subscribable<T>[] = [];
 
   constructor(public target: RenderTarget) {}
 
@@ -122,13 +121,18 @@ export class CompileResult<T> {
     } else if (isSubscribable(child)) {
       this.addAnchoredOperation({
         type: DomOperationType.Subscribable,
-        subscribable: child,
+        observable: child,
       });
       // this.observables.push(child);
     } else if (isRenderable(child)) {
       this.addAnchoredOperation({
         type: DomOperationType.Renderable,
         renderable: child,
+      });
+    } else if (child !== null && child !== undefined) {
+      this.renderOperations.push({
+        type: DomOperationType.AppendText,
+        value: child,
       });
     }
 

@@ -1,5 +1,4 @@
-﻿import { ExpressionType } from '../../jsx/expression';
-import { _flush } from '../../state';
+﻿import { NextObserver } from '../../jsx/observables';
 import {
   ListClearMutation,
   ListDeleteMutation,
@@ -17,7 +16,7 @@ export function createListSource<T extends {}>(initial?: T[]) {
   return new ListSource<T>(initial);
 }
 
-type ListObserver<T> = JSX.NextObserver<ListMutation<T>>;
+type ListObserver<T> = NextObserver<ListMutation<T>>;
 
 type ListItem<T> = {
   [P in keyof T]: T[P];
@@ -346,7 +345,7 @@ export class ListSource<T> {
     const listSource = this;
 
     return {
-      subscribe(o: JSX.NextObserver<U>) {
+      subscribe(o: NextObserver<U>) {
         (o as any)['project'] = project;
         listSource.mapObservers.push(o as any);
         listSource.notifyMapObservers([o as any]);
@@ -363,7 +362,7 @@ export class ListSource<T> {
       },
       ssr() {
         return {
-          type: ExpressionType.Call,
+          // type: ExpressionType.Call,
           func: 'map',
           source: listSource.snapshot,
         };
@@ -379,6 +378,6 @@ export class ListSource<T> {
   }
 }
 
-type MapObserver<T, U> = JSX.NextObserver<T[]> & {
+type MapObserver<T, U> = NextObserver<T[]> & {
   project(items: List<T>): U;
 };

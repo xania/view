@@ -1,12 +1,12 @@
-﻿import { Anchor, RenderTarget } from '../jsx';
+﻿import { Anchor, EventContext, RenderTarget } from '../jsx';
 import { DomNavigationOperation, DomOperationType } from './dom-operation';
 import { ExecuteContext } from './execute-context';
 import { contextKey } from './symbols';
 
 export interface JsxEvent {
-  name: string;
+  name: keyof HTMLElementEventMap;
   nav: DomNavigationOperation[];
-  handler: (e: JSX.EventContext<any, any>) => any;
+  handler: (e: EventContext<any, any>) => any;
 }
 
 export function listen(
@@ -52,7 +52,7 @@ export function listen(
     }
 
     if (node === target || node.contains(target)) {
-      const e: JSX.EventContext<any, any> = {
+      const e: EventContext<any, any> = {
         data: context,
         event: domEvent,
         node: root,
