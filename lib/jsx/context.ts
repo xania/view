@@ -47,10 +47,6 @@ export class Lazy<T, U> {
       },
     };
   }
-
-  ssr() {
-    return 'new Lazy("' + this.value + '")';
-  }
 }
 
 export function useContext<T>() {

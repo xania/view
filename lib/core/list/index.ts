@@ -7,29 +7,29 @@ import { Anchor, Context, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
+import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
-  children: (row: Context<T>) => JSX.Children;
+  children: JSX.Tree<JSX.Children | ((row: Context<T>) => JSX.Children)>;
 }
 
 export * from './list-source';
 export * from './mutation';
 
 export function List<T extends ExecuteContext>(props: ListProps<T>) {
-  const row = new Context<T>();
-  const _children = flatten(props.children, row);
+  const _children = flatten(props.children, new Context<T>());
   if (_children.length > 1)
     throw new Error('move than 1 child is not supported');
 
   return {
+    children: _children,
     ssr() {
-      return 'list';
-      // return {
-      //   type: ExpressionType.Call,
-      //   name: 'List',
-      //   args: [props, _children],
-      // };
+      return {
+        type: RehydrateType.Call,
+        name: 'List',
+        args: [{ source: props.source, children: this.children }],
+      } as RehydrateCall;
     },
     async render(target: RenderTarget) {
       const source = props.source;

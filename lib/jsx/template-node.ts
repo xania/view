@@ -1,17 +1,49 @@
-﻿export interface TemplateNode {}
+﻿export type TemplateNode =
+  | TagTemplateNode
+  | TextTemplateNode
+  | AnchorTemplateNode;
 
-export class TagTemplateNode implements TemplateNode {
-  public classList: string[] = [];
-  public childNodes: TemplateNode[] = [];
-  public attrs: Record<string, any> = {};
-
-  constructor(public name: string) {}
+export enum TemplateNodeType {
+  Tag = 8585231,
+  Text,
+  Anchor,
 }
 
-export class TextTemplateNode implements TemplateNode {
-  constructor(public data: string) {}
+export function createTag(name: string): TagTemplateNode {
+  return {
+    type: TemplateNodeType.Tag,
+    name,
+    classList: [],
+    childNodes: [],
+    attrs: {},
+  };
+}
+export interface TagTemplateNode {
+  readonly type: TemplateNodeType.Tag;
+  readonly classList: string[];
+  readonly childNodes: TemplateNode[];
+  readonly attrs: Record<string, any>;
+  readonly name: string;
 }
 
-export class AnchorTemplateNode implements TemplateNode {
-  constructor(public label: string) {}
+export function createText(data: string): TextTemplateNode {
+  return {
+    type: TemplateNodeType.Text,
+    data,
+  };
+}
+export interface TextTemplateNode {
+  readonly type: TemplateNodeType.Text;
+  readonly data: string;
+}
+
+export function createAnhor(label: string): AnchorTemplateNode {
+  return {
+    type: TemplateNodeType.Anchor,
+    label,
+  };
+}
+export interface AnchorTemplateNode {
+  readonly type: TemplateNodeType.Anchor;
+  readonly label: string;
 }

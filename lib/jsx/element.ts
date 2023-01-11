@@ -13,9 +13,10 @@ import { isTemplate, TemplateType } from './template';
 import { JsxEvent } from '../render/listen';
 import { Lazy } from './context';
 import {
-  AnchorTemplateNode,
+  createAnhor,
+  createTag,
+  createText,
   TagTemplateNode,
-  TextTemplateNode,
 } from './template-node';
 
 export class JsxElement {
@@ -24,7 +25,7 @@ export class JsxElement {
   public events: JsxEvent[] = [];
 
   constructor(public name: string) {
-    this.templateNode = new TagTemplateNode(name);
+    this.templateNode = createTag(name);
   }
 
   setProp(
@@ -146,7 +147,7 @@ export class JsxElement {
           if (prevOperation.type === DomOperationType.SetTextContent) {
             // found a text content operation at i that uses current templateNode exclusively
             // create a TextNode inside templateNode for this operation to use instead
-            const textNode = new TextTemplateNode('');
+            const textNode = createText('');
             templateNode.childNodes.push(textNode);
             const pushFirstChild: DomContentOperation<any> = {
               type: DomOperationType.PushFirstChild,
@@ -174,7 +175,7 @@ export class JsxElement {
       }
 
       function addShared() {
-        const textNode = new TextTemplateNode('');
+        const textNode = createText('');
         templateNode.childNodes.push(textNode);
 
         pushChildAt(contentOps, childIndex);
@@ -215,7 +216,7 @@ export class JsxElement {
       } else if (isRenderable(child)) {
         const anchorIdx = templateNode.childNodes.length;
         pushChildAt(contentOps, anchorIdx);
-        const anchor = new AnchorTemplateNode('renderable');
+        const anchor = createAnhor('renderable');
         templateNode.childNodes.push(anchor);
         contentOps.push(
           {
@@ -242,7 +243,7 @@ export class JsxElement {
             break;
         }
       } else {
-        templateNode.childNodes.push(new TextTemplateNode(child as string));
+        templateNode.childNodes.push(createText(child as string));
       }
     }
   }

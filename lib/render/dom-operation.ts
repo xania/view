@@ -4,7 +4,7 @@ import { Observable } from '../jsx/observables';
 import { TagTemplateNode } from '../jsx/template-node';
 
 export enum DomOperationType {
-  PushFirstChild,
+  PushFirstChild = 693571,
   PushNextSibling,
   PushChild,
   PopNode,

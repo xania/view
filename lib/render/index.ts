@@ -111,3 +111,4 @@ export function render<T = any>(
 }
 
 export * from './execute';
+export * from './dom-operation';

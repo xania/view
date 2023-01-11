@@ -52,6 +52,7 @@ export function compile(children: TemplateInput, target: RenderTarget) {
         },
       });
     }
+
     return compileResult;
   });
 }

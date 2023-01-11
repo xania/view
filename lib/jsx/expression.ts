@@ -1,9 +1,9 @@
 import { Observable } from './observables';
 
 export enum ExpressionType {
-  Property = 3563461,
-  Function = 3563462,
-  Observable = 3563463,
+  Property = 353461,
+  Function,
+  Observable,
 }
 
 export type Expression<T = any> =
