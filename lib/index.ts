@@ -4,7 +4,7 @@ export * from './jsx';
 export * from './render';
 export * from './core';
 export * from './render/view';
-export * from '../../ssr/ssr';
+export * from './ssr/serialize';
 
 /**
  * default jsx factory

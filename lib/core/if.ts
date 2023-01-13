@@ -2,7 +2,7 @@
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
-import { RehydrateCall, RehydrateType } from '../../../ssr/ssr';
+import { Call } from '../ssr/serialize';
 
 export interface IfProps {
   condition: JSX.Observable<boolean>;
@@ -12,11 +12,7 @@ export interface IfProps {
 export function If(props: IfProps) {
   return {
     ssr() {
-      return {
-        type: RehydrateType.Call,
-        name: 'If',
-        args: [props],
-      } as RehydrateCall;
+      return new Call(If, [props]);
     },
     async render(target: RenderTarget) {
       const { condition } = props;

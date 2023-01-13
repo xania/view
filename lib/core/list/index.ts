@@ -7,7 +7,8 @@ import { Anchor, Context, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
-import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
+import { Call } from '../../ssr/serialize';
+// import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -20,16 +21,14 @@ export * from './mutation';
 export function List<T extends ExecuteContext>(props: ListProps<T>) {
   const _children = flatten(props.children, new Context<T>());
   if (_children.length > 1)
-    throw new Error('move than 1 child is not supported');
+    throw new Error('move than 1 child is not yet supported');
 
   return {
     children: _children,
     ssr() {
-      return {
-        type: RehydrateType.Call,
-        name: 'List',
-        args: [{ source: props.source, children: this.children }],
-      } as RehydrateCall;
+      return new Call(List, [
+        { source: props.source, children: this.children },
+      ]);
     },
     async render(target: RenderTarget) {
       const source = props.source;
