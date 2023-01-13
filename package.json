@@ -21,10 +21,10 @@
     "node": ">=10"
   },
   "scripts": {
-    "start": "npx vite",
+    "dev": "npx vite --watch build",
     "build": "npx vite build",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm version patch && npm run build"
   },
   "prettier": {
     "printWidth": 80,
@@ -35,8 +35,6 @@
   },
   "author": "Ibrahim ben Salah",
   "peerDependencies": {
-    "@rollup/plugin-typescript": "^10.0.1",
-    "rollup-plugin-typescript-paths": "^1.4.0",
     "sass": "^1.57.1",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4"

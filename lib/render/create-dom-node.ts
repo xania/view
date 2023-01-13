@@ -8,7 +8,8 @@ export function createHTMLElement(node: TagTemplateNode): HTMLElement {
   }
 
   for (const attrName in node.attrs) {
-    htmlElement.setAttribute(attrName, node.attrs[attrName]);
+    (htmlElement as any)[attrName] = node.attrs[attrName];
+    // htmlElement.setAttribute(attrName, node.attrs[attrName]);
   }
 
   /** seems like textContent is slower than creating textnode and calling appendChild */

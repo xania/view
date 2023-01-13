@@ -1,7 +1,6 @@
 ﻿// vite.config.ts
 import { defineConfig } from 'vite';
 
-import typescript from '@rollup/plugin-typescript';
 import path from 'path';
 
 export default defineConfig({
@@ -22,16 +21,12 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     rollupOptions: {
+      treeshake: true,
       external: [],
       output: {
         sourcemap: true,
+        dir: './dist',
       },
-      plugins: [
-        typescript({
-          declaration: true,
-          outDir: 'dist',
-        }),
-      ],
     },
   },
 });
