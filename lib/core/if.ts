@@ -1,5 +1,6 @@
 ﻿import { RenderTarget } from '../jsx';
 import { compile } from '../render/compile';
+import { BrowserDomFactory } from '../render/browser-dom-factory';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
 import { Call } from '../ssr/hibernate';
@@ -18,7 +19,11 @@ export function If(props: IfProps) {
       const { condition } = props;
 
       const executeContext: ExecuteContext = {};
-      const { renderOperations } = await compile(props.children, target);
+      const { renderOperations } = await compile(
+        props.children,
+        target,
+        new BrowserDomFactory()
+      );
       const subscription =
         condition.subscribe &&
         condition.subscribe({

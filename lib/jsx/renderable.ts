@@ -6,7 +6,7 @@ export interface RenderContext<T> {
 }
 
 export class Anchor {
-  public container: RenderContainer;
+  public container: HTMLElement;
   constructor(public child: Node) {
     if (!child.parentElement) throw Error('invalid operation');
     this.container = child.parentElement;
@@ -18,7 +18,7 @@ export class Anchor {
 
   addEventListener<K extends keyof HTMLElementEventMap>(
     type: K,
-    listener: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
+    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
     options?: boolean | AddEventListenerOptions
   ): void {
     this.container.addEventListener(type, listener, options);
@@ -26,7 +26,7 @@ export class Anchor {
 
   removeEventListener<K extends keyof HTMLElementEventMap>(
     type: K,
-    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
+    handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
     options?: boolean | EventListenerOptions
   ): void {
     this.container.removeEventListener(type, handler, options);
@@ -37,25 +37,8 @@ export class Anchor {
   }
 }
 
-export type RenderTarget = RenderContainer | Anchor;
+export type RenderTarget = HTMLElement | Anchor;
 
-export interface RenderContainer {
-  insertBefore: Node['insertBefore'];
-  addEventListener<K extends keyof HTMLElementEventMap>(
-    type: K,
-    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
-    opts?: boolean | EventListenerOptions
-  ): void;
-  removeEventListener<K extends keyof HTMLElementEventMap>(
-    type: K,
-    handler: (this: RenderContainer, ev: HTMLElementEventMap[K]) => any,
-    opts?: boolean | EventListenerOptions
-  ): void;
-  childNodes: ArrayLike<Node>;
-  firstChild: Node['firstChild'];
-  textContent: Node['textContent'];
-  appendChild(node: Node): void;
-}
 // export interface RenderTarget {
 //   firstChild: Node['firstChild'];
 //   childNodes: ArrayLike<Node>;

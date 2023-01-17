@@ -3,7 +3,6 @@ import { ExpressionType } from '../jsx/expression';
 import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { Anchor, RenderTarget } from '../jsx';
-import { createHTMLElement } from './create-dom-node';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -29,13 +28,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
           (context as any)[op.nodeKey] = nodeStack.head;
           break;
         case DomOperationType.Clone:
-          const root = createHTMLElement(op.templateNode);
-          const { target } = op;
-          if (target instanceof Anchor) {
-            target.container.insertBefore(root, target.child);
-          } else {
-            target.appendChild(root);
-          }
+          const root = op.clone();
           (root as any)[contextKey] = context;
           if (context.rootElement) {
             const { moreRootElements } = context;

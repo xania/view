@@ -8,6 +8,7 @@ import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
 import { Call } from '../../ssr/hibernate';
+import { BrowserDomFactory } from '../../render/browser-dom-factory';
 // import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
 
 export interface ListProps<T> {
@@ -19,12 +20,12 @@ export * from './list-source';
 export * from './mutation';
 
 export function List<T extends ExecuteContext>(props: ListProps<T>) {
-  const _children = flatten(props.children, new Context<T>());
-  if (_children.length > 1)
+  const template = flatten(props.children, new Context<T>());
+  if (template.length > 1)
     throw new Error('move than 1 child is not yet supported');
 
   return {
-    children: _children,
+    children: template,
     ssr() {
       return new Call(List, [
         { source: props.source, children: this.children },
@@ -34,8 +35,9 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
       const source = props.source;
 
       const { updateOperations, renderOperations, events } = await compile(
-        _children,
-        target
+        template,
+        target,
+        new BrowserDomFactory()
       );
 
       for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);

@@ -1,13 +1,13 @@
-﻿import { Anchor, RenderContainer } from '../jsx/renderable';
-import { TemplateInput } from '../jsx/template-input';
+﻿import { TemplateInput } from '../jsx/template-input';
 import { compile } from './compile';
+import { BrowserDomFactory } from './browser-dom-factory';
 import { execute } from './execute';
 import { disposeContext, ExecuteContext } from './execute-context';
 import { listen } from './listen';
 
 export function render<T = any>(
   root: TemplateInput<T>,
-  container: RenderContainer | Anchor
+  container: HTMLElement
 ): any {
   if (root === null || root === undefined) return root;
 
@@ -27,37 +27,40 @@ export function render<T = any>(
     return root.then((e: any) => render(e, container));
   } else {
     const execContext: ExecuteContext = {};
-    return compile(root, container).then((compileResult) => {
-      const { renderOperations, events } = compileResult;
 
-      execute(renderOperations, [execContext], container);
+    return compile(root, container, new BrowserDomFactory()).then(
+      (compileResult) => {
+        const { renderOperations, events } = compileResult;
 
-      for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
-      // for (const obs of observables) {
-      //   const subs = obs.subscribe({
-      //     binding: null as Promise<Disposable | null> | null,
-      //     target: container,
-      //     async next(value) {
-      //       const { binding } = this;
-      //       if (binding instanceof Promise) {
-      //         binding.then(disposeAll);
-      //       } else {
-      //         disposeAll(binding);
-      //       }
-      //       this.binding = render(value, this.target);
-      //     },
-      //   });
-      //   const { subscriptions } = execContext;
-      //   if (subscriptions) subscriptions.push(subs);
-      //   else execContext.subscriptions = [subs];
-      // }
+        execute(renderOperations, [execContext]);
 
-      return {
-        dispose() {
-          disposeContext(execContext);
-        },
-      };
-    });
+        for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
+        // for (const obs of observables) {
+        //   const subs = obs.subscribe({
+        //     binding: null as Promise<Disposable | null> | null,
+        //     target: container,
+        //     async next(value) {
+        //       const { binding } = this;
+        //       if (binding instanceof Promise) {
+        //         binding.then(disposeAll);
+        //       } else {
+        //         disposeAll(binding);
+        //       }
+        //       this.binding = render(value, this.target);
+        //     },
+        //   });
+        //   const { subscriptions } = execContext;
+        //   if (subscriptions) subscriptions.push(subs);
+        //   else execContext.subscriptions = [subs];
+        // }
+
+        return {
+          dispose() {
+            disposeContext(execContext);
+          },
+        };
+      }
+    );
   }
 
   // if (isSubscribable(root)) {

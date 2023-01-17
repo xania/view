@@ -1,7 +1,6 @@
-import { Attachable, Lazy, Renderable, RenderTarget } from '../jsx';
+import { Attachable, Lazy, Renderable } from '../jsx';
 import { Expression } from '../jsx/expression';
 import { Observable } from '../jsx/observables';
-import { TagTemplateNode } from '../jsx/template-node';
 
 export enum DomOperationType {
   PushFirstChild = 693571,
@@ -104,8 +103,7 @@ export interface ObservableOperation<T> {
 
 export interface CloneOperation {
   type: DomOperationType.Clone;
-  templateNode: TagTemplateNode;
-  target: RenderTarget;
+  clone(): HTMLElement;
 }
 
 export interface AppendTextOperation {
