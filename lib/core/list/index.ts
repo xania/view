@@ -8,8 +8,7 @@ import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
 import { Call } from '../../ssr/hibernate';
-import { BrowserDomFactory } from '../../render/browser-dom-factory';
-// import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
+import { IDomFactory } from '../../render/dom-factory';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -31,13 +30,13 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
         { source: props.source, children: this.children },
       ]);
     },
-    async render(target: RenderTarget) {
+    async render(target: RenderTarget, domFactory: IDomFactory) {
       const source = props.source;
 
       const { updateOperations, renderOperations, events } = await compile(
         template,
         target,
-        new BrowserDomFactory()
+        domFactory
       );
 
       for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);
@@ -109,7 +108,7 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
       }
 
       function renderChildren(source: ArrayLike<ExecuteContext>) {
-        execute(renderOperations, source);
+        execute(renderOperations, source, domFactory);
       }
     },
   };

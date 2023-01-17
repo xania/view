@@ -3,10 +3,12 @@ import { ExpressionType } from '../jsx/expression';
 import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { Anchor, RenderTarget } from '../jsx';
+import { IDomFactory } from './dom-factory';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
   contexts: ArrayLike<TExecuteContext>,
+  domFactory: IDomFactory,
   rootNode?: RenderTarget
 ) {
   let nodeStack: Stack<Node> = { head: rootNode, length: 0 } as any;
@@ -326,9 +328,13 @@ export function execute<TExecuteContext extends ExecuteContext>(
           op.attachable.attachTo(nodeStack.head as HTMLElement);
           break;
         case DomOperationType.Renderable:
-          const binding = op.renderable.render(new Anchor(nodeStack.head), {
-            data: context,
-          });
+          const binding = op.renderable.render(
+            new Anchor(nodeStack.head),
+            domFactory,
+            {
+              data: context,
+            }
+          );
           if (binding) {
             if ('dispose' in binding && binding.dispose instanceof Function)
               if (context.bindings) context.bindings.push(binding);

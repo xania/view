@@ -4,10 +4,13 @@ import { BrowserDomFactory } from './browser-dom-factory';
 import { execute } from './execute';
 import { disposeContext, ExecuteContext } from './execute-context';
 import { listen } from './listen';
+import { IDomFactory } from './dom-factory';
+import { RenderTarget } from '../jsx';
 
 export function render<T = any>(
   root: TemplateInput<T>,
-  container: HTMLElement
+  container: RenderTarget,
+  domFactory: IDomFactory = new BrowserDomFactory()
 ): any {
   if (root === null || root === undefined) return root;
 
@@ -28,39 +31,37 @@ export function render<T = any>(
   } else {
     const execContext: ExecuteContext = {};
 
-    return compile(root, container, new BrowserDomFactory()).then(
-      (compileResult) => {
-        const { renderOperations, events } = compileResult;
+    return compile(root, container, domFactory).then((compileResult) => {
+      const { renderOperations, events } = compileResult;
 
-        execute(renderOperations, [execContext]);
+      execute(renderOperations, [execContext], domFactory);
 
-        for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
-        // for (const obs of observables) {
-        //   const subs = obs.subscribe({
-        //     binding: null as Promise<Disposable | null> | null,
-        //     target: container,
-        //     async next(value) {
-        //       const { binding } = this;
-        //       if (binding instanceof Promise) {
-        //         binding.then(disposeAll);
-        //       } else {
-        //         disposeAll(binding);
-        //       }
-        //       this.binding = render(value, this.target);
-        //     },
-        //   });
-        //   const { subscriptions } = execContext;
-        //   if (subscriptions) subscriptions.push(subs);
-        //   else execContext.subscriptions = [subs];
-        // }
+      for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
+      // for (const obs of observables) {
+      //   const subs = obs.subscribe({
+      //     binding: null as Promise<Disposable | null> | null,
+      //     target: container,
+      //     async next(value) {
+      //       const { binding } = this;
+      //       if (binding instanceof Promise) {
+      //         binding.then(disposeAll);
+      //       } else {
+      //         disposeAll(binding);
+      //       }
+      //       this.binding = render(value, this.target);
+      //     },
+      //   });
+      //   const { subscriptions } = execContext;
+      //   if (subscriptions) subscriptions.push(subs);
+      //   else execContext.subscriptions = [subs];
+      // }
 
-        return {
-          dispose() {
-            disposeContext(execContext);
-          },
-        };
-      }
-    );
+      return {
+        dispose() {
+          disposeContext(execContext);
+        },
+      };
+    });
   }
 
   // if (isSubscribable(root)) {

@@ -1,4 +1,5 @@
 import { Disposable } from '../disposable';
+import { IDomFactory } from '../render/dom-factory';
 import { Unsubscribable } from './observables';
 
 export interface RenderContext<T> {
@@ -58,6 +59,7 @@ export interface Attachable {
 export interface Renderable<T> {
   render(
     target: RenderTarget,
+    domFactory: IDomFactory,
     context: RenderContext<T>
   ): JSX.Tree<Disposable | Unsubscribable>;
 }

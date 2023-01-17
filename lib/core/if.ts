@@ -1,9 +1,9 @@
 ﻿import { RenderTarget } from '../jsx';
 import { compile } from '../render/compile';
-import { BrowserDomFactory } from '../render/browser-dom-factory';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
 import { Call } from '../ssr/hibernate';
+import { IDomFactory } from '../render/dom-factory';
 
 export interface IfProps {
   condition: JSX.Observable<boolean>;
@@ -15,21 +15,21 @@ export function If(props: IfProps) {
     ssr() {
       return new Call(If, [props]);
     },
-    async render(target: RenderTarget) {
+    async render(target: RenderTarget, domFactory: IDomFactory) {
       const { condition } = props;
 
       const executeContext: ExecuteContext = {};
       const { renderOperations } = await compile(
         props.children,
         target,
-        new BrowserDomFactory()
+        domFactory
       );
       const subscription =
         condition.subscribe &&
         condition.subscribe({
           next(b) {
             if (b) {
-              execute(renderOperations, [executeContext]);
+              execute(renderOperations, [executeContext], domFactory);
 
               // for (const child of children) {
               //   if (child instanceof JsxElement) {

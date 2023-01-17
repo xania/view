@@ -3,14 +3,17 @@ import { disposeAll } from '../disposable';
 import { Anchor, RenderTarget } from '../jsx';
 import { JsxElement } from '../jsx/element';
 import { isSubscribable } from '../jsx/observables';
+import { IDomFactory } from './dom-factory';
 
 export function view(tpl: any): any {
   if (tpl instanceof JsxElement) {
     return tpl;
   } else if (tpl instanceof Promise) {
     return {
-      render(target: RenderTarget) {
-        return tpl.then((resolved) => render(view(resolved), target));
+      render(target: RenderTarget, domFactory: IDomFactory) {
+        return tpl.then((resolved) =>
+          render(view(resolved), target, domFactory)
+        );
       },
     };
   } else if (isSubscribable(tpl)) {
