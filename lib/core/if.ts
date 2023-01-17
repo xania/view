@@ -2,7 +2,7 @@
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
-import { Call } from '../ssr/serialize';
+import { Call } from '../ssr/hibernate';
 
 export interface IfProps {
   condition: JSX.Observable<boolean>;

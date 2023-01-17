@@ -18,6 +18,7 @@ import {
   createText,
   TagTemplateNode,
 } from './template-node';
+import { hibernateJsx } from '../ssr/hibernate';
 
 export class JsxElement {
   public templateNode: TagTemplateNode;
@@ -278,6 +279,8 @@ export class JsxElement {
 
     this.templateNode.childNodes.push(tag.templateNode);
   }
+
+  hibernate = hibernateJsx;
 }
 
 export type DomContentOperation<T> = DomOperation<T>;

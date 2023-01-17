@@ -20,13 +20,6 @@ export default defineConfig({
       fileName: 'main',
       formats: ['es', 'cjs'],
     },
-    rollupOptions: {
-      treeshake: true,
-      external: [],
-      output: {
-        sourcemap: true,
-        dir: './dist',
-      },
-    },
+    sourcemap: true,
   },
 });

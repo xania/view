@@ -7,7 +7,7 @@ import { Anchor, Context, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
-import { Call } from '../../ssr/serialize';
+import { Call } from '../../ssr/hibernate';
 // import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
 
 export interface ListProps<T> {

@@ -1,73 +1,77 @@
-﻿import { JsxElement } from '../jsx/element';
+﻿import { JsxElement, RenderContainer } from '../jsx';
 import { TagTemplateNode, TemplateNodeType } from '../jsx/template-node';
+import { execute } from '../render';
 
 const primitives = ['number', 'bigint', 'boolean'];
 
-export async function serialize(view: any, write: (str: string) => void) {
-  let hydrationKey = 0;
-  const stack = [view];
-  while (stack.length) {
-    const curr = stack.pop();
-    if (curr instanceof Promise) {
-      stack.push(await curr);
-    } else if (curr instanceof Array) {
-      for (const item of curr) {
-        stack.push(item);
-      }
-    } else if (curr instanceof JsxElement) {
-      // execute(curr.contentOps, [{}])
+export function hibernateJsx(this: JsxElement, write: (s: string) => void) {
+  const hydrationKey = new Date().getTime().toString();
+  const { contentOps, templateNode } = this;
 
-      if (curr.contentOps.length) {
-        const hk = ++hydrationKey;
-        serializeNode(curr.templateNode, hk.toString());
-        write(`<script type="module">`);
-        write(`import * as mod from "~/pages/client";`);
-        write(serializeObject(curr.contentOps));
-        write(`</script>`);
-      } else {
-        serializeNode(curr.templateNode);
-      }
-    } else {
-      console.error('unknown', curr);
-    }
+  try {
+    execute(contentOps, [{}], new TagNode(templateNode) as any);
+  } catch (err) {
+    console.log(err);
   }
 
-  function serializeNode(node: TagTemplateNode, hydrationKey?: string) {
-    write(`<${node.name}`);
-    if (node.classList.length) {
-      write(` class="${node.classList.join(' ')}"`);
-    }
+  // if (contentOps.length) {
+  //   serializeNode(templateNode, write, hydrationKey);
+  //   write(`<script type="module">`);
+  //   write(`import * as mod from "~/pages/client";`);
+  //   write(serializeObject(contentOps));
+  //   write(`</script>`);
+  // } else {
+  //   serializeNode(templateNode, write);
+  // }
+}
 
-    if (hydrationKey) {
-      write(` data-hk="${hydrationKey}"`);
-    }
-    for (const attrName in node.attrs) {
-      write(` ${attrName}="${node.attrs[attrName]}"`);
-    }
+function createHtmlElement(tag: TagTemplateNode) {
+  return new TagNode(tag) as any;
+}
 
-    if (node.childNodes.length || node.name === 'script') {
-      write(' >');
-      for (const child of node.childNodes) {
-        switch (child.type) {
-          case TemplateNodeType.Tag:
-            serializeNode(child);
-            break;
-          case TemplateNodeType.Text:
-            write(child.data);
-            break;
-          case TemplateNodeType.Anchor:
-            write(`<!--${child.label}-->`);
-            break;
-        }
+class TagNode {
+  constructor(public template: TagTemplateNode) {}
+}
+
+export function serializeNode(
+  node: TagTemplateNode,
+  write: (s: string) => void,
+  hydrationKey?: string
+) {
+  write(`<${node.name}`);
+  if (node.classList.length) {
+    write(` class="${node.classList.join(' ')}"`);
+  }
+
+  if (hydrationKey) {
+    write(` data-hk="${hydrationKey}"`);
+  }
+  for (const attrName in node.attrs) {
+    write(` ${attrName}="${node.attrs[attrName]}"`);
+  }
+
+  if (node.childNodes.length || node.name === 'script') {
+    write(' >');
+    for (const child of node.childNodes) {
+      switch (child.type) {
+        case TemplateNodeType.Tag:
+          serializeNode(child, write);
+          break;
+        case TemplateNodeType.Text:
+          write(child.data);
+          break;
+        case TemplateNodeType.Anchor:
+          write(`<!--${child.label}-->`);
+          break;
       }
-      write(`</${node.name}>`);
-    } else {
-      write(' />');
     }
+    write(`</${node.name}>`);
+  } else {
+    write(' />');
   }
 }
 
-export function serializeObject(obj: any) {
+export function hibernateObject(obj: any) {
   let retval = '(function(__refs = {}){return ';
 
   const refMap = new RefMap();

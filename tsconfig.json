@@ -2,7 +2,7 @@
   "include": ["lib", "../ssr/ssr"],
   "compilerOptions": {
     "outDir": "dist/es2015",
-    "module": "ES2015",
+    "module": "ESNext",
     "lib": ["dom", "ESNext", "ES2018.AsyncIterable"],
     "importHelpers": true,
     "declaration": true,
