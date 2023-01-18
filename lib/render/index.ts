@@ -6,6 +6,8 @@ import { disposeContext, ExecuteContext } from './execute-context';
 import { listen } from './listen';
 import { IDomFactory } from './dom-factory';
 import { RenderTarget } from '../jsx';
+import { LazyOperation } from './dom-operation';
+import { update } from './update';
 
 export function render<T = any>(
   root: TemplateInput<T>,
@@ -35,6 +37,7 @@ export function render<T = any>(
       const { renderOperations, events } = compileResult;
 
       execute(renderOperations, [execContext], domFactory);
+      hydrateLazy(compileResult.lazyOperations, container);
 
       for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
       // for (const obs of observables) {
@@ -112,6 +115,48 @@ export function render<T = any>(
   //     },
   //   };
   // }
+}
+
+export function hydrateLazy(
+  lazyOperations: LazyOperation<any>[],
+  target: RenderTarget
+) {
+  for (const op of lazyOperations) {
+    op.lazy.lazy({
+      next([item, newValue]: any) {
+        if (!item) return;
+        item[op.valueKey] = newValue;
+        update([op.operation], [item]);
+
+        // const { attachables } = op.lazy;
+        // if (attachables?.length) {
+        //   const node = item[op.nodeKey];
+        //   const rootNode = resolveRootNode(target, node);
+        //   if (rootNode) {
+        //     for (const [n, f] of attachables) {
+        //       if (rootNode.contains(n))
+        //         f({
+        //           data: item,
+        //           node: n,
+        //         } as ViewContext<any>);
+        //     }
+        //   }
+        // }
+
+        // if (prevValue) {
+        //   ref.classList.remove(prevValue);
+        // }
+
+        // if (newValue) {
+        //   const classes = jsxOpts?.classes;
+        //   const cls = classes ? classes[newValue] : newValue;
+        //   item[op.valueKey] = cls;
+
+        //   ref.classList.add(cls);
+        // }
+      },
+    });
+  }
 }
 
 export * from './execute';

@@ -9,6 +9,7 @@ import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
 import { Call } from '../../ssr/hibernate';
 import { IDomFactory } from '../../render/dom-factory';
+import { hydrateLazy } from '../../render';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -33,11 +34,10 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
     async render(target: RenderTarget, domFactory: IDomFactory) {
       const source = props.source;
 
-      const { updateOperations, renderOperations, events } = await compile(
-        template,
-        target,
-        domFactory
-      );
+      const { updateOperations, renderOperations, events, lazyOperations } =
+        await compile(template, target, domFactory);
+
+      hydrateLazy(lazyOperations, target);
 
       for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);
 
