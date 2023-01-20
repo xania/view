@@ -3,7 +3,7 @@
 
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
-  };
+  } & SVGTagNameMap;
 
   type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X
     ? 1

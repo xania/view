@@ -22,7 +22,7 @@ export * from './mutation';
 export function List<T extends ExecuteContext>(props: ListProps<T>) {
   const template = flatten(props.children, new Context<T>());
   if (template.length > 1)
-    throw new Error('move than 1 child is not yet supported');
+    throw new Error('more than 1 child is not yet supported');
 
   return {
     children: template,
