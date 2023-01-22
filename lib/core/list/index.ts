@@ -7,7 +7,9 @@ import { Anchor, Context, RenderTarget } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
-import { RehydrateCall, RehydrateType } from '../../../../ssr/ssr';
+import { Call } from '../../ssr/hibernate';
+import { IDomFactory } from '../../render/dom-factory';
+import { hydrateLazy } from '../../render';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -18,26 +20,24 @@ export * from './list-source';
 export * from './mutation';
 
 export function List<T extends ExecuteContext>(props: ListProps<T>) {
-  const _children = flatten(props.children, new Context<T>());
-  if (_children.length > 1)
-    throw new Error('move than 1 child is not supported');
+  const template = flatten(props.children, new Context<T>());
+  if (template.length > 1)
+    throw new Error('more than 1 child is not yet supported');
 
   return {
-    children: _children,
+    children: template,
     ssr() {
-      return {
-        type: RehydrateType.Call,
-        name: 'List',
-        args: [{ source: props.source, children: this.children }],
-      } as RehydrateCall;
+      return new Call(List, [
+        { source: props.source, children: this.children },
+      ]);
     },
-    async render(target: RenderTarget) {
+    async render(target: RenderTarget, domFactory: IDomFactory) {
       const source = props.source;
 
-      const { updateOperations, renderOperations, events } = await compile(
-        _children,
-        target
-      );
+      const { updateOperations, renderOperations, events, lazyOperations } =
+        await compile(template, target, domFactory);
+
+      hydrateLazy(lazyOperations, target);
 
       for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);
 
@@ -108,7 +108,7 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
       }
 
       function renderChildren(source: ArrayLike<ExecuteContext>) {
-        execute(renderOperations, source);
+        execute(renderOperations, source, domFactory);
       }
     },
   };

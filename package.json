@@ -24,7 +24,8 @@
     "dev": "npx vite --watch build",
     "build": "npx vite build",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build"
+    "prepublishOnly": "npm run clean && npm version patch && npm run build",
+    "lint": "tsc"
   },
   "prettier": {
     "printWidth": 80,

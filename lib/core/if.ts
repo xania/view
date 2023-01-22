@@ -2,7 +2,8 @@
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
-import { RehydrateCall, RehydrateType } from '../../../ssr/ssr';
+import { Call } from '../ssr/hibernate';
+import { IDomFactory } from '../render/dom-factory';
 
 export interface IfProps {
   condition: JSX.Observable<boolean>;
@@ -12,23 +13,23 @@ export interface IfProps {
 export function If(props: IfProps) {
   return {
     ssr() {
-      return {
-        type: RehydrateType.Call,
-        name: 'If',
-        args: [props],
-      } as RehydrateCall;
+      return new Call(If, [props]);
     },
-    async render(target: RenderTarget) {
+    async render(target: RenderTarget, domFactory: IDomFactory) {
       const { condition } = props;
 
       const executeContext: ExecuteContext = {};
-      const { renderOperations } = await compile(props.children, target);
+      const { renderOperations } = await compile(
+        props.children,
+        target,
+        domFactory
+      );
       const subscription =
         condition.subscribe &&
         condition.subscribe({
           next(b) {
             if (b) {
-              execute(renderOperations, [executeContext]);
+              execute(renderOperations, [executeContext], domFactory);
 
               // for (const child of children) {
               //   if (child instanceof JsxElement) {

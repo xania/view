@@ -2,8 +2,8 @@
   "include": ["lib", "../ssr/ssr"],
   "compilerOptions": {
     "outDir": "dist/es2015",
-    "module": "ES2015",
-    "lib": ["dom", "ESNext", "ES2018.AsyncIterable"],
+    "module": "ESNext",
+    "lib": ["DOM", "ESNext"],
     "importHelpers": true,
     "declaration": true,
     "sourceMap": true,
@@ -15,6 +15,7 @@
     "moduleResolution": "node",
     "target": "ES2015",
     "esModuleInterop": true,
-    "typeRoots": ["types"]
+    "typeRoots": ["types"],
+    "noEmit": true
   }
 }

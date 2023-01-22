@@ -16,8 +16,10 @@ import {
   createAnhor,
   createTag,
   createText,
+  isTemplateNode,
   TagTemplateNode,
 } from './template-node';
+import { hibernateJsx } from '../ssr/hibernate';
 
 export class JsxElement {
   public templateNode: TagTemplateNode;
@@ -230,6 +232,8 @@ export class JsxElement {
         );
       } else if (isExpression(child)) {
         addTextContentExpr(child);
+      } else if (isTemplateNode(child)) {
+        templateNode.childNodes.push(child);
       } else if (isTemplate(child)) {
         switch (child.type) {
           case TemplateType.Attribute:
@@ -278,6 +282,8 @@ export class JsxElement {
 
     this.templateNode.childNodes.push(tag.templateNode);
   }
+
+  hibernate = hibernateJsx;
 }
 
 export type DomContentOperation<T> = DomOperation<T>;

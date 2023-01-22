@@ -9,6 +9,16 @@ export enum TemplateNodeType {
   Anchor,
 }
 
+export function isTemplateNode(value: any): value is TemplateNode {
+  if (!value) return false;
+
+  return (
+    value.type === TemplateNodeType.Tag ||
+    value.type === TemplateNodeType.Text ||
+    value.type === TemplateNodeType.Anchor
+  );
+}
+
 export function createTag(name: string): TagTemplateNode {
   return {
     type: TemplateNodeType.Tag,

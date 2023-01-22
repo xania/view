@@ -3,11 +3,12 @@ import { ExpressionType } from '../jsx/expression';
 import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { Anchor, RenderTarget } from '../jsx';
-import { createHTMLElement } from './create-dom-node';
+import { IDomFactory } from './dom-factory';
 
 export function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
   contexts: ArrayLike<TExecuteContext>,
+  domFactory: IDomFactory,
   rootNode?: RenderTarget
 ) {
   let nodeStack: Stack<Node> = { head: rootNode, length: 0 } as any;
@@ -29,13 +30,7 @@ export function execute<TExecuteContext extends ExecuteContext>(
           (context as any)[op.nodeKey] = nodeStack.head;
           break;
         case DomOperationType.Clone:
-          const root = createHTMLElement(op.templateNode);
-          const { target } = op;
-          if (target instanceof Anchor) {
-            target.container.insertBefore(root, target.child);
-          } else {
-            target.appendChild(root);
-          }
+          const root = op.clone();
           (root as any)[contextKey] = context;
           if (context.rootElement) {
             const { moreRootElements } = context;
@@ -333,9 +328,13 @@ export function execute<TExecuteContext extends ExecuteContext>(
           op.attachable.attachTo(nodeStack.head as HTMLElement);
           break;
         case DomOperationType.Renderable:
-          const binding = op.renderable.render(new Anchor(nodeStack.head), {
-            data: context,
-          });
+          const binding = op.renderable.render(
+            new Anchor(nodeStack.head),
+            domFactory,
+            {
+              data: context,
+            }
+          );
           if (binding) {
             if ('dispose' in binding && binding.dispose instanceof Function)
               if (context.bindings) context.bindings.push(binding);

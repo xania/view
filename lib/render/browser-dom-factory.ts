@@ -1,4 +1,30 @@
-﻿import { TagTemplateNode, TemplateNodeType } from '../jsx/template-node';
+﻿import { IDomFactory } from './dom-factory';
+import { TagTemplateNode, TemplateNodeType } from '../jsx/template-node';
+import { Anchor, RenderTarget } from '../jsx/renderable';
+
+export class BrowserDomFactory implements IDomFactory {
+  constructor() {}
+
+  appendAnchor(target: RenderTarget, text: string): number {
+    if (target instanceof Anchor) {
+      throw new Error('not supported!');
+    } else {
+      const anchorIdx = target.childNodes.length;
+      const anchor = document.createComment(text);
+
+      target.appendChild(anchor);
+
+      return anchorIdx;
+    }
+  }
+
+  appendTag(target: RenderTarget, tag: TagTemplateNode) {
+    const root = createHTMLElement(tag);
+    target.appendChild(root);
+
+    return root;
+  }
+}
 
 export function createHTMLElement(node: TagTemplateNode): HTMLElement {
   const htmlElement = document.createElement(node.name);

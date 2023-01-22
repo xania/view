@@ -1,57 +1,60 @@
 ﻿import { ExpressionType } from '../jsx/expression';
-import { JsxElement, pushChildAt, ViewContext } from '../jsx/element';
+import { JsxElement, pushChildAt } from '../jsx/element';
 import {
   CloneOperation,
   DomOperation,
   DomOperationType,
   LazyOperation,
 } from './dom-operation';
-import { JsxEvent, resolveRootNode } from './listen';
+import { JsxEvent } from './listen';
 import { TemplateInput } from '../jsx/template-input';
-import { Anchor, isRenderable, RenderTarget } from '../jsx';
-import { subscribe } from '../rx';
-import { update } from './update';
+import { isRenderable, RenderTarget } from '../jsx';
 import { isSubscribable } from '../jsx/observables';
+import { IDomFactory } from './dom-factory';
 
-export function compile(children: TemplateInput, target: RenderTarget) {
-  var compileResult = new CompileResult<any>(target);
-  return flatTemplates(children, compileResult.add).then((_) => {
-    for (const op of compileResult.lazyOperations) {
-      subscribe<any, any>(op.lazy, {
-        next([item, newValue]: any) {
-          if (!item) return;
-          item[op.valueKey] = newValue;
-          update([op.operation], [item]);
+export function compile(
+  template: TemplateInput,
+  target: RenderTarget,
+  driver: IDomFactory
+) {
+  var compileResult = new CompileResult<any>(target, driver);
+  return flatTemplates(template, compileResult.add).then((_) => {
+    // for (const op of compileResult.lazyOperations) {
+    //   subscribe<any, any>(op.lazy, {
+    //     next([item, newValue]: any) {
+    //       if (!item) return;
+    //       item[op.valueKey] = newValue;
+    //       update([op.operation], [item]);
 
-          const { attachables } = op.lazy;
-          if (attachables?.length) {
-            const node = item[op.nodeKey];
-            const rootNode = resolveRootNode(target, node);
-            if (rootNode) {
-              for (const [n, f] of attachables) {
-                if (rootNode.contains(n))
-                  f({
-                    data: item,
-                    node: n,
-                  } as ViewContext<any>);
-              }
-            }
-          }
+    //       const { attachables } = op.lazy;
+    //       if (attachables?.length) {
+    //         const node = item[op.nodeKey];
+    //         const rootNode = resolveRootNode(target, node);
+    //         if (rootNode) {
+    //           for (const [n, f] of attachables) {
+    //             if (rootNode.contains(n))
+    //               f({
+    //                 data: item,
+    //                 node: n,
+    //               } as ViewContext<any>);
+    //           }
+    //         }
+    //       }
 
-          // if (prevValue) {
-          //   ref.classList.remove(prevValue);
-          // }
+    //       // if (prevValue) {
+    //       //   ref.classList.remove(prevValue);
+    //       // }
 
-          // if (newValue) {
-          //   const classes = jsxOpts?.classes;
-          //   const cls = classes ? classes[newValue] : newValue;
-          //   item[op.valueKey] = cls;
+    //       // if (newValue) {
+    //       //   const classes = jsxOpts?.classes;
+    //       //   const cls = classes ? classes[newValue] : newValue;
+    //       //   item[op.valueKey] = cls;
 
-          //   ref.classList.add(cls);
-          // }
-        },
-      });
-    }
+    //       //   ref.classList.add(cls);
+    //       // }
+    //     },
+    //   });
+    // }
 
     return compileResult;
   });
@@ -63,22 +66,19 @@ export class CompileResult<T> {
   lazyOperations: LazyOperation<T>[] = [];
   events: [JsxEvent, number][] = [];
 
-  constructor(public target: RenderTarget) {}
+  constructor(public target: RenderTarget, public driver: IDomFactory) {}
 
   addAnchoredOperation(op: DomOperation<T>) {
-    const { target } = this;
-    if (target instanceof Anchor) {
-    } else {
-      const anchorIdx = target.childNodes.length;
-      const anchor = document.createComment('-- root anchor --');
-      target.appendChild(anchor);
-      pushChildAt(this.renderOperations, anchorIdx);
-      this.renderOperations.push(op, {
-        type: DomOperationType.PopNode,
-        index: anchorIdx,
-      });
-      this.rootCount++;
-    }
+    const anchorIdx = this.driver.appendAnchor(
+      this.target,
+      '-- root anchor --'
+    );
+    pushChildAt(this.renderOperations, anchorIdx);
+    this.renderOperations.push(op, {
+      type: DomOperationType.PopNode,
+      index: anchorIdx,
+    });
+    this.rootCount++;
   }
 
   private rootCount: number = 0;
@@ -89,13 +89,15 @@ export class CompileResult<T> {
       for (const evt of child.events) this.events.push([evt, rootIndex]);
 
       const { contentOps } = child;
-      const cloneOp: CloneOperation = {
+      const { target, driver } = this;
+      const cloneOp = {
         type: DomOperationType.Clone,
-        templateNode: child.templateNode,
-        target: this.target,
+        clone() {
+          return driver.appendTag(target, child.templateNode);
+        },
       };
 
-      this.renderOperations.push(cloneOp);
+      this.renderOperations.push(cloneOp as CloneOperation);
 
       for (let i = 0, len = contentOps.length; i < len; i++) {
         const op = contentOps[i];

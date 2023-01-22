@@ -1,13 +1,18 @@
-﻿import { Anchor, RenderContainer } from '../jsx/renderable';
-import { TemplateInput } from '../jsx/template-input';
+﻿import { TemplateInput } from '../jsx/template-input';
 import { compile } from './compile';
+import { BrowserDomFactory } from './browser-dom-factory';
 import { execute } from './execute';
 import { disposeContext, ExecuteContext } from './execute-context';
 import { listen } from './listen';
+import { IDomFactory } from './dom-factory';
+import { RenderTarget } from '../jsx';
+import { LazyOperation } from './dom-operation';
+import { update } from './update';
 
 export function render<T = any>(
   root: TemplateInput<T>,
-  container: RenderContainer | Anchor
+  container: RenderTarget,
+  domFactory: IDomFactory = new BrowserDomFactory()
 ): any {
   if (root === null || root === undefined) return root;
 
@@ -27,10 +32,12 @@ export function render<T = any>(
     return root.then((e: any) => render(e, container));
   } else {
     const execContext: ExecuteContext = {};
-    return compile(root, container).then((compileResult) => {
+
+    return compile(root, container, domFactory).then((compileResult) => {
       const { renderOperations, events } = compileResult;
 
-      execute(renderOperations, [execContext], container);
+      execute(renderOperations, [execContext], domFactory);
+      hydrateLazy(compileResult.lazyOperations, container);
 
       for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
       // for (const obs of observables) {
@@ -108,6 +115,48 @@ export function render<T = any>(
   //     },
   //   };
   // }
+}
+
+export function hydrateLazy(
+  lazyOperations: LazyOperation<any>[],
+  target: RenderTarget
+) {
+  for (const op of lazyOperations) {
+    op.lazy.lazy({
+      next([item, newValue]: any) {
+        if (!item) return;
+        item[op.valueKey] = newValue;
+        update([op.operation], [item]);
+
+        // const { attachables } = op.lazy;
+        // if (attachables?.length) {
+        //   const node = item[op.nodeKey];
+        //   const rootNode = resolveRootNode(target, node);
+        //   if (rootNode) {
+        //     for (const [n, f] of attachables) {
+        //       if (rootNode.contains(n))
+        //         f({
+        //           data: item,
+        //           node: n,
+        //         } as ViewContext<any>);
+        //     }
+        //   }
+        // }
+
+        // if (prevValue) {
+        //   ref.classList.remove(prevValue);
+        // }
+
+        // if (newValue) {
+        //   const classes = jsxOpts?.classes;
+        //   const cls = classes ? classes[newValue] : newValue;
+        //   item[op.valueKey] = cls;
+
+        //   ref.classList.add(cls);
+        // }
+      },
+    });
+  }
 }
 
 export * from './execute';
