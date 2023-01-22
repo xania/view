@@ -38,7 +38,7 @@
   type IntrinsicElements = {
     [P in keyof TagNameMap]: TagNameMap[P] &
       ElementChildrenAttribute &
-      ClassAttribute;
+      ElementCustomAttributes;
     // div: E<{ class?: string }>;
     // header: E<{ class: string }>;
     // button: E<{ class: string; click: Function }>;
@@ -46,9 +46,10 @@
     // p: E<{ class: string }>;
   };
 
-  interface ClassAttribute {
+  interface ElementCustomAttributes {
     class?: ClassInput;
     className?: ClassInput;
+    style?: AttrValue<string>;
   }
 
   interface ElementChildrenAttribute {
