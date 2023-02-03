@@ -31,7 +31,7 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
         { source: props.source, children: this.children },
       ]);
     },
-    async render(target: RenderTarget, domFactory: IDomFactory) {
+    async render(target: Anchor, domFactory: IDomFactory) {
       const source = props.source;
 
       const { updateOperations, renderOperations, events, lazyOperations } =

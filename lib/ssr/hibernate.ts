@@ -43,7 +43,7 @@ export async function hibernateJsx(
     await execute(contentOps, [{}], domFactory, ssrNode);
     serializeNode(ssrNode, write);
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 
   //   serializeNode(templateNode, write);
@@ -73,6 +73,7 @@ class SsrTextNode {
     public data: string
   ) {}
 }
+
 class SsrTagNode {
   public childNodes: SsrNode[] = [];
 
@@ -91,12 +92,17 @@ class SsrTagNode {
     return null;
   }
 
+  set textContent(value: string) {
+    this.childNodes[0] = new SsrTextNode(this, value);
+    this.childNodes.length = 1;
+  }
+
   constructor(
     public parentElement: SsrTagNode | undefined | null,
     public name: string,
-    public classList: string[],
-    public attrs: Record<string, any>
+    public classList: SsrClassList
   ) {}
+
   insertBefore(node: SsrTagNode, child: SsrNode | null) {
     if (!child) return;
     const idx = this.childNodes.indexOf(child);
@@ -104,11 +110,11 @@ class SsrTagNode {
       this.childNodes.splice(idx, 0, node);
     }
   }
-  // addEventListener(
-  //   type: string,
-  //   callback: EventListenerOrEventListenerObject | null,
-  //   options?: boolean | AddEventListenerOptions | undefined
-  // ) {}
+  addEventListener(
+    type: string,
+    callback: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions | undefined
+  ) {}
   // removeEventListener(
   //   type: string,
   //   callback: EventListenerOrEventListenerObject | null,
@@ -116,10 +122,12 @@ class SsrTagNode {
   // ) {}
 
   static fromTemplate(template: TagTemplateNode, parent?: SsrTagNode) {
-    const root = new SsrTagNode(
-      parent,
-      template.name,
-      template.classList,
+    const root = Object.assign(
+      new SsrTagNode(
+        parent,
+        template.name,
+        new SsrClassList(template.classList.slice(0))
+      ),
       template.attrs
     );
 
@@ -131,10 +139,12 @@ class SsrTagNode {
         if (child.type === TemplateNodeType.Text) {
           tag.childNodes.push(new SsrTextNode(tag, child.data));
         } else if (child.type === TemplateNodeType.Tag) {
-          const childTag = new SsrTagNode(
-            tag,
-            child.name,
-            child.classList,
+          const childTag = Object.assign(
+            new SsrTagNode(
+              tag,
+              child.name,
+              new SsrClassList(child.classList.slice(0))
+            ),
             child.attrs
           );
           tag.childNodes.push(childTag);
@@ -148,21 +158,44 @@ class SsrTagNode {
   }
 }
 
+class SsrClassList {
+  constructor(public values: string[]) {}
+
+  public add(value: string) {
+    this.values.push(value);
+  }
+}
+
+const defaultTagKeys = Object.keys(
+  new SsrTagNode(null, '', new SsrClassList([]))
+);
+
 export function serializeNode(
   node: SsrTagNode,
   write: (s: string) => void,
   hydrationKey?: string
 ) {
   write(`<${node.name}`);
-  if (node.classList.length) {
-    write(` class="${node.classList.join(' ')}"`);
+  const classList = node.classList.values;
+  if (classList.length) {
+    write(` class="${classList.join(' ')}"`);
   }
 
   if (hydrationKey) {
     write(` data-hk="${hydrationKey}"`);
   }
-  for (const attrName in node.attrs) {
-    write(` ${attrName}="${node.attrs[attrName]}"`);
+
+  for (const attrName in node) {
+    if (!defaultTagKeys.includes(attrName)) {
+      const attrValue = (node as any)[attrName];
+      if (attrName === 'checked') {
+        if (attrValue) {
+          write(` ${attrName}`);
+        }
+      } else {
+        write(` ${attrName}="${attrValue}"`);
+      }
+    }
   }
 
   if (node.childNodes.length || node.name === 'script') {

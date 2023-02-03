@@ -6,7 +6,15 @@ export interface RenderContext<T> {
   data: T;
 }
 
-export class Anchor<TNode> {
+export interface XHTMLElement {
+  addEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: EventListenerOrEventListenerObject, //  (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions
+  ): void;
+}
+
+export class Anchor<TNode extends XHTMLElement = HTMLElement> {
   public container: TNode;
   constructor(public child: { parentElement: TNode | undefined | null }) {
     if (!child.parentElement) throw Error('invalid operation');
@@ -17,13 +25,13 @@ export class Anchor<TNode> {
   //   this.container.insertBefore(node, this.child);
   // }
 
-  // addEventListener<K extends keyof HTMLElementEventMap>(
-  //   type: K,
-  //   listener: EventListenerOrEventListenerObject, //  (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
-  //   options?: boolean | AddEventListenerOptions
-  // ): void {
-  //   this.container.addEventListener(type, listener, options);
-  // }
+  addEventListener<K extends keyof HTMLElementEventMap>(
+    type: K,
+    listener: EventListenerOrEventListenerObject, //  (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+    options?: boolean | AddEventListenerOptions
+  ): void {
+    this.container.addEventListener(type, listener, options);
+  }
 
   // removeEventListener<K extends keyof HTMLElementEventMap>(
   //   type: K,
@@ -38,7 +46,7 @@ export class Anchor<TNode> {
   // }
 }
 
-export type RenderTarget<TNode> = TNode | Anchor<TNode>;
+export type RenderTarget<TNode extends XHTMLElement> = TNode | Anchor<TNode>;
 
 // export interface RenderContainer<TNode = HTMLElement> {
 //   insertBefore(node: TNode, child: TNode | null): TNode;

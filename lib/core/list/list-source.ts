@@ -336,7 +336,7 @@ export class ListSource<T> {
       const newValue = o.project(items);
       if ((o as any)[_previous]! !== newValue) {
         (o as any)[_previous] = newValue;
-        o.next(o.project(items));
+        o.next(newValue);
       }
     }
   }
