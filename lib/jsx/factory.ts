@@ -60,6 +60,10 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         return Promise.all(promises).then(() => tagTemplate);
       else return tagTemplate;
     },
+    Fragment(props: { children: JSX.Children }) {
+      return flatten(props?.children);
+    },
+    // obsolete
     createFragment(props: { children: JSX.Children }) {
       return flatten(props?.children);
     },

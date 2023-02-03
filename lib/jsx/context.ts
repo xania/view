@@ -32,11 +32,17 @@ export class Context<T> {
 export class Lazy<T, U> {
   constructor(public value: U) {}
 
+  selected: T | null = null;
   select(context: T) {
+    this.clear();
+    this.selected = context;
     notify(this, [context, this.value]);
-    return () => {
-      notify(this, [context, null]);
-    };
+  }
+
+  clear() {
+    if (this.selected) {
+      notify(this, [this.selected, null]);
+    }
   }
 
   lazy(observer: NextObserver<[ExecuteContext, U]>) {

@@ -9,7 +9,7 @@ import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
 import { Call } from '../../ssr/hibernate';
 import { IDomFactory } from '../../render/dom-factory';
-import { hydrateLazy } from '../../render';
+import { executeLazy } from '../../render';
 
 export interface ListProps<T> {
   source: T[] | ListSource<T>;
@@ -37,42 +37,9 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
       const { updateOperations, renderOperations, events, lazyOperations } =
         await compile(template, target, domFactory);
 
-      hydrateLazy(lazyOperations, target);
+      executeLazy(lazyOperations, target);
 
       for (const [evt, rootIdx] of events) listen(target, evt, rootIdx);
-
-      if (source instanceof Array) {
-        renderChildren(source);
-      } else if (source instanceof ListSource) {
-        source.subscribe({
-          next(mut) {
-            switch (mut.type) {
-              // case ListMutationType.Push:
-              //   renderChild(mut.item);
-              //   break;
-              // case ListMutationType.Insert:
-              //   renderChild(mut.item, mut.index);
-              //   break;
-              case ListMutationType.Delete:
-                disposeContext(mut.item);
-                break;
-              case ListMutationType.Clear:
-                clear(mut.firstItem, mut.lastItem);
-                break;
-              case ListMutationType.Move:
-                moveChild(mut.item, mut.beforeItem);
-                break;
-              case ListMutationType.Update:
-                update(updateOperations, mut.items);
-                break;
-              case ListMutationType.Concat:
-                renderChildren(mut.items);
-                break;
-            }
-          },
-        });
-        renderChildren(source.snapshot);
-      }
 
       function clear(from: ExecuteContext, to: ExecuteContext) {
         const firstElement = from.rootElement as Node;
@@ -109,6 +76,39 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
 
       function renderChildren(source: ArrayLike<ExecuteContext>) {
         execute(renderOperations, source, domFactory);
+      }
+
+      if (source instanceof Array) {
+        renderChildren(source);
+      } else if (source instanceof ListSource) {
+        source.subscribe({
+          next(mut) {
+            switch (mut.type) {
+              // case ListMutationType.Push:
+              //   renderChild(mut.item);
+              //   break;
+              // case ListMutationType.Insert:
+              //   renderChild(mut.item, mut.index);
+              //   break;
+              case ListMutationType.Delete:
+                disposeContext(mut.item);
+                break;
+              case ListMutationType.Clear:
+                clear(mut.firstItem, mut.lastItem);
+                break;
+              case ListMutationType.Move:
+                moveChild(mut.item, mut.beforeItem);
+                break;
+              case ListMutationType.Update:
+                update(updateOperations, mut.items);
+                break;
+              case ListMutationType.Concat:
+                renderChildren(mut.items);
+                break;
+            }
+          },
+        });
+        renderChildren(source.snapshot);
       }
     },
   };

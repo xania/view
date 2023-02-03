@@ -2,6 +2,7 @@
   type Observable<T> = import('../../lib/jsx/observables').Observable<T>;
   type Renderable<T> = import('../../lib/jsx/renderable').Renderable<T>;
   type TemplateNode = import('../../lib/jsx/template-node').TemplateNode;
+  type Template = import('../../lib/jsx/template').Template;
 
   type Value<T = any> =
     | null
@@ -11,7 +12,6 @@
     | number
     | boolean
     | bigint
-    | TemplateNode
     | Stringable
     | Lazy<T>;
 
@@ -23,5 +23,7 @@
     | Element[]
     | ElementNode
     | Observable<ElementNode>
-    | Promise<ElementNode>;
+    | Promise<ElementNode>
+    | TemplateNode
+    | Template;
 }

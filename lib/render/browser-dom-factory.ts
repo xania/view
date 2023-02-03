@@ -2,26 +2,26 @@
 import { TagTemplateNode, TemplateNodeType } from '../jsx/template-node';
 import { Anchor, RenderTarget } from '../jsx/renderable';
 
-export class BrowserDomFactory implements IDomFactory {
+export class BrowserDomFactory implements IDomFactory<HTMLElement> {
   constructor() {}
 
-  appendAnchor(target: RenderTarget, text: string): number {
+  appendAnchor(target: RenderTarget<HTMLElement>, text: string): void {
     if (target instanceof Anchor) {
       throw new Error('not supported!');
     } else {
-      const anchorIdx = target.childNodes.length;
       const anchor = document.createComment(text);
-
       target.appendChild(anchor);
-
-      return anchorIdx;
     }
   }
 
-  appendTag(target: RenderTarget, tag: TagTemplateNode) {
+  appendTag(target: RenderTarget<HTMLElement>, tag: TagTemplateNode) {
     const root = createHTMLElement(tag);
-    target.appendChild(root);
-
+    if (target instanceof Anchor) {
+      const { container } = target;
+      container.insertBefore(root, target.child as Node);
+    } else {
+      target.appendChild(root);
+    }
     return root;
   }
 }

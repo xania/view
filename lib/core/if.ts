@@ -1,8 +1,7 @@
-﻿import { RenderTarget } from '../jsx';
+﻿import { Anchor, RenderTarget } from '../jsx';
 import { compile } from '../render/compile';
 import { execute } from '../render/execute';
 import { disposeContext, ExecuteContext } from '../render/execute-context';
-import { Call } from '../ssr/hibernate';
 import { IDomFactory } from '../render/dom-factory';
 
 export interface IfProps {
@@ -12,10 +11,10 @@ export interface IfProps {
 
 export function If(props: IfProps) {
   return {
-    ssr() {
-      return new Call(If, [props]);
-    },
-    async render(target: RenderTarget, domFactory: IDomFactory) {
+    async render(
+      target: Anchor<HTMLElement>,
+      domFactory: IDomFactory<HTMLElement>
+    ) {
       const { condition } = props;
 
       const executeContext: ExecuteContext = {};

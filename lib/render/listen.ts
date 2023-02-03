@@ -10,22 +10,10 @@ export interface JsxEvent {
 }
 
 export function listen(
-  container: RenderTarget,
+  container: HTMLElement,
   jsxEvent: JsxEvent,
   rootIdx: number
 ) {
-  container.addEventListener(
-    jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any),
-    handler,
-    true
-  );
-
-  return {
-    dispose() {
-      container.removeEventListener(jsxEvent.name, handler);
-    },
-  };
-
   function handler(domEvent: Event) {
     const target = domEvent.target as Node;
     const root = resolveRootNode(container, target);
@@ -60,9 +48,24 @@ export function listen(
       jsxEvent.handler(e);
     }
   }
+
+  container.addEventListener(
+    jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any),
+    handler,
+    true
+  );
+
+  return {
+    dispose() {
+      container.removeEventListener(jsxEvent.name, handler);
+    },
+  };
 }
 
-export function resolveRootNode(container: RenderTarget, node: Node) {
+export function resolveRootNode(
+  container: RenderTarget<HTMLElement>,
+  node: Node
+) {
   let root = node;
   const rootParent =
     container instanceof Anchor ? container.container : container;

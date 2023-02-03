@@ -2,14 +2,14 @@
 import { ExpressionType } from '../jsx/expression';
 import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
-import { Anchor, RenderTarget } from '../jsx';
+import { Anchor } from '../jsx';
 import { IDomFactory } from './dom-factory';
 
-export function execute<TExecuteContext extends ExecuteContext>(
+export async function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
   contexts: ArrayLike<TExecuteContext>,
-  domFactory: IDomFactory,
-  rootNode?: RenderTarget
+  domFactory: IDomFactory<any>,
+  rootNode?: any
 ) {
   let nodeStack: Stack<Node> = { head: rootNode, length: 0 } as any;
   for (
@@ -328,8 +328,8 @@ export function execute<TExecuteContext extends ExecuteContext>(
           op.attachable.attachTo(nodeStack.head as HTMLElement);
           break;
         case DomOperationType.Renderable:
-          const binding = op.renderable.render(
-            new Anchor(nodeStack.head),
+          const binding = await op.renderable.render(
+            new Anchor(nodeStack.head as HTMLElement),
             domFactory,
             {
               data: context,

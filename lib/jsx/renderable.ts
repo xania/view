@@ -6,40 +6,46 @@ export interface RenderContext<T> {
   data: T;
 }
 
-export class Anchor {
-  public container: HTMLElement;
-  constructor(public child: Node) {
+export class Anchor<TNode> {
+  public container: TNode;
+  constructor(public child: { parentElement: TNode | undefined | null }) {
     if (!child.parentElement) throw Error('invalid operation');
     this.container = child.parentElement;
   }
 
-  appendChild(node: Node) {
-    this.container.insertBefore(node, this.child);
-  }
+  // appendChild(node: TNode) {
+  //   this.container.insertBefore(node, this.child);
+  // }
 
-  addEventListener<K extends keyof HTMLElementEventMap>(
-    type: K,
-    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
-    options?: boolean | AddEventListenerOptions
-  ): void {
-    this.container.addEventListener(type, listener, options);
-  }
+  // addEventListener<K extends keyof HTMLElementEventMap>(
+  //   type: K,
+  //   listener: EventListenerOrEventListenerObject, //  (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+  //   options?: boolean | AddEventListenerOptions
+  // ): void {
+  //   this.container.addEventListener(type, listener, options);
+  // }
 
-  removeEventListener<K extends keyof HTMLElementEventMap>(
-    type: K,
-    handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
-    options?: boolean | EventListenerOptions
-  ): void {
-    this.container.removeEventListener(type, handler, options);
-  }
+  // removeEventListener<K extends keyof HTMLElementEventMap>(
+  //   type: K,
+  //   handler: EventListenerOrEventListenerObject, // (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
+  //   options?: boolean | EventListenerOptions
+  // ): void {
+  //   this.container.removeEventListener(type, handler, options);
+  // }
 
-  insertBefore<T extends Node>(node: T, child: Node | null): T {
-    return this.container.insertBefore(node, child);
-  }
+  // insertBefore(node: TNode, child: TNode | null): TNode {
+  //   return this.container.insertBefore(node, child);
+  // }
 }
 
-export type RenderTarget = HTMLElement | Anchor;
+export type RenderTarget<TNode> = TNode | Anchor<TNode>;
 
+// export interface RenderContainer<TNode = HTMLElement> {
+//   insertBefore(node: TNode, child: TNode | null): TNode;
+//   // addEventListener(type: string, callback: EventListenerOrEventListenerObject | null, options?: AddEventListenerOptions | boolean): void;
+//   // addEventListener: Node['addEventListener'];
+//   // removeEventListener: Node['removeEventListener'];
+// }
 // export interface RenderTarget {
 //   firstChild: Node['firstChild'];
 //   childNodes: ArrayLike<Node>;
@@ -58,10 +64,12 @@ export interface Attachable {
 
 export interface Renderable<T> {
   render(
-    target: RenderTarget,
-    domFactory: IDomFactory,
+    target: Anchor<HTMLElement>,
+    domFactory: IDomFactory<HTMLElement>,
     context: RenderContext<T>
-  ): JSX.Tree<Disposable | Unsubscribable>;
+  ):
+    | JSX.Tree<Disposable | Unsubscribable>
+    | Promise<JSX.Tree<Disposable | Unsubscribable>>;
 }
 
 export function isRenderable(value: any): value is Renderable<any> {

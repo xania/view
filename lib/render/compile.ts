@@ -8,7 +8,7 @@ import {
 } from './dom-operation';
 import { JsxEvent } from './listen';
 import { TemplateInput } from '../jsx/template-input';
-import { isRenderable, RenderTarget } from '../jsx';
+import { Anchor, isRenderable, RenderTarget } from '../jsx';
 import { isSubscribable } from '../jsx/observables';
 import { IDomFactory } from './dom-factory';
 
@@ -69,10 +69,13 @@ export class CompileResult<T> {
   constructor(public target: RenderTarget, public driver: IDomFactory) {}
 
   addAnchoredOperation(op: DomOperation<T>) {
-    const anchorIdx = this.driver.appendAnchor(
-      this.target,
-      '-- root anchor --'
-    );
+    const { target } = this;
+    if (target instanceof Anchor) {
+      throw Error('Not supported!');
+    }
+    const anchorIdx = target.childNodes.length;
+
+    this.driver.appendAnchor(this.target, '-- root anchor --');
     pushChildAt(this.renderOperations, anchorIdx);
     this.renderOperations.push(op, {
       type: DomOperationType.PopNode,

@@ -1,18 +1,18 @@
 ﻿import { TemplateInput } from '../jsx/template-input';
 import { compile } from './compile';
-import { BrowserDomFactory } from './browser-dom-factory';
 import { execute } from './execute';
 import { disposeContext, ExecuteContext } from './execute-context';
 import { listen } from './listen';
 import { IDomFactory } from './dom-factory';
-import { RenderTarget } from '../jsx';
+import { Anchor, RenderTarget } from '../jsx';
 import { LazyOperation } from './dom-operation';
 import { update } from './update';
+import { BrowserDomFactory } from './browser-dom-factory';
 
 export function render<T = any>(
   root: TemplateInput<T>,
-  container: RenderTarget,
-  domFactory: IDomFactory = new BrowserDomFactory()
+  container: RenderTarget<HTMLElement>,
+  domFactory: IDomFactory<HTMLElement> = new BrowserDomFactory()
 ): any {
   if (root === null || root === undefined) return root;
 
@@ -29,7 +29,7 @@ export function render<T = any>(
   // }
 
   if (root instanceof Promise) {
-    return root.then((e: any) => render(e, container));
+    return root.then((e: any) => render<T>(e, container, domFactory));
   } else {
     const execContext: ExecuteContext = {};
 
@@ -37,10 +37,18 @@ export function render<T = any>(
       const { renderOperations, events } = compileResult;
 
       execute(renderOperations, [execContext], domFactory);
-      hydrateLazy(compileResult.lazyOperations, container);
+      executeLazy(compileResult.lazyOperations, container);
 
-      for (const [evt, rootIdx] of events) listen(container, evt, rootIdx);
-      // for (const obs of observables) {
+      if (container instanceof Anchor) {
+        const node = container.container;
+        for (const [evt, rootIdx] of events) {
+          listen(node, evt, rootIdx);
+        }
+      } else {
+        for (const [evt, rootIdx] of events) {
+          listen(container, evt, rootIdx);
+        }
+      } // for (const obs of observables) {
       //   const subs = obs.subscribe({
       //     binding: null as Promise<Disposable | null> | null,
       //     target: container,
@@ -117,9 +125,9 @@ export function render<T = any>(
   // }
 }
 
-export function hydrateLazy(
+export function executeLazy(
   lazyOperations: LazyOperation<any>[],
-  target: RenderTarget
+  target: RenderTarget<HTMLElement>
 ) {
   for (const op of lazyOperations) {
     op.lazy.lazy({

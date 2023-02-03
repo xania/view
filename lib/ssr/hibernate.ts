@@ -1,18 +1,52 @@
-﻿import { JsxElement, RenderContainer } from '../jsx';
-import { TagTemplateNode, TemplateNodeType } from '../jsx/template-node';
-import { execute } from '../render';
+﻿import { Anchor, JsxElement, RenderTarget } from '../jsx';
+import {
+  TagTemplateNode,
+  TemplateNode,
+  TemplateNodeType,
+} from '../jsx/template-node';
+import { IDomFactory } from '../render/dom-factory';
+import { DomOperation } from '../render/dom-operation';
+import { execute } from '../render/execute';
 
 const primitives = ['number', 'bigint', 'boolean'];
 
-export function hibernateJsx(this: JsxElement, write: (s: string) => void) {
+export async function hibernateJsx(
+  this: JsxElement,
+  write: (s: string) => void
+) {
   const hydrationKey = new Date().getTime().toString();
   const { contentOps, templateNode } = this;
 
+  const domFactory: IDomFactory<SsrTagNode> = {
+    appendAnchor: function (target: RenderTarget<SsrTagNode>, text: string) {
+      // throw new Error('Function not implemented.');
+      debugger;
+    },
+    appendTag: function (
+      target: RenderTarget<SsrTagNode>,
+      tag: TagTemplateNode
+    ): SsrTagNode {
+      if (target instanceof Anchor<any>) {
+        const tagNode = SsrTagNode.fromTemplate(tag, target.container);
+        target.container.insertBefore(tagNode, target.child as SsrNode);
+        return tagNode;
+      } else {
+        const tagNode = SsrTagNode.fromTemplate(tag, target);
+        target.childNodes.push(tagNode);
+        return tagNode;
+      }
+    },
+  };
+
   try {
-    execute(contentOps, [{}], new TagNode(templateNode) as any);
+    const ssrNode = SsrTagNode.fromTemplate(templateNode);
+    await execute(contentOps, [{}], domFactory, ssrNode);
+    serializeNode(ssrNode, write);
   } catch (err) {
     console.log(err);
   }
+
+  //   serializeNode(templateNode, write);
 
   // if (contentOps.length) {
   //   serializeNode(templateNode, write, hydrationKey);
@@ -25,16 +59,97 @@ export function hibernateJsx(this: JsxElement, write: (s: string) => void) {
   // }
 }
 
-function createHtmlElement(tag: TagTemplateNode) {
-  return new TagNode(tag) as any;
-}
+type SsrNode = SsrTagNode | SsrTextNode | SsrAnchorNode;
 
-class TagNode {
-  constructor(public template: TagTemplateNode) {}
+class SsrAnchorNode {
+  constructor(
+    public parentElement: SsrTagNode | undefined | null,
+    public label: string
+  ) {}
+}
+class SsrTextNode {
+  constructor(
+    public parentElement: SsrTagNode | undefined | null,
+    public data: string
+  ) {}
+}
+class SsrTagNode {
+  public childNodes: SsrNode[] = [];
+
+  get firstChild(): SsrNode | undefined | null {
+    const { childNodes } = this;
+    if (childNodes.length) return childNodes[0];
+    return null;
+  }
+
+  get nextSibling(): SsrNode | undefined | null {
+    const { parentElement } = this;
+    if (!parentElement) return null;
+    const { childNodes } = parentElement;
+    const idx = childNodes.indexOf(this) + 1;
+    if (idx < childNodes.length) return childNodes[idx];
+    return null;
+  }
+
+  constructor(
+    public parentElement: SsrTagNode | undefined | null,
+    public name: string,
+    public classList: string[],
+    public attrs: Record<string, any>
+  ) {}
+  insertBefore(node: SsrTagNode, child: SsrNode | null) {
+    if (!child) return;
+    const idx = this.childNodes.indexOf(child);
+    if (idx >= 0) {
+      this.childNodes.splice(idx, 0, node);
+    }
+  }
+  // addEventListener(
+  //   type: string,
+  //   callback: EventListenerOrEventListenerObject | null,
+  //   options?: boolean | AddEventListenerOptions | undefined
+  // ) {}
+  // removeEventListener(
+  //   type: string,
+  //   callback: EventListenerOrEventListenerObject | null,
+  //   options?: boolean | EventListenerOptions | undefined
+  // ) {}
+
+  static fromTemplate(template: TagTemplateNode, parent?: SsrTagNode) {
+    const root = new SsrTagNode(
+      parent,
+      template.name,
+      template.classList,
+      template.attrs
+    );
+
+    const stack: [SsrTagNode, TemplateNode[]][] = [[root, template.childNodes]];
+    while (stack.length) {
+      const [tag, children] = stack.pop()!;
+
+      for (const child of children) {
+        if (child.type === TemplateNodeType.Text) {
+          tag.childNodes.push(new SsrTextNode(tag, child.data));
+        } else if (child.type === TemplateNodeType.Tag) {
+          const childTag = new SsrTagNode(
+            tag,
+            child.name,
+            child.classList,
+            child.attrs
+          );
+          tag.childNodes.push(childTag);
+          stack.push([childTag, child.childNodes]);
+        } else if (child.type === TemplateNodeType.Anchor) {
+          tag.childNodes.push(new SsrAnchorNode(tag, child.label));
+        }
+      }
+    }
+    return root;
+  }
 }
 
 export function serializeNode(
-  node: TagTemplateNode,
+  node: SsrTagNode,
   write: (s: string) => void,
   hydrationKey?: string
 ) {
@@ -53,16 +168,12 @@ export function serializeNode(
   if (node.childNodes.length || node.name === 'script') {
     write(' >');
     for (const child of node.childNodes) {
-      switch (child.type) {
-        case TemplateNodeType.Tag:
-          serializeNode(child, write);
-          break;
-        case TemplateNodeType.Text:
-          write(child.data);
-          break;
-        case TemplateNodeType.Anchor:
-          write(`<!--${child.label}-->`);
-          break;
+      if (child instanceof SsrTagNode) {
+        serializeNode(child, write);
+      } else if (child instanceof SsrTextNode) {
+        write(child.data);
+      } else if (child instanceof SsrAnchorNode) {
+        write(`<!--${child.label}-->`);
       }
     }
     write(`</${node.name}>`);
