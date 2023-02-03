@@ -3,11 +3,10 @@ import { ListSource } from './list-source';
 import { ListMutationType } from './mutation';
 import { disposeContext, ExecuteContext } from '../../render/execute-context';
 import { listen } from '../../render/listen';
-import { Anchor, Context, RenderTarget } from '../../jsx';
+import { Anchor, Context } from '../../jsx';
 import { update } from '../../render/update';
 import { compile } from '../../render/compile';
 import { flatten } from '../../jsx/_flatten';
-import { Call } from '../../ssr/hibernate';
 import { IDomFactory } from '../../render/dom-factory';
 import { executeLazy } from '../../render';
 
@@ -26,11 +25,6 @@ export function List<T extends ExecuteContext>(props: ListProps<T>) {
 
   return {
     children: template,
-    ssr() {
-      return new Call(List, [
-        { source: props.source, children: this.children },
-      ]);
-    },
     async render(target: Anchor, domFactory: IDomFactory) {
       const source = props.source;
 
