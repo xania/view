@@ -1,20 +1,23 @@
-﻿import { Anchor, JsxElement, RenderTarget } from '../jsx';
+﻿import { Anchor, DomContentOperation, JsxElement, RenderTarget } from '../jsx';
+import { ExpressionType } from '../jsx/expression';
 import {
   TagTemplateNode,
   TemplateNode,
   TemplateNodeType,
 } from '../jsx/template-node';
+import { DomOperationType } from '../render';
 import { IDomFactory } from '../render/dom-factory';
 import { execute } from '../render/execute';
+import { JsxEvent } from '../render/listen';
 
 const primitives = ['number', 'bigint', 'boolean'];
 
 type SsrEvent = { type: string; src: string; name: string; args: any[] };
 
-export async function hibernateJsx(
-  this: JsxElement,
-  write: (s: string) => void
-) {
+interface ResponseWriter {
+  write(str: string): void;
+}
+export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
   const hydrationKey = new Date().getTime().toString();
 
   const { contentOps, templateNode } = this;
@@ -46,13 +49,20 @@ export async function hibernateJsx(
     // const ssrEvents: SsrEvent[] = [];
 
     // listen(container, )
-    serializeNode(ssrNode, write);
 
-    write(
-      `<script type="application/javascript">console.log(${hibernateObject(
-        this.events
-      )})</script>`
+    ssrNode['data-hk'] = hydrationKey;
+
+    serializeNode(ssrNode, res);
+
+    res.write(
+      `<script>
+        const events = ${hibernateObject(this.events)};
+        const hydrationRoot = document.querySelector('[data-hk="${hydrationKey}"]');
+        console.log(hydrationRoot);
+        `
     );
+    serializeEvents(this.events, res);
+    res.write(`</script>`);
   } catch (err) {
     console.error(err);
   }
@@ -111,7 +121,7 @@ class SsrTagNode {
 
   constructor(
     public parentElement: SsrTagNode | undefined | null,
-    public name: string,
+    public __name: string,
     public classList: SsrClassList
   ) {}
 
@@ -192,17 +202,17 @@ const defaultTagKeys = Object.keys(
 
 export function serializeNode(
   node: SsrTagNode,
-  write: (s: string) => void,
+  res: ResponseWriter,
   hydrationKey?: string
 ) {
-  write(`<${node.name}`);
+  res.write(`<${node.__name}`);
   const classList = node.classList.values;
   if (classList.length) {
-    write(` class="${classList.join(' ')}"`);
+    res.write(` class="${classList.join(' ')}"`);
   }
 
   if (hydrationKey) {
-    write(` data-hk="${hydrationKey}"`);
+    res.write(` data-hk="${hydrationKey}"`);
   }
 
   for (const attrName in node) {
@@ -210,28 +220,28 @@ export function serializeNode(
       const attrValue = (node as any)[attrName];
       if (attrName === 'checked') {
         if (attrValue) {
-          write(` ${attrName}`);
+          res.write(` ${attrName}`);
         }
       } else {
-        write(` ${attrName}="${attrValue}"`);
+        res.write(` ${attrName}="${attrValue}"`);
       }
     }
   }
 
-  if (node.childNodes.length || node.name === 'script') {
-    write(' >');
+  if (node.childNodes.length || node.__name === 'script') {
+    res.write(' >');
     for (const child of node.childNodes) {
       if (child instanceof SsrTagNode) {
-        serializeNode(child, write);
+        serializeNode(child, res);
       } else if (child instanceof SsrTextNode) {
-        write(child.data);
+        res.write(child.data);
       } else if (child instanceof SsrAnchorNode) {
-        write(`<!--${child.label}-->`);
+        res.write(`<!--${child.label}-->`);
       }
     }
-    write(`</${node.name}>`);
+    res.write(`</${node.__name}>`);
   } else {
-    write(' />');
+    res.write(' />');
   }
 }
 
@@ -356,6 +366,47 @@ export class Literal {
   constructor(public value: string) {}
 }
 
+function serializeEvents(events: JsxEvent[], res: ResponseWriter) {
+  res.write('const elt = hydrationRoot');
+  for (const ev of events) {
+    for (const op of ev.nav) {
+      switch (op.type) {
+        case DomOperationType.PushChild:
+          res.write(`.firstChild`);
+          for (let i = 0; i < op.index; i++) {
+            res.write(`.nextSibling`);
+          }
+          break;
+        case DomOperationType.PushNextSibling:
+          res.write(`.nextSibling`);
+          for (let i = 1; i < op.offset; i++) {
+            res.write(`.nextSibling`);
+          }
+          break;
+        default:
+          // res.write(
+          //   `console.log("nav type not supported: ${
+          //     DomOperationType[op.type]
+          //   }");\n`
+          // );
+          break;
+      }
+    }
+    res.write(';\n');
+
+    const { __src, __name } = ev.handler as any;
+    const prefix = 'file:///C:/dev/xania-examples';
+
+    if (__src && __src.startsWith(prefix)) {
+      const source = __src.slice(prefix.length);
+      res.write(
+        `elt.addEventListener("${ev.name}", function(evt) { 
+          import("${source}").then(mod => mod.${__name}(evt))
+        });\n`
+      );
+    }
+  }
+}
 // export class Call {
 //   constructor(public func: Function, public args: any[]) {}
 // }
