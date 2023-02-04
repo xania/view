@@ -46,7 +46,9 @@ export class Anchor<TNode extends XHTMLElement = HTMLElement> {
   // }
 }
 
-export type RenderTarget<TNode extends XHTMLElement> = TNode | Anchor<TNode>;
+export type RenderTarget<TNode extends XHTMLElement = HTMLElement> =
+  | TNode
+  | Anchor<TNode>;
 
 // export interface RenderContainer<TNode = HTMLElement> {
 //   insertBefore(node: TNode, child: TNode | null): TNode;

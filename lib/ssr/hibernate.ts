@@ -5,18 +5,19 @@ import {
   TemplateNodeType,
 } from '../jsx/template-node';
 import { IDomFactory } from '../render/dom-factory';
-import { DomOperation } from '../render/dom-operation';
 import { execute } from '../render/execute';
 
 const primitives = ['number', 'bigint', 'boolean'];
+
+type SsrEvent = { type: string; src: string; name: string; args: any[] };
 
 export async function hibernateJsx(
   this: JsxElement,
   write: (s: string) => void
 ) {
   const hydrationKey = new Date().getTime().toString();
-  const { contentOps, templateNode } = this;
 
+  const { contentOps, templateNode } = this;
   const domFactory: IDomFactory<SsrTagNode> = {
     appendAnchor: function (target: RenderTarget<SsrTagNode>, text: string) {
       // throw new Error('Function not implemented.');
@@ -41,7 +42,17 @@ export async function hibernateJsx(
   try {
     const ssrNode = SsrTagNode.fromTemplate(templateNode);
     await execute(contentOps, [{}], domFactory, ssrNode);
+    // const container = new SsrTagNode(null, ':root', new SsrClassList([]));
+    // const ssrEvents: SsrEvent[] = [];
+
+    // listen(container, )
     serializeNode(ssrNode, write);
+
+    write(
+      `<script type="application/javascript">console.log(${hibernateObject(
+        this.events
+      )})</script>`
+    );
   } catch (err) {
     console.error(err);
   }
@@ -76,6 +87,7 @@ class SsrTextNode {
 
 class SsrTagNode {
   public childNodes: SsrNode[] = [];
+  public events: SsrEvent[] = [];
 
   get firstChild(): SsrNode | undefined | null {
     const { childNodes } = this;
@@ -114,7 +126,14 @@ class SsrTagNode {
     type: string,
     callback: EventListenerOrEventListenerObject | null,
     options?: boolean | AddEventListenerOptions | undefined
-  ) {}
+  ) {
+    if (callback) {
+      const { __src, __name, __args } = callback as any;
+      if (__src && __name) {
+        this.events.push({ type, src: __src, name: __name, args: __args });
+      }
+    }
+  }
   // removeEventListener(
   //   type: string,
   //   callback: EventListenerOrEventListenerObject | null,
@@ -147,6 +166,7 @@ class SsrTagNode {
             ),
             child.attrs
           );
+
           tag.childNodes.push(childTag);
           stack.push([childTag, child.childNodes]);
         } else if (child.type === TemplateNodeType.Anchor) {
@@ -256,25 +276,33 @@ export function hibernateObject(obj: any) {
       const ref = refMap.addRef(curr);
       retval += `__refs[${ref}]=`;
       stack.push(curr.ssr());
-    } else if (curr instanceof Call) {
-      const func = curr.func;
-      retval += `mod.${func.name}(`;
-      stack.push(new Literal(')'));
-      for (let len = curr.args.length, i = len - 1; i >= 0; i--) {
-        stack.push(new Literal(','));
-        stack.push(curr.args[i]);
-      }
+      // } else if (curr instanceof Call) {
+      //   const func = curr.func;
+      //   retval += `mod.${func.name}(`;
+      //   stack.push(new Literal(')'));
+      //   for (let len = curr.args.length, i = len - 1; i >= 0; i--) {
+      //     stack.push(new Literal(','));
+      //     stack.push(curr.args[i]);
+      //   }
     } else if (curr instanceof Function) {
-      retval += `()=>console.log('"${curr.name.replace(/"/g, '\\"')}"')`;
+      const { __src, __name, __args } = curr as {
+        __src: string;
+        __name: string;
+        __args: any;
+      };
+
+      const prefix = 'file:///C:/dev/xania-examples';
+
+      if (__src && __src.startsWith(prefix))
+        stack.push({ __src: __src.slice(prefix.length), __name, __args });
+      else {
+        retval += 'undefined';
+      }
     } else if (curr.constructor !== Object) {
       const ref = refMap.addRef(curr);
 
-      retval += `(Reflect.setPrototypeOf(__refs[${ref}]={`;
-      stack.push(
-        new Literal(
-          `}, mod.${curr.constructor.name}.prototype),__refs[${ref}])`
-        )
-      );
+      retval += `(__refs[${ref}]={__proto:"${curr.constructor.name}",`;
+      stack.push(new Literal(`},__refs[${ref}])`));
       for (const k in curr) {
         const prop = curr[k];
         if (!(prop instanceof Function)) {
@@ -287,7 +315,8 @@ export function hibernateObject(obj: any) {
       stack.push(new Literal('}'));
       for (const k in curr) {
         const prop = curr[k];
-        stack.push(new Literal(','), prop, new Literal(`"${k}":`));
+        if (prop !== undefined)
+          stack.push(new Literal(','), prop, new Literal(`"${k}":`));
       }
     }
   }
@@ -327,6 +356,6 @@ export class Literal {
   constructor(public value: string) {}
 }
 
-export class Call {
-  constructor(public func: Function, public args: any[]) {}
-}
+// export class Call {
+//   constructor(public func: Function, public args: any[]) {}
+// }

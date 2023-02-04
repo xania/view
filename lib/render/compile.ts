@@ -1,5 +1,5 @@
 ﻿import { ExpressionType } from '../jsx/expression';
-import { JsxElement, pushChildAt } from '../jsx/element';
+import { DomContentOperation, JsxElement, pushChildAt } from '../jsx/element';
 import {
   CloneOperation,
   DomOperation,
@@ -102,28 +102,7 @@ export class CompileResult<T> {
 
       this.renderOperations.push(cloneOp as CloneOperation);
 
-      for (let i = 0, len = contentOps.length; i < len; i++) {
-        const op = contentOps[i];
-        this.renderOperations.push(op);
-
-        if (op.type === DomOperationType.SetTextContent) {
-          const expr = op.expression;
-          if (expr.type === ExpressionType.Property && !expr.readonly) {
-            this.updateOperations.push(op);
-          }
-        }
-
-        if (op.type === DomOperationType.SetClassName) {
-          const expr = op.expression;
-          if (expr.type === ExpressionType.Function) {
-            this.updateOperations.push(op);
-          }
-        }
-
-        if (op.type === DomOperationType.Lazy) {
-          this.lazyOperations.push(op);
-        }
-      }
+      compileOperations(this, contentOps);
     } else if (isSubscribable(child)) {
       this.addAnchoredOperation({
         type: DomOperationType.Subscribable,
@@ -175,4 +154,38 @@ export async function flatTemplates<T, U>(
   }
 
   return arr;
+}
+
+export function compileOperations<T>(
+  result: {
+    renderOperations: DomOperation<T>[];
+    updateOperations: DomOperation<T>[];
+    lazyOperations: DomOperation<T>[];
+  },
+  contentOps: DomContentOperation<T>[]
+) {
+  for (let i = 0, len = contentOps.length; i < len; i++) {
+    const op = contentOps[i];
+    result.renderOperations.push(op);
+
+    if (op.type === DomOperationType.SetTextContent) {
+      const expr = op.expression;
+      if (expr.type === ExpressionType.Property && !expr.readonly) {
+        result.updateOperations.push(op);
+      }
+    }
+
+    if (op.type === DomOperationType.SetClassName) {
+      const expr = op.expression;
+      if (expr.type === ExpressionType.Function) {
+        result.updateOperations.push(op);
+      }
+    }
+
+    if (op.type === DomOperationType.Lazy) {
+      result.lazyOperations.push(op);
+    }
+  }
+
+  return result;
 }
