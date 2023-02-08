@@ -126,10 +126,6 @@ export class CompileResult<T> {
       console.error('Not supported', child);
     }
   };
-
-  ssr() {
-    return "console.log('compile result');";
-  }
 }
 
 type Tree<T> = T | Tree<T>[];

@@ -9,16 +9,25 @@ import { DomOperationType } from '../render';
 import { IDomFactory } from '../render/dom-factory';
 import { execute } from '../render/execute';
 import { JsxEvent } from '../render/listen';
-
-const primitives = ['number', 'bigint', 'boolean'];
+import {
+  RefMap,
+  hibernateObject,
+  ImportMap,
+} from '../../../resumable/lib/hibernate';
 
 type SsrEvent = { type: string; src: string; name: string; args: any[] };
+
+type ModuleClosure = {
+  __src: string;
+  __name: string;
+  __args?: any[];
+};
 
 interface ResponseWriter {
   write(str: string): void;
 }
 export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
-  const hydrationKey = new Date().getTime().toString();
+  const hydrationKey = 'hk-1'; // TODO content based key
 
   const { contentOps, templateNode } = this;
   const domFactory: IDomFactory<SsrTagNode> = {
@@ -55,10 +64,18 @@ export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
     serializeNode(ssrNode, res);
 
     res.write(
-      `<script>
-        const events = ${hibernateObject(this.events)};
+      `<script type="module">
+        import { hydrate as __hydrate } from "@xania/resumable/lib/hydrate.ts";
+
         const hydrationRoot = document.querySelector('[data-hk="${hydrationKey}"]');
-        console.log(hydrationRoot);
+        var cIter = document.createNodeIterator(
+          document.body,
+          NodeFilter.SHOW_COMMENT
+        );
+        while(cIter.nextNode()){
+          if(cIter.referenceNode.data === 'separator')
+          cIter.referenceNode.remove();
+        }
         `
     );
     serializeEvents(this.events, res);
@@ -80,22 +97,57 @@ export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
   // }
 }
 
+let __uid: number = 1;
+
 type SsrNode = SsrTagNode | SsrTextNode | SsrAnchorNode;
+
+function ssr(this: SsrNode) {
+  let node: SsrNode | undefined | null = this;
+  const path: number[] = [];
+  while (node) {
+    const parentElement: SsrTagNode | null | undefined = node.parentElement;
+    if (!parentElement) {
+      break;
+    }
+
+    const idx = parentElement.childNodes.indexOf(node);
+    path.push(idx);
+
+    node = parentElement;
+  }
+
+  return { __node: path.reverse() };
+}
 
 class SsrAnchorNode {
   constructor(
     public parentElement: SsrTagNode | undefined | null,
     public label: string
   ) {}
+
+  ssr = ssr;
 }
 class SsrTextNode {
+  public id = __uid++;
   constructor(
     public parentElement: SsrTagNode | undefined | null,
-    public data: string
+    public textContent: string
   ) {}
+
+  get nextSibling(): SsrNode | undefined | null {
+    const { parentElement } = this;
+    if (!parentElement) return null;
+    const { childNodes } = parentElement;
+    const idx = childNodes.indexOf(this) + 1;
+    if (idx < childNodes.length) return childNodes[idx];
+    return null;
+  }
+
+  ssr = ssr;
 }
 
 class SsrTagNode {
+  public id = __uid++;
   public childNodes: SsrNode[] = [];
   public events: SsrEvent[] = [];
 
@@ -186,6 +238,8 @@ class SsrTagNode {
     }
     return root;
   }
+
+  ssr = ssr;
 }
 
 class SsrClassList {
@@ -234,7 +288,9 @@ export function serializeNode(
       if (child instanceof SsrTagNode) {
         serializeNode(child, res);
       } else if (child instanceof SsrTextNode) {
-        res.write(child.data);
+        res.write(child.textContent);
+        if (child.nextSibling instanceof SsrTextNode)
+          res.write('<!--separator-->');
       } else if (child instanceof SsrAnchorNode) {
         res.write(`<!--${child.label}-->`);
       }
@@ -245,165 +301,72 @@ export function serializeNode(
   }
 }
 
-export function hibernateObject(obj: any) {
-  let retval = '(function(__refs = {}){return ';
-
-  const refMap = new RefMap();
-
-  const stack = [obj];
-  while (stack.length) {
-    const curr = stack.pop();
-
-    if (refMap.hasRef(curr)) {
-      retval += `__refs[${refMap.getRef(curr)}]`;
-      continue;
-    }
-
-    if (curr instanceof Literal) {
-      retval += curr.value;
-    } else if (curr === null) {
-      retval += 'null';
-    } else if (curr === undefined) {
-      retval += 'undefined';
-    } else if (curr instanceof Date) {
-      retval += `new Date(${curr.getTime()})`;
-    } else if (typeof curr === 'string') {
-      retval += `"${curr.replace(/"/g, '\\"')}"`;
-    } else if (primitives.includes(typeof curr)) {
-      retval += curr;
-    } else if (typeof curr === 'symbol') {
-      const ref = refMap.addRef(curr);
-      retval += `__refs[${ref}]=Symbol("${curr.description}")`;
-    } else if (curr instanceof Array) {
-      const ref = refMap.addRef(curr);
-      retval += `__refs[${ref}]=[`;
-      stack.push(new Literal(']'));
-      for (let i = curr.length - 1; i >= 0; i--) {
-        stack.push(new Literal(','));
-        stack.push(curr[i]);
-      }
-    } else if (isSerializable(curr)) {
-      const ref = refMap.addRef(curr);
-      retval += `__refs[${ref}]=`;
-      stack.push(curr.ssr());
-      // } else if (curr instanceof Call) {
-      //   const func = curr.func;
-      //   retval += `mod.${func.name}(`;
-      //   stack.push(new Literal(')'));
-      //   for (let len = curr.args.length, i = len - 1; i >= 0; i--) {
-      //     stack.push(new Literal(','));
-      //     stack.push(curr.args[i]);
-      //   }
-    } else if (curr instanceof Function) {
-      const { __src, __name, __args } = curr as {
-        __src: string;
-        __name: string;
-        __args: any;
-      };
-
-      const prefix = 'file:///C:/dev/xania-examples';
-
-      if (__src && __src.startsWith(prefix))
-        stack.push({ __src: __src.slice(prefix.length), __name, __args });
-      else {
-        retval += 'undefined';
-      }
-    } else if (curr.constructor !== Object) {
-      const ref = refMap.addRef(curr);
-
-      retval += `(__refs[${ref}]={__proto:"${curr.constructor.name}",`;
-      stack.push(new Literal(`},__refs[${ref}])`));
-      for (const k in curr) {
-        const prop = curr[k];
-        if (!(prop instanceof Function)) {
-          stack.push(new Literal(','), prop, new Literal(`"${k}":`));
-        }
-      }
-    } else {
-      const ref = refMap.addRef(curr);
-      retval += `__refs[${ref}]={`;
-      stack.push(new Literal('}'));
-      for (const k in curr) {
-        const prop = curr[k];
-        if (prop !== undefined)
-          stack.push(new Literal(','), prop, new Literal(`"${k}":`));
-      }
-    }
-  }
-
-  retval += '})({})';
-  return retval;
-}
-
-class RefMap {
-  ref: number = 0;
-  map = new Map<any, number>();
-
-  hasRef(o: any) {
-    return this.map.has(o);
-  }
-
-  getRef(o: any) {
-    return this.map.get(o);
-  }
-
-  addRef(o: any) {
-    const ref = ++this.ref;
-    this.map.set(o, ref);
-    return ref;
-  }
-}
-
-interface Serializable {
-  ssr(): string;
-}
-
-function isSerializable(obj: any): obj is Serializable {
-  return obj && obj.ssr instanceof Function;
-}
-
-export class Literal {
-  constructor(public value: string) {}
-}
-
 function serializeEvents(events: JsxEvent[], res: ResponseWriter) {
-  res.write('const elt = hydrationRoot');
-  for (const ev of events) {
-    for (const op of ev.nav) {
-      switch (op.type) {
-        case DomOperationType.PushChild:
-          res.write(`.firstChild`);
-          for (let i = 0; i < op.index; i++) {
-            res.write(`.nextSibling`);
-          }
-          break;
-        case DomOperationType.PushNextSibling:
-          res.write(`.nextSibling`);
-          for (let i = 1; i < op.offset; i++) {
-            res.write(`.nextSibling`);
-          }
-          break;
-        default:
-          // res.write(
-          //   `console.log("nav type not supported: ${
-          //     DomOperationType[op.type]
-          //   }");\n`
-          // );
-          break;
-      }
-    }
-    res.write(';\n');
+  const refMap = new RefMap();
+  const importMap = new ImportMap();
+  res.write(`const __refs = {};\n`);
+  res.write(`const __cache = {};\n`);
+  res.write(hibernateObject(events, refMap, importMap));
+  res.write(`;\n`);
 
-    const { __src, __name } = ev.handler as any;
+  for (const [loader, source] of importMap.entries) {
+    res.write(`function ${loader}(){ return import("${source}") }\n`);
+  }
+
+  for (const ev of events) {
+    const { __src, __name, __args } = ev.handler as unknown as ModuleClosure;
     const prefix = 'file:///C:/dev/xania-examples';
 
     if (__src && __src.startsWith(prefix)) {
       const source = __src.slice(prefix.length);
+
       res.write(
-        `elt.addEventListener("${ev.name}", function(evt) { 
-          import("${source}").then(mod => mod.${__name}(evt))
-        });\n`
+        `hydrationRoot.addEventListener("${ev.name}", function(evt) { `
       );
+
+      res.write(`const elt = hydrationRoot`);
+
+      for (const op of ev.nav) {
+        switch (op.type) {
+          case DomOperationType.PushChild:
+            res.write(`.firstChild`);
+            for (let i = 0; i < op.index; i++) {
+              res.write(`.nextSibling`);
+            }
+            break;
+          case DomOperationType.PushNextSibling:
+            res.write(`.nextSibling`);
+            for (let i = 1; i < op.offset; i++) {
+              res.write(`.nextSibling`);
+            }
+            break;
+          default:
+            // res.write(
+            //   `console.log("nav type not supported: ${
+            //     DomOperationType[op.type]
+            //   }");\n`
+            // );
+            break;
+        }
+      }
+      res.write(';\n');
+
+      if (__args instanceof Array) {
+        const ref = refMap.getRef(__args);
+        res.write(`
+
+        (__cache[${ref}] ?? (__cache[${ref}] = __hydrate(__refs[${ref}], hydrationRoot))).then(args => {
+          import("${source}").then(mod => {
+            const handler = mod.${__name}.apply(null, args);
+            handler(evt)
+          });  
+        });
+        
+        `);
+      } else {
+        res.write(`import("${source}").then(mod => mod.${__name}(evt));`);
+      }
+      res.write(` });`);
     }
   }
 }
