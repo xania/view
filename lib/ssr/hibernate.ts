@@ -1,6 +1,4 @@
-﻿// resumable:skip
-
-import { Anchor, JsxElement, RenderTarget } from '../jsx';
+﻿import { Anchor, JsxElement, RenderTarget } from '../jsx';
 import {
   TagTemplateNode,
   TemplateNode,
