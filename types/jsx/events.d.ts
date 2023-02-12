@@ -1,9 +1,10 @@
 ﻿declare module JSX {
-  type EventContext<T, E> = import('../../lib/jsx/element').EventContext<T, E>;
+  type EventContext<TData, TEvent, TElement> =
+    import('../../lib/jsx/element').EventContext<TData, TEvent, TElement>;
 
-  type TagEvents<T = any> = {
+  type TagEvents<TElement, TData> = {
     [E in keyof HTMLElementEventMap]?: (
-      e: EventContext<T, HTMLElementEventMap[E]>
+      e: EventContext<TData, HTMLElementEventMap[E], TElement>
     ) => void;
   };
 }

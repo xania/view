@@ -6,7 +6,7 @@ import { contextKey } from './symbols';
 export interface JsxEvent {
   name: keyof HTMLElementEventMap;
   nav: DomNavigationOperation[];
-  handler: (e: EventContext<any, any>) => any;
+  handler: (e: EventContext<any>) => any;
 }
 
 export function listen(

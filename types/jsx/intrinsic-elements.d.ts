@@ -13,9 +13,9 @@
 
   type AttrValue<T> = T | Promise<T> | Observable<T> | Lazy<T> | Expression<T>;
 
-  type Tag<T, U = string | number | boolean> = {
-    [P in OfType<Mutable<T>, U>]?: AttrValue<T[P]>;
-  } & TagEvents;
+  type Tag<TElement, U = string | number | boolean> = {
+    [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;
+  } & TagEvents<TElement, any>;
 
   type Mutable<T> = {
     [P in MutableProps<T>]: T[P];

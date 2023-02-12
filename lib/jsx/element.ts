@@ -298,8 +298,9 @@ export type DomContentOperation<T> = DomOperation<T>;
 // | SubscribableOperation<T>
 // | AppendChildOperation;
 
-export interface EventContext<T, TEvent = any> extends ViewContext<T> {
-  event: TEvent & { target: EventTarget & HTMLElement };
+export interface EventContext<TData, TEvent = Event, TElement = HTMLElement>
+  extends ViewContext<TData> {
+  event: TEvent & { target: EventTarget & TElement };
 }
 
 export interface ViewContext<T> {

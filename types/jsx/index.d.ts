@@ -5,11 +5,11 @@
 /// <reference path="./events.d.ts" />
 
 declare module JSX {
-  type EventMap<T> = {
-    [P in keyof HTMLElementEventMap]?: (
-      e: EventContext<T, HTMLElementEventMap[P]>
-    ) => void;
-  };
+  // type EventMap<T> = {
+  //   [P in keyof HTMLElementEventMap]?: (
+  //     e: EventContext<T, HTMLElementEventMap[P]>
+  //   ) => void;
+  // };
 
   type Updater<T> = (t: T) => void | T;
 }
