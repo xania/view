@@ -299,12 +299,13 @@ export type DomContentOperation<T> = DomOperation<T>;
 // | AppendChildOperation;
 
 export interface EventContext<TData, TEvent = Event, TElement = HTMLElement>
-  extends ViewContext<TData, TElement> {
+  extends ViewContext<TData> {
   event: TEvent & { target: EventTarget & TElement };
 }
 
-export interface ViewContext<T, TElement = HTMLElement> {
-  readonly node: TElement;
+export interface ViewContext<T> {
+  // Context node
+  readonly node: Node;
   readonly data: T;
 }
 
