@@ -1,5 +1,6 @@
-﻿import { Anchor, DomContentOperation, JsxElement, RenderTarget } from '../jsx';
-import { ExpressionType } from '../jsx/expression';
+﻿// resumable:skip
+
+import { Anchor, JsxElement, RenderTarget } from '../jsx';
 import {
   TagTemplateNode,
   TemplateNode,
@@ -9,11 +10,6 @@ import { DomOperationType } from '../render';
 import { IDomFactory } from '../render/dom-factory';
 import { execute } from '../render/execute';
 import { JsxEvent } from '../render/listen';
-import {
-  RefMap,
-  hibernateObject,
-  ImportMap,
-} from '../../../resumable/lib/hibernate';
 
 type SsrEvent = { type: string; src: string; name: string; args: any[] };
 
@@ -23,10 +19,16 @@ type ModuleClosure = {
   __args?: any[];
 };
 
-interface ResponseWriter {
-  write(str: string): void;
+interface HibernationWriter {
+  write(value: any): void;
+  hydrate(obj: any): void;
+  hibernate(obj: any): void;
+  resumableUrl(source: string): string;
 }
-export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
+export async function hibernateJsx(
+  this: JsxElement,
+  writer: HibernationWriter
+) {
   const hydrationKey = 'hk-1'; // TODO content based key
 
   const { contentOps, templateNode } = this;
@@ -61,9 +63,9 @@ export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
 
     ssrNode['data-hk'] = hydrationKey;
 
-    serializeNode(ssrNode, res);
+    serializeNode(ssrNode, writer);
 
-    res.write(
+    writer.write(
       `<script type="module">
         import { hydrate as __hydrate } from "@xania/resumable/lib/hydrate.ts";
 
@@ -73,13 +75,13 @@ export async function hibernateJsx(this: JsxElement, res: ResponseWriter) {
           NodeFilter.SHOW_COMMENT
         );
         while(cIter.nextNode()){
-          if(cIter.referenceNode.data === 'separator')
+          if(cIter.referenceNode.data === '')
           cIter.referenceNode.remove();
         }
         `
     );
-    serializeEvents(this.events, res);
-    res.write(`</script>`);
+    serializeEvents(this.events, writer);
+    writer.write(`</script>`);
   } catch (err) {
     console.error(err);
   }
@@ -128,8 +130,8 @@ class SsrAnchorNode {
   ssr = ssr;
 }
 class SsrTextNode {
-  public id = __uid++;
   constructor(
+    public id: number,
     public parentElement: SsrTagNode | undefined | null,
     public textContent: string
   ) {}
@@ -147,7 +149,6 @@ class SsrTextNode {
 }
 
 class SsrTagNode {
-  public id = __uid++;
   public childNodes: SsrNode[] = [];
   public events: SsrEvent[] = [];
 
@@ -167,11 +168,12 @@ class SsrTagNode {
   }
 
   set textContent(value: string) {
-    this.childNodes[0] = new SsrTextNode(this, value);
+    this.childNodes[0] = new SsrTextNode(__uid++, this, value);
     this.childNodes.length = 1;
   }
 
   constructor(
+    public id: number,
     public parentElement: SsrTagNode | undefined | null,
     public __name: string,
     public classList: SsrClassList
@@ -205,6 +207,7 @@ class SsrTagNode {
   static fromTemplate(template: TagTemplateNode, parent?: SsrTagNode) {
     const root = Object.assign(
       new SsrTagNode(
+        __uid++,
         parent,
         template.name,
         new SsrClassList(template.classList.slice(0))
@@ -218,10 +221,11 @@ class SsrTagNode {
 
       for (const child of children) {
         if (child.type === TemplateNodeType.Text) {
-          tag.childNodes.push(new SsrTextNode(tag, child.data));
+          tag.childNodes.push(new SsrTextNode(__uid++, tag, child.data));
         } else if (child.type === TemplateNodeType.Tag) {
           const childTag = Object.assign(
             new SsrTagNode(
+              __uid++,
               tag,
               child.name,
               new SsrClassList(child.classList.slice(0))
@@ -251,22 +255,22 @@ class SsrClassList {
 }
 
 const defaultTagKeys = Object.keys(
-  new SsrTagNode(null, '', new SsrClassList([]))
+  new SsrTagNode(0, null, '', new SsrClassList([]))
 );
 
 export function serializeNode(
   node: SsrTagNode,
-  res: ResponseWriter,
+  writer: HibernationWriter,
   hydrationKey?: string
 ) {
-  res.write(`<${node.__name}`);
+  writer.write(`<${node.__name}`);
   const classList = node.classList.values;
   if (classList.length) {
-    res.write(` class="${classList.join(' ')}"`);
+    writer.write(` class="${classList.join(' ')}"`);
   }
 
   if (hydrationKey) {
-    res.write(` data-hk="${hydrationKey}"`);
+    writer.write(` data-hk="${hydrationKey}"`);
   }
 
   for (const attrName in node) {
@@ -274,54 +278,43 @@ export function serializeNode(
       const attrValue = (node as any)[attrName];
       if (attrName === 'checked') {
         if (attrValue) {
-          res.write(` ${attrName}`);
+          writer.write(` ${attrName}`);
         }
       } else {
-        res.write(` ${attrName}="${attrValue}"`);
+        writer.write(` ${attrName}="${attrValue}"`);
       }
     }
   }
 
   if (node.childNodes.length || node.__name === 'script') {
-    res.write(' >');
+    writer.write(' >');
     for (const child of node.childNodes) {
       if (child instanceof SsrTagNode) {
-        serializeNode(child, res);
+        serializeNode(child, writer);
       } else if (child instanceof SsrTextNode) {
-        res.write(child.textContent);
-        if (child.nextSibling instanceof SsrTextNode)
-          res.write('<!--separator-->');
+        writer.write(child.textContent);
+        if (child.nextSibling instanceof SsrTextNode) writer.write('<!---->');
       } else if (child instanceof SsrAnchorNode) {
-        res.write(`<!--${child.label}-->`);
+        writer.write(`<!--${child.label}-->`);
       }
     }
-    res.write(`</${node.__name}>`);
+    writer.write(`</${node.__name}>`);
   } else {
-    res.write(' />');
+    writer.write(' />');
   }
 }
 
-function serializeEvents(events: JsxEvent[], res: ResponseWriter) {
-  const refMap = new RefMap();
-  const importMap = new ImportMap();
+function serializeEvents(events: JsxEvent[], res: HibernationWriter) {
   res.write(`const __refs = {};\n`);
   res.write(`const __cache = {};\n`);
-  res.write(hibernateObject(events, refMap, importMap));
-  res.write(`;\n`);
-
-  for (const [loader, source] of importMap.entries) {
-    res.write(`function ${loader}(){ return import("${source}") }\n`);
-  }
+  res.hibernate(events);
 
   for (const ev of events) {
     const { __src, __name, __args } = ev.handler as unknown as ModuleClosure;
-    const prefix = 'file:///C:/dev/xania-examples';
 
-    if (__src && __src.startsWith(prefix)) {
-      const source = __src.slice(prefix.length);
-
+    if (__src) {
       res.write(
-        `hydrationRoot.addEventListener("${ev.name}", function(evt) { `
+        `\nhydrationRoot.addEventListener("${ev.name}", function(evt) { `
       );
 
       res.write(`const elt = hydrationRoot`);
@@ -352,11 +345,9 @@ function serializeEvents(events: JsxEvent[], res: ResponseWriter) {
       res.write(';\n');
 
       if (__args instanceof Array) {
-        const ref = refMap.getRef(__args);
-        res.write(`
-
-        (__cache[${ref}] ?? (__cache[${ref}] = __hydrate(__refs[${ref}], hydrationRoot))).then(args => {
-          import("${source}").then(mod => {
+        res.hydrate(__args);
+        res.write(`.then(args => {
+          import("${res.resumableUrl(__src)}").then(mod => {
             const handler = mod.${__name}.apply(null, args);
             handler(evt)
           });  
@@ -364,7 +355,7 @@ function serializeEvents(events: JsxEvent[], res: ResponseWriter) {
         
         `);
       } else {
-        res.write(`import("${source}").then(mod => mod.${__name}(evt));`);
+        res.write(`import("${__src}").then(mod => mod.${__name}(evt));`);
       }
       res.write(` });`);
     }
