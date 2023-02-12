@@ -24,14 +24,14 @@ export function listen(
 
     const { nav: navOps } = jsxEvent;
 
-    let node = root;
+    let currentTarget = root;
     for (let i = 0, navLen = navOps.length; i < navLen; i++) {
       const nav = navOps[i];
       switch (nav.type) {
         case DomOperationType.PushChild:
-          node = (node as Node).firstChild as Node;
+          currentTarget = (currentTarget as Node).firstChild as Node;
           let offset = nav.index;
-          while (offset--) node = node.nextSibling as Node;
+          while (offset--) currentTarget = currentTarget.nextSibling as Node;
           break;
         default:
           console.error('not supported', DomOperationType[nav.type]);
@@ -39,13 +39,31 @@ export function listen(
       }
     }
 
-    if (node === target || node.contains(target)) {
-      const e: EventContext<any, any> = {
+    if (currentTarget === target || currentTarget.contains(target)) {
+      // const proxy = new Proxy(domEvent, {
+      //   currentTarget,
+      //   get(target: Event, prop: keyof Event) {
+      //     if (prop === 'currentTarget') {
+      //       return this.currentTarget;
+      //     }
+      //     return target[prop];
+      //   },
+      // } as any);
+
+      const e: any = {
         data: context,
-        event: domEvent,
+        event: domEvent as any,
+        target: domEvent.target as any,
+        currentTarget: currentTarget as any,
+        type: jsxEvent.name,
         node: root,
       };
-      jsxEvent.handler(e);
+      if ('key' in domEvent) {
+        e.key = domEvent.key;
+      }
+      if (currentTarget) {
+        jsxEvent.handler(e);
+      }
     }
   }
 

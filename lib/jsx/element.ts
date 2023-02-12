@@ -298,10 +298,33 @@ export type DomContentOperation<T> = DomOperation<T>;
 // | SubscribableOperation<T>
 // | AppendChildOperation;
 
-export interface EventContext<TData, TEvent = Event, TElement = HTMLElement>
-  extends ViewContext<TData> {
-  event: TEvent & { target: EventTarget & TElement };
-}
+type EventContextProps<TElement, TEvent> = {
+  currentTarget: TElement;
+  target: EventTarget & HTMLElement;
+  type: Event['type'];
+  event: TEvent & {
+    target: EventTarget & HTMLElement;
+  };
+};
+
+type Filter<T> = Pick<
+  T,
+  {
+    [P in keyof T]: T[P] extends never ? never : P;
+  }[keyof T]
+>;
+
+type DependentType<T> = Filter<{
+  key: 'key' extends keyof T ? T['key'] : never;
+}>;
+
+export type EventContext<
+  TData,
+  TEvent = Event,
+  TElement = HTMLElement
+> = ViewContext<TData> &
+  EventContextProps<TElement, TEvent> &
+  DependentType<TEvent>;
 
 export interface ViewContext<T> {
   // Context node
