@@ -20,6 +20,7 @@ import {
   TagTemplateNode,
 } from './template-node';
 import { hibernateJsx } from '../ssr/hibernate';
+import { EventKeys } from './event-keys';
 
 export class JsxElement {
   public templateNode: TagTemplateNode;
@@ -43,7 +44,7 @@ export class JsxElement {
 
     const { templateNode: node } = this;
 
-    if (attrValue instanceof Function) {
+    if (EventKeys.includes(attrName)) {
       this.events.push({
         name: attrName as keyof HTMLElementEventMap,
         handler: attrValue,

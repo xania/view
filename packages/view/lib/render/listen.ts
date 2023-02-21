@@ -1,4 +1,5 @@
 ﻿import { Anchor, EventContext, RenderTarget } from '../jsx';
+import { NextObserver } from '../jsx/observables';
 import { DomNavigationOperation, DomOperationType } from './dom-operation';
 import { ExecuteContext } from './execute-context';
 import { contextKey } from './symbols';
@@ -6,7 +7,7 @@ import { contextKey } from './symbols';
 export interface JsxEvent {
   name: keyof HTMLElementEventMap;
   nav: DomNavigationOperation[];
-  handler: (e: EventContext<any>) => any;
+  handler: ((e: EventContext<any>) => any) | NextObserver<EventContext<any>>;
 }
 
 export function listen(
@@ -61,9 +62,9 @@ export function listen(
       if ('key' in domEvent) {
         e.key = domEvent.key;
       }
-      if (currentTarget) {
-        jsxEvent.handler(e);
-      }
+
+      if (jsxEvent.handler instanceof Function) jsxEvent.handler(e);
+      else jsxEvent.handler.next(e);
     }
   }
 
