@@ -1,47 +1,15 @@
 {
-  "name": "@xania/view",
-  "version": "0.4.11",
-  "license": "MIT",
-  "main": "./dist/main.cjs",
-  "module": "./dist/main.js",
-  "typings": "./dist/index.d.ts",
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/main.js",
-      "require": "./dist/main.cjs"
-    }
-  },
-  "private": false,
-  "files": [
-    "types",
-    "dist"
-  ],
-  "engines": {
-    "node": ">=10"
-  },
+  "name": "@xania/workspaces",
   "scripts": {
-    "dev": "npx vite --watch build",
-    "build": "npx vite build",
-    "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build",
-    "lint": "tsc"
+    "start": "npm start --workspace packages/kitchen-sink"
   },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5",
-    "tabWidth": 2
-  },
-  "author": "Ibrahim ben Salah",
-  "peerDependencies": {
-    "sass": "^1.57.1",
-    "tslib": "^2.4.1",
-    "typescript": "^4.9.4"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/xania/view.git"
+  "workspaces": [
+    "packages/view",
+    "packages/vite-plugin-resumable",
+    "packages/kitchen-sink"
+  ],
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "vite": "^4.1.3"
   }
 }
