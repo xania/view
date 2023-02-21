@@ -4,6 +4,7 @@ import kleur from 'kleur';
 import { createLoader, FileRouteResolver, parseResumableUrl } from './plugin';
 import { HibernationWriter } from './hibernate/writer';
 import path from 'node:path';
+import fs from 'fs';
 
 export interface Options {
   fileExists?(file: string): Promise<boolean>;
@@ -12,6 +13,15 @@ export interface Options {
 
 export function createPageResolver(baseDir: string) {
   new FileRouteResolver(baseDir).resolvePage;
+}
+
+function fileExists(file: string) {
+  return new Promise((resolve, reject) => {
+    fs.stat(file, (err, stats) => {
+      if (stats) resolve(stats.isFile());
+      else resolve(false);
+    });
+  });
 }
 
 export function resumable(xn: Options = {}) {
@@ -60,7 +70,7 @@ export function resumable(xn: Options = {}) {
         } else if (req.headers.accept?.includes('text/html')) {
           res.setHeader('Content-Type', 'text/html');
           const pageUrl = resolvePage(reqUrl);
-          if (pageUrl && xn.fileExists && (await xn.fileExists(pageUrl))) {
+          if (pageUrl && (await fileExists(pageUrl))) {
             try {
               const loader = createLoader(vite);
               const page = await loader.loadResumableModule(pageUrl);

@@ -8341,8 +8341,19 @@ function ${loader}(){ return import("${source}") }`
 
 // lib/index.ts
 var import_node_path3 = __toESM(require("path"));
+var import_fs = __toESM(require("fs"));
 function createPageResolver(baseDir) {
   new FileRouteResolver(baseDir).resolvePage;
+}
+function fileExists(file) {
+  return new Promise((resolve3, reject) => {
+    import_fs.default.stat(file, (err, stats) => {
+      if (stats)
+        resolve3(stats.isFile());
+      else
+        resolve3(false);
+    });
+  });
 }
 function resumable(xn = {}) {
   return {
@@ -8389,7 +8400,7 @@ function resumable(xn = {}) {
         } else if (req.headers.accept?.includes("text/html")) {
           res.setHeader("Content-Type", "text/html");
           const pageUrl = resolvePage(reqUrl);
-          if (pageUrl && xn.fileExists && await xn.fileExists(pageUrl)) {
+          if (pageUrl && await fileExists(pageUrl)) {
             try {
               const loader2 = createLoader(vite);
               const page = await loader2.loadResumableModule(pageUrl);
