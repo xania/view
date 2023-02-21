@@ -1,0 +1,17 @@
+{
+  "files": ["lib/index.ts"],
+  "compilerOptions": {
+    "outDir": "esm",
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "strict": true,
+    "declaration": true,
+    "sourceMap": true,
+    "noEmit": false,
+    "noUnusedLocals": false,
+    "esModuleInterop": true,
+    "noUnusedParameters": true,
+    "allowUnusedLabels": true
+  }
+}

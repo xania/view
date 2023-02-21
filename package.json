@@ -1,6 +1,15 @@
-﻿{
+{
   "name": "@xania/workspaces",
+  "scripts": {
+    "start": "npm start --workspace packages/kitchen-sink"
+  },
   "workspaces": [
-    "packages/view"
-  ]
+    "packages/view",
+    "packages/vite-plugin-resumable",
+    "packages/kitchen-sink"
+  ],
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "vite": "^4.1.3"
+  }
 }

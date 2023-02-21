@@ -1,0 +1,57 @@
+{
+  "name": "vite-plugin-resumable",
+  "version": "0.1.7",
+  "license": "MIT",
+  "typings": "./lib/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./lib/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "private": false,
+  "files": [
+    "dist",
+    "lib"
+  ],
+  "scripts": {
+    "build": "npm run build:plugin && npm run build:hydrate",
+    "build:plugin": "tsup lib/index.ts --sourcemap",
+    "build:hydrate": "tsc lib/hydrate/index.ts --sourceMap --target esnext --outDir dist/hydrate",
+    "prepublishOnly": "npm run clean && npm version patch && npm run build",
+    "clean": "npx rimraf dist"
+  },
+  "engines": {
+    "node": "^14.18.0 || >=16.0.0"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "tabWidth": 2
+  },
+  "author": "Ibrahim ben Salah",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xania/ssr.git"
+  },
+  "devDependencies": {
+    "@ampproject/remapping": "^2.2.0",
+    "@types/estree": "^1.0.0",
+    "@types/node": "^18.11.18",
+    "tsup": "^6.6.3",
+    "kleur": "^4.1.5",
+    "magic-string": "^0.29.0",
+    "acorn": "^8.8.2",
+    "estree-walker": "^3.0.3"
+  },
+  "peepDependencies": {
+    "tslib": "^2.4.1",
+    "typescript": "^4.9.4",
+    "vite": "4.1.3"
+  }
+}
