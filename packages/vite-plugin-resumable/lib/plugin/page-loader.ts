@@ -414,7 +414,7 @@ export function parseResumableUrl(url: string): {
     return {
       moduleUrl: createModuleUrl(clientMatch),
       target: 'client',
-      entries: clientMatch[3] ? clientMatch[3].split(',') : null,
+      entries: clientMatch[2] ? clientMatch[2].split(',') : null,
     };
   }
 

@@ -27,7 +27,7 @@ export async function view() {
     (e) => e.json()
   );
 
-  const abilities = 13;
+  const abilities = ditto.abilities;
 
   const state = new State(123);
 
@@ -41,21 +41,15 @@ export async function view() {
     },
   });
 
-  const a = 1;
   return html(button("btn01", "Click Me!"), () => {
-    // console.log("hello client!!", state);
-
-    console.log(abilities);
-
+    const btn01 = document.getElementById("btn01")!;
     state.subscribe({
       next(value) {
         console.log("client defined observer", value);
+        btn01.innerText = "Counter: " + value;
       },
     });
-
-    console.log(state);
-
-    document.getElementById("btn01")!.addEventListener("click", onClick);
+    btn01!.addEventListener("click", onClick);
   });
 }
 
