@@ -1,5 +1,5 @@
 ﻿import { defineConfig } from "vite";
-import { resumable } from "vite-plugin-resumable";
+import { resumable } from "../vite-plugin-resumable/lib/index";
 
 export default defineConfig({
   server: {

@@ -15,11 +15,17 @@
 }
 
 export class ImportMap {
-  private _map = new Map<string, string>();
-  add(source: string) {
-    const id = contentHash('ld_', source, { start: 0, end: source.length });
-    this._map.set(id, source);
-    return id;
+  private _map = new Map<string, { id: string; names: string[] }>();
+  add(name: string, source: string) {
+    if (!this._map.has(source)) {
+      const id = contentHash('', source, { start: 0, end: source.length });
+      this._map.set(source, { id, names: [name] });
+      return id;
+    } else {
+      const desc = this._map.get(source)!;
+      if (!desc.names.includes(name)) desc.names.push(name);
+      return desc.id;
+    }
   }
 
   get entries() {
@@ -55,3 +61,4 @@ export class Literal {
 }
 
 export const primitives = ['number', 'bigint', 'boolean'];
+export const valueTypes = [...primitives, 'string', 'undefined'];

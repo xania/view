@@ -1,7 +1,12 @@
 ﻿import type { Plugin } from 'vite';
 
 import kleur from 'kleur';
-import { createLoader, FileRouteResolver, parseResumableUrl } from './plugin';
+import {
+  createLoader,
+  FileRouteResolver,
+  fileToUrl,
+  parseResumableUrl,
+} from './plugin';
 import { HibernationWriter } from './hibernate/writer';
 import path from 'node:path';
 import fs from 'fs';
@@ -27,6 +32,7 @@ function fileExists(file: string) {
 export function resumable(xn: Options = {}) {
   return {
     name: 'vite-plugin-resumable',
+    configResolved(config) {},
     config() {
       return {
         resolve: {
@@ -37,6 +43,7 @@ export function resumable(xn: Options = {}) {
       };
     },
     configureServer(vite) {
+      vite.watcher.add(__dirname);
       function createDefaultPageResolver() {
         console.log(
           'Resumable scripts will be resolved from: ' +
@@ -49,7 +56,21 @@ export function resumable(xn: Options = {}) {
         };
       }
       const resolvePage = createDefaultPageResolver();
-      vite.middlewares.use('/@resumable/*', (req, res, next) => {});
+      // vite.middlewares.use('/@resumable/', async (req, res, next) => {
+      //   const reqUrl = req.url || '';
+      //   const resolved = await vite.pluginContainer.resolveId(
+      //     '.' + reqUrl,
+      //     __filename
+      //   );
+      //   if (resolved) {
+      //     const resUrl = fileToUrl(resolved.id, __dirname);
+      //     if (resUrl !== reqUrl) {
+      //       const redirect = '/@resumable' + resUrl;
+
+      //       debugger;
+      //     }
+      //   }
+      // });
       vite.middlewares.use(async (req, res, next) => {
         const reqUrl = req.url || '';
         const loader = createLoader(vite);
@@ -106,16 +127,10 @@ export function resumable(xn: Options = {}) {
         return next();
       });
     },
-    async resolveId(source) {
+    resolveId(source) {
       const prefix = '/@resumable/';
       if (source && source.startsWith(prefix)) {
-        const resolved = path.resolve(
-          __dirname,
-          './' + source.substring(prefix.length)
-        );
-        return {
-          id: resolved,
-        };
+        return this.resolve('./' + source.substring(prefix.length), __filename);
       }
       return;
     },

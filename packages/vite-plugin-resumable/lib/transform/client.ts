@@ -38,7 +38,7 @@ export function transformClient(
   const stack: Scope[] = [];
   for (const closure of rootClosures) {
     exportClosure(magicString, closure, hasClosure);
-    updateClosureReferences(magicString, closure, hasClosure);
+    // updateClosureReferences(magicString, closure, hasClosure);
     stack.push(closure.scope);
   }
 
@@ -62,7 +62,7 @@ export function transformClient(
 
   return {
     code: magicString.toString(),
-    map: magicString.generateMap(),
+    map: magicString.generateMap({ hires: true }),
   };
 }
 
@@ -147,19 +147,21 @@ function updateClosureReferences(
         case 'PropertyDefinition':
           magicString.appendLeft(
             closure.scope.owner.start,
-            `${closure.exportName}(${subArgs});`
+            `${closure.exportName}(${subArgs})`
           );
           break;
+        case 'AssignmentExpression':
+        case 'CallExpression':
         case 'ReturnStatement':
           magicString.appendLeft(
             closure.scope.owner.start,
-            `${closure.exportName}(${subArgs});`
+            `${closure.exportName}(${subArgs})`
           );
           break;
         case 'Property':
           magicString.appendLeft(
             closure.scope.owner.start,
-            `: ${closure.exportName}(${subArgs});`
+            `: ${closure.exportName}(${subArgs})`
           );
           if (subParent.start < subParent.key.start) {
             magicString.remove(subParent.start, subParent.key.start);

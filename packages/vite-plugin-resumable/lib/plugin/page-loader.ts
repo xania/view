@@ -14,8 +14,8 @@ const CSS_LANGS_RE =
 
 type Target = 'server' | 'client';
 
-export const RESUMABLE_URL_RE = /\/@(client(\[([^\)]+)\])?|server)\//;
-// export const RESUMABLE_URL_RE = /\/@resumable\[([^\]]*)\]\//;
+export const RESUMABLE_CLIENT_RE = /\/@client(\[([^\)]+)\])?\//;
+export const RESUMABLE_SERVER_RE = /\/@server\//;
 
 const ssrModuleExportsKey = `__vite_ssr_exports__`;
 const ssrImportKey = `__vite_ssr_import__`;
@@ -240,13 +240,13 @@ export function createLoader(server: ViteDevServer) {
     const sourcemapChain: SourceMap[] = [];
     if (baseResult.map) {
       // if (target === 'client') {
-      const targettedMap = {
-        ...baseResult.map,
-        sources: baseResult.map.sources.map((x) =>
-          fileToUrl(x, server.config.root)
-        ),
-      };
-      sourcemapChain.push(targettedMap);
+      // const targettedMap = {
+      //   ...baseResult.map,
+      //   sources: baseResult.map.sources.map((x) =>
+      //     fileToUrl(x, server.config.root)
+      //   ),
+      // };
+      sourcemapChain.push(baseResult.map);
       // }
     }
 
@@ -266,10 +266,13 @@ export function createLoader(server: ViteDevServer) {
       map: _getCombinedSourcemap(source, sourcemapChain),
       genSourceMap() {
         const { map } = this;
-        return (
-          `\n//# sourceURL=${source}\n//# sourceMappingURL=` +
-          genSourceMapUrl(map)
-        );
+        if (target === 'client')
+          return `\n//# sourceMappingURL=` + genSourceMapUrl(map);
+        else
+          return (
+            `\n//# sourceURL=${source}\n//# sourceMappingURL=` +
+            genSourceMapUrl(map)
+          );
       },
     };
   }
@@ -406,12 +409,21 @@ export function parseResumableUrl(url: string): {
   target: 'server' | 'client';
   entries: string[] | null;
 } | null {
-  const clientMatch = url.match(RESUMABLE_URL_RE);
+  const clientMatch = url.match(RESUMABLE_CLIENT_RE);
   if (clientMatch) {
     return {
       moduleUrl: createModuleUrl(clientMatch),
-      target: clientMatch[1] as Target,
+      target: 'client',
       entries: clientMatch[3] ? clientMatch[3].split(',') : null,
+    };
+  }
+
+  const serverMatch = url.match(RESUMABLE_SERVER_RE);
+  if (serverMatch) {
+    return {
+      moduleUrl: createModuleUrl(clientMatch),
+      target: 'server',
+      entries: null,
     };
   }
 

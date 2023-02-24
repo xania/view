@@ -1,91 +1,142 @@
-﻿const __refs: unknown[] = [];
-export async function hydrate<T>(state: T): Promise<T> {
+﻿export const ref = Symbol('ref');
+export const cl = Symbol('cl');
+export const proto: unique symbol = Symbol('proto');
+
+export async function hydrate<T>(cache: unknown[], state: T): Promise<T> {
   const result = { root: undefined };
 
-  const stack: [any, number | string, unknown][] = [[result, 'root', state]];
+  type StackItem = [any, number | string, unknown] | SetPrototype;
+  const stack: StackItem[] = [[result, 'root', state]];
 
   while (stack.length) {
-    const [target, key, input] = stack.pop()!;
+    const curr = stack.pop()!;
+
+    if (curr instanceof SetPrototype) {
+      await curr.apply();
+      continue;
+    }
+
+    const [target, key, input] = curr;
     let output: any;
+
     if (input === null || input === undefined) {
-      target[key] = output = input;
+      output = input;
     } else if (isRef(input)) {
-      target[key] = output = __refs[input.__ref - 1];
+      target[key] = output = cache[input[ref]];
+      continue;
     } else if (input instanceof Array) {
-      target[key] = output = [];
+      output = [];
       for (let i = input.length - 1; i >= 0; i--) {
         stack.push([output, i, input[i]]);
       }
     } else if (isClosureDescriptor(input)) {
-      target[key] = output = createLazyClosure(input);
-    } else if (isCtorDescriptor(input)) {
-      const { __ctor, ...instance } = input;
-      for (const prop in instance) {
-        stack.push([instance, prop, (instance as any)[prop]]);
+      if (input.deps) {
+        const deps: any[] = [];
+        for (let i = input.deps.length - 1; i >= 0; i--) {
+          stack.push([deps, i, input.deps[i]]);
+        }
+        output = createLazyClosure(input[cl], deps);
+      } else {
+        output = createLazyClosure(input[cl], []);
+      }
+    }
+
+    // else if (isCtorDescriptor(input)) {
+    //   const closure = input[proto];
+
+    //   console.log(instance, constructor);
+    //   // const loader = await constructor[cl]();
+    //   // // const closure = await loader();
+
+    //   // const deps = await hydrate(cache, constructor.d);
+    //   // const Ctor = loader(deps);
+
+    //   // const instance: object = {};
+
+    //   // const keys = Object.keys(input.d);
+    //   // for (let i = keys.length - 1; i >= 0; i--) {
+    //   //   const key = keys[i];
+    //   //   stack.push([instance, key, (input.d as any)[key]]);
+    //   // }
+    //   // stack.push([instance, ctor, constructor]);
+
+    //   // output = instance;
+    //   continue;
+    // }
+    else if (typeof input === 'object') {
+      output = {};
+
+      if (proto in input) {
+        const action = new SetPrototype(output);
+        stack.push(action);
+        stack.push([action, 'closure', (input as any)[proto]]);
       }
 
-      const module = await input.__ctor.__ldr();
-      const closure = module[input.__ctor.__name];
-      const Ctor = closure();
-      target[key] = output = {};
-      Reflect.setPrototypeOf(output, Ctor.prototype);
-      for (const prop in instance) {
-        stack.push([output, prop, (instance as any)[prop]]);
-      }
-    } else if (typeof input === 'object') {
-      target[key] = output = {};
-      for (const prop in input) {
-        stack.push([output, prop, (input as any)[prop]]);
+      const keys = Object.keys(input);
+      for (let i = keys.length - 1; i >= 0; i--) {
+        const key = keys[i];
+        stack.push([output, key, (input as any)[key]]);
       }
     } else {
-      target[key] = output = input;
+      output = input;
     }
-    __refs.push(output);
+
+    target[key] = output;
+    cache.push(output);
   }
 
   return result.root as T;
 }
 
 interface ClosureDescriptor {
-  __ldr: Function;
-  __name: string;
-  __args: any[];
+  [cl]: Function;
+  deps: any[];
 }
 function isClosureDescriptor(value: any): value is ClosureDescriptor {
   if (value === null || value === undefined || typeof value !== 'object')
     return false;
-  return '__ldr' in value && '__name' in value;
+  return cl in value;
 }
 
-function isCtorDescriptor(value: any): value is { __ctor: ClosureDescriptor } {
-  if (value === null || value === undefined || typeof value !== 'object')
-    return false;
-  return '__ctor' in value;
-}
-
-function createLazyClosure({ __ldr, __name, __args }: ClosureDescriptor) {
-  return async function lazyClosure(this: any, ...args: any[]) {
-    const module = await __ldr();
-    const closure = module[__name];
-
-    if (__args) {
-      return hydrate(__args).then((deps) => {
-        const func = closure(...deps);
-        return func.apply(this, args);
-      });
-    } else {
-      const func = closure();
-      return func.apply(this, args);
-    }
-  };
+function createLazyClosure(loader: ClosureDescriptor[typeof cl], deps: any[]) {
+  async function lazyClosure(this: any, ...args: any[]) {
+    const closure = await loader();
+    const handler = deps instanceof Array ? closure(...deps) : closure();
+    return handler(...args);
+  }
+  lazyClosure.deps = deps;
+  lazyClosure.loader = loader;
+  return lazyClosure;
 }
 
 interface RefDescriptor {
-  __ref: number;
+  [ref]: number;
 }
 
 function isRef(value: any): value is RefDescriptor {
   if (value === null || value === undefined || typeof value !== 'object')
     return false;
-  return '__ref' in value;
+  return ref in value;
+}
+
+class SetPrototype {
+  public closure: any;
+  constructor(public instance: any) {}
+  apply = async () => {
+    const { loader, deps } = this.closure;
+    const closure = await loader();
+
+    const Ctor = closure(...deps);
+    const { instance } = this;
+    Reflect.setPrototypeOf(instance, Ctor.prototype);
+  };
+}
+
+export async function start(loader: Function, raw: unknown) {
+  const cache: unknown[] = [];
+  const closure = await loader();
+  const deps: any = await hydrate(cache, raw);
+  const func = closure(...deps);
+
+  func();
 }

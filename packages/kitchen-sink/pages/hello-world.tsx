@@ -1,4 +1,5 @@
-﻿class State {
+﻿const a = 123;
+class State {
   private observers: any[] = [];
   constructor(public value: number) {}
 
@@ -13,6 +14,10 @@
     this.observers.push(obs);
     return function () {};
   }
+
+  bla = () => {
+    console.log(a);
+  };
 }
 
 export async function view() {
@@ -22,21 +27,35 @@ export async function view() {
     (e) => e.json()
   );
 
+  const abilities = 13;
+
   const state = new State(123);
 
-  return html(button("btn01", "Click Me"), () => {
-    console.log("hello client!!", state);
+  function onClick() {
+    state.set((x) => x + 1);
+  }
 
-    console.log(ditto.abilities);
+  state.subscribe({
+    next(value) {
+      console.log("server defined observer", value);
+    },
+  });
+
+  const a = 1;
+  return html(button("btn01", "Click Me!"), () => {
+    // console.log("hello client!!", state);
+
+    console.log(abilities);
 
     state.subscribe({
       next(value) {
         console.log("client defined observer", value);
       },
     });
-    document
-      .getElementById("btn01")!
-      .addEventListener("click", () => state.set((x) => x + 1));
+
+    console.log(state);
+
+    document.getElementById("btn01")!.addEventListener("click", onClick);
   });
 }
 

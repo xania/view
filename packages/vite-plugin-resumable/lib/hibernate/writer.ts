@@ -1,11 +1,14 @@
-﻿import { fileToUrl } from '../utils';
-import { ImportMap, Literal, primitives, RefMap } from './utils';
+﻿import { ref, cl, proto } from '../hydrate';
+import { ImportMap, Literal, primitives, RefMap, valueTypes } from './utils';
 
+interface StringWriter {
+  write(s: string): void;
+}
 export class HibernationWriter {
   public refMap = new RefMap();
   public importMap = new ImportMap();
 
-  constructor(public root: string, public output: { write(s: string): void }) {}
+  constructor(public root: string, public output: StringWriter) {}
   async write(value: any) {
     const stack: any[] = [value];
     while (stack.length) {
@@ -19,124 +22,95 @@ export class HibernationWriter {
       } else if (curr instanceof Promise) {
         stack.push(await curr);
       } else if (curr instanceof Function) {
-        const { __src, __name, __args } = curr as any;
-        if (__src && __name) {
-          const { output, root } = this;
-          if (!__src.startsWith(root)) {
-            continue;
-          }
-          const url = __src.slice(root.length + 1).replace('\\', '/');
-          output.write(`
-          <script type="module">
-          import {hydrate} from "/@resumable/hydrate/index.js";
-          import { "${__name}" as closure } from "/@client[${__name}]/${url}";
-          `);
-          if (typeof __args === 'function') {
-            const closureArgs = __args();
-            this.writeObject(closureArgs);
-            output.write(`.then((args) => {
-              const func = closure(...args);
-              func();
-            })
-            `);
-          } else {
-            output.write(`
-            const func = closure();
-            func();
-            `);
-          }
-
-          for (const [loader, source] of this.importMap.entries) {
-            output.write(
-              `\nfunction ${loader}(){ return import("${source}") }`
-            );
-          }
-
-          output.write(`
-          </script>`);
-        } else {
-          console.log(`Function is not resumable`);
-        }
+        this.writeScript(curr);
       } else if (typeof curr === 'string') {
         this.output.write(curr);
       }
     }
   }
+  writeScript(curr: any) {
+    const { __src, __name, __args } = curr as any;
+    if (__src && __name) {
+      const { output, root } = this;
+      const deps = __args instanceof Function ? __args() : [];
+      // const scriptDeps = resolveDependencies(deps);
+      output.write(`
+      <script type="module">
+      import {hydrate, start, proto, cl, ref} from "/@resumable/hydrate";\n`);
 
-  ref: number = 0;
+      // if (scriptDeps) {
+      //   scriptDeps.add(__name, __src);
+      //   for (const [source, desc] of scriptDeps.entries) {
+      //     const url = source.slice(root.length + 1).replace('\\', '/');
+      //     output.write(
+      //       `import { ${desc.names.join(
+      //         ', '
+      //       )} } from "/@client[${desc.names.join(',')}]/${url}";\n`
+      //     );
+      //   }
+      // }
+      output.write('const cache = [];\n');
+      const entry = this.importMap.add(__name, __src);
 
-  writeObject(obj: any) {
-    const { output, refMap, importMap } = this;
-    const stack = [obj];
-    output.write('hydrate(');
-    while (stack.length) {
-      const curr = stack.pop()!;
-      this.ref++;
+      output.write(`start(${entry}("${__name}"), `);
+      this.writeObjects(deps);
+      output.write(`);\n`);
 
-      if (refMap.hasRef(curr)) {
-        output.write(`{ __ref: ${refMap.getRef(curr)} }`);
-        continue;
+      for (const [source, desc] of this.importMap.entries) {
+        const url = source.slice(root.length + 1).replace('\\', '/');
+        output.write(
+          `\nfunction ${
+            desc.id
+          }(n) { return () => import("/@client[${desc.names.join(
+            ','
+          )}]/${url}").then(mod => mod[n]); }`
+        );
       }
 
-      refMap.addRef(curr, this.ref);
-
-      if (curr instanceof Literal) {
-        output.write(curr.value);
-      } else if (curr === null) {
-        output.write('null');
-      } else if (curr === undefined) {
-        output.write('undefined');
-      } else if (curr instanceof Date) {
-        output.write(`new Date(${curr.getTime()})`);
-      } else if (typeof curr === 'string') {
-        output.write(`"${curr.replace(/"/g, '\\"')}"`);
-      } else if (primitives.includes(typeof curr)) {
-        output.write(curr.toString());
-      } else if (typeof curr === 'symbol') {
-        output.write(`Symbol("${curr.description}")`);
-      } else if (curr instanceof Array) {
-        output.write(`[`);
-        stack.push(new Literal(']'));
-        for (let i = curr.length - 1; i >= 0; i--) {
-          stack.push(new Literal(','));
-          stack.push(curr[i]);
-        }
-        // } else if (isSerializable(curr)) {
-        //   const ref = refMap.addRef(curr);
-        //   retval += `__refs[${ref}]=`;
-        //   stack.push(curr.ssr());
-        //   // } else if (curr instanceof Call) {
-        //   //   const func = curr.func;
-        //   //   retval += `mod.${func.name}(`;
-        //   //   stack.push(new Literal(')'));
-        //   //   for (let len = curr.args.length, i = len - 1; i >= 0; i--) {
-        //   //     stack.push(new Literal(','));
-        //   //     stack.push(curr.args[i]);
-        //   //   }
-      } else if (curr instanceof Function) {
-        stack.push(this.importDesc(curr));
-      } else if (curr.constructor !== Object) {
-        output.write(`{`);
-        stack.push(new Literal(`}`));
-        stack.push(this.importDesc(curr.constructor));
-        stack.push(new Literal(`__ctor:`));
-        for (const k in curr) {
-          const prop = curr[k];
-          if (!(prop instanceof Function)) {
-            stack.push(new Literal(','), prop, new Literal(`"${k}":`));
-          }
-        }
-      } else {
-        output.write(`{`);
-        stack.push(new Literal('}'));
-        for (const k in curr) {
-          const prop = curr[k];
-          if (prop !== undefined)
-            stack.push(new Literal(','), prop, new Literal(`"${k}":`));
-        }
-      }
+      output.write(`
+      </script>`);
+    } else {
+      console.log(`Function is not resumable`);
     }
-    output.write(')');
+  }
+
+  refCount: number = -1;
+
+  writeObjects(objs: any) {
+    const { output, refMap } = this;
+
+    traverse(objs, output, (value) => {
+      if (valueTypes.includes(typeof value)) {
+        this.refCount++;
+        return value;
+      }
+
+      if (refMap.hasRef(value)) {
+        const i = refMap.getRef(value)!;
+        return { [`[${ref.description}]`]: lit(i.toString()) };
+      }
+
+      refMap.addRef(value, ++this.refCount);
+
+      if (hasFunctionMeta(value)) {
+        const ldr = this.importMap.add(value.__name, value.__src);
+        if (value.__args instanceof Function) {
+          const deps = value.__args();
+          return {
+            deps,
+            [`[${cl.description}]`]: lit(`${ldr}("${value.__name}")`),
+          };
+        } else {
+          return {
+            [`[${cl.description}]`]: lit(`${ldr}("${value.__name}")`),
+          };
+        }
+      } else if (hasInstanceMeta(value)) {
+        // refMap.addRef(value, ++this.refCount);
+
+        return { ...value, [`[${proto.description}]`]: value.constructor };
+      }
+    });
   }
 
   importDesc(value: any) {
@@ -154,9 +128,7 @@ export class HibernationWriter {
 
     // const __ldr = importMap.add(`/closures/${__name}.js`);
 
-    const __ldr = importMap.add(
-      `/@client[${__name}]` + fileToUrl(__src, this.root)
-    );
+    const __ldr = importMap.add(__name, __src);
 
     if (!__src || !__name) {
       console.error('import descriptor of value is missing', value.toString());
@@ -170,3 +142,96 @@ export class HibernationWriter {
     };
   }
 }
+
+function traverse(objs: any, writer: StringWriter, f: (value: any) => any) {
+  const stack = [objs];
+
+  while (stack.length) {
+    const curr = stack.pop()!;
+
+    if (curr instanceof Literal) {
+      writer.write(curr.value);
+      continue;
+    }
+
+    const output = f(curr) ?? curr;
+
+    if (output === null) {
+      writer.write('null');
+    } else if (output === undefined) {
+      writer.write('undefined');
+    } else if (output instanceof Array) {
+      writer.write('[');
+      stack.push(RBRACKET);
+      for (let i = output.length - 1; i >= 0; i--) {
+        stack.push(output[i]);
+        if (i > 0) stack.push(COMMA);
+      }
+    } else if (output instanceof Function) {
+      writer.write("() => throw Error('non hibernatable function')");
+    } else if (typeof output === 'string') {
+      writer.write(`"${output}"`);
+    } else if (primitives.includes(typeof output)) {
+      writer.write(output.toString());
+    } else if (typeof output === 'object') {
+      writer.write('{');
+      stack.push(RCURLY);
+
+      const keys = Object.keys(output);
+      for (let i = keys.length - 1; i >= 0; i--) {
+        const key = keys[i];
+        stack.push(output[key], COLON, lit(key));
+        if (i > 0) stack.push(COMMA);
+      }
+    }
+  }
+}
+
+interface FunctionMeta {
+  __src: string;
+  __name: string;
+  __args: () => any;
+}
+
+export function hasFunctionMeta(value: any): value is FunctionMeta {
+  if (!value) return false;
+
+  const { __src, __name } = value;
+  return __src && __name;
+}
+
+export function hasInstanceMeta(
+  value: any
+): value is { constructor: FunctionMeta } {
+  if (!value || !value.constructor || value.constructor === Object)
+    return false;
+
+  return hasFunctionMeta(value.constructor);
+}
+
+// class FunctionDescriptor {
+//   constructor(public src: string, public name: string, public deps: any[]) {}
+
+//   static fromFunc(func: Function) {
+//     const { __src, __name, __args } = func as any;
+//     if (__src && __name) {
+//       const deps = __args instanceof Function ? __args() : null;
+//       return new FunctionDescriptor(__src, __name, deps);
+//     }
+
+//     return null;
+//   }
+// }
+
+// class InstanceDescriptor {
+//   constructor(public values: any, public ctor: FunctionDescriptor) {}
+// }
+
+function lit(value: string) {
+  return new Literal(value);
+}
+
+const RCURLY = lit('}');
+const RBRACKET = lit(']');
+const COMMA = lit(',');
+const COLON = lit(':');

@@ -89,7 +89,7 @@ export function parse(code: string) {
       ) {
         skipEnter.set(node.key, 'deep');
 
-        if (node.type === 'MethodDefinition' && node.kind === 'constructor')
+        if (node.type === 'MethodDefinition')
           skipEnter.set(node.value, 'shallow');
 
         // const memberScope = scope.create(rootStart, node, true);
