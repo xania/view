@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-resumable",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "license": "MIT",
   "typings": "./lib/index.ts",
   "type": "module",
@@ -21,7 +21,7 @@
   "scripts": {
     "build": "npm run build:plugin && npm run build:hydrate",
     "build:plugin": "tsup lib/index.ts --sourcemap",
-    "build:hydrate": "tsc lib/hydrate/index.ts --sourceMap --target esnext --outDir dist/hydrate",
+    "build:hydrate": "npx vite build --ssr lib/hydrate/index.ts --outDir dist/hydrate/ --minify",
     "prepublishOnly": "npm run clean && npm version patch && npm run build",
     "clean": "npx rimraf dist"
   },
