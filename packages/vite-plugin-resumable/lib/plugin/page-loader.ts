@@ -421,7 +421,7 @@ export function parseResumableUrl(url: string): {
   const serverMatch = url.match(RESUMABLE_SERVER_RE);
   if (serverMatch) {
     return {
-      moduleUrl: createModuleUrl(clientMatch),
+      moduleUrl: createModuleUrl(serverMatch),
       target: 'server',
       entries: null,
     };
