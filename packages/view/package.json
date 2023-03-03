@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.4.13",
+  "version": "0.4.15",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -23,9 +23,10 @@
   },
   "scripts": {
     "dev": "npx vite --watch build",
-    "build": "npx vite build",
+    "build": "npx vite build && npm run build:jsx-runtime",
+    "build:jsx-runtime": "rollup -c jsx-runtime.build.config.ts --configPlugin typescript",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build",
+    "prepublishOnly": "npm run clean && npm version patch && npm run build ",
     "lint": "tsc"
   },
   "prettier": {
@@ -39,7 +40,8 @@
   "peerDependencies": {
     "sass": "^1.57.1",
     "tslib": "^2.4.1",
-    "typescript": "^4.9.4"
+    "typescript": "^4.9.4",
+    "rollup-plugin-typescript": "1.0.1"
   },
   "repository": {
     "type": "git",

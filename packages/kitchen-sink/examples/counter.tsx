@@ -1,5 +1,5 @@
 ﻿import { State } from "@xania/state";
-import { jsx, render } from "@xania/view";
+import { render } from "@xania/view";
 
 /**
  * There are no rules about where u can put your state
@@ -14,9 +14,11 @@ export function App() {
    */
   const counter = new State(0);
 
+  return <div>hello</div>;
+
   return (
     <>
-      <div>Time: {[[state]]}</div>
+      <div>Time: {state}</div>
       <div>
         Count:
         <button click={(_) => counter.set((x) => (x || 0) + 1)}>

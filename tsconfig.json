@@ -10,14 +10,15 @@
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
-    "jsxFactory": "jsx.createElement",
-    "jsx": "react",
-    "types": ["@xania/view/types/jsx"],
+
     "noEmit": true,
 
-    "jsxFragmentFactory": "jsx.Fragment",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@xania/view",
+    "types": ["@xania/view/types/jsx"],
 
     "paths": {
+      "@xania/view/jsx-runtime": ["./packages/view/lib/jsx-runtime.ts"],
       "@xania/view": ["./packages/view/lib/index.ts"],
       "@xania/state": ["./packages/state/lib/index.ts"]
     },

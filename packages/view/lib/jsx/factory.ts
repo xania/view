@@ -31,7 +31,6 @@ export function jsxFactory(opts?: JsxFactoryOptions) {
         try {
           return name(args, opts);
         } catch (err) {
-          4;
           // if is class then try with `new` operator
           if (name.toString().startsWith('class')) {
             return Reflect.construct(name, args);

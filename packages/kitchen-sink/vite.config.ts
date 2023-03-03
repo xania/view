@@ -11,6 +11,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "~": path.resolve(__dirname),
+      "@xania/view/jsx-runtime": path.resolve(
+        __dirname,
+        "../view/jsx-runtime/jsx-runtime.ts"
+      ),
       "@xania/view": path.resolve(__dirname, "../view/lib/index.ts"),
       "@xania/state": path.resolve(__dirname, "../state/lib/index.ts"),
     },
