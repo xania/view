@@ -91,7 +91,7 @@ export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
   target = this;
   right: Rx.Stateful['right'];
 
-  subscribe = subscribe;
+  subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
   get = () => {
     register(this);

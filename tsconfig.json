@@ -1,15 +1,22 @@
 ﻿{
   "compilerOptions": {
-    "noEmit": true,
     "target": "ESNext",
-
-    "jsx": "react",
-    "jsxFactory": "jsx.createElement",
-    "jsxFragmentFactory": "jsx.Fragment",
-    "typeRoots": ["./types", "./packages/view/types"],
-
-    "moduleResolution": "node",
+    "useDefineForClassFields": true,
     "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    "skipLibCheck": true,
+    "jsxFactory": "jsx.createElement",
+    "jsx": "react",
+    "types": ["@xania/view/types/jsx"],
+    "noEmit": true,
+
+    "jsxFragmentFactory": "jsx.Fragment",
+
     "paths": {
       "@xania/view": ["./packages/view/lib/index.ts"],
       "@xania/state": ["./packages/state/lib/index.ts"]

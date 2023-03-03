@@ -1,6 +1,5 @@
 ﻿import { Rx } from '../rx';
 
-export interface SubscribeSource {}
 export function subscribe<T, O extends Rx.NextObserver<T>>(
   this: Rx.Subscribable<T>,
   observer: O

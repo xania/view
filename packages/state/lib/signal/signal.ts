@@ -11,7 +11,7 @@ export class Signal<T = any> implements Rx.Stateful<T> {
   observers?: Rx.NextObserver<T>[] | undefined;
   operators?: Rx.StateOperator<T>[] | undefined;
 
-  subscribe = subscribe;
+  subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
   get = () => {
     register(this);

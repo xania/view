@@ -12,7 +12,10 @@ export class Value<T> implements Rx.Stateful<T> {
   public dependent?: Rx.Stateful<any>;
   dirty = false;
 
-  constructor(public snapshot?: T, public subscribe = _subscribe) {}
+  constructor(
+    public snapshot?: T,
+    public subscribe: Rx.Subscribable<T>['subscribe'] = _subscribe
+  ) {}
 
   get = () => {
     return this.snapshot;

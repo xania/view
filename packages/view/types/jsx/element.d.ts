@@ -21,7 +21,6 @@
   type Stringable = { [Symbol.toStringTag](): string };
 
   type Element =
-    | Element[]
     | ElementNode
     | Observable<ElementNode>
     | Promise<ElementNode>

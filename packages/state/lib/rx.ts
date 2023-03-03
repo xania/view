@@ -95,5 +95,6 @@
 
   export interface Subscribable<T> {
     observers?: NextObserver<T>[];
+    subscribe(observer: NextObserver<T>): Subscription;
   }
 }
