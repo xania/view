@@ -5,6 +5,7 @@
   },
   "workspaces": [
     "packages/view",
+    "packages/state",
     "packages/vite-plugin-resumable",
     "packages/kitchen-sink"
   ],

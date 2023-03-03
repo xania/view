@@ -1,0 +1,19 @@
+﻿{
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "ESNext",
+
+    "jsx": "react",
+    "jsxFactory": "jsx.createElement",
+    "jsxFragmentFactory": "jsx.Fragment",
+    "typeRoots": ["./types", "./packages/view/types"],
+
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "paths": {
+      "@xania/view": ["./packages/view/lib/index.ts"],
+      "@xania/state": ["./packages/state/lib/index.ts"]
+    },
+    "allowSyntheticDefaultImports": true
+  }
+}
