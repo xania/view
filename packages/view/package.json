@@ -1,10 +1,10 @@
 {
   "name": "@xania/view",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
-  "typings": "./dist/index.d.ts",
+  "typings": "./lib/index.ts",
   "type": "module",
   "exports": {
     ".": {
@@ -15,7 +15,8 @@
   "private": false,
   "files": [
     "types",
-    "dist"
+    "dist",
+    "lib"
   ],
   "engines": {
     "node": ">=10"
