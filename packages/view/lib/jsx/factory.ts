@@ -8,10 +8,10 @@ export interface JsxFactoryOptions {
   };
 }
 
-type CreateIntrinsicElement = (
-  name: string,
-  props: any,
-  ...children: TemplateInput[]
+type CreateIntrinsicElement = <E extends keyof JSX.IntrinsicElements>(
+  name: E,
+  props?: JSX.IntrinsicElements[E],
+  ...children: JSX.Children[]
 ) => JsxElement | Promise<JsxElement> | undefined;
 
 export function jsxFactory(opts?: JsxFactoryOptions) {
