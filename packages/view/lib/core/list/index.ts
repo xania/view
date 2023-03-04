@@ -18,14 +18,14 @@ export interface ListProps<T> {
 export * from './list-source';
 export * from './mutation';
 
-export function List<T extends ExecuteContext>(props: ListProps<T>) {
+export function List<T extends ExecuteContext>(props: ListProps<T>): any {
   const template = flatten(props.children, new Context<T>());
   if (template.length > 1)
     throw new Error('more than 1 child is not yet supported');
 
   return {
     children: template,
-    async render(target: Anchor, domFactory: IDomFactory) {
+    async render(target: any, domFactory: IDomFactory) {
       const source = props.source;
 
       const { updateOperations, renderOperations, events, lazyOperations } =

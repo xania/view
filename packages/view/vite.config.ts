@@ -20,8 +20,6 @@ export default defineConfig({
       fileName: 'main',
       formats: ['es', 'cjs'],
     },
-    rollupOptions: {
-    },
     sourcemap: true,
   },
 });

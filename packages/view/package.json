@@ -5,6 +5,7 @@
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
   "typings": "./lib/index.ts",
+  "types": "",
   "type": "module",
   "exports": {
     ".": {
@@ -14,30 +15,30 @@
     "./jsx-runtime": {
       "import": "./dist/jsx-runtime.js",
       "require": "./dist/jsx-runtime.cjs",
-      "types": "./jsx-runtime/jsx-runtime.ts"
+      "types": "./dist/jsx-runtime.d.ts"
     },
     "./jsx-dev-runtime": {
       "import": "./dist/jsx-dev-runtime.js",
       "require": "./dist/jsx-dev-runtime.cjs",
-      "types": "./jsx-runtime/jsx-dev-runtime.ts"
+      "types": "./dist/jsx-dev-runtime.d.ts"
     }
   },
   "private": false,
   "files": [
     "types",
     "dist",
-    "lib",
-    "jsx-runtime"
+    "lib"
   ],
   "engines": {
     "node": ">=10"
   },
   "scripts": {
     "dev": "npx vite --watch build",
-    "build": "npx vite build && npm run && npm run build:jsx-runtime",
-    "build:jsx-runtime": "rollup -c jsx-runtime.build.config.ts --configPlugin typescript",
+    "build": "npm run clean && npx vite build && npm run && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
+    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --dts jsx-runtime.ts --external @xania/view",
+    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --dts jsx-dev-runtime.ts --external @xania/view",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build ",
+    "prepublishOnly": "npm version patch && npm run build ",
     "lint": "tsc"
   },
   "prettier": {
@@ -48,11 +49,13 @@
     "tabWidth": 2
   },
   "author": "Ibrahim ben Salah",
-  "peerDependencies": {
+  "devDependencies": {
+    "rollup-plugin-dts": "5.2.0",
+    "rollup-plugin-typescript": "1.0.1",
     "sass": "^1.57.1",
     "tslib": "^2.4.1",
     "typescript": "^4.9.4",
-    "rollup-plugin-typescript": "1.0.1"
+    "rollup-plugin-ts": "^3.2.0"
   },
   "repository": {
     "type": "git",

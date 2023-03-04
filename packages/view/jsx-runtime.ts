@@ -1,4 +1,4 @@
-﻿import { flatten } from '../lib/jsx/_flatten';
+﻿import { flatten } from './lib/jsx/_flatten';
 import { JsxElement } from '@xania/view';
 
 type nameOrFunction = string | Function;
