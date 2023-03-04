@@ -1,33 +1,33 @@
 {
   "name": "@xania/view",
-  "version": "0.4.18",
+  "version": "0.4.28",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
   "typings": "./lib/index.ts",
-  "types": "",
   "type": "module",
   "exports": {
     ".": {
       "import": "./dist/main.js",
-      "require": "./dist/main.cjs"
+      "require": "./dist/main.cjs",
+      "types": "./lib/index.ts"
     },
     "./jsx-runtime": {
       "import": "./dist/jsx-runtime.js",
-      "require": "./dist/jsx-runtime.cjs",
-      "types": "./dist/jsx-runtime.d.ts"
+      "require": "./dist/jsx-runtime.cjs"
     },
     "./jsx-dev-runtime": {
       "import": "./dist/jsx-dev-runtime.js",
-      "require": "./dist/jsx-dev-runtime.cjs",
-      "types": "./dist/jsx-dev-runtime.d.ts"
+      "require": "./dist/jsx-dev-runtime.cjs"
     }
   },
   "private": false,
   "files": [
     "types",
     "dist",
-    "lib"
+    "lib",
+    "jsx-runtime.d.ts",
+    "jsx-dev-runtime.d.ts"
   ],
   "engines": {
     "node": ">=10"
@@ -35,8 +35,8 @@
   "scripts": {
     "dev": "npx vite --watch build",
     "build": "npm run clean && npx vite build && npm run && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
-    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --dts jsx-runtime.ts --external @xania/view",
-    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --dts jsx-dev-runtime.ts --external @xania/view",
+    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
+    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm version patch && npm run build ",
     "lint": "tsc"

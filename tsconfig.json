@@ -15,10 +15,10 @@
 
     "jsx": "react-jsx",
     "jsxImportSource": "@xania/view",
-    "types": ["@xania/view/types/jsx"],
+    "typeRoots": ["@xania/view/types"],
 
     "paths": {
-      "@xania/view/jsx-runtime": ["./packages/view/lib/jsx-runtime.ts"],
+      "@xania/view/jsx-runtime": ["./packages/view/jsx-runtime.ts"],
       "@xania/view": ["./packages/view/lib/index.ts"],
       "@xania/state": ["./packages/state/lib/index.ts"]
     },

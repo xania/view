@@ -1,4 +1,6 @@
-﻿import { flatten } from './lib/jsx/_flatten';
+﻿/// <reference path="./types/jsx/index.d.ts" />
+
+import { flatten } from './lib/jsx/_flatten';
 import { JsxElement } from '@xania/view';
 
 type nameOrFunction = string | Function;

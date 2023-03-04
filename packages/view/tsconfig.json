@@ -1,5 +1,5 @@
 {
-  "include": ["lib", "jsx-runtime", "build.config.ts", "jsx-dev-runtime.ts"],
+  "include": ["lib"],
   "compilerOptions": {
     "outDir": "dist",
     "module": "ESNext",
@@ -15,7 +15,7 @@
     "moduleResolution": "node",
     "target": "ES2015",
     "esModuleInterop": true,
-    "typeRoots": ["types"]
-    // "noEmit": true
+    "typeRoots": ["./types"],
+    "noEmit": true
   }
 }

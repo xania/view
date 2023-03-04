@@ -14,8 +14,6 @@ export function App() {
    */
   const counter = new State(0);
 
-  return <div>hello</div>;
-
   return (
     <>
       <div>Time: {state}</div>
