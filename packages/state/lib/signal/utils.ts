@@ -1,8 +1,8 @@
 ﻿import { Rx } from '../rx';
 
 export function nodeToString(
-  this: Rx.Stateful,
-  visited: Set<Rx.Stateful> = new Set()
+  this: Rx.Stateful & Rx.Graph,
+  visited: Set<Rx.Stateful & Rx.Graph> = new Set()
 ) {
   if (visited.has(this)) {
     return `[CIRCULAR:${'label' in this ? this.label : `{${this.snapshot}}`}]`;
@@ -16,7 +16,7 @@ export function nodeToString(
 
   visited.add(this);
 
-  let retval = this.label + (this.mode === 1 ? '*' : '');
+  let retval = this.label + (this.dirty ? '*' : '');
 
   // if (operators?.length) {
   //   retval += ' [';
@@ -32,7 +32,7 @@ export function nodeToString(
   // }
 
   if (this.right) {
-    retval += ' --> ' + nodeToString.apply(this.right, [visited]);
+    retval += ' --> ' + nodeToString.apply(this.right as any, [visited]);
   }
 
   return retval;

@@ -6,10 +6,10 @@ import { Rx } from '../rx';
 import { nodeToString } from './utils';
 
 export function computed<T>(fn: () => T, label?: string) {
-  const deps: Rx.Stateful[] = [];
-  const value = track(fn, deps);
-  // const roots = resolveRoots(deps);
-  return new Computed(fn, value, deps, label);
+  const computed = new Computed(fn, undefined as T, [], label);
+  computed.recompute();
+  computed.dirty = false;
+  return computed;
 }
 
 // function resolveRoots(deps: (Rx.Root | Rx.Computed)[], retval: Rx.Root[] = []) {
@@ -46,25 +46,13 @@ export function computed<T>(fn: () => T, label?: string) {
 //   parent.next = state;
 // }
 
-const computations: Rx.Stateful[][] = [];
-
-function track<T>(fn: () => T, deps: Rx.Stateful[] = []) {
-  computations.push(deps);
-  const value = fn();
-  if (deps !== computations.pop()) {
-    throw Error('corrupt compute stack');
-  }
-
-  return value;
-}
+const computations: Computed[] = [];
 
 export function register(node: Rx.Stateful) {
   if (computations.length) {
     // compute pending
-    const computation = computations[computations.length - 1];
-    if (!computation.includes(node)) {
-      computation.push(node);
-    }
+    const computed = computations[computations.length - 1];
+    computed.dependsOn(node);
   }
 }
 
@@ -89,7 +77,6 @@ export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
 
   readonly type = Rx.StateOperatorType.Signal;
   target = this;
-  right: Rx.Stateful['right'];
 
   subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
@@ -100,29 +87,44 @@ export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
 
   toString = nodeToString;
 
-  update() {
-    const { deps, fn } = this;
-    for (let i = 0, len = deps.length; i < len; i++) {
-      const dep = deps[i];
-      removeOperator(dep, this);
-      // removeNode(dep, computed);
-    }
-
-    deps.length = 0;
-    const newValue = track(fn, deps);
-    for (let i = 0; i < deps.length; i++) {
-      const dep = deps[i];
+  dependsOn(dep: Rx.Stateful) {
+    const { __k } = this;
+    if (!(__k in dep)) {
+      this.deps.push(dep);
       connect(dep, this);
       pushOperator(dep, this);
-      // pushNode(dep, computed);
     }
 
-    if (newValue !== this.snapshot) {
-      this.snapshot = newValue;
-      return true;
-    } else if (this.dirty) {
-      // debugger;
+    (dep as any)[__k] = true;
+  }
+
+  __k = Symbol();
+
+  recompute() {
+    computations.push(this);
+    const { deps, __k } = this;
+    for (let i = 0; i < deps.length; i++) {
+      const dep = deps[i] as any;
+      dep[__k] = false;
     }
-    return false;
+    const newValue = this.fn();
+    for (let i = deps.length - 1; i >= 0; i--) {
+      const dep = deps[i] as any;
+      if (dep[__k] === false) {
+        removeOperator(dep, this);
+        deps.splice(i, 1);
+      }
+    }
+
+    if (this !== computations.pop()) {
+      throw Error('corrupt compute stack');
+    }
+
+    if (this.snapshot !== newValue) {
+      this.snapshot = newValue;
+      this.dirty = true;
+    } else {
+      this.dirty = false;
+    }
   }
 }

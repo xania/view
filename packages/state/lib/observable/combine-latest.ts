@@ -1,4 +1,4 @@
-﻿import { pushNode } from '../graph';
+﻿import { connect } from '../graph';
 import { MapOperator, pushOperator } from '../operators/map';
 import { Rx } from '../rx';
 import { subscribe } from './subscribe';
@@ -19,7 +19,7 @@ export function combineLatest<TArgs extends [...StateInput<any>[]]>(
 
   for (let i = 0; i < argsLen; i++) {
     const source = from(args[i] as any) as Rx.Stateful<any>;
-    pushNode(source, target, false);
+    connect(source, target);
 
     snapshot[i] = source.snapshot;
 
@@ -60,7 +60,7 @@ class CombinedState<T extends [...any[]]> implements Rx.Stateful<T> {
 
     const target = new Value<U>(mappedValue);
     const operator: any = new MapOperator(f, target);
-    pushNode(this, operator, false);
+    connect(this, operator);
     pushOperator(this, operator);
 
     return target;

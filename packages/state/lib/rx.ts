@@ -7,10 +7,15 @@
 
   // export type Mode = typeof Mode[keyof typeof Mode];
 
+  export interface Graph {
+    left?: Graph;
+    right?: Graph;
+    gid?: unknown | undefined;
+    gidx: this['gid'] extends undefined ? never : number;
+  }
+
   export interface Stateful<T = any> {
     // refCount?: number;
-    left?: Stateful;
-    right?: Stateful;
     snapshot?: T;
     dirty: boolean;
     observers?: NextObserver<T>[];

@@ -2,7 +2,7 @@
 import { combineLatest } from './combine-latest';
 import { State } from './state';
 
-describe('signal', () => {
+describe('observable', () => {
   it('create', () => {
     const state = new State(10);
     expect(state.get()).toBe(10);

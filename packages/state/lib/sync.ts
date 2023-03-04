@@ -7,7 +7,11 @@ export function sync(stack: Rx.Stateful[]) {
 
   while (stack.length) {
     let curr: Rx.Stateful = stack.pop()!;
-    if (curr.dirty && (!(curr instanceof Computed) || curr.update())) {
+    if (curr.dirty && curr instanceof Computed) {
+      curr.recompute();
+    }
+
+    if (curr.dirty) {
       curr.dirty = false;
       if (curr.observers) notify(curr);
 
@@ -70,8 +74,8 @@ export function sync(stack: Rx.Stateful[]) {
       // }
       // pending.length = 0;
     }
-    if (curr.right) {
-      stack.push(curr.right);
+    if ((curr as any).right) {
+      stack.push((curr as any).right);
     }
   }
 }

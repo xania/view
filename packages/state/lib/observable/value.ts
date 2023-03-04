@@ -3,8 +3,8 @@ import { Rx } from '../rx';
 import { MapOperator, pushOperator } from '../operators/map';
 import { prop } from '../operators/prop';
 import { bind } from '../operators/bind';
-import { pushNode } from '../graph';
 import type { StateInput } from '../state-input';
+import { connect } from '../graph';
 
 export class Value<T> implements Rx.Stateful<T> {
   readonly observers?: Rx.StateObserver<T>[];
@@ -27,7 +27,7 @@ export class Value<T> implements Rx.Stateful<T> {
       snapshot !== undefined ? f(snapshot) : undefined
     );
     const mop: any = new MapOperator(f, mapTarget);
-    pushNode(this, mapTarget);
+    connect(this, mapTarget);
     pushOperator(this, mop);
     return mapTarget;
   }
