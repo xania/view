@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.4.16",
+  "version": "0.4.17",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -13,14 +13,21 @@
     },
     "./jsx-runtime": {
       "import": "./dist/jsx-runtime.js",
-      "require": "./dist/jsx-runtime.cjs"
+      "require": "./dist/jsx-runtime.cjs",
+      "types": "./jsx-runtime/jsx-runtime.ts"
+    },
+    "./jsx-dev-runtime": {
+      "import": "./dist/jsx-dev-runtime.js",
+      "require": "./dist/jsx-dev-runtime.cjs",
+      "types": "./jsx-runtime/jsx-dev-runtime.ts"
     }
   },
   "private": false,
   "files": [
     "types",
     "dist",
-    "lib"
+    "lib",
+    "jsx-runtime"
   ],
   "engines": {
     "node": ">=10"
