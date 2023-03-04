@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -10,6 +10,10 @@
     ".": {
       "import": "./dist/main.js",
       "require": "./dist/main.cjs"
+    },
+    "./jsx-runtime": {
+      "import": "./dist/jsx-runtime.js",
+      "require": "./dist/jsx-runtime.cjs"
     }
   },
   "private": false,
@@ -23,7 +27,7 @@
   },
   "scripts": {
     "dev": "npx vite --watch build",
-    "build": "npx vite build && npm run build:jsx-runtime",
+    "build": "npx vite build && npm run && npm run build:jsx-runtime",
     "build:jsx-runtime": "rollup -c jsx-runtime.build.config.ts --configPlugin typescript",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm run clean && npm version patch && npm run build ",
