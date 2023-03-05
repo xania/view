@@ -1,4 +1,4 @@
-﻿import { DefaultSyncScheduler } from '../scheduler';
+﻿import { TaskScheduler } from '../scheduler';
 import { Value } from './value';
 
 export class State<T> extends Value<T> {
@@ -6,7 +6,7 @@ export class State<T> extends Value<T> {
     super(snapshot);
   }
 
-  set = (input: T | Updater<T>, scheduler = DefaultSyncScheduler) => {
+  set = (input: T | Updater<T>, scheduler?: TaskScheduler) => {
     const { snapshot } = this;
     const newValue = input instanceof Function ? input(snapshot) : input;
 
@@ -14,7 +14,7 @@ export class State<T> extends Value<T> {
       this.snapshot = newValue;
       this.dirty = true;
     }
-    scheduler?.schedule(this);
+    scheduler?.scheduleState(this);
   };
 
   // state can be used as observer

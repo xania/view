@@ -7,17 +7,18 @@
 
   // export type Mode = typeof Mode[keyof typeof Mode];
 
-  export interface Graph {
-    left?: Graph;
-    right?: Graph;
-    gid?: unknown | undefined;
-    gidx: this['gid'] extends undefined ? never : number;
-  }
+  export const STALE = 0 as const;
 
   export interface Stateful<T = any> {
     // refCount?: number;
+    left?: Stateful;
+    right?: Stateful;
+    root?: Stateful;
+    gidx?: number;
+    dirty: boolean | typeof STALE;
+    version?: number;
+
     snapshot?: T;
-    dirty: boolean;
     observers?: NextObserver<T>[];
     operators?: StateOperator<T>[];
   }
@@ -36,7 +37,8 @@
     | ConnectOperator<T>
     | PropertyOperator<T, keyof T>
     | BindOperator<T>
-    | SignalOperator<T>;
+    | SignalOperator<T>
+    | EffectOperator;
 
   export enum StateOperatorType {
     Map,
@@ -49,6 +51,7 @@
      */
     Merge,
     Signal,
+    Effect,
   }
 
   export interface MergeOperator<T, U = any> {
@@ -61,6 +64,13 @@
   export interface SignalOperator<T = any> {
     type: StateOperatorType.Signal;
     target: Rx.Stateful<T>;
+    key: symbol;
+  }
+
+  export interface EffectOperator {
+    type: StateOperatorType.Effect;
+    target: Rx.Stateful;
+    key: symbol;
   }
 
   export interface MapOperator<T, U = any> {

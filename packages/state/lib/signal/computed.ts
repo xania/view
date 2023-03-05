@@ -1,12 +1,14 @@
 ﻿// import { UnwrapStates } from '../observable/combine-latest';
 import { connect } from '../graph';
 import { subscribe } from '../observable/subscribe';
-import { pushOperator, removeOperator } from '../operators/map';
+import { pushOperator } from '../operators/map';
 import { Rx } from '../rx';
+import { flushStates } from '../scheduler';
+import { sync, syncUpTo } from '../sync';
 import { nodeToString } from './utils';
 
 export function computed<T>(fn: () => T, label?: string) {
-  const computed = new Computed(fn, undefined as T, [], label);
+  const computed = new Computed(fn, undefined as T, label);
   computed.recompute();
   computed.dirty = false;
   return computed;
@@ -46,85 +48,97 @@ export function computed<T>(fn: () => T, label?: string) {
 //   parent.next = state;
 // }
 
-const computations: Computed[] = [];
+// const computations: Computed[] = [];
 
-export function register(node: Rx.Stateful) {
-  if (computations.length) {
-    // compute pending
-    const computed = computations[computations.length - 1];
-    computed.dependsOn(node);
-  }
-}
+// export function register(node: Rx.Stateful) {
+//   if (computations.length) {
+//     // compute pending
+//     const computed = computations[computations.length - 1];
+//     computed.dependsOn(node);
+//   }
+// }
 
 export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
-  constructor(
-    public fn: () => T,
-    public snapshot: T,
-    public deps: Rx.Stateful[],
-    public label?: string
-  ) {
-    for (let i = 0; i < deps.length; i++) {
-      const dep = deps[i];
+  constructor(public fn: () => T, public snapshot: T, public label?: string) {}
 
-      connect(dep, this);
-      pushOperator(dep, this);
-    }
-  }
-
-  dirty: boolean = false;
+  dirty: Rx.Stateful<T>['dirty'] = false;
   observers?: Rx.NextObserver<T>[] | undefined;
   operators?: any[] | undefined;
+  version = 1;
+  root?: Rx.Stateful<T>['root'];
 
   readonly type = Rx.StateOperatorType.Signal;
   target = this;
 
   subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
-  get = () => {
-    register(this);
+  read() {
+    syncUpTo(this);
+    // let first = this.root;
+    // while (first && first !== this) {
+    //   if (first.dirty === true) {
+    //     sync(first);
+    //     break;
+    //   }
+    //   first = first.right;
+    // }
+
+    // if (first) {
+    // }
+
+    dependsOn(this);
     return this.snapshot;
-  };
+  }
+  get = this.read;
 
   toString = nodeToString;
 
   dependsOn(dep: Rx.Stateful) {
-    const { __k } = this;
-    if (!(__k in dep)) {
-      this.deps.push(dep);
+    const { key } = this;
+
+    if (!(dep as any)[key]) {
       connect(dep, this);
       pushOperator(dep, this);
     }
-
-    (dep as any)[__k] = true;
+    (dep as any)[key] = this.version;
   }
 
-  __k = Symbol();
+  key = Symbol();
+  recompute = recompute;
+}
 
-  recompute() {
-    computations.push(this);
-    const { deps, __k } = this;
-    for (let i = 0; i < deps.length; i++) {
-      const dep = deps[i] as any;
-      dep[__k] = false;
-    }
-    const newValue = this.fn();
-    for (let i = deps.length - 1; i >= 0; i--) {
-      const dep = deps[i] as any;
-      if (dep[__k] === false) {
-        removeOperator(dep, this);
-        deps.splice(i, 1);
-      }
-    }
+interface ComputeContext<T = any> {
+  readonly key: symbol;
+  readonly fn: () => T;
+  readonly target: Rx.Stateful;
+  snapshot?: T;
+  dirty: Rx.Stateful['dirty'];
+  version: number;
+  dependsOn(state: Rx.Stateful): void;
+}
+let computeContext: ComputeContext | undefined;
+const context: ComputeContext[] = [];
+export function recompute(this: ComputeContext) {
+  if (computeContext) {
+    context.push(computeContext);
+  }
+  computeContext = this;
+  this.version++;
+  const newValue = this.fn();
+  computeContext = context.pop();
 
-    if (this !== computations.pop()) {
-      throw Error('corrupt compute stack');
-    }
-
-    if (this.snapshot !== newValue) {
-      this.snapshot = newValue;
-      this.dirty = true;
-    } else {
-      this.dirty = false;
-    }
+  if (this.snapshot !== newValue) {
+    // console.log(
+    //   'new value: ' + this + ' | ' + this.snapshot + ' <-- ' + newValue
+    // );
+    this.snapshot = newValue;
+    this.dirty = true;
+  } else {
+    this.dirty = false;
+  }
+}
+export function dependsOn(state: Rx.Stateful) {
+  if (computeContext) {
+    computeContext.dependsOn(state);
   }
 }

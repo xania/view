@@ -1,85 +1,117 @@
 ﻿import { Rx } from './rx';
-import { Signal } from './signal';
 import { sync } from './sync';
 
-export type SyncScheduler = {
-  schedule(...state: Rx.Stateful[]): void;
-};
+export interface Task {
+  run(): void;
+}
+export interface TaskScheduler {
+  scheduleTask(task: Task): void;
+  scheduleState(signal: Rx.Stateful): void;
 
-const stack: SyncScheduler[] = [];
-export function schedule(x: Signal) {
-  if (stack.length === 0) {
-    sync([x]);
+  flushStates(): void;
+  flushTasks(): void;
+}
+
+export function scheduleTask(task: Task) {
+  if (scheduler) {
+    scheduler.scheduleTask(task);
   } else {
-    stack[stack.length - 1]!.schedule(x);
+    task.run();
   }
 }
 
-export function batch(fn: Function) {
-  const batch = new BatchScheduler();
-  stack.push(batch);
-  fn();
-  if (batch !== stack.pop()) {
-    throw new Error('unexpected stack element');
+export function scheduleState(state: Rx.Stateful) {
+  if (scheduler) {
+    scheduler.scheduleState(state);
+  } else {
+    sync(state);
   }
-  batch.flush();
 }
 
-export const DefaultSyncScheduler: SyncScheduler = {
-  schedule(x) {
-    sync([x]);
-  },
-};
+export function flushStates() {
+  if (scheduler) {
+    scheduler.flushStates();
+  }
+}
 
-export class BatchScheduler implements SyncScheduler {
-  queue: Rx.Stateful[] = [];
+let scheduler: TaskScheduler | null = null;
 
-  schedule(state: Rx.Stateful) {
-    const g2 = state as any as Rx.Graph;
-    const { queue } = this;
-    for (let i = 0; i < queue.length; i++) {
-      const g1 = queue[i] as any as Rx.Graph;
-      if (g1 === g2) {
-        return true;
-      }
+export class BatchScheduler implements TaskScheduler {
+  tasks: Task[] = [];
+  states: Rx.Stateful[] = [];
 
-      if (g1.gid === g2.gid) {
-        if (g1.gidx > g2.gidx) {
-          queue[i] = state;
-        }
+  scheduleState(state: Rx.Stateful) {
+    const { states } = this;
+    const root = state.root ?? state;
 
-        return true;
+    for (let i = 0, len = states.length; i < len; i++) {
+      if (states[i] === root) {
+        return;
       }
     }
-    queue.push(state);
-    return true;
+
+    states.push(root);
   }
 
-  flush() {
-    const { queue } = this;
-    sync(queue);
-    queue.length = 0;
+  scheduleTask(task: Task) {
+    const { tasks: queue } = this;
+    for (let i = 0, len = queue.length; i < len; i++) {
+      if (queue[i] === task) {
+        return;
+      }
+    }
+    this.tasks.push(task);
+    return;
+  }
+
+  flushStates() {
+    const { states } = this;
+    if (states.length) {
+      this.states = [];
+      for (let i = 0, len = states.length; i < len; i++) {
+        sync(states[i]);
+      }
+    }
+  }
+
+  flushTasks() {
+    const { tasks } = this;
+    if (tasks.length) {
+      for (const task of tasks) {
+        task.run();
+      }
+      tasks.length = 0;
+    }
   }
 }
 
-export class AnimationScheduler implements SyncScheduler {
-  states: Rx.Stateful[] = [];
-  private _animationHndl: number = -1;
+// export class AnimationScheduler implements SyncScheduler {
+//   states: Rx.Stateful[] = [];
+//   private _animationHndl: number = -1;
 
-  schedule() {
-    const { states } = this;
-    states.push.apply(states, arguments as any);
+//   schedule() {
+//     const { states } = this;
+//     states.push.apply(states, arguments as any);
 
-    if (this._animationHndl < 0)
-      this._animationHndl = requestAnimationFrame(this.flush);
-  }
+//     if (this._animationHndl < 0)
+//       this._animationHndl = requestAnimationFrame(this.flush);
+//   }
 
-  cancel() {
-    if (this._animationHndl < 0) cancelAnimationFrame(this._animationHndl);
-  }
+//   cancel() {
+//     if (this._animationHndl < 0) cancelAnimationFrame(this._animationHndl);
+//   }
 
-  flush = () => {
-    sync(this.states);
-    this._animationHndl = -1;
-  };
+//   flush = () => {
+//     sync(this.states);
+//     this._animationHndl = -1;
+//   };
+// }
+
+const batchScheduler = new BatchScheduler();
+export function batch(fn: Function) {
+  scheduler = batchScheduler;
+  fn();
+  scheduler = null;
+  batchScheduler.flushStates();
+  batchScheduler.flushTasks();
 }

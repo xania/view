@@ -23,12 +23,14 @@ export function pushOperator(g: Rx.Stateful, op: Rx.StateOperator<any>) {
 export function removeOperator(s: Rx.Stateful, op: Rx.StateOperator) {
   const { operators } = s;
   if (operators) {
-    const idx = operators.indexOf(op);
-    if (idx >= 0) {
-      operators.splice(idx, 1);
-      return true;
-    } else {
+    for (let i = 0, len = operators.length; i < len; i++) {
+      if (operators[i] === op) {
+        for (let n = i + 1; n < len; n++) {
+          operators[n - 1] = operators[n];
+        }
+        operators.length--;
+        break;
+      }
     }
   }
-  return false;
 }

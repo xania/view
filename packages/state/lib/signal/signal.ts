@@ -1,7 +1,7 @@
 ﻿import { subscribe } from '../observable/subscribe';
 import { Rx } from '../rx';
-import { schedule } from '../scheduler';
-import { register } from './computed';
+import { scheduleState } from '../scheduler';
+import { dependsOn } from './computed';
 import { nodeToString } from './utils';
 
 export class Signal<T = any> implements Rx.Stateful<T> {
@@ -13,10 +13,11 @@ export class Signal<T = any> implements Rx.Stateful<T> {
 
   subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
-  get = () => {
-    register(this);
-    return this.snapshot as T;
-  };
+  get = this.read;
+  read() {
+    dependsOn(this);
+    return this.snapshot;
+  }
 
   set = (newValue: T) => {
     const { snapshot } = this;
@@ -24,13 +25,13 @@ export class Signal<T = any> implements Rx.Stateful<T> {
       return false;
     }
     this.snapshot = newValue;
-    if (this.dirty) {
-      return false;
-    }
+
     this.dirty = true;
-    schedule(this);
+    scheduleState(this);
+
     return true;
   };
+  write = this.set;
 
   toString = nodeToString;
 }

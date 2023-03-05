@@ -17,14 +17,14 @@ const numbers = Array.from({ length: 5 }, (_2, i) => i);
 describe('benchmarks', () => {
   it('mol bench', () => {
     let res: any[] = [];
-    const A2 = signal(0, 'A2');
+    const A = signal(0, 'A2');
     const B = signal(0, 'B');
-    const C = computed(() => (A2.get() % 2) + (B.get() % 2), 'C');
+    const C = computed(() => (A.get() % 2) + (B.get() % 2), 'C');
     const D = computed(
-      () => numbers.map((i) => ({ x: i + (A2.get() % 2) - (B.get() % 2) })),
+      () => numbers.map((i) => ({ x: i + (A.get() % 2) - (B.get() % 2) })),
       'D'
     );
-    const E = computed(() => hard(C.get() + A2.get() + D.get()[0].x, 'E'), 'E');
+    const E = computed(() => hard(C.get() + A.get() + D.get()[0].x, 'E'), 'E');
     const F = computed(() => hard(D.get()[2].x || B.get(), 'F'), 'F');
     const G = computed(
       () => C.get() + (C.get() || E.get() % 2) + D.get()[4].x + F.get(),
@@ -40,15 +40,17 @@ describe('benchmarks', () => {
       res.length = 0;
       console.log('---------- ' + i);
       batch(() => {
+        console.log('SET B = ' + 1);
         B.set(1);
-        A2.set(1 + i * 2);
+        console.log('SET A = ' + (1 + i * 2));
+        A.set(1 + i * 2);
       });
       expect(res.length).toBe(2);
       console.log(res.join(', '));
 
       console.log('----------');
       batch(() => {
-        A2.set(2 + i * 2);
+        A.set(2 + i * 2);
         B.set(2);
       });
       console.log(res.join(', '));

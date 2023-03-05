@@ -1,5 +1,9 @@
 ﻿import { expect, describe, it } from 'vitest';
-import { batch, effect, computed, signal, Signal } from '../lib';
+import { batch } from '../lib/scheduler';
+import { computed } from '../lib/signal/computed';
+import { effect } from '../lib/signal/effect';
+import { signal, Signal } from '../lib/signal/signal';
+// import { batch, effect, computed, signal, Signal } from '../lib';
 
 describe('signal', () => {
   it('create', () => {
@@ -41,7 +45,7 @@ describe('signal', () => {
       'eff01'
     );
 
-    expect(eff01.deps.length).toBe(2);
+    // expect(eff01.deps.length).toBe(2);
 
     x.set(11);
     expect(f.get()).toBe(33);
@@ -50,10 +54,10 @@ describe('signal', () => {
   });
 
   it('batch effects', () => {
-    const x = new Signal(2);
-    const y = new Signal(3);
+    const x = new Signal(2, 'x');
+    const y = new Signal(3, 'y');
 
-    const f = new Signal(0);
+    const f = new Signal(0, 'f');
 
     const eff01 = effect(
       count(
@@ -61,9 +65,10 @@ describe('signal', () => {
           f.set(x.get() * y.get());
         },
         (x) => expect(x).toBeLessThan(4)
-      )
+      ),
+      'eff01'
     );
-    expect(eff01.deps.length).toBe(2);
+    // expect(eff01.deps.length).toBe(2);
 
     batch(() => {
       x.set(11);
@@ -86,18 +91,14 @@ describe('signal', () => {
 
     expect(result.get()).toBe(y.get());
     expect(x.operators).not.toBeDefined();
-    // expect((x as Rx.Stateful).refCount).toContain(0);
-    // expect((y as Rx.Stateful).refCount).toContain(1);
-    // expect(result.roots).toContain(y);
-    // expect(result.roots).toContain(even);
-    // expect(result.roots).not.toContain(x);
+    expect((y as any)[result.key]).toBe(result.version);
+    expect((x as any)[result.key]).toBeUndefined();
+
     even.set(true);
     expect(result.get()).toBe(x.get());
-    expect(y.operators!.length).toBe(0);
-    // expect((x as Rx.Stateful).refCount).toContain(1);
-    // expect((y as Rx.Stateful).refCount).toContain(0);
-    // expect(result.roots).toContain(even);
-    // expect(result.roots).not.toContain(y);
+
+    expect((x as any)[result.key]).toBe(result.version);
+    expect((y as any)[result.key]).toBeLessThan(result.version);
   });
 });
 

@@ -1,4 +1,4 @@
-﻿import { pushNode, removeNode } from '../graph';
+﻿import { connect } from '../graph';
 import { Rx } from '../rx';
 import { StateInput } from '../state-input';
 import { from } from '../utils/from';
@@ -11,7 +11,7 @@ export function bind<T, U, TTarget extends Rx.Stateful>(
 ): TTarget {
   const { snapshot } = source;
 
-  pushNode(source, target, false);
+  connect(source, target);
 
   const connectOp = {
     type: Rx.StateOperatorType.Bind,
@@ -27,11 +27,11 @@ export function bind<T, U, TTarget extends Rx.Stateful>(
       const { prevState } = this;
       if (prevState !== boundState) {
         if (prevState) {
-          removeNode(prevState, this.target);
+          connect(prevState, this.target);
           removeOperation(prevState, connectOp);
         }
         if (boundState) {
-          pushNode(boundState, this.target, false);
+          connect(boundState, this.target);
           addOperation(boundState, connectOp);
         }
         this.prevState = boundState;

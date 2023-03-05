@@ -29,9 +29,9 @@ export function broadPropagation(bridge: ReactiveFramework) {
     for (let i = 0; i < 50; i++) {
       bridge.withBatch(() => {
         head.write(i);
-        bridge.assert(last.read(), i + 50);
+        bridge.assert(last.read(), i + 50, 'last read');
       });
     }
-    bridge.assert(callCounter.count, atleast);
+    bridge.assert(callCounter.count, atleast, 'callCounter');
   };
 }
