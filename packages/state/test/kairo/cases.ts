@@ -9,8 +9,8 @@ import { unstable } from './unstable';
 
 import { ReactiveFramework } from '../util/reactiveFramework';
 // import { batch, computed, effect, Signal } from '../../index';
-import { computed, effect, signal, Signal } from '../../lib/signal';
-import { batch } from '../../lib/scheduler';
+import { computed, signal, Signal } from '../../lib/signal';
+import { batch } from '../../lib/batch';
 import { expect } from 'vitest';
 
 export const cases = {
@@ -43,7 +43,7 @@ const framework: ReactiveFramework = {
   signal: signal,
   computed: computed,
   run: () => {},
-  effect: effect,
+  effect() {},
   withBatch: batch,
   withBuild: (fn) => fn(),
   assert(x, y) {

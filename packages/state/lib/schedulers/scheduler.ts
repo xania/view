@@ -1,5 +1,5 @@
-﻿import { Rx } from './rx';
-import { sync } from './sync';
+﻿import { Rx } from '../rx';
+import { sync } from '../sync';
 
 export interface Task {
   run(): void;
@@ -106,12 +106,3 @@ export class BatchScheduler implements TaskScheduler {
 //     this._animationHndl = -1;
 //   };
 // }
-
-const batchScheduler = new BatchScheduler();
-export function batch(fn: Function) {
-  scheduler = batchScheduler;
-  fn();
-  scheduler = null;
-  batchScheduler.flushStates();
-  batchScheduler.flushTasks();
-}

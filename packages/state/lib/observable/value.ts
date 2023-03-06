@@ -5,6 +5,7 @@ import { prop } from '../operators/prop';
 import { bind } from '../operators/bind';
 import type { StateInput } from '../state-input';
 import { connect } from '../graph';
+import { combineLatest } from './combine-latest';
 
 export class Value<T> implements Rx.Stateful<T> {
   readonly observers?: Rx.StateObserver<T>[];
@@ -74,4 +75,12 @@ export class Value<T> implements Rx.Stateful<T> {
       },
     };
   };
+
+  join<U>(x: StateInput<U>): Value<[T, U]>;
+  join<U, R>(x: StateInput<U>, map: (x: T, y: U) => R): Value<R>;
+  join<U, R>(x: StateInput<U>, map?: (x: T, y: U) => R) {
+    const comb = combineLatest([this, x]);
+    if (map) return comb.map((p) => map.apply(null, p));
+    else return comb;
+  }
 }

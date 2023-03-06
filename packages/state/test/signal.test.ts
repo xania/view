@@ -1,7 +1,7 @@
 ﻿import { expect, describe, it } from 'vitest';
-import { batch } from '../lib/scheduler';
+import { batch } from '../lib/batch';
+import { combineLatest } from '../lib/observable/combine-latest';
 import { computed } from '../lib/signal/computed';
-import { effect } from '../lib/signal/effect';
 import { signal, Signal } from '../lib/signal/signal';
 // import { batch, effect, computed, signal, Signal } from '../lib';
 
@@ -33,17 +33,7 @@ describe('signal', () => {
     const x = new Signal(2, 'x');
     const y = new Signal(3, 'y');
 
-    const f = new Signal(0, 'f');
-
-    const eff01 = effect(
-      count(
-        () => {
-          f.set(x.get() * y.get());
-        },
-        (x) => expect(x).toBeLessThan(4)
-      ),
-      'eff01'
-    );
+    const f = combineLatest([x, y]).map(([x, y]) => x * y);
 
     // expect(eff01.deps.length).toBe(2);
 
@@ -57,17 +47,7 @@ describe('signal', () => {
     const x = new Signal(2, 'x');
     const y = new Signal(3, 'y');
 
-    const f = new Signal(0, 'f');
-
-    const eff01 = effect(
-      count(
-        () => {
-          f.set(x.get() * y.get());
-        },
-        (x) => expect(x).toBeLessThan(4)
-      ),
-      'eff01'
-    );
+    const f = combineLatest([x, y]).map(([x, y]) => x * y);
     // expect(eff01.deps.length).toBe(2);
 
     batch(() => {

@@ -9,10 +9,7 @@ export function avoidablePropagation(bridge: ReactiveFramework) {
   let computed3 = bridge.computed(() => (busy(), computed2.read() + 1), 'c3'); // heavy computation
   let computed4 = bridge.computed(() => computed3.read() + 2, 'c4');
   let computed5 = bridge.computed(() => computed4.read() + 3, 'c5');
-  bridge.effect(() => {
-    computed5.read();
-    busy(); // heavy side effect
-  }, 'effect');
+  // computed5.effect(busy);
 
   return () => {
     bridge.withBatch(() => {

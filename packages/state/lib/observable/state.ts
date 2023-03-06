@@ -1,4 +1,4 @@
-﻿import { TaskScheduler } from '../scheduler';
+﻿import { TaskScheduler } from '../schedulers/scheduler';
 import { Value } from './value';
 
 export class State<T> extends Value<T> {

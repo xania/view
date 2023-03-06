@@ -3,8 +3,6 @@ import { connect } from '../graph';
 import { subscribe } from '../observable/subscribe';
 import { pushOperator } from '../operators/map';
 import { Rx } from '../rx';
-import { flushStates } from '../scheduler';
-import { sync, syncUpTo } from '../sync';
 import { nodeToString } from './utils';
 
 export function computed<T>(fn: () => T, label?: string) {
@@ -64,8 +62,8 @@ export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
   dirty: Rx.Stateful<T>['dirty'] = false;
   observers?: Rx.NextObserver<T>[] | undefined;
   operators?: any[] | undefined;
-  version = 1;
   root?: Rx.Stateful<T>['root'];
+  version = 1;
 
   readonly type = Rx.StateOperatorType.Signal;
   target = this;
@@ -73,19 +71,6 @@ export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
   subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
 
   read() {
-    syncUpTo(this);
-    // let first = this.root;
-    // while (first && first !== this) {
-    //   if (first.dirty === true) {
-    //     sync(first);
-    //     break;
-    //   }
-    //   first = first.right;
-    // }
-
-    // if (first) {
-    // }
-
     dependsOn(this);
     return this.snapshot;
   }
@@ -128,9 +113,6 @@ export function recompute(this: ComputeContext) {
   computeContext = context.pop();
 
   if (this.snapshot !== newValue) {
-    // console.log(
-    //   'new value: ' + this + ' | ' + this.snapshot + ' <-- ' + newValue
-    // );
     this.snapshot = newValue;
     this.dirty = true;
   } else {

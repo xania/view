@@ -1,0 +1,33 @@
+﻿import { Rx } from './rx';
+import { sync } from './sync';
+
+export function write<T>(this: Rx.Stateful, newValue: T) {
+  const { snapshot } = this;
+  if (newValue !== snapshot) {
+    this.snapshot = newValue;
+    this.dirty = true;
+    if (_scheduler) {
+      _scheduler.add(this);
+    } else {
+      sync(this);
+    }
+  }
+}
+
+interface Scheduler {
+  add(s: Rx.Stateful): void;
+}
+let _scheduler: Scheduler | null = null;
+export function pushScheduler(scheduler: Scheduler) {
+  if (_scheduler) {
+    throw Error('cascading scheduler not (yet) supported');
+  }
+  _scheduler = scheduler;
+}
+export function popScheduler(scheduler: Scheduler) {
+  if (scheduler !== _scheduler) {
+    throw Error('scheduler mismatch');
+  }
+
+  _scheduler = null;
+}

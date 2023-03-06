@@ -37,8 +37,7 @@
     | ConnectOperator<T>
     | PropertyOperator<T, keyof T>
     | BindOperator<T>
-    | SignalOperator<T>
-    | EffectOperator;
+    | SignalOperator<T>;
 
   export enum StateOperatorType {
     Map,
@@ -51,7 +50,6 @@
      */
     Merge,
     Signal,
-    Effect,
   }
 
   export interface MergeOperator<T, U = any> {
@@ -64,12 +62,6 @@
   export interface SignalOperator<T = any> {
     type: StateOperatorType.Signal;
     target: Rx.Stateful<T>;
-    key: symbol;
-  }
-
-  export interface EffectOperator {
-    type: StateOperatorType.Effect;
-    target: Rx.Stateful;
     key: symbol;
   }
 

@@ -1,6 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest';
-import { batch } from '../lib/scheduler';
-import { effect } from '../lib/signal/effect';
+import { batch } from '../lib/batch';
 import { computed } from '../lib/signal/computed';
 import { signal } from '../lib/signal/signal';
 
@@ -30,12 +29,22 @@ describe('benchmarks', () => {
       () => C.get() + (C.get() || E.get() % 2) + D.get()[4].x + F.get(),
       'G'
     );
-    const H2 = effect(() => res.push(hard(G.get(), 'H')), 'H2');
-    const I2 = effect(() => res.push(G.get()), 'I2');
-    const J = effect(
-      () => res.push('J ' + F.get() + ' - ' + hard(F.get(), 'J')),
-      'J'
-    );
+    G.subscribe({
+      next(g) {
+        res.push(hard(g, 'H'));
+      },
+    });
+    G.subscribe({
+      next(g) {
+        res.push(g);
+      },
+    });
+    F.subscribe({
+      next(f) {
+        res.push('J ' + f + ' - ' + hard(f, 'J'));
+      },
+    });
+
     function iter(i: number) {
       res.length = 0;
       console.log('---------- ' + i);

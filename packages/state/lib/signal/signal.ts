@@ -1,6 +1,6 @@
 ﻿import { subscribe } from '../observable/subscribe';
 import { Rx } from '../rx';
-import { scheduleState } from '../scheduler';
+import { write } from '../write';
 import { dependsOn } from './computed';
 import { nodeToString } from './utils';
 
@@ -19,19 +19,8 @@ export class Signal<T = any> implements Rx.Stateful<T> {
     return this.snapshot;
   }
 
-  set = (newValue: T) => {
-    const { snapshot } = this;
-    if (newValue === snapshot) {
-      return false;
-    }
-    this.snapshot = newValue;
-
-    this.dirty = true;
-    scheduleState(this);
-
-    return true;
-  };
-  write = this.set;
+  write = write;
+  set = this.write;
 
   toString = nodeToString;
 }
