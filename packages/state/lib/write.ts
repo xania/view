@@ -3,7 +3,7 @@ import { sync } from './sync';
 
 type Updater<T> = (t?: T) => undefined | T;
 
-export function write<T>(this: Rx.Stateful, input: T | Updater<T>) {
+export function write<T>(this: Rx.Stateful<T>, input: T | Updater<T>) {
   const { snapshot } = this;
   const newValue = input instanceof Function ? input(snapshot) : input;
 

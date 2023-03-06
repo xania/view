@@ -59,7 +59,7 @@ class CombinedState<T extends [...any[]]> implements Rx.Stateful<T> {
 
     const target = new Value<U>(mappedValue);
     const operator: any = new MapOperator(f, target);
-    connect(this, operator);
+    connect(this, target);
     pushOperator(this, operator);
 
     return target;

@@ -1,6 +1,6 @@
 {
   "name": "@xania/state",
-  "version": "0.1.50",
+  "version": "0.1.51",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",

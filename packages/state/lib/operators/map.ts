@@ -2,11 +2,6 @@
 
 export class MapOperator<T, U> implements Rx.MapOperator<T, U> {
   type: Rx.StateOperatorType.Map = Rx.StateOperatorType.Map;
-
-  dirty: boolean = false;
-  observers?: Rx.NextObserver<U>[] | undefined;
-  operators?: Rx.StateOperator<U>[];
-
   constructor(public func: (t: T) => U, public target: Rx.Stateful<U>) {}
 }
 

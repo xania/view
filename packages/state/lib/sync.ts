@@ -161,7 +161,10 @@ export function sync(...stack: Rx.Stateful[]) {
 //   }
 // }
 
-function updateBind<T>(source: Rx.Stateful<T>, operator: Rx.BindOperator<T>) {
+function updateBind<T>(
+  source: Rx.Stateful<T>,
+  operator: Rx.BindOperator<T>
+): boolean {
   const sourceValue = source.snapshot;
   if (sourceValue !== undefined) {
     const { boundState: prevState, connectOp, binder } = operator;
@@ -185,4 +188,5 @@ function updateBind<T>(source: Rx.Stateful<T>, operator: Rx.BindOperator<T>) {
       operator.boundState = boundState;
     }
   }
+  return false;
 }
