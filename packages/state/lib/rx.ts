@@ -9,6 +9,12 @@
 
   export const STALE = 0 as const;
 
+  export type StateInput<T> =
+    | Promise<T>
+    | AsyncIterable<T>
+    | Rx.Observable<T>
+    | Stateful<T>;
+
   export interface Stateful<T = any> {
     // refCount?: number;
     left?: Stateful;
@@ -73,8 +79,10 @@
 
   export interface BindOperator<T, U = any> {
     type: StateOperatorType.Bind;
-    func: (t: T) => U;
+    binder: (x: T) => StateInput<U>;
     target: Stateful<U>;
+    connectOp: ConnectOperator<U>;
+    boundState?: Stateful<U>;
   }
 
   export interface ConnectOperator<T> {
@@ -101,6 +109,7 @@
   }
 
   export interface Subscribable<T> {
+    snapshot?: T;
     observers?: NextObserver<T>[];
     subscribe(observer: NextObserver<T>): Subscription;
   }

@@ -1,17 +1,12 @@
-﻿import { subscribe } from '../observable/subscribe';
-import { Rx } from '../rx';
+﻿import { Value } from '../observable/value';
 import { write } from '../write';
 import { dependsOn } from './computed';
 import { nodeToString } from './utils';
 
-export class Signal<T = any> implements Rx.Stateful<T> {
-  constructor(public snapshot: T, public label?: string) {}
-
-  dirty: boolean = false;
-  observers?: Rx.NextObserver<T>[] | undefined;
-  operators?: Rx.StateOperator<T>[] | undefined;
-
-  subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
+export class Signal<T = any> extends Value<T> {
+  constructor(public snapshot: T, public label?: string) {
+    super(snapshot);
+  }
 
   get = this.read;
   read() {

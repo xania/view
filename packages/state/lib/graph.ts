@@ -1,4 +1,4 @@
-﻿import { Rx } from './rx';
+﻿import type { Rx } from './rx';
 
 export function connect(source: Rx.Stateful, target: Rx.Stateful): boolean {
   if (source === target) return false;

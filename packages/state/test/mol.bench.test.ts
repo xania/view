@@ -1,7 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest';
-import { batch } from '../lib/batch';
-import { computed } from '../lib/signal/computed';
-import { signal } from '../lib/signal/signal';
+import { signal, computed, batch } from '../lib';
 
 function fib(n: number): number {
   if (n < 2) return 1;
@@ -67,8 +65,8 @@ describe('benchmarks', () => {
       expect(res.length).toBe(4);
     }
     iter(1);
-    // iter(0);
-    // iter(1);
-    // iter(2);
+    iter(0);
+    iter(1);
+    iter(2);
   });
 });

@@ -1,72 +1,48 @@
 ﻿import { connect } from '../graph';
+import type { Value } from '../observable/value';
 import { Rx } from '../rx';
-import { StateInput } from '../state-input';
-import { from } from '../utils/from';
-import { id } from '../utils/id';
+import { pushOperator } from './map';
 
-export function bind<T, U, TTarget extends Rx.Stateful>(
+export function bind<T, U>(
   source: Rx.Stateful<T>,
-  binder: (t: T) => StateInput<U>,
-  target: TTarget
-): TTarget {
-  const { snapshot } = source;
+  binder: (t: T) => Rx.StateInput<U>,
+  target: Value<U>
+) {
+  // const { snapshot } = source;
+
+  target.dirty = Rx.STALE;
 
   connect(source, target);
 
   const connectOp = {
-    type: Rx.StateOperatorType.Bind,
-    func: id,
+    type: Rx.StateOperatorType.Connect,
     target,
-  } as Rx.BindOperator<U>;
+  } as Rx.ConnectOperator<U>;
 
   const bindOp = {
-    prevState: undefined as Rx.Stateful<U> | undefined | null,
     type: Rx.StateOperatorType.Bind,
-    func(x: T): U {
-      const boundState = from(binder(x) as any) as Rx.Stateful<any>;
-      const { prevState } = this;
-      if (prevState !== boundState) {
-        if (prevState) {
-          connect(prevState, this.target);
-          removeOperation(prevState, connectOp);
-        }
-        if (boundState) {
-          connect(boundState, this.target);
-          addOperation(boundState, connectOp);
-        }
-        this.prevState = boundState;
-        return boundState?.snapshot as U;
-      } else {
-        return prevState?.snapshot as U;
-      }
-    },
     target,
-  };
+    binder,
+    connectOp,
+  } satisfies Rx.BindOperator<T, U>;
 
-  if (snapshot) {
-    const init = bindOp.func(snapshot);
-    if (init !== undefined) {
-      target.snapshot = init;
-    }
-  }
-
-  addOperation(source, bindOp as Rx.StateOperator<T>);
+  pushOperator(source, bindOp as Rx.StateOperator<T>);
   return target;
 }
 
-function removeOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
-  const { operators } = state;
-  if (operators) {
-    const idx = operators.indexOf(op);
-    operators.splice(idx, 1);
-  }
-}
+// function removeOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
+//   const { operators } = state;
+//   if (operators) {
+//     const idx = operators.indexOf(op);
+//     operators.splice(idx, 1);
+//   }
+// }
 
-function addOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
-  const { operators } = state;
-  if (operators) {
-    operators.push(op);
-  } else {
-    state.operators = [op];
-  }
-}
+// function addOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
+//   const { operators } = state;
+//   if (operators) {
+//     operators.push(op);
+//   } else {
+//     state.operators = [op];
+//   }
+// }

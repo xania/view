@@ -1,4 +1,4 @@
-﻿import { Rx } from '../rx';
+﻿import type { Rx } from '../rx';
 
 export function nodeToString(
   this: Rx.Stateful,

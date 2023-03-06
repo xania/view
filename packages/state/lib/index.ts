@@ -4,3 +4,6 @@ export * from './utils/from';
 export * from './schedulers/scheduler';
 export * from './utils/from';
 export * from './utils/id';
+export * from './rx';
+export * from './graph';
+export * from './batch';

@@ -1,6 +1,9 @@
 ﻿import { Rx } from './rx';
 import { notify } from './notify';
 import { Computed } from './signal';
+import { connect } from './graph';
+import { from } from './utils/from';
+import { pushOperator, removeOperator } from './operators/map';
 
 export function sync(...stack: Rx.Stateful[]) {
   // const pending: Rx.SignalOperator[] = [];
@@ -33,13 +36,14 @@ export function sync(...stack: Rx.Stateful[]) {
                   target.dirty = true;
                 }
                 break;
-              case Rx.StateOperatorType.Bind:
-                const bindValue = operator.func(snapshot);
-                const bindTarget = operator.target;
-                if (bindTarget.snapshot !== bindValue) {
-                  bindTarget.snapshot = bindValue;
-                  bindTarget.dirty = true;
+              case Rx.StateOperatorType.Connect:
+                if (operator.target.snapshot !== snapshot) {
+                  operator.target.snapshot = snapshot;
+                  operator.target.dirty = true;
                 }
+                break;
+              case Rx.StateOperatorType.Bind:
+                updateBind(state, operator);
                 break;
               case Rx.StateOperatorType.Merge:
                 const { property } = operator;
@@ -156,3 +160,29 @@ export function sync(...stack: Rx.Stateful[]) {
 //     state = (state as any).right;
 //   }
 // }
+
+function updateBind<T>(source: Rx.Stateful<T>, operator: Rx.BindOperator<T>) {
+  const sourceValue = source.snapshot;
+  if (sourceValue !== undefined) {
+    const { boundState: prevState, connectOp, binder } = operator;
+    const boundState = from(binder(sourceValue)) as Rx.Stateful<any>;
+    if (prevState !== boundState) {
+      if (prevState) {
+        connect(prevState, operator.target);
+        removeOperator(prevState, connectOp);
+      }
+      if (boundState) {
+        connect(boundState, operator.target);
+        pushOperator(boundState, connectOp);
+
+        const boundValue = boundState.snapshot;
+        const { target } = operator;
+        if (target.snapshot !== boundValue) {
+          target.snapshot = boundValue;
+          target.dirty = true;
+        }
+      }
+      operator.boundState = boundState;
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿import { TaskScheduler } from '../schedulers/scheduler';
+﻿import { write } from '../write';
 import { Value } from './value';
 
 export class State<T> extends Value<T> {
@@ -6,19 +6,8 @@ export class State<T> extends Value<T> {
     super(snapshot);
   }
 
-  set = (input: T | Updater<T>, scheduler?: TaskScheduler) => {
-    const { snapshot } = this;
-    const newValue = input instanceof Function ? input(snapshot) : input;
-
-    if (newValue !== snapshot) {
-      this.snapshot = newValue;
-      this.dirty = true;
-    }
-    scheduler?.scheduleState(this);
-  };
-
-  // state can be used as observer
-  next = this.set;
+  // choose ur flavor for write
+  set = write;
+  next = write;
+  write = write;
 }
-
-type Updater<T> = (t?: T) => undefined | T;

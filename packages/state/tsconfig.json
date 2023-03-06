@@ -4,7 +4,8 @@
     "test.ts",
     "test/graph.test.ts",
     "test/mol.bench.test.ts",
-    "test/signal.test.ts"
+    "test/signal.test.ts",
+    "test/observable.test.ts"
   ],
   "compilerOptions": {
     "declarationDir": "dist/es2015",

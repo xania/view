@@ -1,8 +1,12 @@
 ﻿import { Rx } from './rx';
 import { sync } from './sync';
 
-export function write<T>(this: Rx.Stateful, newValue: T) {
+type Updater<T> = (t?: T) => undefined | T;
+
+export function write<T>(this: Rx.Stateful, input: T | Updater<T>) {
   const { snapshot } = this;
+  const newValue = input instanceof Function ? input(snapshot) : input;
+
   if (newValue !== snapshot) {
     this.snapshot = newValue;
     this.dirty = true;

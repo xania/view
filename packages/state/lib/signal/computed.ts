@@ -1,6 +1,6 @@
 ﻿// import { UnwrapStates } from '../observable/combine-latest';
 import { connect } from '../graph';
-import { subscribe } from '../observable/subscribe';
+import { Value } from '../observable/value';
 import { pushOperator } from '../operators/map';
 import { Rx } from '../rx';
 import { nodeToString } from './utils';
@@ -56,23 +56,23 @@ export function computed<T>(fn: () => T, label?: string) {
 //   }
 // }
 
-export class Computed<T = any> implements Rx.Stateful<T>, Rx.SignalOperator<T> {
-  constructor(public fn: () => T, public snapshot: T, public label?: string) {}
+export class Computed<T = any>
+  extends Value<T>
+  implements Rx.SignalOperator<T>
+{
+  constructor(public fn: () => T, snapshot: T, public label?: string) {
+    super(snapshot);
+  }
 
-  dirty: Rx.Stateful<T>['dirty'] = false;
-  observers?: Rx.NextObserver<T>[] | undefined;
-  operators?: any[] | undefined;
   root?: Rx.Stateful<T>['root'];
   version = 1;
 
   readonly type = Rx.StateOperatorType.Signal;
   target = this;
 
-  subscribe: Rx.Subscribable<T>['subscribe'] = subscribe;
-
   read() {
     dependsOn(this);
-    return this.snapshot;
+    return this.snapshot as T;
   }
   get = this.read;
 

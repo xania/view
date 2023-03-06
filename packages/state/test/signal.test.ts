@@ -1,8 +1,5 @@
 ﻿import { expect, describe, it } from 'vitest';
-import { batch } from '../lib/batch';
-import { combineLatest } from '../lib/observable/combine-latest';
-import { computed } from '../lib/signal/computed';
-import { signal, Signal } from '../lib/signal/signal';
+import { computed, signal, Signal, combineLatest, batch } from '../lib';
 // import { batch, effect, computed, signal, Signal } from '../lib';
 
 describe('signal', () => {

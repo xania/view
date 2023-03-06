@@ -1,6 +1,6 @@
 ﻿import { expect, describe, it } from 'vitest';
-import { combineLatest } from './combine-latest';
-import { State } from './state';
+import { combineLatest } from '../lib/observable/combine-latest';
+import { State } from '../lib/observable/state';
 
 describe('observable', () => {
   it('create', () => {
@@ -12,6 +12,20 @@ describe('observable', () => {
     const x = new State(2);
     const y = x.map((x) => x * 3);
     expect(y.get()).toBe(6);
+  });
+  it('bind operator', () => {
+    const x = new State(1);
+    const y = x.bind((a) => Promise.resolve(a * 2));
+    expect(y.dirty).not.toBe(false);
+
+    return new Promise<void>((resolve) => {
+      y.effect((value) => {
+        expect(value).toBe(4);
+        resolve();
+      });
+
+      x.set(2);
+    });
   });
 
   it('combine latest', () => {

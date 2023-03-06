@@ -17,8 +17,7 @@ class BatchScheduler {
   }
   flush() {
     const { queue } = this;
-    for (const x of queue) {
-      sync(x);
-    }
+    sync(...queue);
+    queue.length = 0;
   }
 }

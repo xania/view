@@ -6,11 +6,11 @@ export function subscribe<T, O extends Rx.NextObserver<T>>(
 ): Rx.Subscription {
   const value = this;
 
-  // const { snapshot } = value;
+  const { snapshot } = value;
 
-  // if (snapshot !== undefined) {
-  //   observer.next(snapshot);
-  // }
+  if (snapshot !== undefined) {
+    observer.next(snapshot);
+  }
 
   let { observers } = value;
   if (observers) {

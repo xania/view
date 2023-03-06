@@ -1,7 +1,5 @@
 ﻿import { describe, expect, it } from 'vitest';
-import { connect } from '../lib/graph';
-import type { Rx } from '../lib/rx';
-import { signal } from '../lib/signal/signal';
+import { signal, Rx, connect } from '../lib';
 import { assertGraph } from './assert';
 
 function node(label: string) {

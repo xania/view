@@ -4,13 +4,12 @@ import { Rx } from '../rx';
 import { subscribe } from './subscribe';
 import { from } from '../utils/from';
 import { Value } from './value';
-import { StateInput } from '../state-input';
 const syncValue = Symbol('snapshot');
 
 export type UnwrapState<T> = T extends Rx.Stateful<infer U> ? U : never;
 export type UnwrapStates<T> = { [P in keyof T]: UnwrapState<T[P]> };
 
-export function combineLatest<TArgs extends [...StateInput<any>[]]>(
+export function combineLatest<TArgs extends [...Rx.StateInput<any>[]]>(
   args: [...TArgs]
 ) {
   const argsLen = args.length;
