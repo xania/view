@@ -22,16 +22,19 @@ async function installXaniaPackage(actions: Action[] = []) {
           compilerOptions: {
             composite: true,
             paths: {
-              ["@xania/view"]: ["./xania/view"],
-              ["@xania/state"]: ["./xania/state"],
+              "@xania/view": ["./xania/view/index.ts"],
+              "@xania/state": ["./xania/state/index.ts"],
             },
           },
         }),
         vite({
           resolve: {
             alias: {
-              "@xania/view": "./xania/view",
-              "@xania/state": "./xania/state",
+              "~": process.cwd(),
+              "@xania/view/jsx-runtime": "~/xania/view/jsx-runtime.ts",
+              "@xania/view/jsx-dev-runtime": "~/xania/view/jsx-runtime.ts",
+              "@xania/view": "~/xania/view/index.ts",
+              "@xania/state": "~/xania/state/index.ts",
             },
           },
         }),
