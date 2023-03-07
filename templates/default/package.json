@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "author": "{{ author }}",
   "type": "module",
+  "workspaces": [
+    "examples/*"
+  ],
   "scripts": {
     "start": "npx vite",
     "build": "npx vite build",

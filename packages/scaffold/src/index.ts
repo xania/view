@@ -75,7 +75,7 @@ async function addExamples(actions: Action[] = []) {
 
   const tpl = templates.find((e) => e.name === response);
   if (tpl) {
-    const targetPath = "src/" + tpl.name;
+    const targetPath = "examples/" + tpl.name;
     actions.push(
       subgit("xania/view/" + tpl.path, targetPath),
       npmInstall("@xania/state")

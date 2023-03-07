@@ -4,12 +4,7 @@
     "start": "npm start --workspace packages/kitchen-sink"
   },
   "workspaces": [
-    "packages/view",
-    "packages/state",
-    "packages/vite-plugin-resumable",
-    "packages/kitchen-sink",
-    "packages/create-app",
-    "packages/scaffold"
+    "packages/*"
   ],
   "devDependencies": {
     "@types/prettier": "^2.7.2",
