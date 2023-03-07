@@ -28,6 +28,17 @@ export function sync(...stack: Rx.Stateful[]) {
           for (let o = operators.length - 1; o >= 0; o--) {
             const operator = operators[o];
             switch (operator.type) {
+              case Rx.StateOperatorType.Property:
+                if (snapshot !== undefined) {
+                  const mappedValue =
+                    snapshot === null ? null : snapshot[operator.name];
+                  const { target } = operator;
+                  if (target.snapshot !== mappedValue) {
+                    target.snapshot = mappedValue;
+                    target.dirty = true;
+                  }
+                }
+                break;
               case Rx.StateOperatorType.Map:
                 const mappedValue = operator.func(snapshot);
                 const { target } = operator;

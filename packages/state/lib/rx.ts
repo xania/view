@@ -1,4 +1,6 @@
-﻿export namespace Rx {
+﻿import type { Value } from './observable/value';
+
+export namespace Rx {
   // export const Mode = {
   //   synced: 0,
   //   dirty: 1,
@@ -12,10 +14,10 @@
   export type StateInput<T> =
     | Promise<T>
     | AsyncIterable<T>
-    | Rx.Observable<T>
-    | Stateful<T>;
+    | Observable<T>
+    | Value<T>;
 
-  export interface Stateful<T = any> {
+  export interface Stateful<T = any> extends Observable<T> {
     // refCount?: number;
     left?: Stateful;
     right?: Stateful;

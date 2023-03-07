@@ -1,6 +1,7 @@
 ﻿import { connect } from '../graph';
 import type { Value } from '../observable/value';
 import { Rx } from '../rx';
+import { from } from '../utils/from';
 import { pushOperator } from './map';
 
 export function bind<T, U>(
@@ -19,7 +20,25 @@ export function bind<T, U>(
     target,
   } as Rx.ConnectOperator<U>;
 
+  const { snapshot } = source;
+  const boundState =
+    snapshot !== undefined ? from(binder(snapshot)) : undefined;
+
+  if (boundState) {
+    connect(boundState, target);
+    pushOperator(boundState, connectOp);
+
+    if (
+      boundState.snapshot !== undefined &&
+      boundState.snapshot !== target.snapshot
+    ) {
+      target.snapshot = boundState.snapshot;
+      target.dirty = true;
+    }
+  }
+
   const bindOp = {
+    boundState,
     type: Rx.StateOperatorType.Bind,
     target,
     binder,
@@ -29,20 +48,3 @@ export function bind<T, U>(
   pushOperator(source, bindOp as Rx.StateOperator<T>);
   return target;
 }
-
-// function removeOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
-//   const { operators } = state;
-//   if (operators) {
-//     const idx = operators.indexOf(op);
-//     operators.splice(idx, 1);
-//   }
-// }
-
-// function addOperation<T>(state: Rx.Stateful<T>, op: Rx.StateOperator<T>) {
-//   const { operators } = state;
-//   if (operators) {
-//     operators.push(op);
-//   } else {
-//     state.operators = [op];
-//   }
-// }

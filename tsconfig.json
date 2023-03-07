@@ -10,12 +10,9 @@
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
-
     "noEmit": true,
-
     "jsx": "react-jsx",
     "jsxImportSource": "@xania/view",
-    "typeRoots": ["@xania/view/types"],
 
     "paths": {
       "@xania/view/jsx-runtime": ["./packages/view/jsx-runtime.ts"],

@@ -68,15 +68,13 @@ export function listen(
     }
   }
 
-  container.addEventListener(
-    jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any),
-    handler,
-    true
-  );
+  const eventName =
+    jsxEvent.name === 'blur' ? 'focusout' : (jsxEvent.name as any);
+  container.addEventListener(eventName, handler, true);
 
   return {
     dispose() {
-      container.removeEventListener(jsxEvent.name, handler);
+      container.removeEventListener(eventName, handler, true);
     },
   };
 }

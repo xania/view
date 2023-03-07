@@ -42,11 +42,15 @@ export function render<T = any>(
       if (container instanceof Anchor) {
         const node = container.container;
         for (const [evt, rootIdx] of events) {
-          listen(node, evt, rootIdx);
+          const disposable = listen(node, evt, rootIdx);
+          if (execContext.bindings) execContext.bindings.push(disposable);
+          else execContext.bindings = [disposable];
         }
       } else {
         for (const [evt, rootIdx] of events) {
-          listen(container, evt, rootIdx);
+          const disposable = listen(container, evt, rootIdx);
+          if (execContext.bindings) execContext.bindings.push(disposable);
+          else execContext.bindings = [disposable];
         }
       } // for (const obs of observables) {
       //   const subs = obs.subscribe({

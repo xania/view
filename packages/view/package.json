@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.4.28",
+  "version": "0.4.31",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",

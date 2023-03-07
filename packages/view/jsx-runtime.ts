@@ -43,4 +43,4 @@ export function Fragment(props: { children: JSX.Children }) {
   return props.children;
 }
 
-export const jsxs = jsx;
+export { jsx as jsxs, jsx as jsxDEV };
