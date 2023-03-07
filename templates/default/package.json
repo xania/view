@@ -1,0 +1,17 @@
+{
+  "name": "{{ kebab name }}",
+  "description": "{{ description }}",
+  "version": "0.0.0",
+  "author": "{{ author }}",
+  "scripts": {
+    "start": "npx vite",
+    "build": "npx vite build"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "vite": "latest"
+  }
+}
