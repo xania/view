@@ -179,10 +179,12 @@ function updateBind<T>(
         pushOperator(boundState, connectOp);
 
         const boundValue = boundState.snapshot;
-        const { target } = operator;
-        if (target.snapshot !== boundValue) {
-          target.snapshot = boundValue;
-          target.dirty = true;
+        if (boundValue !== undefined) {
+          const { target } = operator;
+          if (target.snapshot !== boundValue) {
+            target.snapshot = boundValue;
+            target.dirty = true;
+          }
         }
       }
       operator.boundState = boundState;
