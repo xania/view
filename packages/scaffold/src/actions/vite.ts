@@ -27,7 +27,6 @@ export function vite(config: Optional<UserConfig>): Action {
       targetFile,
       `
 import { defineConfig } from "vite";
-import path from "node:path";
 
 export default defineConfig(${JSON.stringify(viteConfig, null, "  ")});
       `,
