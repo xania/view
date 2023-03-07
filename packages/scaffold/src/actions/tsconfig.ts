@@ -35,4 +35,8 @@ interface TsConfigScheme {
     paths: Record<string, string[]>;
     composite: boolean;
   };
+
+  references: {
+    path: string;
+  }[];
 }

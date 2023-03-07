@@ -11,7 +11,8 @@
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
     "noEmit": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "composite": true
   },
   "references": [{ "path": "./tsconfig.xania.json" }]
 }

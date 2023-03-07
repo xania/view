@@ -1,7 +1,6 @@
 ﻿import enquirer from "enquirer";
 import { Action } from "./actions/action";
 import { subgit } from "./actions/subgit";
-import { submodule } from "./actions/submodule";
 import { npmInstall, npmUninstall } from "./actions/npm";
 import { tsconfig } from "./actions/tsconfig";
 import { vite } from "./actions/vite";
@@ -21,9 +20,6 @@ async function installXaniaPackage(actions: Action[] = []) {
         npmUninstall("@xania/view", "@xania/state"),
         tsconfig("tsconfig.xania.json", {
           compilerOptions: {
-            jsx: "react-jsx",
-            jsxImportSource: "@xania/view",
-            composite: true,
             paths: {
               ["@xania/view"]: ["./xania/view"],
               ["@xania/state"]: ["./xania/state"],
@@ -46,14 +42,6 @@ async function installXaniaPackage(actions: Action[] = []) {
       actions.push(
         npmInstall("@xania/view", "@xania/state"),
         vite({}),
-        tsconfig("tsconfig.xania.json", {
-          compilerOptions: {
-            jsx: "react-jsx",
-            jsxImportSource: "@xania/view",
-            composite: true,
-          },
-        }),
-        vite({}),
         subgit("xania/view/packages/view", "./xania/view"),
         subgit("xania/view/packages/state", "./xania/state")
       );
@@ -71,17 +59,21 @@ async function addExamples(actions: Action[] = []) {
     "https://api.github.com/repos/xania/view/contents/packages/kitchen-sink/examples"
   ).then((e) => e.json());
 
+  const choices = templates
+    .filter((tpl) => tpl.type === "dir")
+    .map((tpl) => ({ name: tpl.name }));
+  choices.push({ name: "skip" });
+
   const response = await select({
     name: "examples",
-    choices: templates
-      .filter((tpl) => tpl.type === "dir")
-      .map((tpl) => ({ name: tpl.name })),
+    choices,
   });
 
   const tpl = templates.find((e) => e.name === response);
   if (tpl) {
+    const targetPath = "src/" + tpl.name;
     actions.push(
-      subgit("xania/view/" + tpl.path, tpl.name),
+      subgit("xania/view/" + tpl.path, targetPath),
       npmInstall("@xania/state")
     );
   }
