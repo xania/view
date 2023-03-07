@@ -1,0 +1,30 @@
+{
+  "name": "@xania/create-app",
+  "version": "0.1.13",
+  "private": false,
+  "author": "Ibrahim ben Salah",
+  "scripts": {
+    "build": "tsup src/cli.ts --minify",
+    "clean": "npx rimraf dist",
+    "dev": "tsup src/cli.ts --watch",
+    "prepublishOnly": "npm run clean && npm version patch && npm run build && npx rimraf %LocalAppData%\\npm-cache\\_npx",
+    "test": "npx rimraf test-app && node dist/cli.js test-app"
+  },
+  "bin": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/degit": "^2.8.3",
+    "@types/node": "^17.0.29",
+    "prettier": "^2.8.1",
+    "rimraf": "^3.0.2",
+    "tsup": "^5.12.1",
+    "typescript": "^4.6.3"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "create-create-app": "^7.3.0",
+    "degit": "^2.8.4"
+  }
+}

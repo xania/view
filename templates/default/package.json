@@ -5,7 +5,8 @@
   "author": "{{ author }}",
   "scripts": {
     "start": "npx vite",
-    "build": "npx vite build"
+    "build": "npx vite build",
+    "bootstrap": "echo 'bootstrap'"
   },
   "files": [
     "dist"
