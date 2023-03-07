@@ -2,6 +2,7 @@
 
 import { create } from "create-create-app";
 import { resolve } from "path";
+import { existsSync } from "fs";
 import degit from "degit";
 
 const emitter = degit("xania/view/templates", {
@@ -15,9 +16,12 @@ emitter.on("info", (info) => {
 });
 
 const templateRoot = resolve(".xania");
-console.log(templateRoot);
+if (!existsSync(templateRoot)) emitter.clone(templateRoot).then(run);
+else {
+  run();
+}
 
-emitter.clone(templateRoot).then(() => {
+function run() {
   create("create-xania", {
     templateRoot,
 
@@ -37,13 +41,11 @@ emitter.clone(templateRoot).then(() => {
     // },
 
     async after({ answers, run, template }) {
-      if (template === "gitmodule") {
-        await run("git submodule add https://github.com/xania/view.git xania");
-      }
+      await run("npm run bootstrap");
     },
     caveat: `Welcome to xania App`,
   });
-});
+}
 
 // const git: SimpleGit = simpleGit();
 

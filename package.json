@@ -8,9 +8,11 @@
     "packages/state",
     "packages/vite-plugin-resumable",
     "packages/kitchen-sink",
-    "packages/create-app"
+    "packages/create-app",
+    "packages/scaffold"
   ],
   "devDependencies": {
+    "@types/prettier": "^2.7.2",
     "typescript": "^4.9.5",
     "vite": "^4.1.3"
   }

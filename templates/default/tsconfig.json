@@ -11,12 +11,7 @@
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "@xania/view",
-    "paths": {
-      "@xania/view": ["./packages/view"],
-      "@xania/state": ["./packages/state"]
-    },
     "allowSyntheticDefaultImports": true
-  }
+  },
+  "references": [{ "path": "./tsconfig.xania.json" }]
 }

@@ -2,3 +2,4 @@
 packages/vite-plugin-resumable/dist/
 packages/create-app/dist/
 packages/create-app/.xania/
+packages/scaffold/dist/

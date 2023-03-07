@@ -3,10 +3,11 @@
   "description": "{{ description }}",
   "version": "0.0.0",
   "author": "{{ author }}",
+  "type": "module",
   "scripts": {
     "start": "npx vite",
     "build": "npx vite build",
-    "bootstrap": "echo 'bootstrap'"
+    "bootstrap": "node bootstrap.js"
   },
   "files": [
     "dist"
@@ -14,5 +15,6 @@
   "license": "MIT",
   "dependencies": {
     "vite": "latest"
-  }
+  },
+  "devDependencies": {}
 }
