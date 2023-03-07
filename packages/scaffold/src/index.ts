@@ -68,7 +68,7 @@ async function addExamples(actions: Action[] = []) {
     { name: string; path: string; git_url: string; type: "dir" | "file" }
   ];
   const templates: GithubContents = await fetch(
-    "https://api.github.com/repos/xania/view/contents/packages/kitchen-sind/examples"
+    "https://api.github.com/repos/xania/view/contents/packages/kitchen-sink/examples"
   ).then((e) => e.json());
 
   const response = await select({
