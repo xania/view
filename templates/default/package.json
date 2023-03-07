@@ -14,7 +14,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "vite": "latest"
+    "vite": "latest",
+    "@xania/scaffold": "latest"
   },
   "devDependencies": {}
 }
