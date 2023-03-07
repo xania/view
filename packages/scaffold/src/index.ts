@@ -20,6 +20,7 @@ async function installXaniaPackage(actions: Action[] = []) {
         npmUninstall("@xania/view", "@xania/state"),
         tsconfig("tsconfig.xania.json", {
           compilerOptions: {
+            composite: true,
             paths: {
               ["@xania/view"]: ["./xania/view"],
               ["@xania/state"]: ["./xania/state"],
