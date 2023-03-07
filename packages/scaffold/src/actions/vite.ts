@@ -13,6 +13,7 @@ export function vite(config: Optional<UserConfig>): Action {
     const viteConfig = Object.assign(
       {
         server: {
+          port: 1981,
           host: "0.0.0.0",
         },
       },

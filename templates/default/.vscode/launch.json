@@ -8,7 +8,7 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Xania App",
-      "url": "http://localhost:3000",
+      "url": "http://localhost:1981",
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true
     }
