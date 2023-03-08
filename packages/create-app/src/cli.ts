@@ -11,10 +11,6 @@ const emitter = degit("xania/view/templates", {
   verbose: true,
 });
 
-emitter.on("info", (info) => {
-  console.log(info.message);
-});
-
 const templateRoot = resolve(".xania");
 if (!existsSync(templateRoot)) emitter.clone(templateRoot).then(run);
 else {
