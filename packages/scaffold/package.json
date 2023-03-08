@@ -1,6 +1,6 @@
 {
   "name": "@xania/scaffold",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "private": false,
   "author": "Ibrahim ben Salah",
   "main": "./dist/index.cjs",
@@ -32,10 +32,8 @@
   "license": "MIT",
   "dependencies": {
     "@types/degit": "^2.8.3",
-    "create-create-app": "^7.3.0",
     "degit": "^2.8.4",
     "enquirer": "^2.3.6",
-    "execa": "^7.0.0",
-    "octokit": "^2.0.14"
+    "execa": "^7.0.0"
   }
 }
