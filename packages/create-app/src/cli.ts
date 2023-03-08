@@ -1,78 +1,18 @@
 #!/usr/bin/env node
 
-import { create } from "create-create-app";
-import { resolve } from "path";
-import { existsSync } from "fs";
-import degit from "degit";
+import init from "./init";
+import { Action } from "./actions/action";
+import { npmInstall } from "./actions/npm";
 
-const emitter = degit("xania/view/templates", {
-  cache: false,
-  force: true,
-  verbose: true,
-});
+init().then(run);
 
-const templateRoot = resolve(".xania");
-if (!existsSync(templateRoot)) emitter.clone(templateRoot).then(run);
-else {
-  run();
+async function run(actions: Action[]) {
+  const opts = {
+    projectDir: process.cwd(),
+  };
+  for (const action of actions) {
+    await action(opts);
+  }
+  const install = npmInstall();
+  install(opts);
 }
-
-function run() {
-  create("create-xania", {
-    templateRoot,
-
-    promptForTemplate: true,
-    promptForAuthor: true,
-
-    promptForDescription: false,
-    promptForEmail: false,
-    promptForLicense: false,
-
-    // extra: {
-    //   template: {
-    //     type: "list",
-    //     choices: ["default", "submodule", "react+xania"],
-    //     describe: "select template",
-    //   },
-    // },
-
-    async after({ answers, run, template }) {
-      await run("npm run bootstrap");
-    },
-    caveat: `Welcome to xania App`,
-  });
-}
-
-// const git: SimpleGit = simpleGit();
-
-// git.listRemote(["--head"]).then((response) => {
-//   console.log(response);
-
-//   create("create-xania", {
-//     templateRoot,
-
-//     promptForTemplate: true,
-//     promptForAuthor: true,
-
-//     promptForDescription: false,
-//     promptForEmail: false,
-//     promptForLicense: false,
-
-//     extra: {
-//       template: {
-//         type: "list",
-//         choices: ["default", "submodule", "react+xania"],
-//         describe: "select template",
-//       },
-//     },
-
-//     async after({ answers, run, template }) {
-//       if (template === "gitmodule") {
-//         await run("git submodule add https://github.com/xania/view.git xania");
-//       }
-//     },
-//     caveat: `Welcome to xania App`,
-//   });
-// });
-
-// See https://github.com/uetchy/create-create-app/blob/master/README.md for other options.

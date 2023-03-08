@@ -1,16 +1,21 @@
 {
   "name": "@xania/create-app",
-  "version": "0.1.17",
+  "version": "0.1.34",
   "private": false,
   "author": "Ibrahim ben Salah",
+  "main": "./dist/cli.cjs",
+  "types": "./dist/cli.d.ts",
+  "type": "module",
   "scripts": {
-    "build": "tsup src/cli.ts --minify",
+    "build": "tsup src/cli.ts --minify --format cjs --target node16 --dts",
     "clean": "npx rimraf dist",
-    "dev": "tsup src/cli.ts --watch",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build && npx rimraf %LocalAppData%\\npm-cache\\_npx",
+    "dev": "tsup src/cli.ts --sourcemap --format cjs --target node16 --dts --watch",
+    "prepublishOnly": "npm run clean && npm version patch && npm run build && npx rimraf %LocalAppData%/npm-cache/_npx && npx rimraf ~/.npm/_npx/",
     "test": "npx rimraf test-app && node dist/cli.js test-app"
   },
-  "bin": "dist/cli.js",
+  "bin": {
+    "xania": "dist/cli.cjs"
+  },
   "files": [
     "dist"
   ],
@@ -24,7 +29,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "create-create-app": "^7.3.0",
-    "degit": "^2.8.4"
+    "degit": "^2.8.4",
+    "enquirer": "^2.3.6",
+    "execa": "^7.0.0"
   }
 }
