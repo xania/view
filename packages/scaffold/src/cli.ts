@@ -1,13 +1,8 @@
 ﻿import type { Action } from "./actions/action";
 import { npmInstall } from "./actions/npm";
 import update from "./update";
-import init from "./init";
 
-if (process.argv.includes("--update")) {
-  update().then(run);
-} else {
-  init().then(run);
-}
+update().then(run);
 
 async function run(actions: Action[]) {
   const opts = {

@@ -1,1 +1,1 @@
-﻿import * as ss from "@xania/scaffold";
+﻿import "@xania/scaffold";

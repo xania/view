@@ -9,7 +9,7 @@
   "scripts": {
     "start": "npx vite",
     "build": "npx vite build",
-    "scaffold": "xania --update"
+    "bootstrap": "node ./bootstrap.js"
   },
   "files": [
     "dist"
