@@ -8,7 +8,10 @@ import { resolve } from "node:path";
 
 console.log(`Current directory: ${cwd()}`);
 
-export function vite(config: Optional<UserConfig>): Action {
+export function vite(
+  projectPath: string,
+  config: Optional<UserConfig>
+): Action {
   return (context: ActionContext) => {
     const viteConfig = Object.assign(
       {
@@ -20,7 +23,7 @@ export function vite(config: Optional<UserConfig>): Action {
       config
     );
 
-    const targetFile = resolve(context.projectDir, "./vite.config.ts");
+    const targetFile = resolve(context.cwd, projectPath, "./vite.config.ts");
     console.log("writing vite config...");
 
     fs.writeFile(

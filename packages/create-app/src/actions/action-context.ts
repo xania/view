@@ -1,3 +1,3 @@
 ﻿export interface ActionContext {
-  projectDir: string;
+  cwd: string;
 }

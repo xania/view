@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 
-import init from "./init";
+import init, { input } from "./init";
 import { Action } from "./actions/action";
-import { npmInstall } from "./actions/npm";
+import scaffold from "./scaffold";
 
-init().then(run);
+input().then(async (inputs) => {
+  const [actions, targetPath] = await init(inputs);
+  await run(actions);
+  await scaffold(targetPath).then(run);
+});
 
 async function run(actions: Action[]) {
   const opts = {
-    projectDir: process.cwd(),
+    cwd: process.cwd(),
   };
   for (const action of actions) {
     await action(opts);
   }
-  const install = npmInstall();
-  install(opts);
 }

@@ -5,11 +5,11 @@ import { Optional } from "./optional";
 import fs from "node:fs";
 
 export function tsconfig(
-  path: string,
+  projectPath: string,
   schema: Optional<TsConfigScheme>
 ): Action {
   return (context: ActionContext) => {
-    const targetFile = resolve(context.projectDir, path);
+    const targetFile = resolve(context.cwd, projectPath);
 
     fs.writeFile(
       targetFile,

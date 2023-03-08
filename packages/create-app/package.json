@@ -1,6 +1,6 @@
 {
-  "name": "@xania/create-app",
-  "version": "0.1.34",
+  "name": "create-xania",
+  "version": "0.1.46",
   "private": false,
   "author": "Ibrahim ben Salah",
   "main": "./dist/cli.cjs",

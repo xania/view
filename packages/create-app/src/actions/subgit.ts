@@ -11,7 +11,7 @@ export function subgit(
   mappings: Record<string, string> = {}
 ): Action {
   return async (context: ActionContext) => {
-    const targetDir = resolve(context.projectDir, dest);
+    const targetDir = resolve(context.cwd, dest);
     if (fs.existsSync(targetDir)) {
       console.log("skip " + targetDir);
       return;

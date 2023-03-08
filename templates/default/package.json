@@ -9,15 +9,14 @@
   "scripts": {
     "start": "npx vite",
     "build": "npx vite build",
-    "bootstrap": "node ./bootstrap.js"
+    "preview": "npx vite preview"
   },
   "files": [
     "dist"
   ],
   "license": "MIT",
   "dependencies": {
-    "vite": "latest",
-    "@xania/scaffold": "latest"
+    "vite": "latest"
   },
   "devDependencies": {}
 }
