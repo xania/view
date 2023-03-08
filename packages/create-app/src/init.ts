@@ -56,8 +56,6 @@ export async function initProject(
     }
   }
 
-  actions.push(npmInstall(projectPath));
-
   return [actions, projectPath] as const;
 }
 

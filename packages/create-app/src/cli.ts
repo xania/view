@@ -3,11 +3,14 @@
 import init, { input } from "./init";
 import { Action } from "./actions/action";
 import scaffold from "./scaffold";
+import { npmInstall } from "./actions/npm";
 
 input().then(async (inputs) => {
-  const [actions, targetPath] = await init(inputs);
+  const [actions, projectPath] = await init(inputs);
   await run(actions);
-  await scaffold(targetPath).then(run);
+  await scaffold(projectPath).then(run);
+
+  run([npmInstall(projectPath)]);
 });
 
 async function run(actions: Action[]) {

@@ -88,10 +88,6 @@ async function installExamples(projectPath: string, actions: Action[]) {
     }
   }
 
-  if (response.length > 0) {
-    actions.push(npmInstall("."));
-  }
-
   return actions;
 }
 
