@@ -1,4 +1,4 @@
 ﻿#!/usr/bin/env node
 "use strict";
 
-require("../dist/cli.js");
+require("../dist/cli.mjs");
