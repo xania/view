@@ -1,8 +1,7 @@
 {
-  "name": "{{ kebab name }}",
+  "name": "{{ name }}",
   "description": "{{ description }}",
   "version": "0.0.0",
-  "author": "{{ author }}",
   "type": "module",
   "workspaces": [
     "examples/*"

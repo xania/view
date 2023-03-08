@@ -1,12 +1,13 @@
-# {{capital name space=true}}
+# {{ title }}
 
-{{description}}
+{{ description }}
 
 ## Usage
 
 ```bash
 npm start
-``` 
-------
-This project was created using [@xania/create-app](https://github.com/xania/create-xania)
+```
 
+---
+
+This project was created using [@xania/create-app](https://github.com/xania/create-xania)
