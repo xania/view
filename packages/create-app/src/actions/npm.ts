@@ -5,7 +5,7 @@ import { ActionContext } from "./action-context";
 
 export function npmInstall(workingDir: string, ...packages: string[]): Action {
   return (context: ActionContext) => {
-    run("npm install " + packages.join(" "), {
+    return run("npm install " + packages.join(" "), {
       cwd: resolve(context.cwd, workingDir),
     });
   };
@@ -16,7 +16,7 @@ export function npmUninstall(
   ...packages: string[]
 ): Action {
   return (context: ActionContext) => {
-    run("npm uninstall " + packages.join(" "), {
+    return run("npm uninstall " + packages.join(" "), {
       cwd: resolve(context.cwd, workingDir),
     });
   };

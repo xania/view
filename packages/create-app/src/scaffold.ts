@@ -1,4 +1,4 @@
-﻿import enquirer from "enquirer";
+﻿import enquirer, { multiselect } from "enquirer";
 import { Action } from "./actions/action";
 import { subgit } from "./actions/subgit";
 import { npmInstall, npmUninstall } from "./actions/npm";
@@ -62,7 +62,7 @@ async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
   return actions;
 }
 
-async function addExamples(projectPath: string, actions: Action[]) {
+async function installExamples(projectPath: string, actions: Action[]) {
   type GithubContents = [
     { name: string; path: string; git_url: string; type: "dir" | "file" }
   ];
@@ -75,15 +75,21 @@ async function addExamples(projectPath: string, actions: Action[]) {
     .map((tpl) => ({ name: tpl.name }));
   choices.push({ name: "skip" });
 
-  const response = await select({
+  const response = await multiselect({
     name: "examples",
     choices,
   });
 
-  const tpl = templates.find((e) => e.name === response);
-  if (tpl) {
-    const localPath = resolve(projectPath, "examples/" + tpl.name);
-    actions.push(subgit("xania/view/" + tpl.path, localPath), npmInstall("."));
+  for (const choice of response) {
+    const tpl = templates.find((e) => e.name === choice);
+    if (tpl) {
+      const localPath = resolve(projectPath, "examples/" + tpl.name);
+      actions.push(subgit("xania/view/" + tpl.path, localPath));
+    }
+  }
+
+  if (response.length > 0) {
+    actions.push(npmInstall("."));
   }
 
   return actions;
@@ -91,5 +97,5 @@ async function addExamples(projectPath: string, actions: Action[]) {
 
 export default (projectPath: string) =>
   installXaniaPackage(projectPath).then((actions) =>
-    addExamples(projectPath, actions)
+    installExamples(projectPath, actions)
   );

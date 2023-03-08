@@ -1,3 +1,3 @@
 ﻿import { ActionContext } from "./action-context";
 
-export type Action = (context: ActionContext) => void | Promise<void>;
+export type Action = (context: ActionContext) => any | Promise<any>;
