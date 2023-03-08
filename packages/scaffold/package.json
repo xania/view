@@ -1,6 +1,6 @@
 {
   "name": "@xania/scaffold",
-  "version": "0.0.12",
+  "version": "0.0.14",
   "private": false,
   "author": "Ibrahim ben Salah",
   "main": "./dist/index.cjs",

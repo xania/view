@@ -18,10 +18,6 @@ export function subgit(source: string, dest: string): Action {
       verbose: true,
     });
 
-    emitter.on("info", (info) => {
-      console.log(info.message);
-    });
-
     return emitter.clone(targetDir);
   };
 }
