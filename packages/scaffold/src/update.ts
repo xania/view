@@ -82,10 +82,4 @@ async function addExamples(actions: Action[] = []) {
   return actions;
 }
 
-installXaniaPackage().then(addExamples).then(run);
-
-async function run(actions: Action[]) {
-  for (const action of actions) {
-    await action({ projectDir: process.cwd() });
-  }
-}
+export default () => installXaniaPackage().then(addExamples);

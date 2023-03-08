@@ -1,5 +1,4 @@
-﻿import { spawnPromise } from "../fs";
-import { run } from "../run";
+﻿import { run } from "../run";
 import { Action } from "./action";
 import { ActionContext } from "./action-context";
 

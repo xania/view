@@ -1,7 +1,15 @@
 ﻿declare module "enquirer" {
   const multiselect: MultiSelect;
   const select: Select;
+  const input: Input;
 }
+
+type Input = (opts: {
+  message: string | (() => Promise<string>);
+  default?: string;
+  transformer?: (value: string, transformOpts: { isFinal: boolean }) => string;
+  validate?: (value: string) => boolean | string;
+}) => Promise<string>;
 
 interface Choice<TKey> {
   name: TKey;

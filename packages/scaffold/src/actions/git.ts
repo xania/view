@@ -2,7 +2,7 @@
 import { ActionContext } from "./action-context";
 import { resolve } from "path";
 import { run } from "../run";
-import { CommonOptions } from "execa";
+import type { CommonOptions } from "execa";
 import { mkdirSync } from "fs";
 
 export function git(

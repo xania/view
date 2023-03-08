@@ -1,26 +1,23 @@
 {
   "name": "@xania/scaffold",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "private": false,
   "author": "Ibrahim ben Salah",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+  "bin": {
+    "xania": "./bin/cli.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --minify --sourcemap --format esm,cjs --dts",
+    "build": "tsup src/cli.ts --minify --sourcemap --format esm --dts",
     "clean": "npx rimraf dist",
-    "dev": "tsup src/index.ts --watch --sourcemap --format esm,cjs --dts",
+    "dev": "tsup src/cli.ts --watch --sourcemap --format esm --dts",
     "prepublishOnly": "npm run clean && npm version patch && npm run build"
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "devDependencies": {
     "@types/node": "^17.0.29",
@@ -34,6 +31,8 @@
     "@types/degit": "^2.8.3",
     "degit": "^2.8.4",
     "enquirer": "^2.3.6",
-    "execa": "^7.0.0"
+    "execa": "^7.0.0",
+    "replace-in-file": "^6.3.5",
+    "undefined": "^0.1.0"
   }
 }
