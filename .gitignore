@@ -3,3 +3,4 @@ packages/vite-plugin-resumable/dist/
 packages/create/dist/
 packages/create/.xania/
 packages/scaffold/dist/
+packages/router/dist/

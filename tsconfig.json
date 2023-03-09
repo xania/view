@@ -15,7 +15,8 @@
     "jsxImportSource": "@xania/view",
     "paths": {
       "@xania/view": ["./packages/view"],
-      "@xania/state": ["./packages/state"]
+      "@xania/state": ["./packages/state"],
+      "@xania/router": ["./packages/router"]
     },
     "allowSyntheticDefaultImports": true
   }

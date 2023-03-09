@@ -24,7 +24,3 @@ export function selectMany<T, P>(
 
   return result;
 }
-
-export function distinct<T>(source: T[]) {
-  return new Set<T>(source);
-}

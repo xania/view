@@ -14,7 +14,7 @@ export class PropertyOperator<T, K extends keyof T = keyof T>
 export type PropertyFunction<T> = <K extends keyof T = keyof T>(
   this: Rx.Stateful<T>,
   name: K
-) => Rx.Stateful<T[K]>;
+) => State<T[K]>;
 
 export function prop<T, K extends keyof T>(
   this: Rx.Stateful<T>,
@@ -23,8 +23,8 @@ export function prop<T, K extends keyof T>(
   const { snapshot } = this;
   const mappedValue =
     snapshot === undefined || snapshot === null ? undefined : snapshot[name];
-  const target: any = new State<T[K]>(mappedValue);
-  const mop = new PropertyOperator<T>(name, target);
+  const target = new State<T[K]>(mappedValue);
+  const mop = new PropertyOperator<T>(name, target as any);
 
   connect(this, target);
   pushOperator(this, mop);

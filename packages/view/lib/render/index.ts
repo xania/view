@@ -8,13 +8,14 @@ import { Anchor, RenderTarget } from '../jsx';
 import { LazyOperation } from './dom-operation';
 import { update } from './update';
 import { BrowserDomFactory } from './browser-dom-factory';
+import { Disposable, Tree } from '../disposable';
 
 export function render<T = any>(
   root: TemplateInput<T>,
   container: RenderTarget<HTMLElement>,
   domFactory: IDomFactory<HTMLElement> = new BrowserDomFactory()
-): any {
-  if (root === null || root === undefined) return root;
+): Tree<Disposable> {
+  if (root === null || root === undefined) return null;
 
   // if (root instanceof JsxElement) {
   //   return renderElement(root, container);

@@ -1,0 +1,250 @@
+﻿@use "@material/elevation/mixins" as elevation-mixins;
+
+$duration: 0.4s;
+$height: 80px;
+
+// :global(.app) {
+// }
+
+.app__container {
+  flex: 1;
+}
+
+.app__footer {
+  color: white;
+  height: 60px;
+  text-align: center;
+  //  clip-path: polygon(40% 0, 0 0, 0 100%, 100% 100%, 100% 0, 60% 0, 50% 50%);
+  box-shadow: 0 -5px 10px -5px rgb(112, 112, 112);
+  z-index: 100;
+  margin: 10px 0 0 0;
+  box-sizing: border-box;
+}
+
+.outlet {
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
+  position: relative;
+  padding: 0;
+
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.outlet__root {
+  width: 350px;
+  position: relative;
+
+  background-color: var(--theme-secondary, darkblue);
+  color: white;
+  display: flex;
+
+  transition: width 0.4s;
+
+  // &:first-child {
+  //   min-width: auto;
+  //   width: 350px;
+  //   transition: width 0.4s;
+  // }
+
+  &--collapsed {
+    min-width: auto;
+    width: 60px;
+    overflow: hidden;
+
+    * {
+      overflow: hidden;
+    }
+  }
+}
+
+.page-container {
+  box-sizing: border-box;
+  min-width: auto;
+  padding: 0;
+  display: flex;
+  position: relative;
+
+  overflow: hidden;
+
+  // &--active {
+  //   border: 3px dashed green;
+  // }
+  &--inactive {
+    display: none;
+  }
+}
+
+$media-width: 600px;
+
+@media only screen and (min-width: $media-width) {
+  .page-container {
+    &--active {
+      min-width: 350px;
+      margin: 0;
+      background-color: white;
+
+      & > *:last-child {
+        animation-name: slideIn;
+        animation-duration: $duration;
+        z-index: 1;
+
+        @include elevation-mixins.elevation(5);
+      }
+
+      & > *:not(:last-child) {
+        position: absolute;
+        height: calc(100% - 20px);
+        overflow: hidden;
+        bottom: 0;
+        top: 0;
+        animation-name: slideAway;
+        animation-duration: $duration;
+        z-index: 1;
+      }
+    }
+
+    box-sizing: border-box;
+    height: 100%;
+  }
+}
+
+@media only screen and (max-width: $media-width) {
+  /* mobile specific */
+  .page-container {
+    &--active {
+      min-width: 100%;
+      position: absolute;
+      background-color: white;
+
+      animation-name: slideIn;
+      animation-duration: $duration;
+    }
+    z-index: 3;
+  }
+}
+
+.loader {
+  color: var(--theme-primary, #fff);
+  font-size: 90px;
+  text-indent: -9999em;
+  overflow: hidden;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  margin: 72px auto;
+  position: relative;
+  -webkit-transform: translateZ(0);
+  -ms-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-animation: load6 1.7s infinite ease, round 1.7s infinite ease;
+  animation: load6 1.7s infinite ease, round 1.7s infinite ease;
+}
+@-webkit-keyframes load6 {
+  0% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+  5%,
+  95% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+  10%,
+  59% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.087em -0.825em 0 -0.42em,
+      -0.173em -0.812em 0 -0.44em, -0.256em -0.789em 0 -0.46em,
+      -0.297em -0.775em 0 -0.477em;
+  }
+  20% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.338em -0.758em 0 -0.42em,
+      -0.555em -0.617em 0 -0.44em, -0.671em -0.488em 0 -0.46em,
+      -0.749em -0.34em 0 -0.477em;
+  }
+  38% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.377em -0.74em 0 -0.42em,
+      -0.645em -0.522em 0 -0.44em, -0.775em -0.297em 0 -0.46em,
+      -0.82em -0.09em 0 -0.477em;
+  }
+  100% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+}
+@keyframes load6 {
+  0% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+  5%,
+  95% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+  10%,
+  59% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.087em -0.825em 0 -0.42em,
+      -0.173em -0.812em 0 -0.44em, -0.256em -0.789em 0 -0.46em,
+      -0.297em -0.775em 0 -0.477em;
+  }
+  20% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.338em -0.758em 0 -0.42em,
+      -0.555em -0.617em 0 -0.44em, -0.671em -0.488em 0 -0.46em,
+      -0.749em -0.34em 0 -0.477em;
+  }
+  38% {
+    box-shadow: 0 -0.83em 0 -0.4em, -0.377em -0.74em 0 -0.42em,
+      -0.645em -0.522em 0 -0.44em, -0.775em -0.297em 0 -0.46em,
+      -0.82em -0.09em 0 -0.477em;
+  }
+  100% {
+    box-shadow: 0 -0.83em 0 -0.4em, 0 -0.83em 0 -0.42em, 0 -0.83em 0 -0.44em,
+      0 -0.83em 0 -0.46em, 0 -0.83em 0 -0.477em;
+  }
+}
+@-webkit-keyframes round {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes round {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+  }
+}
+@keyframes slideAway {
+  0% {
+  }
+  100% {
+    transform: translateX(-40%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideOut {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

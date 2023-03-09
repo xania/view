@@ -1,9 +1,9 @@
 ﻿import { connect } from '../graph';
 import { MapOperator, pushOperator } from '../operators/map';
 import { Rx } from '../rx';
-import { subscribe } from './subscribe';
-import { from } from '../utils/from';
-import { Value } from './value';
+import { subscribe } from '../observable/subscribe';
+import { from } from './from';
+import { Value } from '../observable/value';
 const syncValue = Symbol('snapshot');
 
 export type UnwrapState<T> = T extends Rx.Stateful<infer U> ? U : never;

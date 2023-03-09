@@ -4,7 +4,7 @@ import { MapOperator, pushOperator } from '../operators/map';
 import { prop } from '../operators/prop';
 import { bind } from '../operators/bind';
 import { connect } from '../graph';
-import { combineLatest } from './combine-latest';
+import { combineLatest } from '../utils/combine-latest';
 import { read } from '../signal/computed';
 
 export class Value<T> implements Rx.Stateful<T> {
@@ -33,9 +33,11 @@ export class Value<T> implements Rx.Stateful<T> {
   }
 
   prop = prop;
+
   bind<U>(binder: (t: T) => Rx.StateInput<U>) {
     return bind(this, binder, new Value());
   }
+  pipe = this.bind;
 
   [Symbol.asyncIterator] = (): AsyncIterator<T> => {
     const state = this;

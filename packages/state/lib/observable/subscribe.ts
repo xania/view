@@ -9,6 +9,7 @@ export function subscribe<T, O extends Rx.NextObserver<T>>(
   const { snapshot } = value;
 
   if (snapshot !== undefined) {
+    console.log('subscribe', snapshot);
     observer.next(snapshot);
   }
 

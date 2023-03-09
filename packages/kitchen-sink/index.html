@@ -5,6 +5,20 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Page Title</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script type="module" src="./src/index"></script>
+    <style>
+      section {
+        border: 1px solid lightgray;
+        border-radius: 10p;
+        padding: 10px;
+        margin: 20px;
+      }
+    </style>
   </head>
-  <body></body>
+  <body id="app" class="app">
+    <section>
+      <a class="router-link" href="/">home</a>
+      <a class="router-link" href="/invoices/hello">hello</a>
+    </section>
+  </body>
 </html>

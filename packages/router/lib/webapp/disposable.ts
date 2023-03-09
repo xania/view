@@ -1,15 +1,11 @@
+﻿export type Tree<T> = undefined | null | T | Tree<T>[] | Promise<Tree<T>>;
+
 export interface Disposable {
   dispose(): void;
 }
 
-export interface Removable {
-  remove(): void;
-}
-
-export type Tree<T> = null | T | Tree<T>[] | Promise<Tree<T>>;
-
 export function disposeAll(
-  items: Tree<Promise<Disposable | null> | Disposable | null>
+  items?: Tree<Promise<Disposable | null> | Disposable | null>
 ) {
   const stack = [items];
 

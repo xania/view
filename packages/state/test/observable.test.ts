@@ -1,5 +1,5 @@
 ﻿import { expect, describe, it } from 'vitest';
-import { combineLatest } from '../lib/observable/combine-latest';
+import { combineLatest } from '../lib/utils/combine-latest';
 import { State } from '../lib/observable/state';
 
 describe('observable', () => {

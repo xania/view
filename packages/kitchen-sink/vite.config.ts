@@ -16,7 +16,8 @@ export default defineConfig({
       //   "../view/jsx-runtime/jsx-runtime.ts"
       // ),
       // "@xania/view": path.resolve(__dirname, "../view/lib/index.ts"),
-      "@xania/state": path.resolve(__dirname, "../state/lib/index.ts"),
+      "@xania/state": path.resolve(__dirname, "../state/index.ts"),
+      "@xania/router": path.resolve(__dirname, "../router/index.ts"),
     },
   },
 });
