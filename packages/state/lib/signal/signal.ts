@@ -1,6 +1,6 @@
 ﻿import { Value } from '../observable/value';
 import { write } from '../write';
-import { dependsOn } from './computed';
+import { read } from './computed';
 import { nodeToString } from './utils';
 
 export class Signal<T = any> extends Value<T> {
@@ -8,14 +8,10 @@ export class Signal<T = any> extends Value<T> {
     super(snapshot);
   }
 
-  get = this.read;
-  read() {
-    dependsOn(this);
-    return this.snapshot;
-  }
-
+  get = read;
+  read = read;
   write = write;
-  set = this.write;
+  set = write;
 
   toString = nodeToString;
 }

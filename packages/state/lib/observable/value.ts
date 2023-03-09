@@ -5,6 +5,7 @@ import { prop } from '../operators/prop';
 import { bind } from '../operators/bind';
 import { connect } from '../graph';
 import { combineLatest } from './combine-latest';
+import { read } from '../signal/computed';
 
 export class Value<T> implements Rx.Stateful<T> {
   readonly observers?: Rx.StateObserver<T>[];
@@ -17,7 +18,8 @@ export class Value<T> implements Rx.Stateful<T> {
     public subscribe: Rx.Subscribable<T>['subscribe'] = _subscribe
   ) {}
 
-  get = () => this.snapshot as T;
+  get = read;
+  read = read;
 
   map<U>(f: (x: T) => U) {
     const { snapshot } = this;

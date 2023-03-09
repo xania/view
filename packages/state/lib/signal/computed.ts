@@ -70,11 +70,8 @@ export class Computed<T = any>
   readonly type = Rx.StateOperatorType.Signal;
   target = this;
 
-  read() {
-    dependsOn(this);
-    return this.snapshot as T;
-  }
-  get = this.read;
+  read = read;
+  get = read;
 
   toString = nodeToString;
 
@@ -119,8 +116,10 @@ export function recompute(this: ComputeContext) {
     this.dirty = false;
   }
 }
-export function dependsOn(state: Rx.Stateful) {
+
+export function read(this: Rx.Stateful) {
   if (computeContext) {
-    computeContext.dependsOn(state);
+    computeContext.dependsOn(this);
   }
+  return this.snapshot;
 }
