@@ -1,5 +1,5 @@
 ﻿node_modules/
 packages/vite-plugin-resumable/dist/
-packages/create-app/dist/
-packages/create-app/.xania/
+packages/create/dist/
+packages/create/.xania/
 packages/scaffold/dist/

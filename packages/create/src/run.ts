@@ -6,7 +6,7 @@ export const run = async (
 ) => {
   const [script, ...scriptArgs] = command.split(" ");
 
-  console.log(options.cwd + " > ", script, ...scriptArgs);
+  if (options.cwd) console.log("[" + options.cwd + "] ", script, ...scriptArgs);
 
   const execa = (await import("execa")).execa;
   return execa(script, scriptArgs, {
