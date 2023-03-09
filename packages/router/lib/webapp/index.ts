@@ -34,7 +34,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
   const rootResolve = createRouteResolver(routes);
 
   return {
-    render(target: HTMLElement) {
+    attachTo(target: HTMLElement) {
       if (theme.outlet) target.classList.add(theme.outlet);
 
       const outletRoot = document.createElement('div');

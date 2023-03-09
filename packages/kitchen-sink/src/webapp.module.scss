@@ -1,6 +1,4 @@
-﻿@use "@material/elevation/mixins" as elevation-mixins;
-
-$duration: 0.4s;
+﻿$duration: 0.4s;
 $height: 80px;
 
 // :global(.app) {
@@ -27,6 +25,7 @@ $height: 80px;
   box-sizing: border-box;
   position: relative;
   padding: 0;
+  flex: 1;
 
   overflow: auto;
   -webkit-overflow-scrolling: touch;
@@ -59,23 +58,6 @@ $height: 80px;
   }
 }
 
-.page-container {
-  box-sizing: border-box;
-  min-width: auto;
-  padding: 0;
-  display: flex;
-  position: relative;
-
-  overflow: hidden;
-
-  // &--active {
-  //   border: 3px dashed green;
-  // }
-  &--inactive {
-    display: none;
-  }
-}
-
 $media-width: 600px;
 
 @media only screen and (min-width: $media-width) {
@@ -90,7 +72,7 @@ $media-width: 600px;
         animation-duration: $duration;
         z-index: 1;
 
-        @include elevation-mixins.elevation(5);
+        // @include elevation-mixins.elevation(5);
       }
 
       & > *:not(:last-child) {

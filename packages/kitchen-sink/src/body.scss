@@ -1,0 +1,21 @@
+﻿body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  box-sizing: border-box;
+  position: fixed;
+  overflow: hidden;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  --theme-secondary: rgb(236, 236, 236);
+  --theme-primary: rgb(31, 87, 124);
+  --mdc-theme-secondary: rgb(41, 170, 71);
+}
+
+section {
+  border: 1px solid lightgray;
+  border-radius: 10p;
+  padding: 10px;
+  margin: 20px;
+}

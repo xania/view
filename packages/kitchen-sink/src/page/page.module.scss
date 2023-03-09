@@ -1,0 +1,99 @@
+﻿$duration: 0.4s;
+$toolbar-fix: 0;
+
+.page--toolbar-fix {
+  padding-top: $toolbar-fix;
+}
+
+:export {
+  animationDuration: $duration;
+}
+
+.page-container {
+  box-sizing: border-box;
+  min-width: auto;
+  padding: 0;
+  display: flex;
+  position: relative;
+
+  overflow: hidden;
+
+  // &--active {
+  //   border: 3px dashed green;
+  // }
+  &--inactive {
+    display: none;
+  }
+}
+
+.page {
+  flex-direction: column;
+  margin: 10px;
+  box-sizing: border-box;
+  display: inline-flex;
+  width: 100%;
+
+  box-sizing: border-box;
+
+  transition: opacity;
+  transition-duration: $duration;
+  background-color: inherit;
+
+  &__content {
+    flex: 1;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+
+    /* width */
+    &::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    /* Track */
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    /* Handle */
+    &::-webkit-scrollbar-thumb {
+      background: #888;
+    }
+
+    /* Handle on hover */
+    &::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  }
+}
+
+.slide-out {
+  animation-name: slideAway;
+  animation-duration: $duration;
+  animation-fill-mode: forwards;
+}
+
+// @supports not (-webkit-touch-callout: none) {
+//   /* CSS for other than iOS devices */
+//   .slide-out {
+//     animation-name: slideOut;
+//     animation-duration: 0.4s;
+//     animation-fill-mode: forwards;
+//   }
+// }
+
+// @supports (-webkit-touch-callout: none) {
+//   /* CSS for other than iOS devices */
+//   .slide-out {
+//     display: none;
+//   }
+// }
+
+@keyframes darken {
+  0% {
+    background-color: rgba(0, 0, 0, 0);
+  }
+  100% {
+    background-color: rgba(0, 0, 0, 0.274);
+  }
+}
