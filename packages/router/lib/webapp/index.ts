@@ -7,7 +7,7 @@
   RouteResolution,
   RouteResolver,
 } from '../core';
-import { createRouteResolver, RouteInput } from '../core';
+import { createRouteResolver, RouteMapInput } from '../core';
 
 import boxes from './animations/boxes';
 import { createBrowser } from '../browser-router';
@@ -18,7 +18,7 @@ import webapp from './webapp.module.scss';
 import { Disposable, disposeAll, Tree } from './disposable';
 
 export interface WebAppProps<TView> {
-  routes: RouteInput<TView>[];
+  routeMaps: RouteMapInput<TView>[];
   router?: Router;
   // rootView: any;
   theme: Partial<CssClasses>;
@@ -27,11 +27,11 @@ export interface WebAppProps<TView> {
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
   const {
-    routes,
+    routeMaps,
     router = createBrowser([]),
     theme = {} as CssClasses,
   } = props;
-  const rootResolve = createRouteResolver(routes);
+  const rootResolve = createRouteResolver(routeMaps);
 
   return {
     attachTo(target: HTMLElement) {
@@ -40,7 +40,9 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
       const outletRoot = document.createElement('div');
       const rootPageContext: PageContext<TView> = {
         path: [],
+        fullpath: [],
         resolvePath: rootResolve,
+        router,
       };
 
       return router.routes
@@ -139,7 +141,8 @@ function traverse<TView>(
 class PageRouteContext implements RouteContext {
   constructor(
     public parent: PageContext<any>,
-    public routeResolution: RouteResolution
+    public routeResolution: RouteResolution,
+    public router = parent.router
   ) {}
 
   get params() {
@@ -149,15 +152,15 @@ class PageRouteContext implements RouteContext {
     return {};
   }
 
-  get url() {
+  get fullpath() {
+    return this.parent.fullpath.concat(this.routeResolution.appliedPath);
     // : `${this.basePath
     //   .map((e) => "/" + e)
     //   .join("")}/${routeResolution.appliedPath.join("/")}`,
-    return '/todo';
   }
 }
 
-class Page<TView> {
+class Page<TView> implements PageContext<TView> {
   renderResult?: Tree<Disposable>;
 
   constructor(
@@ -167,28 +170,39 @@ class Page<TView> {
     public parent: PageContext<TView>,
     public view: TView | null
   ) {}
+
+  next?: Page<TView> | undefined;
+  get fullpath(): Path {
+    throw new Error('Method not implemented.');
+  }
+
+  get router() {
+    return this.parent.router;
+  }
 }
 
 function applyComponent<TView>(
   component: RouteComponentInput<TView>,
-  config: RouteContext
+  context: RouteContext
 ): Promise<RouteComponent> {
-  const result = component instanceof Function ? component(config) : component;
+  try {
+    const result =
+      component instanceof Function ? component(context) : component;
 
-  if (result instanceof Promise) {
-    return result
-      .catch((err) => (console.error(err), { view: 'ERROR: ' + err.message }))
-      .then(buildResult);
-  } else {
-    return Promise.resolve(buildResult(result));
+    if (result instanceof Promise) {
+      return result
+        .catch((err) => (console.error(err), { view: 'ERROR: ' + err.message }))
+        .then(buildResult);
+    } else {
+      return Promise.resolve(buildResult(result));
+    }
+  } catch (err) {
+    return Promise.resolve({ view: err });
   }
 
-  function buildResult(
-    view: unknown
-  ): Promise<RouteComponent> | RouteComponent {
-    if (view === null || view === undefined) return { view: null };
+  function buildResult(result: any): Promise<RouteComponent> | RouteComponent {
+    if (result === null || result === undefined) return { view: null };
 
-    const result = view instanceof Function ? view() : view;
     if (result.view) {
       return result;
     } else {
@@ -197,7 +211,7 @@ function applyComponent<TView>(
   }
 }
 
-interface PageContext<TView = any> {
+interface PageContext<TView = any> extends RouteContext {
   path: Path;
   next?: Page<TView>;
   resolvePath: RouteResolver<TView>;

@@ -1,9 +1,9 @@
-﻿import { route, RouteComponent } from "@xania/router";
+﻿import { routeMap, RouteComponent } from "@xania/router";
 
 export function InvoiceApp() {
   return {
     view: <>invoices {new Date().getTime()}</>,
-    routes: [route(["hello"], Hello), route(["hi"], Hi)],
+    routes: [routeMap(["hello"], Hello), routeMap(["hi"], Hi)],
   };
 }
 

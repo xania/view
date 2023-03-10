@@ -3,7 +3,7 @@ import { compilePathTemplate, PathTemplate } from './path-template';
 import { RouteContext } from './router-context';
 
 export function createRouteResolver<TView>(
-  routes: RouteResolver<TView> | RouteInput<TView>[] | undefined
+  routes: RouteResolver<TView> | RouteMapInput<TView>[] | undefined
 ): RouteResolver<TView> {
   if (routes instanceof Function) {
     return routes;
@@ -17,9 +17,9 @@ export function createRouteResolver<TView>(
 
   return resolve;
 
-  function resolve(remainingPath: string[]) {
+  function resolve(path: Path) {
     for (const route of compiled) {
-      const segment = route.match(remainingPath);
+      const segment = route.match(path);
       if (segment) {
         if (segment instanceof Promise) {
           return segment.then(buildResolution);
@@ -28,7 +28,7 @@ export function createRouteResolver<TView>(
         }
 
         async function buildResolution(segment: RouteSegment) {
-          const appliedPath = remainingPath.slice(0, segment.length);
+          const appliedPath = path.slice(0, segment.length);
 
           // const { view, routes } = await applyComponent(route.component, {
           //   params: segment.params,
@@ -49,7 +49,7 @@ export function createRouteResolver<TView>(
     return Promise.resolve(null);
   }
 
-  function compile(routes: RouteInput<TView>[] | undefined): Route<TView>[] {
+  function compile(routes: RouteMapInput<TView>[] | undefined): Route<TView>[] {
     const results: Route<TView>[] = [];
     if (routes instanceof Array) {
       for (const route of routes) {
@@ -107,7 +107,7 @@ export interface RouteResolution<TView = any> {
   component: RouteComponentInput<TView> | null;
 }
 
-export interface RouteInput<TView> {
+export interface RouteMapInput<TView = any> {
   match: Route<TView>['match'] | string[];
   component: RouteComponentInput<TView>;
 }
@@ -135,17 +135,17 @@ function isArrayEmpty(arr: any[]) {
 
 export interface RouteComponent<TView = any> {
   view: TView;
-  routes?: RouteInput<TView>[] | RouteResolver<TView>;
+  routes?: RouteMapInput<TView>[] | RouteResolver<TView>;
 }
 
 export type RouteComponentInput<TView = any> =
   | TView
   | ((context: RouteContext) => RouteComponent<TView>);
 
-export function route<TView>(
-  match: RouteInput<TView>['match'],
-  component: RouteInput<TView>['component']
-): RouteInput<TView> {
+export function routeMap<TView>(
+  match: RouteMapInput<TView>['match'],
+  component: RouteMapInput<TView>['component']
+): RouteMapInput<TView> {
   return {
     match,
     component,

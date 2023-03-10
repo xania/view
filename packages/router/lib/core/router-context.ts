@@ -1,4 +1,8 @@
-﻿export interface RouteContext {
+﻿import { Path } from './path';
+import { Router } from './router';
+
+export interface RouteContext {
   params?: { [k: string]: any };
-  url: string;
+  fullpath: Path;
+  router: Router;
 }

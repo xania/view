@@ -325,7 +325,15 @@ export async function execute<TExecuteContext extends ExecuteContext>(
           }
           break;
         case DomOperationType.Attachable:
-          op.attachable.attachTo(nodeStack.head as HTMLElement);
+          const attachSubscription = op.attachable.attachTo(
+            nodeStack.head as HTMLElement
+          );
+          if (attachSubscription) {
+            if (context.subscriptions)
+              context.subscriptions.push(attachSubscription);
+            else context.subscriptions = [attachSubscription];
+          }
+
           break;
         case DomOperationType.Renderable:
           const binding = await op.renderable.render(
