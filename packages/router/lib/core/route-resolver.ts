@@ -15,9 +15,9 @@ export function createRouteResolver<TView>(
     };
   }
 
-  return resolve;
+  return resolver;
 
-  function resolve(path: Path) {
+  function resolver(path: Path): Promise<RouteResolution<TView> | null> {
     for (const route of compiled) {
       const segment = route.match(path);
       if (segment) {
@@ -40,9 +40,10 @@ export function createRouteResolver<TView>(
             appliedPath,
             component: route.component,
             params: segment.params,
+            resolver: resolver,
             // resolve:
             //   routes instanceof Function ? routes : createViewResolver(routes),
-          } as RouteResolution<TView>;
+          } satisfies RouteResolution<TView>;
         }
       }
     }
@@ -104,12 +105,8 @@ export type RouteResolver<TView = any> = (
 export interface RouteResolution<TView = any> {
   appliedPath: string[];
   params?: RouteParams;
+  resolver: RouteResolver<TView>;
   component: RouteComponentInput<TView> | null;
-}
-
-export interface RouteMapInput<TView = any> {
-  match: Route<TView>['match'] | string[];
-  component: RouteComponentInput<TView>;
 }
 
 interface Route<TView> {
@@ -133,14 +130,14 @@ function isArrayEmpty(arr: any[]) {
 //   };
 // }
 
-export interface RouteComponent<TView = any> {
-  view: TView;
-  routes?: RouteMapInput<TView>[] | RouteResolver<TView>;
-}
-
 export type RouteComponentInput<TView = any> =
   | TView
-  | ((context: RouteContext) => RouteComponent<TView>);
+  | ((context: RouteContext) => TView);
+
+export interface RouteMapInput<TView = any> {
+  match: Route<TView>['match'] | Path;
+  component: RouteComponentInput<TView>;
+}
 
 export function routeMap<TView>(
   match: RouteMapInput<TView>['match'],

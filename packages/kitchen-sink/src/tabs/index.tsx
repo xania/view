@@ -4,6 +4,7 @@
   routeMap,
   RouteMapInput,
 } from "@xania/router";
+import { Page } from "../page";
 
 import classes from "./tabs.module.scss";
 
@@ -14,7 +15,7 @@ export function TabsApp(context: RouteContext) {
   ];
 
   return (
-    <div>
+    <Page>
       <div>
         tabs
         <a href="/tabs/a" class={["router-link", classes["tab"]]}>
@@ -25,6 +26,6 @@ export function TabsApp(context: RouteContext) {
         </a>
       </div>
       <div>{childRouter(context, routes)}</div>
-    </div>
+    </Page>
   );
 }

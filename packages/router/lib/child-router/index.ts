@@ -1,25 +1,36 @@
-﻿import { filter, State, Value } from '@xania/state';
-import { Path, Route, RouteContext, RouteMapInput } from '../core';
+﻿import { filter, Rx, State, Value } from '@xania/state';
+import {
+  createRouteResolver,
+  Path,
+  Route,
+  RouteContext,
+  RouteMapInput,
+  RouteResolver,
+} from '../core';
 
 export class ChildRouter<TView> {
   constructor(
-    public readonly routes: Value<Route>,
-    public readonly resolve: ViewResolver<TView>
+    public routes: Value<Route>,
+    public resolve: RouteResolver<TView>
   ) {}
+  // constructor(
+  //   public props: any,
+  //   // public readonly routeMap: RouteMapInput<TView>[]
+  // ) // public readonly resolve: ViewResolver<TView>
+  // {}
 
-  attachTo(element: HTMLElement) {
+  view() {
     const childRouter = this;
     const { routes } = this;
-
-    // return routes.bind(async (r: Route) => {
-    //   const resolution = await childRouter.resolve(r.path);
-    //   if (resolution && resolution.component) {
-    //     const { component } = resolution;
-    //     if (component instanceof Function) {
-    //       component({ fullpath: [], router: childRouter });
-    //     }
-    //   }
-    // });
+    return routes.bind(async (r: Route) => {
+      const resolution = await childRouter.resolve(r.path);
+      if (resolution && resolution.component) {
+        const { component } = resolution;
+        if (component instanceof Function) {
+          return component({ fullpath: [], router: childRouter });
+        }
+      }
+    });
   }
 }
 
@@ -28,9 +39,8 @@ export function childRouter<TView>(
   routeMaps: RouteMapInput<TView>[]
 ) {
   const childRoutes = context.router.routes.pipe(relativeTo(context.fullpath));
-
-  return null;
-  // return new ChildRouter(childRoutes, createRouteResolver(routeMaps));
+  return new ChildRouter(childRoutes, createRouteResolver(routeMaps));
+  // return new ChildRouter(childRoutes, );
 }
 
 function relativeTo(prefix: Path) {
