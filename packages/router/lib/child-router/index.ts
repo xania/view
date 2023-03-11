@@ -1,4 +1,5 @@
 ﻿import { filter, Rx, State, Value } from '@xania/state';
+import { Viewable } from '@xania/view/lib/jsx/view';
 import {
   createRouteResolver,
   Path,
@@ -8,39 +9,31 @@ import {
   RouteResolver,
 } from '../core';
 
-export class ChildRouter<TView> {
-  constructor(
-    public routes: Value<Route>,
-    public resolve: RouteResolver<TView>
-  ) {}
-  // constructor(
-  //   public props: any,
-  //   // public readonly routeMap: RouteMapInput<TView>[]
-  // ) // public readonly resolve: ViewResolver<TView>
-  // {}
-
-  view() {
-    const childRouter = this;
-    const { routes } = this;
-    return routes.bind(async (r: Route) => {
-      const resolution = await childRouter.resolve(r.path);
-      if (resolution && resolution.component) {
-        const { component } = resolution;
-        if (component instanceof Function) {
-          return component({ fullpath: [], router: childRouter });
-        }
-      }
-    });
-  }
+interface ChildRouterProps<TView> {
+  context: RouteContext;
+  routeMaps: RouteMapInput<TView>[];
 }
 
-export function childRouter<TView>(
-  context: RouteContext,
-  routeMaps: RouteMapInput<TView>[]
-) {
-  const childRoutes = context.router.routes.pipe(relativeTo(context.fullpath));
-  return new ChildRouter(childRoutes, createRouteResolver(routeMaps));
-  // return new ChildRouter(childRoutes, );
+export function ChildRouter<TView>(props: ChildRouterProps<TView>) {
+  const { context } = props;
+  const { router } = context;
+  const childRoutes = router.routes.pipe(relativeTo(context.fullpath));
+
+  const resolve = createRouteResolver(props.routeMaps);
+
+  return {
+    view() {
+      return childRoutes.bind(async (r: Route) => {
+        const resolution = await resolve(r.path);
+        if (resolution && resolution.component) {
+          const { component } = resolution;
+          if (component instanceof Function) {
+            return component({ fullpath: [], router });
+          }
+        }
+      });
+    },
+  };
 }
 
 function relativeTo(prefix: Path) {

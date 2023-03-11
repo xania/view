@@ -1,5 +1,4 @@
 ﻿import {
-  childRouter,
   ChildRouter,
   RouteContext,
   routeMap,
@@ -16,12 +15,10 @@ export function InvoiceApp(context: RouteContext) {
   return (
     <Page>
       <div>invoices {new Date().getTime()}</div>
-      {childRouter(context, routes)}
+      <ChildRouter context={context} routeMaps={routes} />
       <div>invoices {new Date().getTime()}</div>
     </Page>
   );
-
-  //   routes: [routeMap(["hello"], Hello), routeMap(["hi"], Hi)],
 }
 
 function Hello() {
