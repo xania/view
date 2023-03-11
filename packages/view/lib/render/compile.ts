@@ -66,21 +66,24 @@ export class CompileResult<T> {
   lazyOperations: LazyOperation<T>[] = [];
   events: [JsxEvent, number][] = [];
 
-  constructor(public target: RenderTarget, public driver: IDomFactory) {}
+  constructor(public target: RenderTarget, public domFactory: IDomFactory) {}
 
   addAnchoredOperation(op: DomOperation<T>) {
     const { target } = this;
-    if (target instanceof Anchor) {
-      throw Error('Not supported!');
-    }
-    const anchorIdx = target.childNodes.length;
 
-    this.driver.appendAnchor(this.target, '-- root anchor --');
-    pushChildAt(this.renderOperations, anchorIdx);
-    this.renderOperations.push(op, {
-      type: DomOperationType.PopNode,
-      index: anchorIdx,
-    });
+    if (target instanceof Anchor) {
+      this.renderOperations.push(op);
+    } else {
+      const container = target;
+      const anchorIdx = container.childNodes.length;
+
+      this.domFactory.appendAnchor(this.target, '-- root anchor --');
+      pushChildAt(this.renderOperations, anchorIdx);
+      this.renderOperations.push(op, {
+        type: DomOperationType.PopNode,
+        index: anchorIdx,
+      });
+    }
     this.rootCount++;
   }
 
@@ -92,11 +95,11 @@ export class CompileResult<T> {
       for (const evt of child.events) this.events.push([evt, rootIndex]);
 
       const { contentOps } = child;
-      const { target, driver } = this;
+      const { target, domFactory } = this;
       const cloneOp = {
         type: DomOperationType.Clone,
         clone() {
-          return driver.appendTag(target, child.templateNode);
+          return domFactory.appendTag(target, child.templateNode);
         },
       };
 

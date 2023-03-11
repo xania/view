@@ -4,6 +4,7 @@ import { contextKey } from './symbols';
 import { ExecuteContext } from './execute-context';
 import { Anchor } from '../jsx';
 import { IDomFactory } from './dom-factory';
+import { render } from '.';
 
 export async function execute<TExecuteContext extends ExecuteContext>(
   operations: DomOperation<any>[],
@@ -24,7 +25,7 @@ export async function execute<TExecuteContext extends ExecuteContext>(
       const op = operations[operationIdx];
       switch (op.type) {
         case DomOperationType.AppendText:
-          nodeStack.head.appendChild(document.createTextNode(op.value));
+          domFactory.appendText(nodeStack.head, op.value);
           break;
         case DomOperationType.Lazy:
           (context as any)[op.nodeKey] = nodeStack.head;
@@ -335,6 +336,11 @@ export async function execute<TExecuteContext extends ExecuteContext>(
           }
 
           break;
+        case DomOperationType.Viewable:
+          const view = op.viewable.view(context);
+          const anchor = new Anchor(nodeStack.head as Comment);
+          render(view, anchor, domFactory);
+          break;
         case DomOperationType.Renderable:
           const binding = await op.renderable.render(
             new Anchor(nodeStack.head as HTMLElement),
@@ -357,6 +363,14 @@ export async function execute<TExecuteContext extends ExecuteContext>(
           }
           break;
 
+        case DomOperationType.Subscribable:
+          const { observable } = op;
+          observable.subscribe({
+            next(view) {
+              render(view, nodeStack.head as HTMLElement, domFactory);
+            },
+          });
+          break;
         // case DomOperationType.Subscribable:
         //   const { subscribable } = op;
 

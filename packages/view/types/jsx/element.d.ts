@@ -1,6 +1,7 @@
 ﻿declare module JSX {
   type Observable<T> = import('../../lib/jsx/observables').Observable<T>;
   type Renderable<T> = import('../../lib/jsx/renderable').Renderable<T>;
+  type View<T> = import('../../lib/jsx/view').View<T>;
   type Attachable = import('../../lib/jsx/renderable').Attachable;
   type TemplateNode = import('../../lib/jsx/template-node').TemplateNode;
   type Template = import('../../lib/jsx/template').Template;
@@ -16,7 +17,13 @@
     | Stringable
     | Expression<T>;
 
-  type ElementNode = Value | Renderable<any> | Node | Lazy<any> | Attachable;
+  type ElementNode =
+    | Value
+    | View<any>
+    | Renderable<any>
+    | Node
+    | Lazy<any>
+    | Attachable;
 
   type Stringable = { [Symbol.toStringTag](): string };
 

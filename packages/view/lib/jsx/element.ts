@@ -21,6 +21,7 @@ import {
 } from './template-node';
 import { hibernateJsx } from '../ssr/hibernate';
 import { EventKeys } from './event-keys';
+import { isViewable } from './view';
 
 export class JsxElement {
   public templateNode: TagTemplateNode;
@@ -216,6 +217,21 @@ export class JsxElement {
         //     type: ExpressionType.Init,
         //     init: child as any,
         //   });
+      } else if (isViewable(child)) {
+        const anchorIdx = templateNode.childNodes.length;
+        pushChildAt(contentOps, anchorIdx);
+        const anchor = createAnhor('view');
+        templateNode.childNodes.push(anchor);
+        contentOps.push(
+          {
+            type: DomOperationType.Viewable,
+            viewable: child,
+          },
+          {
+            type: DomOperationType.PopNode,
+            index: anchorIdx,
+          }
+        );
       } else if (isRenderable(child)) {
         const anchorIdx = templateNode.childNodes.length;
         pushChildAt(contentOps, anchorIdx);

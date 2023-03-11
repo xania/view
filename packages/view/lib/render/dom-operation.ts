@@ -1,6 +1,7 @@
 import { Attachable, Lazy, Renderable } from '../jsx';
 import { Expression } from '../jsx/expression';
 import { Observable } from '../jsx/observables';
+import { Viewable } from '../jsx/view';
 
 export enum DomOperationType {
   PushFirstChild = 693571,
@@ -10,6 +11,7 @@ export enum DomOperationType {
   SetAttribute,
   SetClassName,
   SetTextContent,
+  Viewable, // probably replacement from renderable
   Renderable,
   Attachable,
   Subscribable,
@@ -68,6 +70,11 @@ export interface SetTextContentOperation {
 export interface DomRenderableOperation<T> {
   type: DomOperationType.Renderable;
   renderable: Renderable<T> & { [key: string | number | symbol]: any };
+}
+
+export interface DomViewOperation<T> {
+  type: DomOperationType.Viewable;
+  viewable: Viewable<T> & { [key: string | number | symbol]: any };
 }
 
 export interface DomAttachableOperation {
@@ -130,5 +137,6 @@ export type DomRenderOperation<T> =
 export type DomOperation<T> =
   | DomNavigationOperation
   | DomRenderOperation<T>
+  | DomViewOperation<T>
   | DomAttachableOperation
   | CloneOperation;

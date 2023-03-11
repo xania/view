@@ -37,7 +37,7 @@ export function render<T = any>(
     return compile(root, container, domFactory).then((compileResult) => {
       const { renderOperations, events } = compileResult;
 
-      execute(renderOperations, [execContext], domFactory);
+      execute(renderOperations, [execContext], domFactory, container);
       executeLazy(compileResult.lazyOperations, container);
 
       if (container instanceof Anchor) {

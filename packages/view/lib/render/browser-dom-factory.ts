@@ -6,11 +6,18 @@ export class BrowserDomFactory implements IDomFactory<HTMLElement> {
   constructor() {}
 
   appendAnchor(target: RenderTarget<HTMLElement>, text: string): void {
+    const container = target instanceof Anchor ? target.container : target;
+    const anchor = document.createComment(text);
+    container.appendChild(anchor);
+  }
+
+  appendText(target: RenderTarget<HTMLElement>, text: string): void {
+    const textNode = document.createTextNode(text);
     if (target instanceof Anchor) {
-      throw new Error('not supported!');
+      const { container } = target;
+      container.insertBefore(textNode, target.child as Node);
     } else {
-      const anchor = document.createComment(text);
-      target.appendChild(anchor);
+      target.appendChild(textNode);
     }
   }
 
