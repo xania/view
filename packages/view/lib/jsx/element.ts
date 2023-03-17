@@ -344,7 +344,6 @@ export type EventContext<
   DependentType<TEvent>;
 
 export interface ViewContext<T> {
-  // Context node
   readonly node: Node;
   readonly data: T;
 }

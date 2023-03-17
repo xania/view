@@ -8,7 +8,7 @@ import {
 } from './dom-operation';
 import { JsxEvent } from './listen';
 import { TemplateInput } from '../jsx/template-input';
-import { Anchor, isRenderable, RenderTarget } from '../jsx';
+import { Anchor, isAttachable, isRenderable, RenderTarget } from '../jsx';
 import { isSubscribable } from '../jsx/observables';
 import { IDomFactory } from './dom-factory';
 
@@ -113,9 +113,14 @@ export class CompileResult<T> {
       });
       // this.observables.push(child);
     } else if (isRenderable(child)) {
-      this.addAnchoredOperation({
+      this.renderOperations.push({
         type: DomOperationType.Renderable,
         renderable: child,
+      });
+    } else if (isAttachable(child)) {
+      this.addAnchoredOperation({
+        type: DomOperationType.Attachable,
+        attachable: child,
       });
     } else if (child !== null && child !== undefined) {
       this.renderOperations.push({

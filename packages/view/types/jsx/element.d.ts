@@ -1,7 +1,7 @@
 ﻿declare module JSX {
   type Observable<T> = import('../../lib/jsx/observables').Observable<T>;
   type Renderable<T> = import('../../lib/jsx/renderable').Renderable<T>;
-  type View<T> = import('../../lib/jsx/view').View<T>;
+  type Viewable<T> = import('../../lib/jsx/view').Viewable<T>;
   type Attachable = import('../../lib/jsx/renderable').Attachable;
   type TemplateNode = import('../../lib/jsx/template-node').TemplateNode;
   type Template = import('../../lib/jsx/template').Template;
@@ -19,7 +19,7 @@
 
   type ElementNode =
     | Value
-    | View<any>
+    | Viewable<any>
     | Renderable<any>
     | Node
     | Lazy<any>

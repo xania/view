@@ -85,3 +85,7 @@ export interface Renderable<T> {
 export function isRenderable(value: any): value is Renderable<any> {
   return value && value.render instanceof Function;
 }
+
+export function isAttachable(value: any): value is Attachable {
+  return value && value.attachTo instanceof Function;
+}
