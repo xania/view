@@ -13,11 +13,15 @@ export function InvoiceApp(context: RouteContext) {
   ];
 
   return (
-    <Page>
-      <div>invoices {new Date().getTime()}</div>
+    <>
+      <Page>
+        <div>invoices {new Date().getTime()}</div>
+      </Page>
       <ChildRouter context={context} routeMaps={routes} />
-      <div>invoices {new Date().getTime()}</div>
-    </Page>
+      <Page>
+        <div>invoices {new Date().getTime()}</div>
+      </Page>
+    </>
   );
 }
 

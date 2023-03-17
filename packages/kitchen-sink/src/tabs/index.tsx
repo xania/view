@@ -1,5 +1,5 @@
 ﻿import {
-  childRouter,
+  ChildRouter,
   RouteContext,
   routeMap,
   RouteMapInput,
@@ -15,17 +15,19 @@ export function TabsApp(context: RouteContext) {
   ];
 
   return (
-    <Page>
-      <div>
-        tabs
-        <a href="/tabs/a" class={["router-link", classes["tab"]]}>
-          tab a
-        </a>
-        <a href="/tabs/b" class={["router-link", classes["tab"]]}>
-          tab b
-        </a>
-      </div>
-      <div>{childRouter(context, routes)}</div>
-    </Page>
+    <>
+      <Page>
+        <div>
+          tabs
+          <a href="/tabs/a" class={["router-link", classes["tab"]]}>
+            tab a
+          </a>
+          <a href="/tabs/b" class={["router-link", classes["tab"]]}>
+            tab b
+          </a>
+        </div>
+      </Page>
+      <ChildRouter context={context} routeMaps={routes} />
+    </>
   );
 }

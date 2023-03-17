@@ -1,0 +1,6 @@
+﻿{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "@xania/view"
+  }
+}

@@ -70,7 +70,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
           const output = new State<OutputItem>();
 
           function traverse(
-            stack: Tree<TView | ChildRouter<TView> | RouteError | null>[],
+            stack: Tree<TView | RouteError | null>[],
             remainingPath: Path,
             index: number,
             resolution: RouteResolution<TView>
@@ -87,12 +87,8 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
                   stack.push(v);
                   return traverse(stack, remainingPath, index, resolution);
                 });
-              } else if (curr instanceof ChildRouter) {
-                return curr.resolve(remainingPath).then((res) => {
-                  return applyResolution(stack, res, index);
-                });
               } else if (curr) {
-                output.set([index++, curr as any, resolution]);
+                output.set([index++, curr, resolution]);
               }
               //}
             }
@@ -100,7 +96,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
           }
 
           function applyResolution(
-            stack: Tree<TView | ChildRouter<TView> | RouteError | null>[],
+            stack: Tree<TView | RouteError | null>[],
             resolution: RouteResolution<TView> | null,
             index: number
           ): number | Promise<number> {

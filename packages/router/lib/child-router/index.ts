@@ -1,12 +1,11 @@
-﻿import { filter, Rx, State, Value } from '@xania/state';
-import { Viewable } from '@xania/view/lib/jsx/view';
+﻿import { State } from '@xania/state';
+import { render } from '@xania/view';
 import {
   createRouteResolver,
   Path,
   Route,
   RouteContext,
   RouteMapInput,
-  RouteResolver,
 } from '../core';
 
 interface ChildRouterProps<TView> {
@@ -14,7 +13,7 @@ interface ChildRouterProps<TView> {
   routeMaps: RouteMapInput<TView>[];
 }
 
-export function ChildRouter<TView>(props: ChildRouterProps<TView>) {
+export function ChildRouter(props: ChildRouterProps<any>) {
   const { context } = props;
   const { router } = context;
   const childRoutes = router.routes.pipe(relativeTo(context.fullpath));
@@ -22,8 +21,8 @@ export function ChildRouter<TView>(props: ChildRouterProps<TView>) {
   const resolve = createRouteResolver(props.routeMaps);
 
   return {
-    view() {
-      return childRoutes.bind(async (r: Route) => {
+    attachTo(target: any) {
+      const views = childRoutes.bind(async (r: Route) => {
         const resolution = await resolve(r.path);
         if (resolution && resolution.component) {
           const { component } = resolution;
@@ -32,7 +31,25 @@ export function ChildRouter<TView>(props: ChildRouterProps<TView>) {
           }
         }
       });
+
+      return views.subscribe({
+        next(v) {
+          render(v, target);
+        },
+      });
     },
+    // resolve,
+    // view() {
+    //   return childRoutes.bind(async (r: Route) => {
+    //     const resolution = await resolve(r.path);
+    //     if (resolution && resolution.component) {
+    //       const { component } = resolution;
+    //       if (component instanceof Function) {
+    //         return component({ fullpath: [], router });
+    //       }
+    //     }
+    //   });
+    // },
   };
 }
 
