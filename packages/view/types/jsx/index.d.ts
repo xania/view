@@ -1,4 +1,4 @@
-/// <reference path="./class-name.d.ts" />
+﻿/// <reference path="./class-name.d.ts" />
 /// <reference path="./element.d.ts" />
 /// <reference path="./intrinsic-elements.d.ts" />
 /// <reference path="./svg.d.ts" />
