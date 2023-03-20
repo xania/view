@@ -1,8 +1,10 @@
-﻿import { compile, render, signal, update } from "@xania/view";
+﻿import { State } from "@xania/state";
+import { compile, render } from "@xania/view";
+import { update } from "./update";
 
 export function Component() {
-  const count = signal(1);
-  const selected = signal(false);
+  const count = new State(1);
+  const selected = new State(false);
 
   return (
     <>

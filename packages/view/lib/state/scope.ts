@@ -2,15 +2,16 @@
 
 export class Scope {
   public values: Record<number, any> = {};
-  get(state: JSX.State & ManagedState) {
+
+  get(state: ManagedState) {
     const key = state[keyProp];
     if (key === undefined) {
       return undefined;
     }
-    return this.values[key];
+    return this.values[key] ?? state.snapshot;
   }
 
-  set(state: JSX.State & ManagedState, newValue: any) {
+  set(state: ManagedState, newValue: any) {
     const key = state[keyProp];
     const { values } = this;
 
@@ -28,8 +29,29 @@ export class Scope {
     }
     return false;
   }
+
+  setProp(state: ManagedState, prop: number | string | symbol, newValue: any) {
+    const key = state[keyProp];
+    const { values } = this;
+
+    if (key === undefined) {
+      const newKey = Math.random();
+      state[keyProp] = newKey;
+      values[newKey] = { [prop]: newValue };
+      return true;
+    }
+
+    const obj = values[key] ?? (values[key] = {});
+
+    const oldValue = obj[prop];
+    if (oldValue !== newValue) {
+      obj[prop] = newValue;
+      return true;
+    }
+    return false;
+  }
 }
 
-interface ManagedState {
+interface ManagedState extends JSX.State {
   [keyProp]?: any;
 }

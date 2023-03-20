@@ -203,3 +203,109 @@ function updateBind<T>(
   }
   return false;
 }
+
+interface Scope {
+  get<T>(state: Rx.Stateful<T>): T;
+  set<T>(state: Rx.Stateful<T>, newValue: T): boolean;
+  setProp<T, K extends keyof T>(
+    state: Rx.Stateful<T>,
+    prop: K,
+    newValue: T[K]
+  ): boolean;
+}
+
+export function syncScope(scope: Scope, ...stack: Rx.Stateful[]) {
+  // const pending: Rx.SignalOperator[] = [];
+
+  const changes: Rx.Stateful[] = [];
+
+  while (stack.length) {
+    let state = stack.pop();
+    while (state) {
+      if (state.dirty === true) {
+        state.dirty = false;
+        changes.push(state);
+
+        // if (state.observers) notify(state);
+
+        const { operators } = state;
+        const snapshot = scope.get(state);
+
+        if (operators !== undefined) {
+          for (let o = operators.length - 1; o >= 0; o--) {
+            const operator = operators[o];
+            switch (operator.type) {
+              case Rx.StateOperatorType.Property:
+                if (snapshot !== undefined) {
+                  const mappedValue =
+                    snapshot === null ? null : snapshot[operator.name];
+                  const { target } = operator;
+                  if (scope.set(target, mappedValue)) {
+                    target.dirty = true;
+                  }
+                }
+                break;
+              case Rx.StateOperatorType.Map:
+                const mappedValue = operator.func(snapshot);
+                const { target } = operator;
+                if (scope.set(target, mappedValue)) {
+                  target.dirty = true;
+                }
+                break;
+              case Rx.StateOperatorType.Connect:
+                const connectTarget = operator.target;
+                if (scope.set(connectTarget, snapshot)) {
+                  connectTarget.dirty = true;
+                }
+                break;
+              case Rx.StateOperatorType.Bind:
+                const sourceValue = scope.get(state);
+                if (sourceValue !== undefined) {
+                  const { boundState: prevState, connectOp, binder } = operator;
+                  const boundState = from(
+                    binder(sourceValue)
+                  ) as Rx.Stateful<any>;
+                  if (prevState !== boundState) {
+                    if (prevState) {
+                      connect(prevState, operator.target);
+                      removeOperator(prevState, connectOp);
+                    }
+                    if (boundState) {
+                      connect(boundState, operator.target);
+                      pushOperator(boundState, connectOp);
+
+                      const boundValue = boundState.snapshot;
+                      if (boundValue !== undefined) {
+                        const { target } = operator;
+                        if (scope.set(target, boundValue)) {
+                          target.dirty = true;
+                        }
+                      }
+                    }
+                    operator.boundState = boundState;
+                  }
+                }
+                // updateBind(state, operator);
+                break;
+              case Rx.StateOperatorType.Merge:
+                const { property, target: mergeTarget } = operator;
+
+                if (scope.setProp(mergeTarget, property, snapshot)) {
+                  if (!mergeTarget.dirty) {
+                    mergeTarget.dirty = true;
+                    stack.push(mergeTarget);
+                  }
+                }
+                break;
+              case Rx.StateOperatorType.Signal:
+                throw Error();
+            }
+          }
+        }
+      }
+      state = (state as any).right;
+    }
+  }
+
+  return changes;
+}

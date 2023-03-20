@@ -6,6 +6,5 @@ export function signal<T>(value?: T) {
   return new Signal2(value);
 }
 
-export * from './update';
 export * from './signal';
 export * from './scope';
