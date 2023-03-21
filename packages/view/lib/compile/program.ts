@@ -16,8 +16,8 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { Scope } from '../state/scope';
-import { keyProp } from '../state';
+import { Scope } from '../reactive/scope';
+import { scopeProp } from '../reactive';
 
 export class Program implements Attachable {
   constructor(
@@ -160,16 +160,16 @@ export class Program implements Attachable {
                 eventHandler instanceof Function
                   ? eventHandler(
                       syntheticEvent(eventName, originalEvent),
-                      scope
+                      scope as any
                     )
                   : eventHandler.handleEvent(
                       syntheticEvent(eventName, originalEvent),
-                      scope
+                      scope as any
                     );
 
               if (changes instanceof Array) {
                 for (const state of changes) {
-                  const key = state[keyProp];
+                  const key = state[scopeProp];
                   if (key === undefined) {
                     continue;
                   }
@@ -187,7 +187,7 @@ export class Program implements Attachable {
                     applySignalOperations(
                       signalOperations,
                       signalNodeTarget!,
-                      scope.values
+                      scope
                     );
                   }
                 }

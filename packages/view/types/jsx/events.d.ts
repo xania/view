@@ -40,6 +40,6 @@
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
     e: EventContext<HTMLElementEventMap[E], TElement>,
-    scope: import('../../lib/state/scope').Scope
+    context: import('../../lib/render/render-context').RenderContext
   ) => UpdateMessage;
 }

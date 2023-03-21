@@ -2,9 +2,9 @@
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
 import { Program } from './program';
 // import { Signal } from '../signals';
-import { ApplySignalHandler, HydrateOperationType } from './hydrate-operation';
+import { ApplyStateHandler, HydrateOperationType } from './hydrate-operation';
 import { isAttachable, isViewable } from '../render';
-import { keyProp } from '../state';
+import { scopeProp } from '../reactive';
 
 export function compile(
   children: JSX.Element
@@ -47,21 +47,21 @@ export function compile(
       ]);
     } else {
       const key = Math.random();
-      Object.defineProperty(value, keyProp, { value: key });
+      Object.defineProperty(value, scopeProp, { value: key });
 
       return new Program(
         [
           {
             type: DomDescriptorType.Text,
-            text: value.snapshot === undefined ? '' : String(value.snapshot),
+            text: value.initial === undefined ? '' : String(value.initial),
           },
         ],
         {
           [key]: [
             {
-              type: HydrateOperationType.ApplySignalHandler,
-              state: key,
-            } as ApplySignalHandler,
+              type: HydrateOperationType.ApplyStateHandler,
+              state: value,
+            } as ApplyStateHandler,
           ],
         }
       );

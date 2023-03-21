@@ -1,6 +1,6 @@
-﻿import { Signal } from './signal';
+﻿import { State } from './state';
 
 export interface MapOperator<T, U> {
   mapper: (x: T) => U;
-  target: Signal<U>;
+  target: State<U>;
 }

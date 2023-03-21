@@ -1,4 +1,4 @@
-﻿import { Scope } from '../state';
+﻿import { Scope } from '../reactive';
 import { EventOperation, HydrateOperationType } from './hydrate-operation';
 
 export function applyEventOperations(
@@ -64,7 +64,7 @@ export function applyEventOperations(
 export function applySignalOperations(
   operations: EventOperation[],
   rootTarget: HTMLElement,
-  values: Scope['values']
+  scope: Scope
 ) {
   const stack: Node[] = [];
   let currentTarget: Node = rootTarget;
@@ -86,9 +86,9 @@ export function applySignalOperations(
       for (let i = 0, len = operation.offset; i < len; i++) {
         currentTarget = currentTarget.nextSibling!;
       }
-    } else if (operation.type === HydrateOperationType.ApplySignalHandler) {
+    } else if (operation.type === HydrateOperationType.ApplyStateHandler) {
       const { state } = operation;
-      currentTarget.textContent = values[state];
+      currentTarget.textContent = scope.get(state);
     }
   }
 }

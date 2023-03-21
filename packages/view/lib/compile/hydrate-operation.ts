@@ -1,8 +1,10 @@
-﻿export enum HydrateOperationType {
+﻿import { Stateful } from '../reactive';
+
+export enum HydrateOperationType {
   PushChild = 686859,
   PopChild,
   ApplyEventHandler,
-  ApplySignalHandler,
+  ApplyStateHandler,
   PushSibling,
 }
 
@@ -11,7 +13,7 @@ export type EventOperation =
   | PopChild
   | PushSibling
   | ApplyEventHandler
-  | ApplySignalHandler;
+  | ApplyStateHandler;
 
 export type HydrateOperation = EventOperation;
 
@@ -34,7 +36,7 @@ export interface ApplyEventHandler {
   handler: JSX.EventHandler;
 }
 
-export interface ApplySignalHandler {
-  type: HydrateOperationType.ApplySignalHandler;
-  state: number;
+export interface ApplyStateHandler {
+  type: HydrateOperationType.ApplyStateHandler;
+  state: Stateful;
 }

@@ -33,27 +33,14 @@ export function applyEvents(
   for (const eventName in events) {
     const eventHandler = events[eventName];
 
-    const { scope } = context;
     const syntaticEventHandler = (originalEvent: Event) => {
       const changes =
         eventHandler instanceof Function
-          ? eventHandler(syntheticEvent(eventName, originalEvent), scope)
+          ? eventHandler(syntheticEvent(eventName, originalEvent), context)
           : eventHandler.handleEvent(
               syntheticEvent(eventName, originalEvent),
-              scope
+              context
             );
-      if (changes instanceof Array) {
-        for (const state of changes) {
-          const { signalBindings } = context;
-          for (const binding of signalBindings) {
-            if (binding[0] === state) {
-              const textNode = binding[1];
-              textNode.textContent = scope.get(state);
-            }
-          }
-        }
-        // signal.snapshot = newValue;
-      }
     };
 
     disposables.push(

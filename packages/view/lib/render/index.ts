@@ -9,8 +9,6 @@ import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 
-import { keyProp } from '../state';
-
 export function render(
   rootChildren: JSX.Element,
   rootTarget: RenderTarget,
@@ -68,11 +66,11 @@ export function render(
       currentTarget.appendChild(textNode);
       return textNode;
     } else {
-      const { snapshot } = value;
-      const signalNode = domFactory.createTextNode(String(snapshot));
-      currentTarget.appendChild(signalNode);
-      context.signalBindings.push([value, signalNode]);
-      return signalNode;
+      const { initial } = value;
+      const textNode = domFactory.createTextNode(String(initial));
+      currentTarget.appendChild(textNode);
+      context.graph.bind(value, textNode);
+      return textNode;
     }
   }
 

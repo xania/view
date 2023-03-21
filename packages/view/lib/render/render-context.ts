@@ -1,6 +1,6 @@
-﻿import { Scope } from '../state';
+﻿import { Scope, Graph, Stateful } from '../reactive';
 
 export class RenderContext {
-  public signalBindings: [JSX.State, Text][] = [];
   public scope: Scope = new Scope();
+  public graph = new Graph();
 }

@@ -1,9 +1,9 @@
-import { compile, render, signal, suspense, update } from "@xania/view";
+import { compile, render, state, suspense, update } from "@xania/view";
 import "./style.scss";
 
 const viewable = {
   view() {
-    const count = signal(1);
+    const count = state(1);
     return (
       <div>
         Hi I am viewable ({count})
@@ -50,7 +50,7 @@ export function Component(props: { title: string }) {
 }
 
 function Counter() {
-  const count = signal(1);
+  const count = state(1);
   return <button click={update(count, (x) => x + 1)}>Count: {count}</button>;
 }
 

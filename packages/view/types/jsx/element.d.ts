@@ -6,13 +6,13 @@
 
   type Primitive = string | number;
 
-  interface State<T = any> {
-    snapshot?: T;
+  interface Stateful<T = any> {
+    initial?: T;
   }
 
   type Value =
     | Primitive
-    | State<Primitive>
+    | Stateful<Primitive>
     | DomDescriptor
     | Program
     | Viewable

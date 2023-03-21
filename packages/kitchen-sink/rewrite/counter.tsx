@@ -1,8 +1,8 @@
-﻿import { compile, render, signal, update } from "@xania/view";
+﻿import { compile, render, state, update } from "@xania/view";
 
 export function Component() {
-  const count = signal(1);
-  const selected = signal(false);
+  const count = state(1);
+  const selected = state(false);
 
   return (
     <>
@@ -27,4 +27,4 @@ async function Compiled() {
   });
 }
 
-render(<Compiled />, document.body);
+render(<Component />, document.body);
