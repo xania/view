@@ -7,7 +7,7 @@ class UpdateMessage<T> {
   handleEvent(_: any, context: RenderContext) {
     const { scope } = context;
     const state: any = this.state;
-    const currentValue = scope.get(state) ?? state.snapshot;
+    const currentValue = scope.get(state) ?? state.initial;
     const newValue = this.updater(currentValue);
 
     if (
@@ -15,7 +15,7 @@ class UpdateMessage<T> {
       newValue !== currentValue &&
       scope.set(state, newValue)
     ) {
-      context.graph.sync(scope, state, newValue);
+      return context.graph.sync(scope, state, newValue);
     }
   }
 }

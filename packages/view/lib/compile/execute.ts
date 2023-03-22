@@ -1,4 +1,5 @@
 ﻿import { Scope } from '../reactive';
+import { RenderContext } from '../render/render-context';
 import { EventOperation, HydrateOperationType } from './hydrate-operation';
 
 export function applyEventOperations(
@@ -64,7 +65,7 @@ export function applyEventOperations(
 export function applySignalOperations(
   operations: EventOperation[],
   rootTarget: HTMLElement,
-  scope: Scope
+  context: RenderContext
 ) {
   const stack: Node[] = [];
   let currentTarget: Node = rootTarget;
@@ -88,7 +89,7 @@ export function applySignalOperations(
       }
     } else if (operation.type === HydrateOperationType.ApplyStateHandler) {
       const { state } = operation;
-      currentTarget.textContent = scope.get(state);
+      currentTarget.textContent = context.scope.get(state);
     }
   }
 }

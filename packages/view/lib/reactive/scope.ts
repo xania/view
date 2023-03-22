@@ -1,8 +1,9 @@
 ﻿import { MappedState, Stateful } from '.';
+import { resolve } from '../utils/resolve';
 export const scopeProp = Symbol('scope');
 
 export class Scope {
-  private readonly values = new Map<Stateful, any>();
+  private readonly values = new Map<ManagedState, any>();
 
   // snapshot(state: ManagedState): Snapshot {
   //   const key = state[scopeProp] ?? (state[scopeProp] = Math.random());
@@ -15,7 +16,7 @@ export class Scope {
     if (values.has(state)) {
       return values.get(state)!;
     } else {
-      return state.initial;
+      return undefined;
     }
   }
 
@@ -32,12 +33,13 @@ export class Scope {
   }
 }
 
-interface ManagedState extends JSX.Stateful {
-  [scopeProp]?: any;
+type ManagedState = any;
+
+type StateOperator = TextOperator | MapOperator | EventOperator;
+
+interface EventOperator {
+  type: 'event';
 }
-
-type StateOperator = TextOperator | MapOperator;
-
 interface TextOperator {
   type: 'text';
   text: Text;
@@ -45,7 +47,7 @@ interface TextOperator {
 
 interface MapOperator {
   type: 'map';
-  fun: (x: any) => any;
+  map: (x: any) => any;
   target: Stateful;
 }
 
@@ -66,22 +68,29 @@ export class Graph {
     }
   }
 
-  bind(node: ManagedState, textNode: Text) {
-    this.connect(node, {
-      type: 'text',
-      text: textNode,
-    });
+  add(node: ManagedState) {
     if (node instanceof MappedState) {
       this.connect(node.source, {
         type: 'map',
-        fun: node.mapper,
+        map: node.mapper,
         target: node,
       });
     }
   }
 
+  append(other: Graph) {
+    for (const [node, ops] of other.nodes) {
+      if (this.nodes.has(node)) {
+        this.nodes.get(node)!.push(...ops);
+      } else {
+        this.nodes.set(node, [...ops]);
+      }
+    }
+  }
+
   sync(scope: Scope, node: ManagedState, newValue: any) {
-    // const snapshot = snaps[key] ?? (snaps[key] = {});
+    const res: any[] = [];
+
     const operators = this.nodes.get(node);
     if (operators) {
       for (let i = 0; i < operators.length; i++) {
@@ -91,13 +100,32 @@ export class Graph {
             operator.text.data = newValue;
             break;
           case 'map':
-            const mappedValue = operator.fun(newValue);
-            if (scope.set(operator.target, mappedValue)) {
-              this.sync(scope, operator.target, mappedValue);
+            const mappedValue = operator.map(newValue);
+            if (scope.set(operator, mappedValue)) {
+              if (mappedValue instanceof Promise) {
+                res.push(
+                  mappedValue.then((resolved) => {
+                    if (
+                      scope.get(operator) === mappedValue &&
+                      scope.set(operator.target, resolved)
+                    ) {
+                      return this.sync(scope, operator.target, resolved);
+                    }
+                  })
+                );
+              } else if (scope.set(operator.target, mappedValue)) {
+                res.push(this.sync(scope, operator.target, mappedValue));
+              }
             }
+            break;
+          case 'event':
+            console.log('event', scope.get(node));
+            res.push(node);
             break;
         }
       }
     }
+
+    return res;
   }
 }

@@ -7,13 +7,13 @@ export function Component() {
   return (
     <>
       <div>Count:{count}</div>
-      <button click={update(selected, (x) => !x)}>
-        toggle: {selected.map((x) => (x ? "on" : "off"))}
-      </button>
       <div>
         <button click={update(count, (x) => x + 1)}> + </button>
         <button click={update(count, (x) => x - 1)}> - </button>
       </div>
+      <button click={update(selected, (x) => !x)}>
+        toggle: {selected.map((x) => delay(x ? "on" : "off"))}
+      </button>
     </>
   );
 }
@@ -27,4 +27,11 @@ async function Compiled() {
   });
 }
 
-render(<Component />, document.body);
+render(<Compiled />, document.body);
+
+function delay<T>(value: T, millis: number = 1000) {
+  console.log("delay", millis);
+  return new Promise<T>((resolve) => {
+    setTimeout(() => resolve(value), millis);
+  });
+}

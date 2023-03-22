@@ -4,7 +4,8 @@ import { Program } from './program';
 // import { Signal } from '../signals';
 import { ApplyStateHandler, HydrateOperationType } from './hydrate-operation';
 import { isAttachable, isViewable } from '../render';
-import { scopeProp } from '../reactive';
+import { Graph, scopeProp } from '../reactive';
+import { resolve } from '../utils/resolve';
 
 export function compile(
   children: JSX.Element
@@ -49,22 +50,31 @@ export function compile(
       const key = Math.random();
       Object.defineProperty(value, scopeProp, { value: key });
 
-      return new Program(
-        [
-          {
-            type: DomDescriptorType.Text,
-            text: value.initial === undefined ? '' : String(value.initial),
-          },
-        ],
-        {
-          [key]: [
+      return resolve(value.initial, (initial) => {
+        const program = new Program(
+          [
             {
-              type: HydrateOperationType.ApplyStateHandler,
-              state: value,
-            } as ApplyStateHandler,
+              type: DomDescriptorType.Text,
+              text: initial === undefined ? '' : String(initial),
+            },
           ],
-        }
-      );
+          {
+            [key]: [
+              {
+                type: HydrateOperationType.ApplyStateHandler,
+                state: value,
+              } as ApplyStateHandler,
+            ],
+          }
+        );
+
+        program.graph.add(value);
+        program.graph.connect(value, {
+          type: 'event',
+        });
+
+        return program;
+      });
     }
   }
 

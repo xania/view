@@ -16,10 +16,14 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { Scope } from '../reactive/scope';
+import { Graph, Scope } from '../reactive/scope';
 import { scopeProp } from '../reactive';
+import { RenderContext } from '../render/render-context';
+import { templateBind } from '../tpl';
 
 export class Program implements Attachable {
+  public graph: Graph = new Graph();
+
   constructor(
     public readonly staticTemplate: StaticTemplate[],
     public readonly eventsMap?: Record<
@@ -73,10 +77,13 @@ export class Program implements Attachable {
           }
         }
       }
+
+      const program = new Program([template], eventOperations);
+      program.graph.append(children.graph);
+      return program;
     } else if (children) {
       appendChild(template, children);
     }
-
     return new Program([template], eventOperations);
   }
 
@@ -102,12 +109,17 @@ export class Program implements Attachable {
       }
     }
 
-    return new Program(mergedStaticTemplate, mergedEventsMap);
+    const mergedProgram = new Program(mergedStaticTemplate, mergedEventsMap);
+
+    mergedProgram.graph.append(p1.graph);
+    mergedProgram.graph.append(p2.graph);
+
+    return mergedProgram;
   }
 
   attachTo(container: RenderTarget, domFactory: DomFactory = document) {
     const { eventsMap: eventsMap, staticTemplate } = this;
-    const scopes: Scope[] = [];
+    const contexts: RenderContext[] = [];
 
     let disposeListeners: undefined | (() => any) = undefined;
 
@@ -146,7 +158,7 @@ export class Program implements Attachable {
       if (rootFlag !== undefined) {
         const nodeIndex = rootFlag & 255;
         const dataIndex = rootFlag >> 8;
-        const scope = scopes[dataIndex];
+        const context = contexts[dataIndex];
         applyEventOperations(
           eventOperations,
           rootTarget,
@@ -156,42 +168,41 @@ export class Program implements Attachable {
               eventTarget === currentTarget ||
               currentTarget.contains(eventTarget)
             ) {
-              const changes =
+              const messages =
                 eventHandler instanceof Function
                   ? eventHandler(
                       syntheticEvent(eventName, originalEvent),
-                      scope as any
+                      context as any
                     )
                   : eventHandler.handleEvent(
                       syntheticEvent(eventName, originalEvent),
-                      scope as any
+                      context as any
                     );
 
-              if (changes instanceof Array) {
-                for (const state of changes) {
-                  const key = state[scopeProp];
-                  if (key === undefined) {
-                    continue;
-                  }
-
-                  const signalOperations = eventsMap![key];
-                  if (signalOperations) {
-                    let signalNodeIndex = nodeIndex;
-                    let signalNodeTarget: HTMLElement | null | undefined =
-                      rootTarget;
-                    while (signalNodeIndex--) {
-                      signalNodeTarget =
-                        signalNodeTarget?.previousSibling as HTMLElement;
-                    }
-
-                    applySignalOperations(
-                      signalOperations,
-                      signalNodeTarget!,
-                      scope
-                    );
-                  }
+              templateBind(messages, (state) => {
+                const key = state[scopeProp];
+                if (key === undefined) {
+                  return;
                 }
-              }
+
+                const signalOperations = eventsMap![key];
+                if (signalOperations) {
+                  let signalNodeIndex = nodeIndex;
+                  let signalNodeTarget: HTMLElement | null | undefined =
+                    rootTarget;
+                  while (signalNodeIndex--) {
+                    signalNodeTarget =
+                      signalNodeTarget?.previousSibling as HTMLElement;
+                  }
+
+                  applySignalOperations(
+                    signalOperations,
+                    signalNodeTarget!,
+                    context
+                  );
+                }
+              });
+
               return true;
             } else {
               return false;
@@ -211,7 +222,13 @@ export class Program implements Attachable {
       templates.push(rootElement);
     }
 
-    return new View(scopes, container, templates, disposeListeners);
+    return new View(
+      this.graph,
+      contexts,
+      container,
+      templates,
+      disposeListeners
+    );
   }
 
   asComponent(
@@ -237,7 +254,8 @@ const rootFlagKey = ':x-root';
 
 export class View {
   constructor(
-    public scopes: Scope[],
+    public graph: Graph,
+    public contexts: RenderContext[],
     public container: RenderTarget,
     //    public renderOperations: Program['renderOperations'],
     public templates: Node[],
@@ -245,10 +263,10 @@ export class View {
   ) {}
 
   render() {
-    const { templates, container, scopes } = this;
-    const dataIdx = scopes.length;
-    const scope = new Scope();
-    scopes.push(scope);
+    const { templates, container, contexts } = this;
+    const dataIdx = contexts.length;
+    const context = new RenderContext(new Scope(), this.graph);
+    contexts.push(context);
 
     const nodes: Node[] = [];
     for (let nodeIdx = 0, len = templates.length; nodeIdx < len; nodeIdx++) {

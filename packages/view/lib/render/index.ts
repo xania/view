@@ -8,13 +8,18 @@ import { RenderContext } from './render-context';
 import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
+import { Graph, Scope } from '../reactive';
+import { resolve } from '../utils/resolve';
 
 export function render(
   rootChildren: JSX.Element,
   rootTarget: RenderTarget,
   domFactory: DomFactory = document
 ): Template<Node | View | Disposable> {
-  const context: RenderContext = new RenderContext();
+  const scope = new Scope();
+  const graph = new Graph();
+
+  const context: RenderContext = new RenderContext(scope, graph);
   function binder(
     value: JSX.Value,
     currentTarget: RenderTarget
@@ -37,9 +42,9 @@ export function render(
             applyAttributes(elementNode, value.attrs);
           }
           currentTarget.appendChild(elementNode);
+          /** wrap promise inside an array (or any object) to render children concurrently */
           return [
             elementNode,
-            /** wrap promise inside an array (or any object) to render children concurrently */
             templateBind(value.children, binder, elementNode),
             applyEvents(value.events, elementNode, context),
           ];
@@ -66,11 +71,18 @@ export function render(
       currentTarget.appendChild(textNode);
       return textNode;
     } else {
-      const { initial } = value;
-      const textNode = domFactory.createTextNode(String(initial));
-      currentTarget.appendChild(textNode);
-      context.graph.bind(value, textNode);
-      return textNode;
+      return resolve(value.initial, (initial) => {
+        const textNode = domFactory.createTextNode(String(initial));
+        currentTarget.appendChild(textNode);
+
+        context.graph.add(value);
+        context.graph.connect(value, {
+          type: 'text',
+          text: textNode,
+        });
+
+        return textNode;
+      });
     }
   }
 
