@@ -1,5 +1,6 @@
 ﻿import { templateBind } from './tpl';
 import { DomDescriptorType, isDomDescriptor } from './intrinsic/descriptors';
+import { MappedState, State } from './reactive';
 
 type SuspenseReturnType = JSX.MaybePromise<JSX.Value[]>;
 

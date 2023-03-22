@@ -18,7 +18,7 @@
     | Viewable
     | Attachable;
   type Just<T> = T;
-  type Nothing = null | undefined;
+  type Nothing = null | undefined | void;
 
   /**
    * True type of an element is the <code>TagDescriptor</code> not JSX>Element,
