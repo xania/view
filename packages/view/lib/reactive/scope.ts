@@ -119,7 +119,6 @@ export class Graph {
             }
             break;
           case 'event':
-            console.log('event', scope.get(node));
             res.push(node);
             break;
         }

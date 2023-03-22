@@ -49,32 +49,30 @@ export function compile(
     } else {
       const key = Math.random();
       Object.defineProperty(value, scopeProp, { value: key });
-
-      return resolve(value.initial, (initial) => {
-        const program = new Program(
-          [
-            {
-              type: DomDescriptorType.Text,
-              text: initial === undefined ? '' : String(initial),
-            },
-          ],
+      const initial = value.initial;
+      const program = new Program(
+        [
           {
-            [key]: [
-              {
-                type: HydrateOperationType.ApplyStateHandler,
-                state: value,
-              } as ApplyStateHandler,
-            ],
-          }
-        );
+            type: DomDescriptorType.Text,
+            text: initial === undefined ? '' : String(initial),
+          },
+        ],
+        {
+          [key]: [
+            {
+              type: HydrateOperationType.ApplyStateHandler,
+              state: value,
+            } as ApplyStateHandler,
+          ],
+        }
+      );
 
-        program.graph.add(value);
-        program.graph.connect(value, {
-          type: 'event',
-        });
-
-        return program;
+      program.graph.add(value);
+      program.graph.connect(value, {
+        type: 'event',
       });
+
+      return program;
     }
   }
 

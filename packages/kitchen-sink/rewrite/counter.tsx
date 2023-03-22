@@ -23,20 +23,12 @@ export async function Component() {
 }
 
 async function Compiled() {
-  return (
-    <>
-      <Component />
-      <Component />
-      <Component />
-    </>
-  );
-
-  // const program = await compile(<Component />);
-  // return program!.asComponent((view) => {
-  //   view.render();
-  //   view.render();
-  //   view.render();
-  // });
+  const program = await compile(<Component />);
+  return program!.asComponent((view) => {
+    view.render();
+    view.render();
+    view.render();
+  });
 }
 
 render(
@@ -48,7 +40,6 @@ render(
 );
 
 function delay<T>(value: T, millis: number = 400) {
-  console.log("delay", millis);
   return new Promise<T>((resolve) => {
     setTimeout(() => resolve(value), millis);
   });
