@@ -17,7 +17,7 @@ import {
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
 import { Graph, Scope } from '../reactive/scope';
-import { scopeProp } from '../reactive';
+import { applyUpdates, scopeProp, UpdateMessage } from '../reactive';
 import { RenderContext } from '../render/render-context';
 import { templateBind } from '../tpl';
 
@@ -169,17 +169,15 @@ export class Program implements Attachable {
               currentTarget.contains(eventTarget)
             ) {
               const messages =
-                eventHandler instanceof Function
-                  ? eventHandler(
-                      syntheticEvent(eventName, originalEvent),
-                      context as any
-                    )
+                eventHandler instanceof UpdateMessage
+                  ? eventHandler
+                  : eventHandler instanceof Function
+                  ? eventHandler(syntheticEvent(eventName, originalEvent))
                   : eventHandler.handleEvent(
-                      syntheticEvent(eventName, originalEvent),
-                      context as any
+                      syntheticEvent(eventName, originalEvent)
                     );
 
-              templateBind(messages, (state) => {
+              applyUpdates(context, messages, (state: any) => {
                 const key = state[scopeProp];
                 if (key === undefined) {
                   return;

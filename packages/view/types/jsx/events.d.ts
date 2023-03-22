@@ -32,14 +32,16 @@
   type EventHandler<
     E extends keyof HTMLElementEventMap = any,
     TElement = any
-  > = EventHandlerFn<E, TElement> | EventHandlerObj<E, TElement>;
+  > =
+    | EventHandlerFn<E, TElement>
+    | EventHandlerObj<E, TElement>
+    | import('../../lib/reactive/update').UpdateMessage<any>;
 
   type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
     handleEvent: EventHandlerFn<E, TElement>;
   };
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
-    e: EventContext<HTMLElementEventMap[E], TElement>,
-    context: import('../../lib/render/render-context').RenderContext
+    e: EventContext<HTMLElementEventMap[E], TElement>
   ) => UpdateMessage;
 }

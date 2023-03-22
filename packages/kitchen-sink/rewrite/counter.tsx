@@ -6,30 +6,39 @@ export function Component() {
 
   return (
     <>
-      <div>Count:{count}</div>
+      <div>
+        Count:{count} ({count.map((x) => (x % 2 === 0 ? "even" : "odd"))})
+      </div>
       <div>
         <button click={update(count, (x) => x + 1)}> + </button>
         <button click={update(count, (x) => x - 1)}> - </button>
       </div>
       <button click={update(selected, (x) => !x)}>
-        toggle: {selected.map((x) => delay(x ? "on" : "off"))}
+        delayed toggle: {selected.map((x) => delay(x ? "on" : "off"))}
       </button>
     </>
   );
 }
 
 async function Compiled() {
-  const program = await compile(<Component />);
-  return program!.asComponent((view) => {
-    view.render();
-    view.render();
-    view.render();
-  });
+  return <Component />;
+  // const program = await compile(<Component />);
+  // return program!.asComponent((view) => {
+  //   view.render();
+  //   view.render();
+  //   view.render();
+  // });
 }
 
-render(<Compiled />, document.body);
+render(
+  <>
+    <h2>Counters and toggles</h2>
+    <Compiled />
+  </>,
+  document.body
+);
 
-function delay<T>(value: T, millis: number = 1000) {
+function delay<T>(value: T, millis: number = 600) {
   console.log("delay", millis);
   return new Promise<T>((resolve) => {
     setTimeout(() => resolve(value), millis);

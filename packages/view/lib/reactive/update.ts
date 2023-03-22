@@ -1,25 +1,33 @@
 ﻿import { RenderContext } from '../render/render-context';
+import { BindFunction, Template, templateBind } from '../tpl';
 import { Stateful } from './state';
 
-class UpdateMessage<T> {
+export class UpdateMessage<T = any> {
   constructor(public state: Stateful<T>, public updater: (x: T) => T) {}
+}
 
-  handleEvent(_: any, context: RenderContext) {
+export function update<T>(state: Stateful<T>, updater: (x: T) => T) {
+  return new UpdateMessage(state, updater);
+}
+
+export function applyUpdates(
+  context: RenderContext,
+  messages: Template<UpdateMessage>,
+  applyChange?: BindFunction<any, any>
+) {
+  return templateBind(messages, (message: UpdateMessage) => {
     const { scope } = context;
-    const state: any = this.state;
+    const state: any = message.state;
     const currentValue = scope.get(state) ?? state.initial;
-    const newValue = this.updater(currentValue);
+    const newValue = message.updater(currentValue);
 
     if (
       newValue !== undefined &&
       newValue !== currentValue &&
       scope.set(state, newValue)
     ) {
-      return context.graph.sync(scope, state, newValue);
+      const changes = context.graph.sync(scope, state, newValue);
+      if (applyChange) return templateBind(changes, applyChange);
     }
-  }
-}
-
-export function update<T>(state: Stateful<T>, updater: (x: T) => T) {
-  return new UpdateMessage(state, updater);
+  });
 }

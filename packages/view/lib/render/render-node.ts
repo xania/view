@@ -7,6 +7,7 @@ import { RenderContext } from './render-context';
 import { DomFactory } from './dom-factory';
 import { Disposable } from '../disposable';
 import { isAttachable } from './attachable';
+import { applyUpdates, UpdateMessage } from '../reactive';
 
 export function applyAttributes(
   target: HTMLElement,
@@ -34,13 +35,14 @@ export function applyEvents(
     const eventHandler = events[eventName];
 
     const syntaticEventHandler = (originalEvent: Event) => {
-      const changes =
-        eventHandler instanceof Function
-          ? eventHandler(syntheticEvent(eventName, originalEvent), context)
-          : eventHandler.handleEvent(
-              syntheticEvent(eventName, originalEvent),
-              context
-            );
+      const messages =
+        eventHandler instanceof UpdateMessage
+          ? eventHandler
+          : eventHandler instanceof Function
+          ? eventHandler(syntheticEvent(eventName, originalEvent))
+          : eventHandler.handleEvent(syntheticEvent(eventName, originalEvent));
+
+      applyUpdates(context, messages);
     };
 
     disposables.push(
