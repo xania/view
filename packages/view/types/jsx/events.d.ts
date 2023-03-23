@@ -1,11 +1,47 @@
 ﻿declare module JSX {
-  type EventContext<TData, TEvent, TElement> =
-    import('../../lib/jsx/element').EventContext<TData, TEvent, TElement>;
-  type NextObserver<T> = import('../../lib/jsx/observables').NextObserver<T>;
+  type Filter<T> = Pick<
+    T,
+    {
+      [P in keyof T]: T[P] extends never ? never : P;
+    }[keyof T]
+  >;
 
-  type TagEvents<TElement, TData> = {
-    [E in keyof HTMLElementEventMap]?:
-      | ((e: EventContext<TData, HTMLElementEventMap[E], TElement>) => void)
-      | NextObserver<EventContext<TData, HTMLElementEventMap[E], TElement>>;
+  type DependentType<T> = Filter<{
+    key: 'key' extends keyof T ? T['key'] : never;
+  }>;
+
+  type EventContext<TEvent = Event, TElement = HTMLElement> = EventContextProps<
+    TElement,
+    TEvent
+  > &
+    DependentType<TEvent>;
+
+  type EventContextProps<TElement, TEvent> = {
+    currentTarget: TElement;
+    target: EventTarget & HTMLElement;
+    type: Event['type'];
+    event: TEvent & {
+      target: EventTarget & HTMLElement;
+    };
   };
+
+  type TagEvents<TElement> = {
+    [E in keyof HTMLElementEventMap]?: EventHandler<E, TElement>;
+  };
+
+  type EventHandler<
+    E extends keyof HTMLElementEventMap = any,
+    TElement = any
+  > =
+    | EventHandlerFn<E, TElement>
+    | EventHandlerObj<E, TElement>
+    | import('../../lib/reactive/update').UpdateCommand<any>;
+
+  type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
+    handleEvent: EventHandlerFn<E, TElement>;
+  };
+
+  type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
+    e: EventContext<HTMLElementEventMap[E], TElement>
+  ) => UpdateMessage;
 }

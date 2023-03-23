@@ -1,36 +1,31 @@
 ﻿declare module JSX {
-  type Observable<T> = import('../../lib/jsx/observables').Observable<T>;
-  type Renderable<T> = import('../../lib/jsx/renderable').Renderable<T>;
-  type Viewable<T> = import('../../lib/jsx/view').Viewable<T>;
-  type Attachable = import('../../lib/jsx/renderable').Attachable;
-  type TemplateNode = import('../../lib/jsx/template-node').TemplateNode;
-  type Template = import('../../lib/jsx/template').Template;
+  type DomDescriptor = import('../../lib/intrinsic/descriptors').DomDescriptor;
+  type Viewable = import('../../lib/render/viewable').Viewable;
+  type Attachable = import('../../lib/render/attachable').Attachable;
+  type Program = import('../../lib/compile/program').Program;
 
-  type Value<T = any> =
-    | null
-    | undefined
-    | void
-    | string
-    | number
-    | boolean
-    | bigint
-    | Stringable
-    | Expression<T>;
+  type Primitive = string | number;
 
-  type ElementNode =
-    | Value
-    | Viewable<any>
-    | Renderable<any>
-    | Node
-    | Lazy<any>
+  interface Stateful<T = any> {
+    initial?: MaybePromise<T>;
+  }
+
+  type Value =
+    | Primitive
+    | Stateful<Primitive>
+    | DomDescriptor
+    | Program
+    | Viewable
     | Attachable;
+  type Just<T> = T;
+  type Nothing = null | undefined | void;
 
-  type Stringable = { [Symbol.toStringTag](): string };
-
-  type Element =
-    | ElementNode
-    | Observable<ElementNode>
-    | Promise<ElementNode>
-    | TemplateNode
-    | Template;
+  /**
+   * True type of an element is the <code>TagDescriptor</code> not JSX>Element,
+   * type Element represents the return type of a Component. In Xania return type can
+   * be a variety of different possibilities represented here as follows:
+   */
+  type Element = MaybePromise<Nothing | Just<Value> | Element[]>;
+  type MaybePromise<T> = T | Promise<T>;
+  type MaybeArray<T> = T | T[];
 }

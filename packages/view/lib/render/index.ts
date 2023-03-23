@@ -1,176 +1,96 @@
-﻿import { TemplateInput } from '../jsx/template-input';
-import { compile } from './compile';
-import { execute } from './execute';
-import { disposeContext, ExecuteContext } from './execute-context';
-import { listen } from './listen';
-import { IDomFactory } from './dom-factory';
-import { Anchor, RenderTarget } from '../jsx';
-import { LazyOperation } from './dom-operation';
-import { update } from './update';
-import { BrowserDomFactory } from './browser-dom-factory';
-import { Disposable, Tree } from '../disposable';
+﻿import { Template, templateBind } from '../tpl';
+import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
+import type { Disposable } from '../disposable';
+import { applyAttributes, applyEvents, renderStatic } from './render-node';
+import { Program, View } from '../compile/program';
+import type { RenderTarget } from './target';
+import { RenderContext } from './render-context';
+import { DomFactory } from './dom-factory';
+import { isAttachable } from './attachable';
+import { isViewable } from './viewable';
+import { Graph, Scope } from '../reactive';
+import { resolve } from '../utils/resolve';
 
-export function render<T = any>(
-  root: TemplateInput<T>,
-  container: RenderTarget<HTMLElement>,
-  domFactory: IDomFactory<HTMLElement> = new BrowserDomFactory()
-): Tree<Disposable> {
-  if (root === null || root === undefined) return null;
+export function render(
+  rootChildren: JSX.Element,
+  rootTarget: RenderTarget,
+  domFactory: DomFactory = document
+): Template<Node | View | Disposable> {
+  const scope = new Scope();
+  const graph = new Graph();
 
-  // if (root instanceof JsxElement) {
-  //   return renderElement(root, container);
-  // }
+  const context: RenderContext = new RenderContext(scope, graph);
+  function binder(
+    value: JSX.Value,
+    currentTarget: RenderTarget
+  ): Template<Node | View | Disposable> {
+    if (value instanceof Node) {
+      currentTarget.appendChild(value.cloneNode(true));
+      return value;
+    } else if (value instanceof Program) {
+      const view = value.attachTo(currentTarget, domFactory);
+      return [view, view.render()];
+    } else if (isDomDescriptor(value)) {
+      switch (value.type) {
+        case DomDescriptorType.StaticElement:
+          const staticNode = renderStatic(value, domFactory);
+          currentTarget.appendChild(staticNode);
+          return staticNode;
+        case DomDescriptorType.Element:
+          const elementNode = domFactory.createElement(value.name);
+          if (value.attrs) {
+            applyAttributes(elementNode, value.attrs);
+          }
+          currentTarget.appendChild(elementNode);
+          /** wrap promise inside an array (or any object) to render children concurrently */
+          return [
+            elementNode,
+            templateBind(value.children, binder, elementNode),
+            applyEvents(value.events, elementNode, context),
+          ];
+        case DomDescriptorType.Text:
+          const textNode = domFactory.createTextNode(value.text);
+          currentTarget.appendChild(textNode);
+          return textNode;
+        case DomDescriptorType.Data:
+          const dataNode = domFactory.createTextNode(value.data.toString());
+          currentTarget.appendChild(dataNode);
+          return dataNode;
+      }
+    } else if (isAttachable(value)) {
+      return value.attachTo(currentTarget, domFactory);
+    } else if (isViewable(value)) {
+      const view = value.view();
+      return templateBind(view, binder, currentTarget);
+    } else if (typeof value === 'string') {
+      const textNode = domFactory.createTextNode(value);
+      currentTarget.appendChild(textNode);
+      return textNode;
+    } else if (typeof value === 'number') {
+      const textNode = domFactory.createTextNode(String(value));
+      currentTarget.appendChild(textNode);
+      return textNode;
+    } else {
+      return resolve(value.initial, (initial) => {
+        const textNode = domFactory.createTextNode(String(initial));
+        currentTarget.appendChild(textNode);
 
-  // if (root instanceof Array) {
-  //   return flatten(root.map((elt) => render(elt, container)));
-  // }
+        context.graph.add(value);
+        context.graph.connect(value, {
+          type: 'text',
+          text: textNode,
+        });
 
-  // if (isRenderable(root)) {
-  //   return root.render(container, null as any);
-  // }
-
-  if (root instanceof Promise) {
-    return root.then((e: any) => render<T>(e, container, domFactory));
-  } else {
-    const execContext: ExecuteContext = {};
-
-    return compile(root, container, domFactory).then((compileResult) => {
-      const { renderOperations, events } = compileResult;
-
-      execute(renderOperations, [execContext], domFactory, container);
-      executeLazy(compileResult.lazyOperations, container);
-
-      if (container instanceof Anchor) {
-        const node = container.container;
-        for (const [evt, rootIdx] of events) {
-          const disposable = listen(node, evt, rootIdx);
-          if (execContext.bindings) execContext.bindings.push(disposable);
-          else execContext.bindings = [disposable];
-        }
-      } else {
-        for (const [evt, rootIdx] of events) {
-          const disposable = listen(container, evt, rootIdx);
-          if (execContext.bindings) execContext.bindings.push(disposable);
-          else execContext.bindings = [disposable];
-        }
-      } // for (const obs of observables) {
-      //   const subs = obs.subscribe({
-      //     binding: null as Promise<Disposable | null> | null,
-      //     target: container,
-      //     async next(value) {
-      //       const { binding } = this;
-      //       if (binding instanceof Promise) {
-      //         binding.then(disposeAll);
-      //       } else {
-      //         disposeAll(binding);
-      //       }
-      //       this.binding = render(value, this.target);
-      //     },
-      //   });
-      //   const { subscriptions } = execContext;
-      //   if (subscriptions) subscriptions.push(subs);
-      //   else execContext.subscriptions = [subs];
-      // }
-
-      return {
-        dispose() {
-          disposeContext(execContext);
-        },
-      };
-    });
+        return textNode;
+      });
+    }
   }
 
-  // if (isSubscribable(root)) {
-  //   let binding: Disposable | null = null;
-
-  //   const subs = root.subscribe({
-  //     next(value) {
-  //       disposeAll(binding);
-  //       binding = render(value, container);
-  //     },
-  //   });
-
-  //   return {
-  //     dispose() {
-  //       subs.unsubscribe();
-  //     },
-  //   };
-  // }
-
-  // if (root instanceof Node) {
-  //   container.appendChild(root);
-  //   return {
-  //     dispose() {
-  //       container.removeChild(root);
-  //     },
-  //   };
-  // }
-
-  // {
-  //   // if all previous fail then add the root as text node to the provided container
-  //   const textNode = document.createTextNode((root as any).toString());
-  //   container.appendChild(textNode);
-  //   return {
-  //     dispose() {
-  //       textNode.remove();
-  //     },
-  //   };
-  // }
-
-  // if (isExpressionTemplate(root)) {
-  //   return root;
-  // } else {
-  //   const textNode = document.createTextNode(root.toString());
-  //   container.appendChild(textNode);
-  //   return {
-  //     dispose() {
-  //       textNode.remove();
-  //     },
-  //   };
-  // }
+  return templateBind(rootChildren, binder, rootTarget);
 }
 
-export function executeLazy(
-  lazyOperations: LazyOperation<any>[],
-  target: RenderTarget<HTMLElement>
-) {
-  for (const op of lazyOperations) {
-    op.lazy.lazy({
-      next([item, newValue]: any) {
-        if (!item) return;
-        item[op.valueKey] = newValue;
-        update([op.operation], [item]);
-
-        // const { attachables } = op.lazy;
-        // if (attachables?.length) {
-        //   const node = item[op.nodeKey];
-        //   const rootNode = resolveRootNode(target, node);
-        //   if (rootNode) {
-        //     for (const [n, f] of attachables) {
-        //       if (rootNode.contains(n))
-        //         f({
-        //           data: item,
-        //           node: n,
-        //         } as ViewContext<any>);
-        //     }
-        //   }
-        // }
-
-        // if (prevValue) {
-        //   ref.classList.remove(prevValue);
-        // }
-
-        // if (newValue) {
-        //   const classes = jsxOpts?.classes;
-        //   const cls = classes ? classes[newValue] : newValue;
-        //   item[op.valueKey] = cls;
-
-        //   ref.classList.add(cls);
-        // }
-      },
-    });
-  }
-}
-
-export * from './execute';
-export * from './dom-operation';
+export * from './unrender';
+export * from './ready';
+export * from './dom-factory';
+export * from './viewable';
+export * from './attachable';

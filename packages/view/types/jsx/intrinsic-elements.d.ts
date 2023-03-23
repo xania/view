@@ -1,6 +1,4 @@
 ﻿declare module JSX {
-  type Expression<T> = import('../../lib/jsx/expression').Expression<T>;
-
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
   } & SVGTagNameMap;
@@ -11,11 +9,11 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T> | Observable<T> | Lazy<T> | Expression<T>;
+  type AttrValue<T> = T | Promise<T>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;
-  } & TagEvents<TElement, any>;
+  } & TagEvents<TElement>;
 
   type Mutable<T> = {
     [P in MutableProps<T>]: T[P];
@@ -53,9 +51,8 @@
   }
 
   interface ElementChildrenAttribute {
-    children?: Children;
+    children?: MaybePromise<Element>;
   }
 
-  type Children = Tree<Element>;
-  type Tree<T> = null | void | T | Tree<T>[];
+  type Children = Element;
 }

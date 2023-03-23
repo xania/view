@@ -4,3 +4,4 @@ packages/create/dist/
 packages/create/.xania/
 packages/scaffold/dist/
 packages/router/dist/
+packages/view/dist/
