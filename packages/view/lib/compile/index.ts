@@ -4,13 +4,15 @@ import { Program } from './program';
 // import { Signal } from '../signals';
 import { ApplyStateHandler, HydrateOperationType } from './hydrate-operation';
 import { isAttachable, isViewable } from '../render';
-import { Graph, scopeProp } from '../reactive';
-import { resolve } from '../utils/resolve';
+import { map, scopeProp } from '../reactive';
+// import { initial } from '../reactive/initial';
 
 export function compile(
   children: JSX.Element
 ): JSX.MaybePromise<Program | null> {
-  function binder(value: JSX.Value): JSX.MaybePromise<Program | null> {
+  function binder(
+    value: JSX.Value
+  ): JSX.MaybePromise<Program | null | undefined> {
     if (value instanceof Program) {
       return value;
     } else if (isDomDescriptor(value)) {
@@ -49,30 +51,34 @@ export function compile(
     } else {
       const key = Math.random();
       Object.defineProperty(value, scopeProp, { value: key });
-      const initial = value.initial;
-      const program = new Program(
-        [
-          {
-            type: DomDescriptorType.Text,
-            text: initial === undefined ? '' : String(initial),
-          },
-        ],
-        {
-          [key]: [
+
+      // value.initial
+
+      return map(value, (text) => {
+        const program = new Program(
+          [
             {
-              type: HydrateOperationType.ApplyStateHandler,
-              state: value,
-            } as ApplyStateHandler,
+              type: DomDescriptorType.Text,
+              text: text === undefined ? '' : String(text),
+            },
           ],
-        }
-      );
+          {
+            [key]: [
+              {
+                type: HydrateOperationType.ApplyStateHandler,
+                state: value,
+              } as ApplyStateHandler,
+            ],
+          }
+        );
 
-      program.graph.add(value);
-      program.graph.connect(value, {
-        type: 'event',
+        program.graph.add(value);
+        program.graph.connect(value, {
+          type: 'event',
+        });
+
+        return program;
       });
-
-      return program;
     }
   }
 

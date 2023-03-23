@@ -7,7 +7,7 @@
   type Primitive = string | number;
 
   interface Stateful<T = any> {
-    initial?: T;
+    initial?: MaybePromise<T>;
   }
 
   type Value =

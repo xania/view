@@ -1,22 +1,16 @@
 ﻿export interface Stateful<T = any> {
-  dependencies?: JSX.MaybeArray<Stateful>;
-  initial?: T;
+  initial?: JSX.MaybePromise<T | undefined>;
 }
 
 export class State<T = any> implements Stateful<T> {
-  constructor(public readonly initial?: T) {}
+  constructor(public readonly initial?: JSX.MaybePromise<T | undefined>) {}
 
-  map<U>(
-    mapper: (x: T) => JSX.MaybePromise<U>
-  ): JSX.MaybePromise<MappedState<T, U>> {
-    const { initial } = this;
-    const mappedInitial = initial !== undefined ? mapper(initial) : undefined;
-    if (mappedInitial instanceof Promise) {
-      return mappedInitial.then(
-        (resolved) => new MappedState(this, mapper, resolved)
-      );
-    }
-    return new MappedState<T, U>(this, mapper, mappedInitial);
+  map<U>(mapper: (x: T) => JSX.MaybePromise<U>): StateMapper<T, U> {
+    return new StateMapper<T, U>(this, mapper);
+  }
+
+  prop<K extends keyof T>(key: K): StateMapper<T, T[K]> {
+    return new StateMapper<T, T[K]>(this, (obj) => obj[key]);
   }
 
   toggle(tru: boolean, fals: boolean) {
@@ -24,10 +18,26 @@ export class State<T = any> implements Stateful<T> {
   }
 }
 
-export class MappedState<T, U> {
+export class StateMapper<T, U> extends State<U> {
   constructor(
     public source: Stateful<T>,
-    public mapper: (x: T) => JSX.MaybePromise<U>,
-    public initial?: U
-  ) {}
+    public mapper: (x: T) => JSX.MaybePromise<U>
+  ) {
+    super(map(source.initial, mapper));
+  }
+}
+
+export function map<T, U>(
+  x: JSX.MaybePromise<T | undefined>,
+  mapper: (x: T) => JSX.MaybePromise<U>
+): JSX.MaybePromise<U | undefined> {
+  if (x === undefined) {
+    return undefined;
+  }
+  if (x instanceof Promise) {
+    return x.then((resolved) =>
+      resolved === undefined ? undefined : mapper(resolved)
+    );
+  }
+  return mapper(x);
 }

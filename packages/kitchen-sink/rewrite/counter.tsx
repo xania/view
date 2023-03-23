@@ -1,15 +1,13 @@
 ﻿import { compile, render, state, suspense, update } from "@xania/view";
 
-export async function Component() {
+export function Component() {
   const count = state(1);
   const selected = state(false);
-
-  const oddOrEven = count.map((x) => delay(x % 2 === 0 ? "even" : "odd"));
 
   return suspense(
     <>
       <div>
-        Count:{count} ({oddOrEven})
+        Count:{count} (debounced: {count.map(delay)})
       </div>
       <div>
         <button click={update(count, (x) => x + 1)}> + </button>
@@ -34,7 +32,7 @@ async function Compiled() {
 render(
   <>
     <h2>Counters and toggles</h2>
-    <Compiled />
+    <Component />
   </>,
   document.body
 );

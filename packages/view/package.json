@@ -1,11 +1,17 @@
 {
   "name": "@xania/view",
-  "version": "0.0.1",
+  "version": "0.5.1",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
   "typings": "./lib/index.ts",
   "type": "module",
+  "keywords": [
+    "xania",
+    "signals",
+    "observable",
+    "frp"
+  ],
   "exports": {
     ".": {
       "import": "./dist/main.js",

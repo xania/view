@@ -1,6 +1,6 @@
 ﻿/// <reference path="./types/jsx/index.d.ts" />
 
-import { intrinsic } from './lib/intrinsic';
+import { intrinsic } from '@xania/view';
 
 type nameOrFunction = string | Function;
 
