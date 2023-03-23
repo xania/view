@@ -8,38 +8,13 @@ Xania (package name '@xania/view') is **Fastest** JavaScript view library for bu
 
 https://stackblitz.com/edit/vitejs-vite-njpme2?file=src/App.tsx
 
-3. Create components using the jsx syntax
-
-```typescript
-/* time.tsx */
-import { jsxFactory } from "@xania/view"
-const jsx = jsxFactory(/** factory options **/);
-
-export function Time() {
-  const state = useState("");
-  setInterval(_ => state.update(new Date().toLocalTimeString(); ), 1000);
-  return state;
-}
-
-```
-
-4. Render to HTML
-
-```typescript
-/* app.tsx */
-import { render } from "@xania/view";
-import Time from "./time";
-
-render(<Time />, document.body);
-```
-
 #### References
 
-Documentation site:
-https://xania.github.io
+- Documentation site:
+  https://xania.github.io
 
-Examples project:
-https://github.com/xania/examples
+- Examples project:
+  https://github.com/xania/examples
 
-benchmark code:
-https://github.com/xania/krausest-js-benchmark
+- benchmark code:
+  https://github.com/xania/krausest-js-benchmark
