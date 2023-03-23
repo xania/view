@@ -54,7 +54,7 @@ export function compile(
 
       // value.initial
 
-      return map(value, (text) => {
+      return map(value.initial, (text) => {
         const program = new Program(
           [
             {
@@ -89,3 +89,13 @@ export function compile(
 export * from './program';
 export * from './hydrate-operation';
 export * from './execute';
+
+export function resolve<T, U>(
+  x: JSX.MaybePromise<T | undefined>,
+  mapper: (x: T | undefined) => U
+): JSX.MaybePromise<U> {
+  if (x instanceof Promise) {
+    return x.then(mapper);
+  }
+  return mapper(x);
+}

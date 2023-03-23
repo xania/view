@@ -1,19 +1,19 @@
-﻿import { compile, render, state, suspense, update } from "@xania/view";
+﻿import { compile, render, state, suspense } from "@xania/view";
 
 export function Component() {
   const count = state(1);
   const selected = state(false);
 
-  return suspense(
+  return (
     <>
       <div>
         Count:{count} (debounced: {count.map(delay)})
       </div>
       <div>
-        <button click={update(count, (x) => x + 1)}> + </button>
-        <button click={update(count, (x) => x - 1)}> - </button>
+        <button click={count.update((x) => x + 1)}> + </button>
+        <button click={count.update((x) => x - 1)}> - </button>
       </div>
-      <button click={update(selected, (x) => !x)}>
+      <button click={selected.update((x) => !x)}>
         delayed toggle: {selected.map((x) => (x ? "on" : "off"))}
       </button>
     </>

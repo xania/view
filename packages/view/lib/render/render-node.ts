@@ -7,7 +7,7 @@ import { RenderContext } from './render-context';
 import { DomFactory } from './dom-factory';
 import { Disposable } from '../disposable';
 import { isAttachable } from './attachable';
-import { applyUpdates, UpdateMessage } from '../reactive';
+import { applyUpdates, UpdateCommand } from '../reactive';
 
 export function applyAttributes(
   target: HTMLElement,
@@ -36,7 +36,7 @@ export function applyEvents(
 
     const syntaticEventHandler = (originalEvent: Event) => {
       const messages =
-        eventHandler instanceof UpdateMessage
+        eventHandler instanceof UpdateCommand
           ? eventHandler
           : eventHandler instanceof Function
           ? eventHandler(syntheticEvent(eventName, originalEvent))

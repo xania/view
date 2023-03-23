@@ -1,9 +1,15 @@
-﻿export interface Stateful<T = any> {
+﻿import { UpdateCommand } from './update';
+
+export interface Stateful<T = any> {
   initial?: JSX.MaybePromise<T | undefined>;
 }
 
 export class State<T = any> implements Stateful<T> {
   constructor(public readonly initial?: JSX.MaybePromise<T | undefined>) {}
+
+  update(updater: (x: T) => T) {
+    return new UpdateCommand(this, updater);
+  }
 
   map<U>(mapper: (x: T) => JSX.MaybePromise<U>): StateMapper<T, U> {
     return new StateMapper<T, U>(this, mapper);
