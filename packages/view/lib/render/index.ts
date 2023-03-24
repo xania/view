@@ -82,13 +82,10 @@ export function render(
       return resolve(value.initial, (initial) => {
         const textNode = domFactory.createTextNode(String(initial));
         currentTarget.appendChild(textNode);
-
-        context.graph.add(value);
         context.graph.connect(value, {
           type: 'text',
           text: textNode,
         });
-
         return textNode;
       });
     }

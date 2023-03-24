@@ -1,4 +1,4 @@
-﻿import { Stateful } from '.';
+﻿import { Stateful, StateMapper } from '.';
 import { resolve } from '../utils/resolve';
 export const scopeProp = Symbol('scope');
 
@@ -66,14 +66,22 @@ export class Graph {
     } else {
       nodes.set(node, [operator]);
     }
+
+    if (node instanceof StateMapper) {
+      this.connect(node.source, {
+        type: 'map',
+        map: node.mapper,
+        target: node,
+      });
+    }
   }
 
   add(node: ManagedState) {
-    this.connect(node.source, {
-      type: 'map',
-      map: node.mapper,
-      target: node,
-    });
+    // this.connect(node.source, {
+    //   type: 'map',
+    //   map: node.mapper,
+    //   target: node,
+    // });
   }
 
   append(other: Graph) {
