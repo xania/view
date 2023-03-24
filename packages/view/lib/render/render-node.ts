@@ -21,6 +21,15 @@ export function applyAttributes(
   }
 }
 
+export function applyClassList(
+  target: HTMLElement,
+  classList: ElementDescriptor['classList']
+) {
+  if (classList) {
+    target.classList.add(...classList);
+  }
+}
+
 export function applyEvents(
   events: ElementDescriptor['events'],
   target: HTMLElement,

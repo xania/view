@@ -1,7 +1,12 @@
 ﻿import { Template, templateBind } from '../tpl';
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
 import type { Disposable } from '../disposable';
-import { applyAttributes, applyEvents, renderStatic } from './render-node';
+import {
+  applyAttributes,
+  applyClassList,
+  applyEvents,
+  renderStatic,
+} from './render-node';
 import { Program, View } from '../compile/program';
 import type { RenderTarget } from './target';
 import { RenderContext } from './render-context';
@@ -40,6 +45,9 @@ export function render(
           const elementNode = domFactory.createElement(value.name);
           if (value.attrs) {
             applyAttributes(elementNode, value.attrs);
+          }
+          if (value.classList) {
+            applyClassList(elementNode, value.classList);
           }
           currentTarget.appendChild(elementNode);
           /** wrap promise inside an array (or any object) to render children concurrently */

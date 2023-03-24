@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -39,7 +39,7 @@
     "node": ">=10"
   },
   "scripts": {
-    "dev": "npx vite --watch build",
+    "dev": "npm run clean && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npx vite --watch build",
     "build": "npm run clean && npx vite build && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
     "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
     "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
