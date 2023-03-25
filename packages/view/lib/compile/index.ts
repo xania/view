@@ -72,7 +72,6 @@ export function compile(
           }
         );
 
-        program.graph.add(value);
         program.graph.connect(value, {
           type: 'event',
         });

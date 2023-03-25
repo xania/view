@@ -1,4 +1,4 @@
-import { compile, render, state, suspense, update } from "@xania/view";
+import { compile, render, state, suspense } from "@xania/view";
 import "./style.scss";
 
 const viewable = {
@@ -7,7 +7,7 @@ const viewable = {
     return (
       <div>
         Hi I am viewable ({count})
-        <button click={update(count, (x) => x + 1)}>+</button>
+        <button click={count.update((x) => x + 1)}>+</button>
       </div>
     );
   },
@@ -51,7 +51,7 @@ export function Component(props: { title: string }) {
 
 function Counter() {
   const count = state(1);
-  return <button click={update(count, (x) => x + 1)}>Count: {count}</button>;
+  return <button click={count.update((x) => x + 1)}>Count: {count}</button>;
 }
 
 interface ButtonProps {

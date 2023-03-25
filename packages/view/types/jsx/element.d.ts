@@ -3,6 +3,7 @@
   type Viewable = import('../../lib/render/viewable').Viewable;
   type Attachable = import('../../lib/render/attachable').Attachable;
   type Program = import('../../lib/compile/program').Program;
+  type IfExpression = import('../../lib/reactive').IfExpression;
 
   type Primitive = string | number;
 
@@ -16,9 +17,10 @@
     | DomDescriptor
     | Program
     | Viewable
-    | Attachable;
+    | Attachable
+    | IfExpression;
   type Just<T> = T;
-  type Nothing = null | undefined | void;
+  type Nothing = null | undefined;
 
   /**
    * True type of an element is the <code>TagDescriptor</code> not JSX>Element,

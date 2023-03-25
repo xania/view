@@ -1,39 +1,20 @@
-﻿import type { Template } from './template';
+﻿import type { Sequence, Template } from './template';
 
 export type BindFunction<T, U> = (
   x: NonNullable<T>,
   ...args: any[]
-) => Template<U>;
+) => Sequence<U>;
 
 export function templateBind<T, U>(
   rootChildren: Template<T>,
   binder: BindFunction<T, U>,
   ...args: any[]
-): Template<U> {
-  const output: Template<U>[] = [];
+): Sequence<U> {
+  const output: JSX.MaybePromise<NonNullable<U>>[] = [];
 
   return traverse([rootChildren]);
 
-  function flatAppend(additions: Template<U>) {
-    if (additions === null || additions === undefined) {
-      return;
-    }
-    if (additions instanceof Array) {
-      const stack = [...additions];
-      while (stack.length) {
-        const curr = stack.pop();
-        if (curr instanceof Array) {
-          stack.push(...curr);
-        } else if (curr !== null && curr !== undefined) {
-          output.push(curr);
-        }
-      }
-    } else {
-      output.push(additions);
-    }
-  }
-
-  function traverse(stack: Template<T>[]): Template<U> {
+  function traverse(stack: Template<T>[]): Sequence<U> {
     while (stack.length) {
       const curr = stack.pop()!;
 
@@ -49,14 +30,33 @@ export function templateBind<T, U>(
         if (funResult instanceof Promise) {
           // wait for completion of result, then resume traverse
           return funResult.then((resolved) => {
-            flatAppend(resolved);
+            templateAppend(output, resolved);
             return traverse(stack);
           });
         }
-        flatAppend(funResult);
+        templateAppend(output, funResult);
       }
     }
 
     return output;
+  }
+}
+
+export function templateAppend<U>(output: U[], additions: JSX.MaybeArray<U>) {
+  if (additions === null || additions === undefined) {
+    return;
+  }
+  if (additions instanceof Array) {
+    const stack = [...additions];
+    while (stack.length) {
+      const curr = stack.pop();
+      if (curr instanceof Array) {
+        stack.push(...curr);
+      } else if (curr !== null && curr !== undefined) {
+        output.push(curr);
+      }
+    }
+  } else {
+    output.push(additions);
   }
 }

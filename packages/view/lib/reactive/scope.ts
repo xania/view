@@ -1,9 +1,11 @@
 ﻿import { Stateful, StateMapper } from '.';
+import { RenderTarget } from '../render/target';
+import { Template } from '../tpl/template';
 import { resolve } from '../utils/resolve';
 export const scopeProp = Symbol('scope');
 
 export class Scope {
-  private readonly values = new Map<ManagedState, any>();
+  private readonly values = new Map<Stateful | StateOperator, any>();
 
   // snapshot(state: ManagedState): Snapshot {
   //   const key = state[scopeProp] ?? (state[scopeProp] = Math.random());
@@ -11,7 +13,7 @@ export class Scope {
   //   return snaps[key] ?? (snaps[key] = { value: state.initial });
   // }
 
-  get(state: ManagedState) {
+  get(state: Stateful | StateOperator) {
     const { values } = this;
     if (values.has(state)) {
       return values.get(state)!;
@@ -20,7 +22,7 @@ export class Scope {
     }
   }
 
-  set(state: ManagedState, newValue: any) {
+  set(state: Stateful | StateOperator, newValue: any) {
     const { values } = this;
     if (values.has(state)) {
       const currentValue = values.get(state);
@@ -33,9 +35,7 @@ export class Scope {
   }
 }
 
-type ManagedState = any;
-
-type StateOperator = TextOperator | MapOperator | EventOperator;
+type StateOperator = ViewOperator | TextOperator | MapOperator | EventOperator;
 
 interface EventOperator {
   type: 'event';
@@ -45,6 +45,11 @@ interface TextOperator {
   text: Text;
 }
 
+export interface ViewOperator {
+  type: 'view';
+  element: JSX.MaybePromise<SynthaticElement>;
+}
+
 interface MapOperator {
   type: 'map';
   map: (x: any) => any;
@@ -52,13 +57,13 @@ interface MapOperator {
 }
 
 export class Graph {
-  private readonly nodes: Map<ManagedState, StateOperator[]> = new Map();
+  private readonly nodes: Map<Stateful, StateOperator[]> = new Map();
 
-  get(node: ManagedState) {
+  get(node: Stateful) {
     return this.nodes.get(node);
   }
 
-  connect(node: ManagedState, operator: StateOperator) {
+  connect(node: Stateful, operator: StateOperator) {
     const { nodes } = this;
 
     if (nodes.has(node)) {
@@ -76,14 +81,6 @@ export class Graph {
     }
   }
 
-  add(node: ManagedState) {
-    // this.connect(node.source, {
-    //   type: 'map',
-    //   map: node.mapper,
-    //   target: node,
-    // });
-  }
-
   append(other: Graph) {
     for (const [node, ops] of other.nodes) {
       if (this.nodes.has(node)) {
@@ -94,8 +91,8 @@ export class Graph {
     }
   }
 
-  sync(scope: Scope, node: ManagedState, newValue: any) {
-    const res: any[] = [];
+  sync(scope: Scope, node: Stateful, newValue: any) {
+    const res: Template<Command>[] = [];
 
     const operators = this.nodes.get(node);
     if (operators) {
@@ -124,8 +121,19 @@ export class Graph {
               }
             }
             break;
+          case 'view':
+            if (operator.element instanceof Promise) {
+              operator.element.then((element) => {
+                if (newValue) {
+                  element.attach();
+                } else {
+                  element.detach();
+                }
+              });
+            }
+            break;
           case 'event':
-            res.push(node);
+            res.push({ state: node });
             break;
         }
       }
@@ -133,4 +141,56 @@ export class Graph {
 
     return res;
   }
+}
+
+type Command = ApplyState | null;
+
+interface ApplyState {
+  state: Stateful;
+}
+
+export class SynthaticElement implements RenderTarget {
+  public nodes: Node[] = [];
+  public events: any[] = [];
+
+  constructor(public anchorNode: Comment) {}
+
+  appendChild(node: Node) {
+    this.nodes.push(node);
+  }
+
+  removeEventListener(
+    type: string,
+    callback: EventListenerOrEventListenerObject | null,
+    options?: boolean | EventListenerOptions | undefined
+  ) {
+    return true;
+  }
+  addEventListener(
+    type: string,
+    callback: EventListenerOrEventListenerObject | null,
+    options?: boolean | AddEventListenerOptions | undefined
+  ) {
+    return true;
+  }
+
+  attach() {
+    const { anchorNode } = this;
+    const parentElement = anchorNode.parentElement!;
+
+    for (const child of this.nodes) {
+      parentElement.insertBefore(child, anchorNode);
+    }
+  }
+
+  detach() {
+    const { anchorNode } = this;
+    const parentElement = anchorNode.parentElement!;
+
+    for (const child of this.nodes) {
+      parentElement.removeChild(child);
+    }
+  }
+
+  dispose() {}
 }

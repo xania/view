@@ -2,7 +2,6 @@
   Element = 8585231 /* keep as first */,
   Data,
   StaticElement,
-
   Text /* keep as last */,
 }
 

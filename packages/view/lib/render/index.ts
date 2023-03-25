@@ -1,4 +1,4 @@
-﻿import { Template, templateBind } from '../tpl';
+﻿import { Sequence, Template, templateAppend, templateBind } from '../tpl';
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
 import type { Disposable } from '../disposable';
 import {
@@ -13,8 +13,15 @@ import { RenderContext } from './render-context';
 import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
-import { Graph, Scope } from '../reactive';
+import {
+  Graph,
+  IfExpression,
+  Scope,
+  SynthaticElement,
+  ViewOperator,
+} from '../reactive';
 import { resolve } from '../utils/resolve';
+import { ready } from './ready';
 
 export function render(
   rootChildren: JSX.Element,
@@ -28,13 +35,44 @@ export function render(
   function binder(
     value: JSX.Value,
     currentTarget: RenderTarget
-  ): Template<Node | View | Disposable> {
+  ): Sequence<Node | View | Disposable> {
     if (value instanceof Node) {
       currentTarget.appendChild(value.cloneNode(true));
       return value;
     } else if (value instanceof Program) {
       const view = value.attachTo(currentTarget, domFactory);
-      return [view, view.render()];
+      return [view, ...view.render()];
+    } else if (value instanceof IfExpression) {
+      const anchorNode = domFactory.createComment('ifx');
+      currentTarget.appendChild(anchorNode);
+      const offline = new SynthaticElement(anchorNode);
+      const contentResult = templateBind(value.content, binder, offline);
+
+      return resolve(value.condition.initial, (initial) => {
+        const viewOperator: ViewOperator = {
+          type: 'view',
+          element: ready(contentResult).then(() => offline),
+        };
+        graph.connect(value.condition, viewOperator);
+
+        if (initial) {
+          return [
+            anchorNode,
+            resolve(viewOperator.element, (element) => {
+              element.attach();
+              return element;
+            }),
+          ];
+        }
+
+        // if (initial) {
+        //   return [
+        //     anchorNode,
+        //     templateBind(value.content, binder, currentTarget),
+        //   ];
+        // }
+        return [anchorNode];
+      });
     } else if (isDomDescriptor(value)) {
       switch (value.type) {
         case DomDescriptorType.StaticElement:
@@ -51,11 +89,24 @@ export function render(
           }
           currentTarget.appendChild(elementNode);
           /** wrap promise inside an array (or any object) to render children concurrently */
-          return [
+
+          const result: JSX.MaybePromise<Node | Disposable | View>[] = [
             elementNode,
-            templateBind(value.children, binder, elementNode),
-            applyEvents(value.events, elementNode, context),
           ];
+
+          const eventsResult = applyEvents(value.events, elementNode, context);
+          if (eventsResult) {
+            result.push(...eventsResult);
+          }
+
+          const childrenResult = templateBind(
+            value.children,
+            binder,
+            elementNode
+          );
+          templateAppend(result, childrenResult);
+          return result;
+
         case DomDescriptorType.Text:
           const textNode = domFactory.createTextNode(value.text);
           currentTarget.appendChild(textNode);
@@ -68,8 +119,7 @@ export function render(
     } else if (isAttachable(value)) {
       return value.attachTo(currentTarget, domFactory);
     } else if (isViewable(value)) {
-      const view = value.view();
-      return templateBind(view, binder, currentTarget);
+      return templateBind(value.view(), binder, currentTarget);
     } else if (typeof value === 'string') {
       const textNode = domFactory.createTextNode(value);
       currentTarget.appendChild(textNode);
@@ -80,9 +130,11 @@ export function render(
       return textNode;
     } else {
       return resolve(value.initial, (initial) => {
-        const textNode = domFactory.createTextNode(String(initial));
+        const textNode = domFactory.createTextNode(
+          initial === undefined ? '' : String(initial)
+        );
         currentTarget.appendChild(textNode);
-        context.graph.connect(value, {
+        graph.connect(value, {
           type: 'text',
           text: textNode,
         });
