@@ -1,5 +1,4 @@
-﻿import { Scope } from '../reactive';
-import { RenderContext } from '../render/render-context';
+﻿import { RenderContext } from '../render/render-context';
 import { EventOperation, HydrateOperationType } from './hydrate-operation';
 
 export function applyEventOperations(

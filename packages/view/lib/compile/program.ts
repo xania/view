@@ -16,9 +16,9 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { Graph, Scope } from '../reactive/scope';
+import { Scope } from '../reactive/scope';
 import { applyUpdates, scopeProp, UpdateCommand } from '../reactive';
-import { RenderContext } from '../render/render-context';
+import { Graph, RenderContext } from '../render/render-context';
 import { templateBind } from '../tpl';
 
 export class Program implements Attachable {

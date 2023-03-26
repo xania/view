@@ -12,17 +12,25 @@ export function applyUpdates(
   applyChange?: BindFunction<any, any>
 ) {
   return templateBind(commands, (message: UpdateCommand) => {
-    const { scope } = context;
-    const state: any = message.state;
-    const currentValue = scope.get(state) ?? state.initial;
+    const state = message.state;
+    let baseContext: RenderContext = context;
+
+    while (baseContext.parent) {
+      if (baseContext.scope.values.has(state)) {
+        break;
+      }
+      baseContext = baseContext.parent;
+    }
+
+    const currentValue = baseContext.get(state) ?? state.initial;
     const newValue = message.updater(currentValue);
 
     if (
       newValue !== undefined &&
       newValue !== currentValue &&
-      scope.set(state, newValue)
+      baseContext.set(state, newValue)
     ) {
-      const changes = context.graph.sync(scope, state, newValue);
+      const changes = baseContext.sync(state, newValue);
       if (applyChange) return templateBind(changes, applyChange);
     }
   });

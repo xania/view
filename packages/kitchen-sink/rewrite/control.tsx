@@ -1,10 +1,10 @@
-import { If, render, state, Stateful } from "@xania/view";
+import { If, List, render, State, state } from "@xania/view";
 import "./style.scss";
 
-render(<Component />, document.body);
+render([<ListDemo />, <IfDemo />], document.body);
 // setTimeout(() => unrender(result1), 3000);
 
-export function Component() {
+function IfDemo() {
   const opened = state(true);
 
   return (
@@ -13,14 +13,36 @@ export function Component() {
         <button click={opened.update(true)}> + </button>
         <button click={opened.update(false)}> &times; </button>
         <If condition={opened}>
-          <hr />
-          {delay(<span>hello</span>)}
-          <hr />
-          <button click={opened.update(false)}>close</button>
-          <hr />
+          <div>
+            {delay(<span>hello</span>)}
+            <button click={opened.update(false)}>close</button>
+          </div>
         </If>
       </div>
     </>
+  );
+}
+
+function ListDemo() {
+  // const items = state([1, 2, 3]);
+  const count = state(1);
+
+  return (
+    <div>
+      <button click={count.update((x) => x + 1)}>{count}</button>
+      <List source={[1, 2]}>
+        {(item) => (
+          <div>
+            <button click={item.update((x) => x + 1)}>
+              item: {item.map((x) => x * 2)}
+            </button>
+            <button click={count.update((x) => x + 1)}>
+              count: {count.map((x) => x * 2)}
+            </button>
+          </div>
+        )}
+      </List>
+    </div>
   );
 }
 

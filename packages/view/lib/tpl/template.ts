@@ -1,6 +1,7 @@
-﻿export type Template<T> = JSX.MaybeArray<
-  JSX.MaybePromise<T | JSX.Nothing | Template<T>[]>
->;
+﻿export type Template<T> = any;
+//  JSX.MaybeArray<
+//   JSX.MaybePromise<T | JSX.Nothing | Template<T>[]>
+// >;
 
 export type TemplateValue<T> = T extends Template<infer E> ? E : never;
 

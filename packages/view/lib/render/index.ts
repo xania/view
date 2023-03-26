@@ -9,28 +9,32 @@ import {
 } from './render-node';
 import { Program, View } from '../compile/program';
 import type { RenderTarget } from './target';
-import { RenderContext } from './render-context';
+import {
+  Graph,
+  RenderContext,
+  SynthaticElement,
+  ViewOperator,
+} from './render-context';
 import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 import {
-  Graph,
   IfExpression,
+  ListExpression,
   Scope,
-  SynthaticElement,
-  ViewOperator,
+  State,
+  Stateful,
+  StateMapper,
 } from '../reactive';
 import { resolve } from '../utils/resolve';
+import { ListSource } from '../reactive/list/source';
 
 export function render(
   rootChildren: JSX.Element,
   rootTarget: RenderTarget,
-  domFactory: DomFactory = document
+  domFactory: DomFactory = document,
+  context: RenderContext = new RenderContext(new Scope(), new Graph())
 ): Template<Node | View | Disposable> {
-  const scope = new Scope();
-  const graph = new Graph();
-
-  const context: RenderContext = new RenderContext(scope, graph);
   function binder(
     value: JSX.Value,
     currentTarget: RenderTarget
@@ -51,7 +55,7 @@ export function render(
         type: 'view',
         element: synthElt,
       };
-      graph.connect(value.condition, viewOperator);
+      context.graph.connect(value.condition, viewOperator);
 
       return [
         anchorNode,
@@ -63,6 +67,29 @@ export function render(
           return synthElt;
         }),
       ];
+    } else if (value instanceof ListExpression) {
+      const item = new State();
+
+      if (value.source instanceof State) {
+        //   return new ListExpresion(
+        //     new ListSource<T>(props.source),
+        //     item,
+        //     props.children(item)
+        //   );
+      } else if (value.source instanceof ListSource) {
+        //   return new ListExpresion(props.source, item, props.children(item));
+      } else {
+        return value.source.map((x) => {
+          const scope = new Scope();
+          scope.values.set(item, x);
+          return render(
+            value.children(item),
+            currentTarget,
+            domFactory,
+            new RenderContext(scope, new Graph(), context)
+          );
+        });
+      }
     } else if (isDomDescriptor(value)) {
       switch (value.type) {
         case DomDescriptorType.StaticElement:
@@ -119,12 +146,12 @@ export function render(
       currentTarget.appendChild(textNode);
       return textNode;
     } else {
-      return resolve(value.initial, (initial) => {
+      return resolve(initial(context, value), (initial) => {
         const textNode = domFactory.createTextNode(
           initial === undefined ? '' : String(initial)
         );
         currentTarget.appendChild(textNode);
-        graph.connect(value, {
+        context.graph.connect(value, {
           type: 'text',
           text: textNode,
         });
@@ -134,6 +161,34 @@ export function render(
   }
 
   return templateBind(rootChildren, binder, rootTarget);
+}
+
+function initial(root: RenderContext, state: Stateful) {
+  if (state instanceof StateMapper) {
+    const source: any = initial(root, state.source);
+    if (source === undefined) {
+      return undefined;
+    }
+    return state.mapper(source);
+  }
+
+  let context: RenderContext = root;
+
+  while (context.parent) {
+    const { values } = context.scope;
+    if (values.has(state)) {
+      return values.get(state);
+    }
+
+    context = context.parent;
+  }
+
+  const value = context.scope.values.get(state);
+  if (value !== undefined) {
+    return value;
+  }
+
+  return state.initial;
 }
 
 export * from './unrender';

@@ -4,7 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "start": "vite"
+    "start": "vite",
+    "lint": "tsc"
   },
   "keywords": [
     "ssr",
