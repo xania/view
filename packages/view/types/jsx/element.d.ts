@@ -27,7 +27,9 @@
    * type Element represents the return type of a Component. In Xania return type can
    * be a variety of different possibilities represented here as follows:
    */
-  type Element = MaybePromise<Nothing | Just<Value> | Element[]>;
+  type Element = MaybePromise<
+    Nothing | Just<Value> | Element[] | Promise<Element>
+  >;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
 }

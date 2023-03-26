@@ -21,7 +21,6 @@ import {
   ViewOperator,
 } from '../reactive';
 import { resolve } from '../utils/resolve';
-import { ready } from './ready';
 
 export function render(
   rootChildren: JSX.Element,
@@ -35,7 +34,7 @@ export function render(
   function binder(
     value: JSX.Value,
     currentTarget: RenderTarget
-  ): Sequence<Node | View | Disposable> {
+  ): Template<Node | View | Disposable> {
     if (value instanceof Node) {
       currentTarget.appendChild(value.cloneNode(true));
       return value;
@@ -45,34 +44,25 @@ export function render(
     } else if (value instanceof IfExpression) {
       const anchorNode = domFactory.createComment('ifx');
       currentTarget.appendChild(anchorNode);
-      const offline = new SynthaticElement(anchorNode);
-      const contentResult = templateBind(value.content, binder, offline);
 
-      return resolve(value.condition.initial, (initial) => {
-        const viewOperator: ViewOperator = {
-          type: 'view',
-          element: ready(contentResult).then(() => offline),
-        };
-        graph.connect(value.condition, viewOperator);
+      const synthElt = new SynthaticElement(anchorNode);
+      const contentResult = templateBind(value.content, binder, synthElt);
+      const viewOperator: ViewOperator = {
+        type: 'view',
+        element: synthElt,
+      };
+      graph.connect(value.condition, viewOperator);
 
-        if (initial) {
-          return [
-            anchorNode,
-            resolve(viewOperator.element, (element) => {
-              element.attach();
-              return element;
-            }),
-          ];
-        }
-
-        // if (initial) {
-        //   return [
-        //     anchorNode,
-        //     templateBind(value.content, binder, currentTarget),
-        //   ];
-        // }
-        return [anchorNode];
-      });
+      return [
+        anchorNode,
+        contentResult,
+        resolve(value.condition.initial, (initial) => {
+          if (initial) {
+            synthElt.attach();
+          }
+          return synthElt;
+        }),
+      ];
     } else if (isDomDescriptor(value)) {
       switch (value.type) {
         case DomDescriptorType.StaticElement:

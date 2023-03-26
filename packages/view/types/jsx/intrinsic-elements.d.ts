@@ -51,8 +51,8 @@
   }
 
   interface ElementChildrenAttribute {
-    children?: MaybePromise<Element>;
+    children?: Element;
   }
 
-  type Children = Element;
+  type Children = ElementChildrenAttribute['children'];
 }

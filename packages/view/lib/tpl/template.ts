@@ -1,9 +1,9 @@
-﻿export type Template<T = any> = JSX.MaybePromise<
-  T | null | undefined | Template<T>[]
+﻿export type Template<T> = JSX.MaybeArray<
+  JSX.MaybePromise<T | JSX.Nothing | Template<T>[]>
 >;
 
 export type TemplateValue<T> = T extends Template<infer E> ? E : never;
 
-export type Sequence<T> = JSX.MaybePromise<
-  NonNullable<T> | JSX.MaybePromise<NonNullable<T>>[]
->;
+export type Sequence<T> = Template<T>;
+//   NonNullable<T> | JSX.MaybePromise<NonNullable<T>>[]
+// >;

@@ -47,7 +47,7 @@ interface TextOperator {
 
 export interface ViewOperator {
   type: 'view';
-  element: JSX.MaybePromise<SynthaticElement>;
+  element: SynthaticElement;
 }
 
 interface MapOperator {
@@ -122,14 +122,10 @@ export class Graph {
             }
             break;
           case 'view':
-            if (operator.element instanceof Promise) {
-              operator.element.then((element) => {
-                if (newValue) {
-                  element.attach();
-                } else {
-                  element.detach();
-                }
-              });
+            if (newValue) {
+              operator.element.attach();
+            } else {
+              operator.element.detach();
             }
             break;
           case 'event':
@@ -152,11 +148,19 @@ interface ApplyState {
 export class SynthaticElement implements RenderTarget {
   public nodes: Node[] = [];
   public events: any[] = [];
+  public attached = false;
 
   constructor(public anchorNode: Comment) {}
 
   appendChild(node: Node) {
     this.nodes.push(node);
+
+    if (this.attached) {
+      const { anchorNode } = this;
+      const parentElement = anchorNode.parentElement!;
+
+      parentElement.insertBefore(node, anchorNode);
+    }
   }
 
   removeEventListener(
@@ -181,6 +185,8 @@ export class SynthaticElement implements RenderTarget {
     for (const child of this.nodes) {
       parentElement.insertBefore(child, anchorNode);
     }
+
+    this.attached = true;
   }
 
   detach() {
@@ -190,6 +196,8 @@ export class SynthaticElement implements RenderTarget {
     for (const child of this.nodes) {
       parentElement.removeChild(child);
     }
+
+    this.attached = false;
   }
 
   dispose() {}
