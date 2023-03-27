@@ -1,19 +1,11 @@
-﻿import { UpdateCommand } from './update';
+﻿import { UpdateCommand } from './commands';
 
 export interface Stateful<T = any> {
   initial?: JSX.MaybePromise<T | undefined>;
 }
 
 export class State<T = any> implements Stateful<T> {
-  constructor(public readonly initial?: JSX.MaybePromise<T | undefined>) {}
-
-  update(valueOrUpdater: T | ((x: T) => T)) {
-    if (valueOrUpdater instanceof Function)
-      return new UpdateCommand(this, valueOrUpdater);
-    else {
-      return new UpdateCommand(this, () => valueOrUpdater);
-    }
-  }
+  constructor(public initial?: JSX.MaybePromise<T | undefined>) {}
 
   map<U>(mapper: (x: T) => JSX.MaybePromise<U>): StateMapper<T, U> {
     return new StateMapper<T, U>(this, mapper);
@@ -25,6 +17,10 @@ export class State<T = any> implements Stateful<T> {
 
   toggle(tru: boolean, fals: boolean) {
     return this.map((x) => (x ? tru : fals));
+  }
+
+  update(valueOrUpdater: T | ((x: T) => T)) {
+    return new UpdateCommand<T>(this, valueOrUpdater);
   }
 }
 

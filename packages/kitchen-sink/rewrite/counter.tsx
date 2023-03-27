@@ -1,4 +1,4 @@
-﻿import { compile, render, state, suspense } from "@xania/view";
+﻿import { render, state, suspense } from "@xania/view";
 
 export function Component() {
   const count = state(1);
@@ -20,14 +20,14 @@ export function Component() {
   );
 }
 
-async function Compiled() {
-  const program = await compile(<Component />);
-  return program!.asComponent((view) => {
-    view.render();
-    view.render();
-    view.render();
-  });
-}
+// async function Compiled() {
+//   const program = await compile(<Component />);
+//   return program!.asComponent((view) => {
+//     view.render();
+//     view.render();
+//     view.render();
+//   });
+// }
 
 render(
   <>

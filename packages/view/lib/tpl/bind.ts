@@ -1,20 +1,18 @@
-﻿import type { Sequence, Template } from './template';
-
-export type BindFunction<T, U> = (
+﻿export type BindFunction<T, U> = (
   x: NonNullable<T>,
   ...args: any[]
-) => Sequence<U>;
+) => JSX.Template<U>;
 
 export function templateBind<T, U>(
-  rootChildren: Template<T>,
+  rootChildren: JSX.Template<T>,
   binder: BindFunction<T, U>,
   ...args: any[]
-): Sequence<U> {
+): JSX.Template<U> {
   const output: JSX.MaybePromise<NonNullable<U>>[] = [];
 
   return traverse([rootChildren]);
 
-  function traverse(stack: Template<T>[]): Sequence<U> {
+  function traverse(stack: JSX.Template<T>[]): JSX.Template<U> {
     while (stack.length) {
       const curr = stack.pop()!;
 

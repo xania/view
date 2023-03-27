@@ -1,8 +1,7 @@
-﻿import { Scope, Stateful, StateMapper } from '../reactive';
-import { Template } from '../tpl';
+﻿import { Disposable } from '../disposable';
+import { Stateful, StateMapper } from '../reactive';
+import { ListMutation } from '../reactive/list/mutation';
 import { RenderTarget } from './target';
-
-type Command = ApplyState | null;
 
 interface ApplyState {
   state: Stateful;
@@ -11,8 +10,12 @@ interface ApplyState {
 export class RenderContext {
   public children: RenderContext[] = [];
 
+  public nodes: Node[] = [];
+  public disposables: Disposable[] = [];
+
   constructor(
-    public scope: Scope,
+    public scope = new Map<Stateful | ValueOperator, any>(),
+    //    public scope: Scope,4
     public graph: Graph,
     public parent?: RenderContext
   ) {
@@ -21,19 +24,24 @@ export class RenderContext {
     }
   }
 
-  sync(node: Stateful, newValue: any) {
-    const res: Template<Command>[] = [];
+  sync(node: Stateful, newValue: any, mutation?: ListMutation<any>) {
+    const res: JSX.Template<ApplyState>[] = [];
 
     const stack: RenderContext[] = [this];
 
     while (stack.length) {
       let context = stack.pop()!;
       const { graph } = context;
-      const operators = graph.nodes.get(node);
+      const operators = graph.operatorsMap.get(node);
       if (operators) {
         for (let i = 0; i < operators.length; i++) {
           const operator = operators[i];
           switch (operator.type) {
+            case 'list':
+              if (mutation) {
+                operator.apply(newValue, mutation);
+              }
+              break;
             case 'text':
               operator.text.data = newValue;
               break;
@@ -78,28 +86,29 @@ export class RenderContext {
     return res;
   }
 
-  get(state: Stateful | StateOperator): any {
-    return this.scope.values.get(state);
+  get(state: Stateful | ValueOperator): any {
+    return this.scope.get(state);
   }
 
-  set(state: Stateful | StateOperator, newValue: any) {
-    const { values } = this.scope;
+  set(state: Stateful | ValueOperator, newValue: any) {
+    const { scope } = this;
 
-    const currentValue = values.get(state);
+    const currentValue = scope.get(state);
     if (newValue === currentValue) {
       return false;
     } else {
-      values.set(state, newValue);
+      scope.set(state, newValue);
       return true;
     }
   }
 }
 
-export type StateOperator =
+export type ValueOperator =
   | ViewOperator
   | TextOperator
   | MapOperator
-  | EventOperator;
+  | EventOperator
+  | ListOperator;
 
 interface EventOperator {
   type: 'event';
@@ -121,23 +130,24 @@ interface MapOperator {
 }
 
 export class Graph {
-  public readonly nodes: Map<Stateful, StateOperator[]> = new Map();
+  public readonly operatorsMap: Map<Stateful, ValueOperator[]> = new Map();
+  // public readonly operatorsMap: Map<Stateful, ValueOperator[]> = new Map();
 
   get(node: Stateful) {
-    return this.nodes.get(node);
+    return this.operatorsMap.get(node);
   }
 
-  connect(node: Stateful, operator: StateOperator) {
-    const { nodes } = this;
+  valueOperator(node: Stateful, operator: ValueOperator) {
+    const { operatorsMap } = this;
 
-    if (nodes.has(node)) {
-      nodes.get(node)!.push(operator);
+    if (operatorsMap.has(node)) {
+      operatorsMap.get(node)!.push(operator);
     } else {
-      nodes.set(node, [operator]);
+      operatorsMap.set(node, [operator]);
     }
 
     if (node instanceof StateMapper) {
-      this.connect(node.source, {
+      this.valueOperator(node.source, {
         type: 'map',
         map: node.mapper,
         target: node,
@@ -146,11 +156,11 @@ export class Graph {
   }
 
   append(other: Graph) {
-    for (const [node, ops] of other.nodes) {
-      if (this.nodes.has(node)) {
-        this.nodes.get(node)!.push(...ops);
+    for (const [node, operators] of other.operatorsMap) {
+      if (this.operatorsMap.has(node)) {
+        this.operatorsMap.get(node)!.push(...operators);
       } else {
-        this.nodes.set(node, [...ops]);
+        this.operatorsMap.set(node, [...operators]);
       }
     }
   }
@@ -212,4 +222,9 @@ export class SynthaticElement implements RenderTarget {
   }
 
   dispose() {}
+}
+
+export interface ListOperator<T = any> {
+  type: 'list';
+  apply: (data: T[], mutation: ListMutation<T>) => any;
 }

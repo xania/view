@@ -1,4 +1,4 @@
-﻿import { Sequence, Template, templateAppend, templateBind } from '../tpl';
+﻿import { templateAppend, templateBind } from '../tpl';
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
 import type { Disposable } from '../disposable';
 import {
@@ -11,6 +11,7 @@ import { Program, View } from '../compile/program';
 import type { RenderTarget } from './target';
 import {
   Graph,
+  ListOperator,
   RenderContext,
   SynthaticElement,
   ViewOperator,
@@ -21,24 +22,23 @@ import { isViewable } from './viewable';
 import {
   IfExpression,
   ListExpression,
-  Scope,
   State,
   Stateful,
   StateMapper,
 } from '../reactive';
 import { resolve } from '../utils/resolve';
-import { ListSource } from '../reactive/list/source';
+import { ListMutation } from '../reactive/list/mutation';
 
 export function render(
   rootChildren: JSX.Element,
   rootTarget: RenderTarget,
   domFactory: DomFactory = document,
-  context: RenderContext = new RenderContext(new Scope(), new Graph())
-): Template<Node | View | Disposable> {
+  context: RenderContext = new RenderContext(new Map(), new Graph())
+): JSX.Template<Node | View | Disposable> {
   function binder(
-    value: JSX.Value,
+    value: NonNullable<JSX.Value>,
     currentTarget: RenderTarget
-  ): Template<Node | View | Disposable> {
+  ): JSX.Template<Node | View | Disposable> {
     if (value instanceof Node) {
       currentTarget.appendChild(value.cloneNode(true));
       return value;
@@ -55,7 +55,7 @@ export function render(
         type: 'view',
         element: synthElt,
       };
-      context.graph.connect(value.condition, viewOperator);
+      context.graph.valueOperator(value.condition, viewOperator);
 
       return [
         anchorNode,
@@ -69,21 +69,56 @@ export function render(
       ];
     } else if (value instanceof ListExpression) {
       const item = new State();
+      const template = value.children(item);
 
       if (value.source instanceof State) {
+        const source = value.source;
+        return resolve(initial(context, source), (initial) => {
+          const textNode = domFactory.createTextNode('!');
+          currentTarget.appendChild(textNode);
+
+          context.set(source, initial instanceof Array ? [...initial] : []);
+
+          context.graph.valueOperator(source, {
+            type: 'list',
+            apply(data, mutation?: ListMutation<any>) {
+              console.log(data);
+
+              if (mutation) {
+                switch (mutation.type) {
+                  case 'add':
+                    const scope = new Map();
+                    scope.set(item, mutation.item);
+
+                    render(
+                      template,
+                      currentTarget,
+                      domFactory,
+                      new RenderContext(scope, new Graph(), context)
+                    );
+
+                    console.log(mutation.item);
+                    break;
+                }
+              }
+            },
+          });
+          return textNode;
+        });
+
         //   return new ListExpresion(
         //     new ListSource<T>(props.source),
         //     item,
         //     props.children(item)
         //   );
-      } else if (value.source instanceof ListSource) {
+      } else if (value.source instanceof State) {
         //   return new ListExpresion(props.source, item, props.children(item));
       } else {
         return value.source.map((x) => {
-          const scope = new Scope();
-          scope.values.set(item, x);
+          const scope = new Map();
+          scope.set(item, x);
           return render(
-            value.children(item),
+            template,
             currentTarget,
             domFactory,
             new RenderContext(scope, new Graph(), context)
@@ -151,7 +186,7 @@ export function render(
           initial === undefined ? '' : String(initial)
         );
         currentTarget.appendChild(textNode);
-        context.graph.connect(value, {
+        context.graph.valueOperator(value, {
           type: 'text',
           text: textNode,
         });
@@ -175,15 +210,15 @@ function initial(root: RenderContext, state: Stateful) {
   let context: RenderContext = root;
 
   while (context.parent) {
-    const { values } = context.scope;
-    if (values.has(state)) {
-      return values.get(state);
+    const { scope } = context;
+    if (scope.has(state)) {
+      return scope.get(state);
     }
 
     context = context.parent;
   }
 
-  const value = context.scope.values.get(state);
+  const value = context.scope.get(state);
   if (value !== undefined) {
     return value;
   }

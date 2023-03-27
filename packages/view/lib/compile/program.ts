@@ -16,10 +16,10 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { Scope } from '../reactive/scope';
-import { applyUpdates, scopeProp, UpdateCommand } from '../reactive';
+import { applyCommands, UpdateCommand } from '../reactive';
 import { Graph, RenderContext } from '../render/render-context';
-import { templateBind } from '../tpl';
+
+export const scopeProp = Symbol('scope');
 
 export class Program implements Attachable {
   public graph: Graph = new Graph();
@@ -177,7 +177,7 @@ export class Program implements Attachable {
                       syntheticEvent(eventName, originalEvent)
                     );
 
-              applyUpdates(context, messages, (state: any) => {
+              applyCommands(context, messages, (state: any) => {
                 const key = state[scopeProp];
                 if (key === undefined) {
                   return;
@@ -263,7 +263,7 @@ export class View {
   render() {
     const { templates, container, contexts } = this;
     const dataIdx = contexts.length;
-    const context = new RenderContext(new Scope(), this.graph);
+    const context = new RenderContext(new Map(), this.graph);
     contexts.push(context);
 
     const nodes: Node[] = [];

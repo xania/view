@@ -1,10 +1,10 @@
 ﻿import { reduce, templateBind } from '../tpl';
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
-import { Program } from './program';
+import { Program, scopeProp } from './program';
 // import { Signal } from '../signals';
 import { ApplyStateHandler, HydrateOperationType } from './hydrate-operation';
 import { isAttachable, isViewable } from '../render';
-import { map, scopeProp } from '../reactive';
+import { map } from '../reactive';
 // import { initial } from '../reactive/initial';
 
 export function compile(

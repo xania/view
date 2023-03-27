@@ -21,17 +21,19 @@
     | Attachable
     | IfExpression
     | ListExpression;
-  type Just<T> = T;
-  type Nothing = null | undefined | void;
 
   /**
    * True type of an element is the <code>TagDescriptor</code> not JSX>Element,
    * type Element represents the return type of a Component. In Xania return type can
    * be a variety of different possibilities represented here as follows:
    */
-  type Element = MaybePromise<
-    Nothing | Just<Value> | Element[] | Promise<Element>
-  >;
+  type Element = Template<Value>;
+
+  type Just<T> = T;
+  type Nothing = null | undefined | void;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
+  type Template<T> =
+    | MaybePromise<Nothing | Just<T> | Template<T>[]>
+    | Promise<Template<T>>;
 }

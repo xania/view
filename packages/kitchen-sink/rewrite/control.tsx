@@ -1,4 +1,4 @@
-import { If, List, render, State, state } from "@xania/view";
+import { If, List, push, remove, render, state } from "@xania/view";
 import "./style.scss";
 
 render([<ListDemo />, <IfDemo />], document.body);
@@ -24,21 +24,22 @@ function IfDemo() {
 }
 
 function ListDemo() {
-  // const items = state([1, 2, 3]);
-  const count = state(1);
-
+  const items = state([0, 1, 2]);
   return (
     <div>
-      <button click={count.update((x) => x + 1)}>{count}</button>
-      <List source={[1, 2]}>
+      <button click={push(items, (arr) => arr.length)}>
+        {items.map(JSON.stringify)}
+      </button>
+      <List source={items}>
         {(item) => (
           <div>
             <button click={item.update((x) => x + 1)}>
               item: {item.map((x) => x * 2)}
             </button>
-            <button click={count.update((x) => x + 1)}>
+            <button click={remove(item)}>&times;</button>
+            {/* <button click={count.update((x) => x + 1)}>
               count: {count.map((x) => x * 2)}
-            </button>
+            </button> */}
           </div>
         )}
       </List>
