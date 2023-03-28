@@ -1,5 +1,6 @@
 ﻿import { Disposable } from '../disposable';
 import { applyCommands, isCommand, Stateful, StateMapper } from '../reactive';
+import { ListMutation } from '../reactive/list/mutation';
 import { syntheticEvent } from './render-node';
 import { RenderTarget } from './target';
 
@@ -20,10 +21,17 @@ export class RenderContext {
     public scope = new Map<Stateful | ValueOperator, any>(),
     //    public scope: Scope,4
     public graph: Graph,
+    public index: number,
     public parent?: RenderContext
   ) {
-    if (parent) {
-      parent.children.push(this);
+    // if (parent) {
+    //   parent.children.push(this);
+    // }
+  }
+
+  dispose() {
+    for (const node of this.nodes) {
+      (node as ChildNode).remove();
     }
   }
 
@@ -65,7 +73,7 @@ export class RenderContext {
     }
   }
 
-  sync(node: Stateful, newValue: any, mutation?: any) {
+  sync(node: NonNullable<any>, newValue: any, mutation?: any) {
     const res: JSX.Template<ApplyState>[] = [];
 
     const stack: RenderContext[] = [this];
@@ -79,7 +87,11 @@ export class RenderContext {
           const operator = operators[i];
           switch (operator.type) {
             case 'reduce':
-              operator.reduce(newValue, mutation);
+              const previous = context.get(operator);
+              const next = operator.reduce(newValue, previous, mutation);
+              if (next !== previous) {
+                context.set(operator, next);
+              }
               break;
             case 'text':
               operator.text.data = newValue;
@@ -159,11 +171,11 @@ export class RenderContext {
     if (currentValue !== undefined) this.sync(state, currentValue);
   }
 
-  get(state: Stateful | ValueOperator): any {
+  get(state: NonNullable<any>): any {
     return this.scope.get(state);
   }
 
-  set(state: Stateful | ValueOperator, newValue: any) {
+  set(state: NonNullable<any>, newValue: any) {
     const { scope } = this;
 
     const currentValue = scope.get(state);
@@ -266,5 +278,5 @@ export class SynthaticElement {
 
 export interface ReduceOperator<T, U> {
   type: 'reduce';
-  reduce: (data: T[], previous?: U, mutation?: any) => U;
+  reduce: (data: T[], previous?: U, mutation?: ListMutation<any>) => U;
 }

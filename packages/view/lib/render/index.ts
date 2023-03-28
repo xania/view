@@ -22,6 +22,7 @@ import {
   applyCommands,
   IfExpression,
   ListExpression,
+  ListMutationCommand,
   State,
   Stateful,
   StateMapper,
@@ -61,17 +62,24 @@ export function render(
         });
       } else if (curr instanceof ListExpression) {
         const item = new State();
-        const template = curr.children(item);
+        const source = curr.source;
 
-        const anchorNode = domFactory.createComment('---list---');
+        const disposeCmd = new ListMutationCommand(item, {
+          type: 'dispose',
+          source,
+        });
+        const template = curr.children(item, disposeCmd);
+
+        const anchorNode = domFactory.createComment('');
         const anchorTarget = new AnchorTarget(anchorNode);
         currentTarget.appendChild(anchorNode);
 
-        const source = curr.source;
         if (source instanceof State) {
           context.valueOperator(source, {
             type: 'reduce',
-            reduce(data, action) {
+            reduce(data, previous, action) {
+              const retval: RenderContext[] = previous ?? [];
+
               if (action === undefined) {
                 for (const row of data) {
                   const scope = new Map();
@@ -80,9 +88,18 @@ export function render(
                   const childContext = new RenderContext(
                     context.container,
                     scope,
-                    new Graph()
+                    new Graph(),
+                    retval.length,
+                    context
                   );
-                  traverse([[childContext, anchorTarget, template]]);
+                  retval.push(childContext);
+                  traverse([
+                    [
+                      childContext,
+                      new RootTarget(childContext, anchorTarget),
+                      template,
+                    ],
+                  ]);
                 }
               } else {
                 const type = action.type;
@@ -95,12 +112,31 @@ export function render(
                     const childContext = new RenderContext(
                       context.container,
                       scope,
-                      new Graph()
+                      new Graph(),
+                      retval.length,
+                      context
                     );
-                    traverse([[childContext, anchorTarget, template]]);
+                    retval.push(childContext);
+                    traverse([
+                      [
+                        childContext,
+                        new RootTarget(childContext, anchorTarget),
+                        template,
+                      ],
+                    ]);
+                    break;
+                  case 'remove':
+                    retval[action.index].dispose();
+                    retval.splice(action.index, 1);
+                    for (let i = action.index; i < retval.length; i++) {
+                      retval[i].index = i;
+                    }
+                    console.log(this);
                     break;
                 }
               }
+
+              return retval;
             },
           });
         }
@@ -154,7 +190,7 @@ export function render(
     return context;
   }
 
-  const context = new RenderContext(container, new Map(), new Graph());
+  const context = new RenderContext(container, new Map(), new Graph(), 0);
   return traverse([[context, context, rootChildren]]);
 }
 

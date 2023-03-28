@@ -1,20 +1,21 @@
-﻿export type ListMutation<T> = ListAddMutation<T> | ListRemoveMutation;
+﻿export type ListMutation<T> =
+  | AddRowMutation<T>
+  | DisposeRowMutation
+  | RemoveRowMutation;
 
-interface ListAddMutation<T> {
+interface AddRowMutation<T> {
   type: 'add';
   itemOrGetter: T | ((arr: T[]) => T);
 }
 
-interface ListRemoveMutation {
-  type: 'remove';
-  index: number;
+interface DisposeRowMutation {
+  type: 'dispose';
+  source: any;
 }
 
-export function listRemove<T>(index: number): ListRemoveMutation {
-  return {
-    type: 'remove',
-    index,
-  };
+interface RemoveRowMutation {
+  type: 'remove';
+  index: number;
 }
 
 export function isListMutation(value: any): value is ListMutation<any> {

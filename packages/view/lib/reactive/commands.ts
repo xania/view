@@ -1,17 +1,14 @@
 ﻿import { RenderContext } from '../render/render-context';
 import { BindFunction, templateBind } from '../tpl';
 import { isListMutation, ListMutation } from './list/mutation';
-import { Stateful } from './state';
+import { State, Stateful } from './state';
 
 export class UpdateCommand<T = unknown> {
   constructor(public state: Stateful<T>, public updater: T | ((x: T) => T)) {}
 }
 
 export class ListMutationCommand<T = any> {
-  constructor(
-    public state: Stateful<T[]>,
-    public mutation: ListMutation<any>
-  ) {}
+  constructor(public state: State<T>, public mutation: ListMutation<any>) {}
 }
 
 export type Command = UpdateCommand | ListMutationCommand;
@@ -31,17 +28,7 @@ export function applyCommands(
 ) {
   return templateBind(commands, async (message: Command) => {
     const state = message.state;
-    let baseContext: RenderContext = context;
-
-    while (baseContext.parent) {
-      if (baseContext.scope.has(state)) {
-        break;
-      }
-      baseContext = baseContext.parent;
-    }
-
-    const currentValue = await baseContext.get(state);
-
+    const currentValue = await context.get(state);
     if (message instanceof UpdateCommand) {
       const updater = message.updater;
 
@@ -51,8 +38,8 @@ export function applyCommands(
           : updater(currentValue)
         : updater);
 
-      if (newValue !== undefined && baseContext.set(state, newValue)) {
-        const changes = baseContext.sync(state, newValue);
+      if (newValue !== undefined && context.set(state, newValue)) {
+        const changes = context.sync(state, newValue);
         if (applyChange) return templateBind(changes, applyChange);
       }
     } else if (message instanceof ListMutationCommand) {
@@ -68,12 +55,25 @@ export function applyCommands(
             currentValue.push(mutation.itemOrGetter);
           }
           break;
+        case 'dispose':
+          if (context.parent) {
+            const array = context.parent.get(mutation.source);
+
+            array.splice(context.index, 1);
+
+            const changes = context.parent.sync(mutation.source, array, {
+              type: 'remove',
+              index: context.index,
+            } as ListMutation<any>);
+            if (applyChange) return templateBind(changes, applyChange);
+          }
+          break;
       }
 
-      const changes = baseContext.sync(state, currentValue, mutation);
+      const changes = context.sync(state, currentValue, mutation);
       if (applyChange) return templateBind(changes, applyChange);
     } else {
-      console.log(baseContext);
+      console.log(context);
     }
   });
 }

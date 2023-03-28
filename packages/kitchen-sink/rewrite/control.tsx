@@ -34,21 +34,21 @@ function ListDemo() {
       <button click={items.push((arr) => arr.length)}>
         {items.map(JSON.stringify)}
       </button>
-      <div>-----before--------</div>
+      <div>-------before--------</div>
       <List source={items}>
-        {(item) => (
+        {(item, dispose) => (
           <div>
             <button click={item.update((x) => x + 1)}>
               item: {item.map((x) => delay(x * 2))}
             </button>
-            <button click={items.remove(item)}>&times;</button>
+            <button click={dispose}>&times;</button>
             {/* <button click={count.update((x) => x + 1)}>
               count: {count.map((x) => x * 2)}
             </button> */}
           </div>
         )}
       </List>
-      <div>-----after--------</div>
+      <div>-------after--------</div>
     </div>
   );
 }

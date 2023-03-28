@@ -8,7 +8,10 @@ export function List<T>(props: ListExpression<T>) {
 export class ListExpression<T = any> {
   constructor(
     public source: Stateful<T[]> | T[],
-    public children: (item: State<T>) => JSX.Children
+    public children: (
+      item: State<T>,
+      dispose: ListMutationCommand
+    ) => JSX.Children
   ) {}
 }
 
@@ -21,13 +24,6 @@ class ListSource<T> extends State<T[]> {
     return new ListMutationCommand(this, {
       type: 'add',
       itemOrGetter,
-    });
-  }
-
-  remove(state: Stateful<T>) {
-    return new ListMutationCommand(this, {
-      type: 'remove',
-      index: 0,
     });
   }
 }
