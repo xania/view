@@ -26,16 +26,15 @@
   };
 
   type TagEvents<TElement> = {
-    [E in keyof HTMLElementEventMap]?: EventHandler<E, TElement>;
+    [E in keyof HTMLElementEventMap]?: MaybePromise<EventHandler<E, TElement>>;
   };
+
+  type Command = import('../../lib/reactive/commands').Command;
 
   type EventHandler<
     E extends keyof HTMLElementEventMap = any,
     TElement = any
-  > =
-    | EventHandlerFn<E, TElement>
-    | EventHandlerObj<E, TElement>
-    | import('../../lib/reactive/commands').Command<any>;
+  > = EventHandlerFn<E, TElement> | EventHandlerObj<E, TElement> | Command;
 
   type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
     handleEvent: EventHandlerFn<E, TElement>;
@@ -43,5 +42,5 @@
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
     e: EventContext<HTMLElementEventMap[E], TElement>
-  ) => UpdateMessage;
+  ) => Template<Command>;
 }

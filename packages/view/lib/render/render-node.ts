@@ -6,7 +6,7 @@
 import { RenderContext } from './render-context';
 import { DomFactory } from './dom-factory';
 import { Disposable } from '../disposable';
-import { applyCommands, isCommand } from '../reactive';
+import { isCommand } from '../reactive';
 
 export function applyAttributes(
   target: HTMLElement,
@@ -49,7 +49,7 @@ export function applyEvents(
         ? eventHandler(syntheticEvent(eventName, originalEvent))
         : eventHandler.handleEvent(syntheticEvent(eventName, originalEvent));
 
-      applyCommands(context, messages);
+      context.applyCommands(messages);
     };
 
     disposables.push(

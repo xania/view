@@ -16,7 +16,7 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { applyCommands, UpdateCommand } from '../reactive';
+import { UpdateCommand } from '../reactive';
 import { Graph, RenderContext } from '../render/render-context';
 
 export const scopeProp = Symbol('scope');
@@ -177,7 +177,7 @@ export class Program implements Attachable {
                       syntheticEvent(eventName, originalEvent)
                     );
 
-              applyCommands(context, messages, (state: any) => {
+              context.applyCommands(messages, (state: any) => {
                 const key = state[scopeProp];
                 if (key === undefined) {
                   return;
@@ -263,7 +263,12 @@ export class View {
   render() {
     const { templates, container, contexts } = this;
     const dataIdx = contexts.length;
-    const context = new RenderContext(new Map(), this.graph);
+    const context = new RenderContext(
+      container as HTMLElement,
+      new Map(),
+      this.graph,
+      0
+    );
     contexts.push(context);
 
     const nodes: Node[] = [];

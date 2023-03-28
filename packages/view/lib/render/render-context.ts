@@ -1,8 +1,15 @@
 ﻿import { Disposable } from '../disposable';
-import { applyCommands, isCommand, Stateful, StateMapper } from '../reactive';
+import {
+  Command,
+  isCommand,
+  ListMutationCommand,
+  Stateful,
+  StateMapper,
+  UpdateCommand,
+} from '../reactive';
 import { ListMutation } from '../reactive/list/mutation';
+import { BindFunction, templateBind } from '../tpl';
 import { syntheticEvent } from './render-node';
-import { RenderTarget } from './target';
 
 interface ApplyState {
   state: Stateful;
@@ -67,65 +74,142 @@ export class RenderContext {
                 syntheticEvent(eventName, originalEvent, target)
               );
 
-          applyCommands(this, commands);
+          this.applyCommands(commands);
         }
       }
     }
   }
 
-  sync(node: NonNullable<any>, newValue: any, mutation?: any) {
-    const res: JSX.Template<ApplyState>[] = [];
+  applyCommands(
+    commands: JSX.Template<Command>,
+    applyChange?: BindFunction<any, any>
+  ) {
+    const context = this;
+    return templateBind(commands, async (message: Command) => {
+      const state = message.state;
+      const currentValue = await context.get(state);
+      if (message instanceof UpdateCommand) {
+        const updater = message.updater;
+
+        const newValue = await (updater instanceof Function
+          ? currentValue === undefined
+            ? undefined
+            : updater(currentValue)
+          : updater);
+
+        if (newValue !== undefined && context.set(state, newValue)) {
+          const operators = this.graph.operatorsMap.get(state);
+          if (operators) {
+            const changes = context.sync(operators, newValue);
+            if (applyChange) return templateBind(changes, applyChange);
+          }
+        }
+      } else if (message instanceof ListMutationCommand) {
+        const { mutation } = message;
+        switch (mutation.type) {
+          case 'add':
+            if (mutation.itemOrGetter instanceof Function) {
+              if (currentValue !== undefined) {
+                const newRow = mutation.itemOrGetter(currentValue);
+                currentValue.push(newRow);
+              }
+            } else {
+              currentValue.push(mutation.itemOrGetter);
+            }
+            break;
+          case 'dispose':
+            if (context.parent) {
+              const array = context.parent.get(mutation.source);
+
+              array.splice(context.index, 1);
+
+              const operators = context.parent.graph.operatorsMap.get(
+                mutation.source
+              );
+              if (operators) {
+                const changes = context.parent.sync(operators, array, {
+                  type: 'remove',
+                  index: context.index,
+                } as ListMutation<any>);
+                if (applyChange) return templateBind(changes, applyChange);
+              }
+            }
+            break;
+        }
+
+        const operators = context.graph.operatorsMap.get(state);
+        if (operators) {
+          const changes = context.sync(operators, currentValue, mutation);
+          if (applyChange) return templateBind(changes, applyChange);
+        }
+      } else {
+        console.log(context);
+      }
+    });
+  }
+
+  sync(operators: ValueOperator[], newValue: any, mutation?: any) {
+    const promises: Promise<any>[] = [];
 
     const stack: RenderContext[] = [this];
 
     while (stack.length) {
       let context = stack.pop()!;
       const { graph } = context;
-      const operators = graph.operatorsMap.get(node);
-      if (operators) {
-        for (let i = 0; i < operators.length; i++) {
-          const operator = operators[i];
-          switch (operator.type) {
-            case 'reduce':
-              const previous = context.get(operator);
-              const next = operator.reduce(newValue, previous, mutation);
-              if (next !== previous) {
-                context.set(operator, next);
-              }
-              break;
-            case 'text':
-              operator.text.data = newValue;
-              break;
-            case 'map':
-              const mappedValue = operator.map(newValue);
-              if (this.set(operator, mappedValue)) {
-                if (mappedValue instanceof Promise) {
-                  res.push(
-                    mappedValue.then((resolved) => {
-                      if (
-                        this.get(operator) === mappedValue &&
-                        this.set(operator.target, resolved)
-                      ) {
-                        return this.sync(operator.target, resolved);
+
+      for (let i = 0; i < operators.length; i++) {
+        const operator = operators[i];
+        switch (operator.type) {
+          case 'reduce':
+            const previous = context.get(operator);
+            promises.push(
+              operator
+                .reduce(newValue, previous, mutation)
+                .then((next: any) => {
+                  if (next !== previous) {
+                    context.set(operator, next);
+                  }
+                })
+            );
+            break;
+          case 'text':
+            operator.text.data = newValue;
+            break;
+          case 'map':
+            const mappedValue = operator.map(newValue);
+            if (this.set(operator, mappedValue)) {
+              if (mappedValue instanceof Promise) {
+                promises.push(
+                  mappedValue.then((resolved) => {
+                    if (
+                      this.get(operator) === mappedValue &&
+                      this.set(operator.target, resolved)
+                    ) {
+                      const operators = graph.operatorsMap.get(operator.target);
+                      if (operators) {
+                        return this.sync(operators, resolved);
                       }
-                    })
-                  );
-                } else if (this.set(operator.target, mappedValue)) {
-                  res.push(this.sync(operator.target, mappedValue));
+                    }
+                  })
+                );
+              } else if (this.set(operator.target, mappedValue)) {
+                const operators = graph.operatorsMap.get(operator.target);
+                if (operators) {
+                  promises.push(this.sync(operators, mappedValue));
                 }
               }
-              break;
-            case 'view':
-              if (newValue) {
-                operator.element.attach();
-              } else {
-                operator.element.detach();
-              }
-              break;
-            case 'event':
-              res.push({ state: node });
-              break;
-          }
+            }
+            break;
+          case 'view':
+            if (newValue) {
+              operator.element.attach();
+            } else {
+              operator.element.detach();
+            }
+            break;
+          // case 'event':
+          //   res.push({ state: node });
+          //   break;
         }
       }
 
@@ -134,7 +218,7 @@ export class RenderContext {
       }
     }
 
-    return res;
+    return Promise.all(promises);
   }
 
   async initialize(state: Stateful) {}
@@ -168,7 +252,7 @@ export class RenderContext {
       operatorsMap.set(state, [operator]);
     }
 
-    if (currentValue !== undefined) this.sync(state, currentValue);
+    if (currentValue !== undefined) await this.sync([operator], currentValue);
   }
 
   get(state: NonNullable<any>): any {
@@ -192,12 +276,12 @@ export type ValueOperator =
   | ViewOperator
   | TextOperator
   | MapOperator
-  | EventOperator
+  // | EventOperator
   | ReduceOperator<any, any>;
 
-interface EventOperator {
-  type: 'event';
-}
+// interface EventOperator {
+//   type: 'event';
+// }
 interface TextOperator {
   type: 'text';
   text: Text;

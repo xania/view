@@ -1,4 +1,4 @@
-﻿import { ListMutationCommand } from '../commands';
+﻿import { Command, ListMutationCommand } from '../commands';
 import { State, Stateful } from '../state';
 
 export function List<T>(props: ListExpression<T>) {
@@ -8,10 +8,7 @@ export function List<T>(props: ListExpression<T>) {
 export class ListExpression<T = any> {
   constructor(
     public source: Stateful<T[]> | T[],
-    public children: (
-      item: State<T>,
-      dispose: ListMutationCommand
-    ) => JSX.Children
+    public children: (item: State<T>, dispose: Command) => JSX.Children
   ) {}
 }
 

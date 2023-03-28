@@ -19,7 +19,6 @@ import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 import {
-  applyCommands,
   IfExpression,
   ListExpression,
   ListMutationCommand,
@@ -35,7 +34,10 @@ export function render(
   container: HTMLElement,
   domFactory: DomFactory = document
 ): JSX.MaybePromise<RenderContext> {
-  function traverse(stack: [RenderContext, RenderTarget, JSX.Element][]) {
+  function traverse(
+    stack: [RenderContext, RenderTarget, JSX.Element][]
+  ): Promise<any>[] {
+    const promises: Promise<any>[] = [];
     while (stack.length) {
       const [context, currentTarget, curr] = stack.pop()!;
       if (curr === null || curr === undefined) {
@@ -54,12 +56,14 @@ export function render(
         const textNode = domFactory.createTextNode(curr);
         currentTarget.appendChild(textNode);
       } else if (curr instanceof State) {
-        const stateNode = domFactory.createTextNode('');
+        const stateNode = domFactory.createTextNode('..');
         currentTarget.appendChild(stateNode);
-        context.valueOperator(curr, {
-          type: 'text',
-          text: stateNode,
-        });
+        promises.push(
+          context.valueOperator(curr, {
+            type: 'text',
+            text: stateNode,
+          })
+        );
       } else if (curr instanceof ListExpression) {
         const item = new State();
         const source = curr.source;
@@ -75,40 +79,20 @@ export function render(
         currentTarget.appendChild(anchorNode);
 
         if (source instanceof State) {
-          context.valueOperator(source, {
-            type: 'reduce',
-            reduce(data, previous, action) {
-              const retval: RenderContext[] = previous ?? [];
+          promises.push(
+            context.valueOperator(source, {
+              type: 'reduce',
+              async reduce(data, previous, action) {
+                const retval: RenderContext[] = previous ?? [];
 
-              if (action === undefined) {
-                for (const row of data) {
-                  const scope = new Map();
-                  scope.set(item, row);
+                if (action === undefined) {
+                  const stack: any[] = [];
 
-                  const childContext = new RenderContext(
-                    context.container,
-                    scope,
-                    new Graph(),
-                    retval.length,
-                    context
-                  );
-                  retval.push(childContext);
-                  traverse([
-                    [
-                      childContext,
-                      new RootTarget(childContext, anchorTarget),
-                      template,
-                    ],
-                  ]);
-                }
-              } else {
-                const type = action.type;
-                switch (type) {
-                  case 'add':
-                    const newRow = data[data.length - 1];
+                  for (const row of data) {
                     const scope = new Map();
-                    scope.set(item, newRow);
+                    scope.set(item, row);
 
+                    console.log('hello');
                     const childContext = new RenderContext(
                       context.container,
                       scope,
@@ -117,28 +101,54 @@ export function render(
                       context
                     );
                     retval.push(childContext);
-                    traverse([
-                      [
-                        childContext,
-                        new RootTarget(childContext, anchorTarget),
-                        template,
-                      ],
+                    stack.push([
+                      childContext,
+                      new RootTarget(childContext, anchorTarget),
+                      template,
                     ]);
-                    break;
-                  case 'remove':
-                    retval[action.index].dispose();
-                    retval.splice(action.index, 1);
-                    for (let i = action.index; i < retval.length; i++) {
-                      retval[i].index = i;
-                    }
-                    console.log(this);
-                    break;
-                }
-              }
+                  }
 
-              return retval;
-            },
-          });
+                  await Promise.all(traverse(stack));
+                } else {
+                  const type = action.type;
+                  switch (type) {
+                    case 'add':
+                      const newRow = data[data.length - 1];
+                      const scope = new Map();
+                      scope.set(item, newRow);
+
+                      const childContext = new RenderContext(
+                        context.container,
+                        scope,
+                        new Graph(),
+                        retval.length,
+                        context
+                      );
+                      retval.push(childContext);
+                      await Promise.all(
+                        traverse([
+                          [
+                            childContext,
+                            new RootTarget(childContext, anchorTarget),
+                            template,
+                          ],
+                        ])
+                      );
+                      break;
+                    case 'remove':
+                      retval[action.index].dispose();
+                      retval.splice(action.index, 1);
+                      for (let i = action.index; i < retval.length; i++) {
+                        retval[i].index = i;
+                      }
+                      break;
+                  }
+                }
+
+                return retval;
+              },
+            })
+          );
         }
       } else if (curr instanceof IfExpression) {
         const anchorNode = domFactory.createComment('ifx');
@@ -150,18 +160,19 @@ export function render(
           type: 'view',
           element: synthElt,
         };
-        context.promises.push(
-          context.valueOperator(curr.condition, viewOperator)
-        );
+        promises.push(context.valueOperator(curr.condition, viewOperator));
 
         // console.log(curr);
       } else if (curr instanceof Promise) {
-        return curr.then((resolved): any => {
-          if (resolved) {
-            stack.push([context, currentTarget, resolved]);
-          }
-          return traverse(stack);
-        });
+        promises.push(
+          curr.then((resolved): any => {
+            if (resolved) {
+              stack.push([context, currentTarget, resolved]);
+            }
+            return Promise.all(traverse(stack));
+          })
+        );
+        return promises;
       } else if (isDomDescriptor(curr)) {
         switch (curr.type) {
           case DomDescriptorType.Element:
@@ -174,24 +185,28 @@ export function render(
 
             const { children } = curr;
             if (children ?? true) {
-              stack.push([context, element, curr.children]);
+              // concurrent mode
+              promises.push(...traverse([[context, element, curr.children]]));
             }
-
             break;
           default:
             console.log('dom', curr);
             break;
         }
+      } else if (isViewable(curr)) {
+        stack.push([context, currentTarget, curr.view()]);
       } else {
         console.log('unknown', curr);
       }
     }
 
-    return context;
+    return promises;
   }
 
   const context = new RenderContext(container, new Map(), new Graph(), 0);
-  return traverse([[context, context, rootChildren]]);
+  const promises = traverse([[context, context, rootChildren]]);
+  if (promises.length === 0) return context;
+  return Promise.all(promises).then(() => context);
 }
 
 export * from './unrender';
