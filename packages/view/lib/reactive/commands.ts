@@ -59,13 +59,14 @@ export function applyCommands(
       const { mutation } = message;
       switch (mutation.type) {
         case 'add':
-          const newRow =
-            mutation.itemOrGetter instanceof Function
-              ? mutation.itemOrGetter(currentValue)
-              : mutation.itemOrGetter;
-
-          currentValue.push(newRow);
-
+          if (mutation.itemOrGetter instanceof Function) {
+            if (currentValue !== undefined) {
+              const newRow = mutation.itemOrGetter(currentValue);
+              currentValue.push(newRow);
+            }
+          } else {
+            currentValue.push(mutation.itemOrGetter);
+          }
           break;
       }
 

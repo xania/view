@@ -156,7 +156,7 @@ export class RenderContext {
       operatorsMap.set(state, [operator]);
     }
 
-    this.sync(state, currentValue);
+    if (currentValue !== undefined) this.sync(state, currentValue);
   }
 
   get(state: Stateful | ValueOperator): any {
