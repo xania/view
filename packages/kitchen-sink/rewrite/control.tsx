@@ -15,7 +15,7 @@ function IfDemo() {
         <If condition={opened}>
           <div>
             {delay(<span>hello</span>)}
-            <button click={opened.update(false)}>close</button>
+            {delay(<button click={opened.update(false)}>close</button>, 800)}
           </div>
         </If>
       </div>
@@ -24,7 +24,7 @@ function IfDemo() {
 }
 
 function ListDemo() {
-  const items = listSource([0, 1, 2]);
+  const items = listSource(delay([0, 1, 2], 2000));
   const count = state(Promise.resolve(1));
   return (
     <div>
@@ -34,6 +34,7 @@ function ListDemo() {
       <button click={items.push((arr) => arr.length)}>
         {items.map(JSON.stringify)}
       </button>
+      <div>asdfa sdf asdf</div>
       <List source={items}>
         {(item) => (
           <div>
@@ -47,6 +48,7 @@ function ListDemo() {
           </div>
         )}
       </List>
+      <div>asdfa sdf asdf</div>
     </div>
   );
 }

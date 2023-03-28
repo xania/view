@@ -10,13 +10,13 @@ interface ApplyState {
 export class RenderContext {
   public children: RenderContext[] = [];
 
-  private nodes: Node[] = [];
+  public nodes: Node[] = [];
   public disposables: Disposable[] = [];
   public promises: Promise<any>[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
 
   constructor(
-    public element: RenderTarget,
+    public container: HTMLElement,
     public scope = new Map<Stateful | ValueOperator, any>(),
     //    public scope: Scope,4
     public graph: Graph,
@@ -28,7 +28,7 @@ export class RenderContext {
   }
 
   appendChild(node: Node) {
-    this.element.appendChild(node);
+    this.container.appendChild(node);
     this.nodes.push(node);
   }
 
@@ -39,7 +39,7 @@ export class RenderContext {
         this.events[eventName].push([target, eventHandler]);
       } else {
         this.events[eventName] = [[target, eventHandler]];
-        this.element.addEventListener(eventName, this, true);
+        this.container.addEventListener(eventName, this, true);
       }
     }
   }

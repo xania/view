@@ -31,21 +31,19 @@ import { resolve } from '../utils/resolve';
 
 export function render(
   rootChildren: JSX.Element,
-  rootTarget: RenderTarget,
-  domFactory: DomFactory = document,
-  context = new RenderContext(rootTarget, new Map(), new Graph())
+  container: HTMLElement,
+  domFactory: DomFactory = document
 ): JSX.MaybePromise<RenderContext> {
-  type Parent = { appendChild: RenderTarget['appendChild'] };
-  function traverse(stack: [Parent, JSX.Element][]) {
+  function traverse(stack: [RenderContext, RenderTarget, JSX.Element][]) {
     while (stack.length) {
-      const [currentTarget, curr] = stack.pop()!;
+      const [context, currentTarget, curr] = stack.pop()!;
       if (curr === null || curr === undefined) {
         continue;
       } else if (curr instanceof Array) {
         for (let i = curr.length - 1; i >= 0; i--) {
           const item = curr[i];
           if (item !== null && item !== undefined) {
-            stack.push([currentTarget, item]);
+            stack.push([context, currentTarget, item]);
           }
         }
       } else if (curr.constructor === Number) {
@@ -65,6 +63,10 @@ export function render(
         const item = new State();
         const template = curr.children(item);
 
+        const anchorNode = domFactory.createComment('---list---');
+        const anchorTarget = new AnchorTarget(anchorNode);
+        currentTarget.appendChild(anchorNode);
+
         const source = curr.source;
         if (source instanceof State) {
           context.valueOperator(source, {
@@ -74,17 +76,13 @@ export function render(
                 for (const row of data) {
                   const scope = new Map();
                   scope.set(item, row);
-                  render(
-                    template,
-                    currentTarget as HTMLElement,
-                    domFactory,
-                    new RenderContext(
-                      currentTarget as HTMLElement,
-                      scope,
-                      new Graph(),
-                      context
-                    )
+
+                  const childContext = new RenderContext(
+                    context.container,
+                    scope,
+                    new Graph()
                   );
+                  traverse([[childContext, anchorTarget, template]]);
                 }
               } else {
                 const type = action.type;
@@ -93,17 +91,13 @@ export function render(
                     const newRow = data[data.length - 1];
                     const scope = new Map();
                     scope.set(item, newRow);
-                    render(
-                      template,
-                      currentTarget as HTMLElement,
-                      domFactory,
-                      new RenderContext(
-                        currentTarget as HTMLElement,
-                        scope,
-                        new Graph(),
-                        context
-                      )
+
+                    const childContext = new RenderContext(
+                      context.container,
+                      scope,
+                      new Graph()
                     );
+                    traverse([[childContext, anchorTarget, template]]);
                     break;
                 }
               }
@@ -115,7 +109,7 @@ export function render(
         currentTarget.appendChild(anchorNode);
 
         const synthElt = new SynthaticElement(anchorNode);
-        stack.push([synthElt, curr.content]);
+        stack.push([context, synthElt, curr.content]);
         const viewOperator: ViewOperator = {
           type: 'view',
           element: synthElt,
@@ -125,6 +119,13 @@ export function render(
         );
 
         // console.log(curr);
+      } else if (curr instanceof Promise) {
+        return curr.then((resolved): any => {
+          if (resolved) {
+            stack.push([context, currentTarget, resolved]);
+          }
+          return traverse(stack);
+        });
       } else if (isDomDescriptor(curr)) {
         switch (curr.type) {
           case DomDescriptorType.Element:
@@ -137,7 +138,7 @@ export function render(
 
             const { children } = curr;
             if (children ?? true) {
-              stack.push([element, curr.children]);
+              stack.push([context, element, curr.children]);
             }
 
             break;
@@ -153,7 +154,8 @@ export function render(
     return context;
   }
 
-  return traverse([[context, rootChildren]]);
+  const context = new RenderContext(container, new Map(), new Graph());
+  return traverse([[context, context, rootChildren]]);
 }
 
 export * from './unrender';
@@ -161,3 +163,23 @@ export * from './ready';
 export * from './dom-factory';
 export * from './viewable';
 export * from './attachable';
+
+class AnchorTarget {
+  constructor(public anchorNode: Comment) {}
+
+  appendChild(child: Node) {
+    const { anchorNode } = this;
+    const { parentElement } = anchorNode;
+    parentElement!.insertBefore(child, anchorNode);
+  }
+}
+
+class RootTarget {
+  constructor(public context: RenderContext, public target: RenderTarget) {}
+
+  appendChild(child: Node) {
+    const { context, target } = this;
+    target.appendChild(child);
+    context.nodes.push(child);
+  }
+}
