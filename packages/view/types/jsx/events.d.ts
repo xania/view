@@ -35,7 +35,7 @@
   > =
     | EventHandlerFn<E, TElement>
     | EventHandlerObj<E, TElement>
-    | import('../../lib/reactive/update').UpdateCommand<any>;
+    | import('../../lib/reactive/commands').Command<any>;
 
   type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
     handleEvent: EventHandlerFn<E, TElement>;

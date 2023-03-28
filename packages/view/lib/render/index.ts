@@ -28,15 +28,13 @@ import {
   UpdateCommand,
 } from '../reactive';
 import { resolve } from '../utils/resolve';
-import { ListMutation } from '../reactive/list/mutation';
 
 export function render(
   rootChildren: JSX.Element,
   rootTarget: RenderTarget,
-  domFactory: DomFactory = document
+  domFactory: DomFactory = document,
+  context = new RenderContext(rootTarget, new Map(), new Graph())
 ): JSX.MaybePromise<RenderContext> {
-  const context = new RenderContext(rootTarget, new Map(), new Graph());
-
   type Parent = { appendChild: RenderTarget['appendChild'] };
   function traverse(stack: [Parent, JSX.Element][]) {
     while (stack.length) {
@@ -63,6 +61,55 @@ export function render(
           type: 'text',
           text: stateNode,
         });
+      } else if (curr instanceof ListExpression) {
+        const item = new State();
+        const template = curr.children(item);
+
+        const source = curr.source;
+        if (source instanceof State) {
+          context.valueOperator(source, {
+            type: 'reduce',
+            reduce(data, action) {
+              if (action === undefined) {
+                for (const row of data) {
+                  const scope = new Map();
+                  scope.set(item, row);
+                  render(
+                    template,
+                    currentTarget as HTMLElement,
+                    domFactory,
+                    new RenderContext(
+                      currentTarget as HTMLElement,
+                      scope,
+                      new Graph(),
+                      context
+                    )
+                  );
+                }
+              } else {
+                const type = action.type;
+                switch (type) {
+                  case 'add':
+                    const newRow = data[data.length - 1];
+                    const scope = new Map();
+                    scope.set(item, newRow);
+                    render(
+                      template,
+                      currentTarget as HTMLElement,
+                      domFactory,
+                      new RenderContext(
+                        currentTarget as HTMLElement,
+                        scope,
+                        new Graph(),
+                        context
+                      )
+                    );
+                    break;
+                }
+              }
+            },
+          });
+        }
       } else if (curr instanceof IfExpression) {
         const anchorNode = domFactory.createComment('ifx');
         currentTarget.appendChild(anchorNode);
@@ -73,7 +120,9 @@ export function render(
           type: 'view',
           element: synthElt,
         };
-        context.valueOperator(curr.condition, viewOperator);
+        context.promises.push(
+          context.valueOperator(curr.condition, viewOperator)
+        );
 
         // console.log(curr);
       } else if (isDomDescriptor(curr)) {

@@ -1,6 +1,5 @@
 ﻿import { Disposable } from '../disposable';
 import { applyCommands, isCommand, Stateful, StateMapper } from '../reactive';
-import { ListMutation } from '../reactive/list/mutation';
 import { syntheticEvent } from './render-node';
 import { RenderTarget } from './target';
 
@@ -66,7 +65,7 @@ export class RenderContext {
     }
   }
 
-  sync(node: Stateful, newValue: any, mutation?: ListMutation<any>) {
+  sync(node: Stateful, newValue: any, mutation?: any) {
     const res: JSX.Template<ApplyState>[] = [];
 
     const stack: RenderContext[] = [this];
@@ -79,10 +78,8 @@ export class RenderContext {
         for (let i = 0; i < operators.length; i++) {
           const operator = operators[i];
           switch (operator.type) {
-            case 'list':
-              if (mutation) {
-                operator.apply(newValue, mutation);
-              }
+            case 'reduce':
+              operator.reduce(newValue, mutation);
               break;
             case 'text':
               operator.text.data = newValue;
@@ -128,30 +125,38 @@ export class RenderContext {
     return res;
   }
 
-  async valueOperator(node: Stateful, operator: ValueOperator) {
+  async initialize(state: Stateful) {}
+
+  async valueOperator(state: Stateful, operator: ValueOperator) {
     const { operatorsMap } = this.graph;
 
-    if (node instanceof StateMapper && !operatorsMap.has(node)) {
-      await this.valueOperator(node.source, {
+    if (state instanceof StateMapper && !operatorsMap.has(state)) {
+      await this.valueOperator(state.source, {
         type: 'map',
-        map: node.mapper,
-        target: node,
+        map: state.mapper,
+        target: state,
       });
     }
 
-    if (!this.scope.has(node)) {
-      this.scope.set(node, await node.initial);
+    if (!this.scope.has(state)) {
+      const init = await state.initial;
+
+      if (init instanceof Array) {
+        this.scope.set(state, init.slice(0));
+      } else {
+        this.scope.set(state, init);
+      }
     }
 
-    const currentValue = this.scope.get(node);
+    const currentValue = this.scope.get(state);
 
-    if (operatorsMap.has(node)) {
-      operatorsMap.get(node)!.push(operator);
+    if (operatorsMap.has(state)) {
+      operatorsMap.get(state)!.push(operator);
     } else {
-      operatorsMap.set(node, [operator]);
+      operatorsMap.set(state, [operator]);
     }
 
-    this.sync(node, currentValue);
+    this.sync(state, currentValue);
   }
 
   get(state: Stateful | ValueOperator): any {
@@ -176,7 +181,7 @@ export type ValueOperator =
   | TextOperator
   | MapOperator
   | EventOperator
-  | ListOperator;
+  | ReduceOperator<any, any>;
 
 interface EventOperator {
   type: 'event';
@@ -259,7 +264,7 @@ export class SynthaticElement {
   dispose() {}
 }
 
-export interface ListOperator<T = any> {
-  type: 'list';
-  apply: (data: T[], mutation: ListMutation<T>) => any;
+export interface ReduceOperator<T, U> {
+  type: 'reduce';
+  reduce: (data: T[], previous?: U, mutation?: any) => U;
 }

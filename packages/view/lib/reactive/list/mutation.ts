@@ -2,7 +2,7 @@
 
 interface ListAddMutation<T> {
   type: 'add';
-  item: T;
+  itemOrGetter: T | ((arr: T[]) => T);
 }
 
 interface ListRemoveMutation {
@@ -10,16 +10,20 @@ interface ListRemoveMutation {
   index: number;
 }
 
-export function listAdd<T>(item: T): ListAddMutation<T> {
-  return {
-    type: 'add',
-    item,
-  };
-}
-
 export function listRemove<T>(index: number): ListRemoveMutation {
   return {
     type: 'remove',
     index,
   };
+}
+
+export function isListMutation(value: any): value is ListMutation<any> {
+  if (value === null || value === undefined || value.type === undefined) {
+    return false;
+  }
+
+  if (value.type === 'add' || value.type === 'remove') {
+    return true;
+  }
+  return false;
 }

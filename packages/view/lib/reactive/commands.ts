@@ -1,46 +1,27 @@
 ﻿import { RenderContext } from '../render/render-context';
 import { BindFunction, templateBind } from '../tpl';
-import { ListMutation } from './list/mutation';
+import { isListMutation, ListMutation } from './list/mutation';
 import { Stateful } from './state';
 
 export class UpdateCommand<T = unknown> {
   constructor(public state: Stateful<T>, public updater: T | ((x: T) => T)) {}
 }
 
-export class PushRowCommand<T = any> {
+export class ListMutationCommand<T = any> {
   constructor(
     public state: Stateful<T[]>,
-    public itemOrGetter: T | ((arr: T[]) => T)
+    public mutation: ListMutation<any>
   ) {}
 }
 
-export class RemoveRowCommand {
-  constructor(public state: Stateful) {}
-}
-
-export type Command = UpdateCommand | PushRowCommand | RemoveRowCommand;
+export type Command = UpdateCommand | ListMutationCommand;
 
 /////////////////////////////////////////
 //// helper methods /////////////////
 /////////////////////////////////////////
 
-export function push<T>(
-  state: Stateful<T[]>,
-  itemOrGetter: T | ((arr: T[]) => T)
-) {
-  return new PushRowCommand(state, itemOrGetter);
-}
-
-export function remove<T>(state: Stateful) {
-  return new RemoveRowCommand(state);
-}
-
 export function isCommand(value: Command): value is Command {
-  return (
-    value instanceof UpdateCommand ||
-    value instanceof PushRowCommand ||
-    value instanceof RemoveRowCommand
-  );
+  return value instanceof UpdateCommand || value instanceof ListMutationCommand;
 }
 
 export function applyCommands(
@@ -74,23 +55,23 @@ export function applyCommands(
         const changes = baseContext.sync(state, newValue);
         if (applyChange) return templateBind(changes, applyChange);
       }
-    } else if (message instanceof PushRowCommand) {
-      const { itemOrGetter } = message;
+    } else if (message instanceof ListMutationCommand) {
+      const { mutation } = message;
+      switch (mutation.type) {
+        case 'add':
+          const newRow =
+            mutation.itemOrGetter instanceof Function
+              ? mutation.itemOrGetter(currentValue)
+              : mutation.itemOrGetter;
 
-      const item =
-        itemOrGetter instanceof Function
-          ? itemOrGetter(currentValue)
-          : itemOrGetter;
-      currentValue.push(item);
+          currentValue.push(newRow);
 
-      const mutation: ListMutation<any> = {
-        type: 'add',
-        item,
-      };
+          break;
+      }
 
       const changes = baseContext.sync(state, currentValue, mutation);
       if (applyChange) return templateBind(changes, applyChange);
-    } else if (message instanceof RemoveRowCommand) {
+    } else {
       console.log(baseContext);
     }
   });

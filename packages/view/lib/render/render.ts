@@ -78,11 +78,9 @@ export function render(
 
           context.set(source, initial instanceof Array ? [...initial] : []);
 
-          context.graph.valueOperator(source, {
+          context.valueOperator(source, {
             type: 'list',
             apply(data, mutation?: ListMutation<any>) {
-              console.log(data);
-
               if (mutation) {
                 switch (mutation.type) {
                   case 'add':
