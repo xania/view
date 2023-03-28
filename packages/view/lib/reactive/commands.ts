@@ -48,7 +48,7 @@ export function applyCommands(
   commands: JSX.Template<Command>,
   applyChange?: BindFunction<any, any>
 ) {
-  return templateBind(commands, (message: Command) => {
+  return templateBind(commands, async (message: Command) => {
     const state = message.state;
     let baseContext: RenderContext = context;
 
@@ -59,19 +59,18 @@ export function applyCommands(
       baseContext = baseContext.parent;
     }
 
-    const currentValue = baseContext.get(state) ?? state.initial;
+    const currentValue = await baseContext.get(state);
 
     if (message instanceof UpdateCommand) {
       const updater = message.updater;
 
-      const newValue =
-        updater instanceof Function ? updater(currentValue) : updater;
+      const newValue = await (updater instanceof Function
+        ? currentValue === undefined
+          ? undefined
+          : updater(currentValue)
+        : updater);
 
-      if (
-        newValue !== undefined &&
-        newValue !== currentValue &&
-        baseContext.set(state, newValue)
-      ) {
+      if (newValue !== undefined && baseContext.set(state, newValue)) {
         const changes = baseContext.sync(state, newValue);
         if (applyChange) return templateBind(changes, applyChange);
       }

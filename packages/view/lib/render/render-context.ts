@@ -1,6 +1,7 @@
 ﻿import { Disposable } from '../disposable';
-import { Stateful, StateMapper } from '../reactive';
+import { applyCommands, isCommand, Stateful, StateMapper } from '../reactive';
 import { ListMutation } from '../reactive/list/mutation';
+import { syntheticEvent } from './render-node';
 import { RenderTarget } from './target';
 
 interface ApplyState {
@@ -10,10 +11,13 @@ interface ApplyState {
 export class RenderContext {
   public children: RenderContext[] = [];
 
-  public nodes: Node[] = [];
+  private nodes: Node[] = [];
   public disposables: Disposable[] = [];
+  public promises: Promise<any>[] = [];
+  public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
 
   constructor(
+    public element: RenderTarget,
     public scope = new Map<Stateful | ValueOperator, any>(),
     //    public scope: Scope,4
     public graph: Graph,
@@ -21,6 +25,44 @@ export class RenderContext {
   ) {
     if (parent) {
       parent.children.push(this);
+    }
+  }
+
+  appendChild(node: Node) {
+    this.element.appendChild(node);
+    this.nodes.push(node);
+  }
+
+  applyEvents(target: HTMLElement, events: Record<string, any>) {
+    for (const eventName in events) {
+      const eventHandler = events[eventName];
+      if (this.events[eventName]) {
+        this.events[eventName].push([target, eventHandler]);
+      } else {
+        this.events[eventName] = [[target, eventHandler]];
+        this.element.addEventListener(eventName, this, true);
+      }
+    }
+  }
+
+  handleEvent(originalEvent: Event) {
+    const eventName = originalEvent.type;
+    const delegates = this.events[eventName];
+
+    if (delegates) {
+      for (const [target, eventHandler] of delegates) {
+        if (target.contains(originalEvent.target as any)) {
+          const commands = isCommand(eventHandler)
+            ? eventHandler
+            : eventHandler instanceof Function
+            ? eventHandler(syntheticEvent(eventName, originalEvent, target))
+            : eventHandler.handleEvent(
+                syntheticEvent(eventName, originalEvent, target)
+              );
+
+          applyCommands(this, commands);
+        }
+      }
     }
   }
 
@@ -86,6 +128,32 @@ export class RenderContext {
     return res;
   }
 
+  async valueOperator(node: Stateful, operator: ValueOperator) {
+    const { operatorsMap } = this.graph;
+
+    if (node instanceof StateMapper && !operatorsMap.has(node)) {
+      await this.valueOperator(node.source, {
+        type: 'map',
+        map: node.mapper,
+        target: node,
+      });
+    }
+
+    if (!this.scope.has(node)) {
+      this.scope.set(node, await node.initial);
+    }
+
+    const currentValue = this.scope.get(node);
+
+    if (operatorsMap.has(node)) {
+      operatorsMap.get(node)!.push(operator);
+    } else {
+      operatorsMap.set(node, [operator]);
+    }
+
+    this.sync(node, currentValue);
+  }
+
   get(state: Stateful | ValueOperator): any {
     return this.scope.get(state);
   }
@@ -137,24 +205,6 @@ export class Graph {
     return this.operatorsMap.get(node);
   }
 
-  valueOperator(node: Stateful, operator: ValueOperator) {
-    const { operatorsMap } = this;
-
-    if (operatorsMap.has(node)) {
-      operatorsMap.get(node)!.push(operator);
-    } else {
-      operatorsMap.set(node, [operator]);
-    }
-
-    if (node instanceof StateMapper) {
-      this.valueOperator(node.source, {
-        type: 'map',
-        map: node.mapper,
-        target: node,
-      });
-    }
-  }
-
   append(other: Graph) {
     for (const [node, operators] of other.operatorsMap) {
       if (this.operatorsMap.has(node)) {
@@ -166,7 +216,7 @@ export class Graph {
   }
 }
 
-export class SynthaticElement implements RenderTarget {
+export class SynthaticElement {
   public nodes: Node[] = [];
   public events: any[] = [];
   public attached = false;
@@ -182,21 +232,6 @@ export class SynthaticElement implements RenderTarget {
 
       parentElement.insertBefore(node, anchorNode);
     }
-  }
-
-  removeEventListener(
-    type: string,
-    callback: EventListenerOrEventListenerObject | null,
-    options?: boolean | EventListenerOptions | undefined
-  ) {
-    return true;
-  }
-  addEventListener(
-    type: string,
-    callback: EventListenerOrEventListenerObject | null,
-    options?: boolean | AddEventListenerOptions | undefined
-  ) {
-    return true;
   }
 
   attach() {
@@ -215,7 +250,7 @@ export class SynthaticElement implements RenderTarget {
     const parentElement = anchorNode.parentElement!;
 
     for (const child of this.nodes) {
-      parentElement.removeChild(child);
+      if (child.parentElement) parentElement.removeChild(child);
     }
 
     this.attached = false;

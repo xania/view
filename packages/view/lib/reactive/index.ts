@@ -1,6 +1,6 @@
 ﻿import { State } from './state';
 
-export function state<T>(value?: T) {
+export function state<T>(value?: JSX.MaybePromise<T>) {
   return new State(value);
 }
 

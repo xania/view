@@ -25,8 +25,12 @@ function IfDemo() {
 
 function ListDemo() {
   const items = state([0, 1, 2]);
+  const count = state(Promise.resolve(1));
   return (
     <div>
+      <button click={count.update((x) => x + 1)}>
+        {count.map((x) => Promise.resolve(x))}
+      </button>
       <button click={push(items, (arr) => arr.length)}>
         {items.map(JSON.stringify)}
       </button>
