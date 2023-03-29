@@ -160,17 +160,12 @@ export class RenderContext {
       for (let i = 0; i < operators.length; i++) {
         const operator = operators[i];
         switch (operator.type) {
-          case 'reduce':
+          case 'reconcile':
+            if (!context.scope.has(operator)) {
+              context.scope.set(operator, []);
+            }
             const previous = context.get(operator);
-            promises.push(
-              operator
-                .reduce(newValue, previous, mutation)
-                .then((next: any) => {
-                  if (next !== previous) {
-                    context.set(operator, next);
-                  }
-                })
-            );
+            promises.push(operator.reconcile(newValue, previous, mutation));
             break;
           case 'text':
             operator.text.data = newValue;
@@ -277,7 +272,7 @@ export type ValueOperator =
   | TextOperator
   | MapOperator
   // | EventOperator
-  | ReduceOperator<any, any>;
+  | ReconcileOperator<any, any>;
 
 // interface EventOperator {
 //   type: 'event';
@@ -360,7 +355,11 @@ export class SynthaticElement {
   dispose() {}
 }
 
-export interface ReduceOperator<T, U> {
-  type: 'reduce';
-  reduce: (data: T[], previous?: U, mutation?: ListMutation<any>) => U;
+export interface ReconcileOperator<T, U> {
+  type: 'reconcile';
+  reconcile: (
+    data: T[],
+    previous: U[],
+    mutation?: ListMutation<any>
+  ) => Promise<void>;
 }

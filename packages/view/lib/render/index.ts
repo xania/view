@@ -81,10 +81,8 @@ export function render(
         if (source instanceof State) {
           promises.push(
             context.valueOperator(source, {
-              type: 'reduce',
-              async reduce(data, previous, action) {
-                const retval: RenderContext[] = previous ?? [];
-
+              type: 'reconcile',
+              async reconcile(data, retval, action) {
                 if (action === undefined) {
                   const stack: any[] = [];
 
@@ -96,7 +94,7 @@ export function render(
                       context.container,
                       scope,
                       new Graph(),
-                      retval.length,
+                      i,
                       context
                     );
                     retval.push(childContext);
@@ -143,8 +141,6 @@ export function render(
                       break;
                   }
                 }
-
-                return retval;
               },
             })
           );
