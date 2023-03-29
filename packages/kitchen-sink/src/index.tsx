@@ -3,7 +3,6 @@ import { render } from "@xania/view";
 import classes from "./webapp.module.scss";
 import "./root.scss";
 import "./body.scss";
-import { Page } from "./page";
 
 export const routeMaps: RouteMapInput<any>[] = [
   routeMap(["invoices"], (ctx) =>

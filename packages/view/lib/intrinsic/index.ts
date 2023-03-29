@@ -1,6 +1,5 @@
 ﻿import {
   DomDescriptor,
-  EventHandler,
   DomDescriptorType,
   AttrDescriptor,
 } from './descriptors';
@@ -26,10 +25,19 @@ export function intrinsic(
       const attrValue = attrs[attrName];
 
       if (attrName === 'class' || attrName === 'className') {
-        if (template.classList) template.classList.push(attrValue);
-        else template.classList = [attrValue];
+        if (attrValue instanceof Array) {
+          for (const cl of attrValue) {
+            if (cl) {
+              if (template.classList) template.classList.push(cl);
+              else template.classList = [cl];
+            }
+          }
+        } else if (attrValue) {
+          if (template.classList) template.classList.push(attrValue);
+          else template.classList = [attrValue];
+        }
       } else if (isEventKey(attrName)) {
-        const eventHandler: EventHandler = attrValue;
+        const eventHandler: JSX.EventHandler = attrValue;
 
         const events = template.events;
         if (events) {

@@ -1,0 +1,11 @@
+<svg width="256" height="256" fill="none" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+	<style>
+		.text {
+			fill: var(--theme-text);
+		}
+		.hover {
+			fill: var(--theme-accent);
+		}
+	</style>
+	<polygon style="stroke: none; fill-opacity: 1; fill: currentColor;" points="4.633 84.345 146.915 4.209 337.442 333.747 480.541 85.98 336.625 5.845 290.014 85.163 479.723 414.7 336.624 497.29 146.915 167.752 5.451 413.882 146.915 497.29 194.342 415.518"></polygon>
+</svg>	

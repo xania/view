@@ -1,13 +1,5 @@
-﻿import { templateAppend, templateBind } from '../tpl';
-import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
-import type { Disposable } from '../disposable';
-import {
-  applyAttributes,
-  applyClassList,
-  applyEvents,
-  renderStatic,
-} from './render-node';
-import { Program, View } from '../compile/program';
+﻿import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
+import { applyAttributes, applyClassList } from './render-node';
 import type { RenderTarget } from './target';
 import {
   Graph,
@@ -23,11 +15,9 @@ import {
   ListExpression,
   ListMutationCommand,
   State,
-  Stateful,
-  StateMapper,
-  UpdateCommand,
 } from '../reactive';
-import { resolve } from '../utils/resolve';
+import { isSubscription } from './subscibable';
+import { isDisposable } from '../disposable';
 
 export function render(
   rootChildren: JSX.Element,
@@ -198,6 +188,25 @@ export function render(
         }
       } else if (isViewable(curr)) {
         stack.push([context, currentTarget, curr.view()]);
+      } else if (isAttachable(curr)) {
+        promises.push(register([curr.attachTo(currentTarget, domFactory)]));
+
+        async function register(stack: any[]) {
+          while (stack.length) {
+            const res = stack.pop();
+            if (res instanceof Promise) {
+              stack.push(await res);
+            } else if (res instanceof Array) {
+              stack.push(...res);
+            } else if (res) {
+              if (isSubscription(res)) {
+                context.subscriptions.push(res);
+              } else if (isDisposable(res)) {
+                context.disposables.push(res);
+              }
+            }
+          }
+        }
       } else {
         console.log('unknown', curr);
       }

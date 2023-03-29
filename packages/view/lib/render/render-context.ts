@@ -10,12 +10,14 @@ import {
 import { ListMutation } from '../reactive/list/mutation';
 import { BindFunction, templateBind } from '../tpl';
 import { syntheticEvent } from './render-node';
+import { Subscription } from './subscibable';
 
 export class RenderContext {
   public children: RenderContext[] = [];
 
   public nodes: Node[] = [];
   public disposables: Disposable[] = [];
+  public subscriptions: Subscription[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
 
   constructor(
@@ -32,6 +34,10 @@ export class RenderContext {
   }
 
   dispose() {
+    for (const sub of this.subscriptions) {
+      sub.unsubscribe();
+    }
+
     for (const node of this.nodes) {
       (node as ChildNode).remove();
     }

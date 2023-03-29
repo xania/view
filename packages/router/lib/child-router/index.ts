@@ -22,7 +22,9 @@ export function ChildRouter(props: ChildRouterProps<any>) {
 
   return {
     attachTo(target: any) {
+      console.log(target);
       const views = childRoutes.bind(async (r: Route) => {
+        console.log(r);
         const resolution = await resolve(r.path);
         if (resolution && resolution.component) {
           const { component } = resolution;
