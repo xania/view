@@ -11,16 +11,11 @@ import { ListMutation } from '../reactive/list/mutation';
 import { BindFunction, templateBind } from '../tpl';
 import { syntheticEvent } from './render-node';
 
-interface ApplyState {
-  state: Stateful;
-}
-
 export class RenderContext {
   public children: RenderContext[] = [];
 
   public nodes: Node[] = [];
   public disposables: Disposable[] = [];
-  public promises: Promise<any>[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
 
   constructor(

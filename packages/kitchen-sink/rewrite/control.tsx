@@ -17,7 +17,7 @@ function IfDemo() {
 
   return (
     <>
-      <div>
+      <div class={"selected"}>
         <button click={opened.update(true)}> + </button>
         <button click={opened.update(false)}> &times; </button>
         <If condition={opened}>

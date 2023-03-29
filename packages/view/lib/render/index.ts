@@ -97,7 +97,7 @@ export function render(
                       i,
                       context
                     );
-                    retval.push(childContext);
+                    retval[i] = childContext;
                     stack.push([
                       childContext,
                       new RootTarget(childContext, anchorTarget),
@@ -173,6 +173,14 @@ export function render(
           case DomDescriptorType.Element:
             const element = domFactory.createElement(curr.name);
             currentTarget.appendChild(element);
+
+            if (curr.classList) {
+              applyClassList(element as HTMLElement, curr.classList);
+            }
+
+            if (curr.attrs) {
+              applyAttributes(element as HTMLElement, curr.attrs);
+            }
 
             if (curr.events) {
               context.applyEvents(element as HTMLElement, curr.events);
