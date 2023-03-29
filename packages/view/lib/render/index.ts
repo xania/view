@@ -88,11 +88,10 @@ export function render(
                 if (action === undefined) {
                   const stack: any[] = [];
 
-                  for (const row of data) {
+                  for (let i = data.length - 1; i >= 0; i--) {
                     const scope = new Map();
-                    scope.set(item, row);
+                    scope.set(item, data[i]);
 
-                    console.log('hello');
                     const childContext = new RenderContext(
                       context.container,
                       scope,
