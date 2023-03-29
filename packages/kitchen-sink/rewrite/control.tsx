@@ -13,14 +13,14 @@ result.then(() => {
 // setTimeout(() => unrender(result1), 3000);
 
 function IfDemo() {
-  const opened = state(true);
+  const opened = state(delay(true));
 
   return (
     <>
       <div class={"selected"}>
-        <button click={opened.update(true)}> + </button>
+        <button click={opened.update(Promise.resolve(true))}> + </button>
         <button click={opened.update(false)}> &times; </button>
-        <If condition={opened}>
+        <If condition={delay(opened, 1000)}>
           <div>
             {delay(<span>hello</span>)}
             {delay(<button click={opened.update(false)}>close</button>, 800)}

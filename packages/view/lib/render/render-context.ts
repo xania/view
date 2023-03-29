@@ -54,12 +54,15 @@ export class RenderContext {
     }
   }
 
-  handleEvent(originalEvent: Event) {
+  async handleEvent(originalEvent: Event) {
     const eventName = originalEvent.type;
     const delegates = this.events[eventName];
 
     if (delegates) {
-      for (const [target, eventHandler] of delegates) {
+      for (const dlg of delegates) {
+        const target = dlg[0];
+        const eventHandler = await dlg[1];
+
         if (target.contains(originalEvent.target as any)) {
           const commands = isCommand(eventHandler)
             ? eventHandler
