@@ -2,7 +2,7 @@
 import { Path } from '../core/path';
 import { RouteTrigger } from '../core/router';
 
-const locations$ = interval(200, () => location.pathname).map((pathname) => ({
+const locations$ = interval(() => location.pathname, 200).map((pathname) => ({
   pathname: pathname,
   trigger: RouteTrigger.Location,
 }));

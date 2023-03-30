@@ -63,6 +63,10 @@ export class Value<T> implements Rx.Stateful<T> {
   }
   pipe = this.bind;
 
+  toString() {
+    return this.snapshot?.toString() ?? '';
+  }
+
   [Symbol.asyncIterator] = (): AsyncIterator<T> => {
     const state = this;
     let subscription: Rx.Subscription | null = null;

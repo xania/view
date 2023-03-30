@@ -7,10 +7,20 @@ export function InvoiceApp(context: RouteContext) {
     routeMap(["hello"], () => <Hello />),
   ];
 
+  console.log(context.fullpath);
   return (
     <>
       <Page>
         <div>invoices {new Date().getTime()}</div>
+        <a class="router-link" href={"/" + context.fullpath.join("/") + "/hi"}>
+          hi
+        </a>
+        <a
+          class="router-link"
+          href={"/" + context.fullpath.join("/") + "/hello"}
+        >
+          hello
+        </a>
       </Page>
       <Page>
         <Router context={context} routeMaps={routes} />
@@ -26,9 +36,6 @@ function Hello() {
   return (
     <>
       <div>hello {new Date().getTime()}</div>
-      <a class="router-link" href="./hi">
-        hi
-      </a>
     </>
   );
 }
@@ -37,9 +44,6 @@ function Hi() {
   return (
     <>
       <div>hi {new Date().getTime()}</div>
-      <a class="router-link" href="./hello">
-        hello
-      </a>
     </>
   );
 }

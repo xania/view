@@ -18,6 +18,7 @@ import {
 } from '../reactive';
 import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
+import { isSubscribable } from '../reactive/observable';
 
 export function render(
   rootChildren: JSX.Element,
@@ -207,6 +208,15 @@ export function render(
             }
           }
         }
+      } else if (isSubscribable(curr)) {
+        context.subscriptions.push(
+          curr.subscribe({
+            next(newValue) {
+              context.applyCommands(newValue as any);
+              // textNode.data = newValue?.toString() ?? '';
+            },
+          })
+        );
       } else if (isDisposable(curr)) {
         context.disposables.push(curr);
       } else if (isSubscription(curr)) {
