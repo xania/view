@@ -19,6 +19,7 @@ export class RenderContext {
   public disposables: Disposable[] = [];
   public subscriptions: Subscription[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
+  public disposed = false;
 
   constructor(
     public container: HTMLElement,
@@ -34,6 +35,12 @@ export class RenderContext {
   }
 
   dispose() {
+    this.disposed = true;
+
+    for (const d of this.disposables) {
+      d.dispose();
+    }
+
     for (const sub of this.subscriptions) {
       sub.unsubscribe();
     }
@@ -44,8 +51,10 @@ export class RenderContext {
   }
 
   appendChild(node: Node) {
-    this.container.appendChild(node);
-    this.nodes.push(node);
+    if (!this.disposed) {
+      this.container.appendChild(node);
+      this.nodes.push(node);
+    }
   }
 
   applyEvents(target: HTMLElement, events: Record<string, any>) {

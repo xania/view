@@ -11,29 +11,22 @@ export namespace Rx {
 
   export const STALE = 0 as const;
 
-  export type StateInput<T> =
-    | Promise<T>
-    | AsyncIterable<T>
-    | Observable<T>
-    | Value<T>;
+  export type StateInput<T> = AsyncIterable<T> | Observable<T> | Value<T>;
 
   export interface Stateful<T = any> extends Observable<T> {
-    // refCount?: number;
-    left?: Stateful;
-    right?: Stateful;
-    root?: Stateful;
-    gidx?: number;
     dirty: boolean | typeof STALE;
+    depth?: number;
     version?: number;
+    deps?: Stateful<any> | Stateful<any>[];
 
     snapshot?: T;
     observers?: NextObserver<T>[];
     operators?: StateOperator<T>[];
   }
 
-  export interface Computed<T = any> extends Stateful<T> {
-    deps: Stateful[];
-  }
+  // export interface Computed<T = any> extends Stateful<T> {
+  //   deps: Stateful[];
+  // }
 
   export type Observable<T> = {
     subscribe(observer: NextObserver<T>): Subscription;
@@ -41,7 +34,7 @@ export namespace Rx {
 
   export type StateOperator<T = any> =
     | MapOperator<T>
-    | MergeOperator<T>
+    | JoinOperator
     | ConnectOperator<T>
     | PropertyOperator<T, keyof T>
     | BindOperator<T>
@@ -53,18 +46,15 @@ export namespace Rx {
     Connect,
     Property,
     /**
-     * merge is used when a target state has multiple sources,
-     * each assign a different key of the target state.
+     * join is used when a target state has multiple sources
      */
-    Merge,
+    Join,
     Signal,
   }
 
-  export interface MergeOperator<T, U = any> {
-    type: StateOperatorType.Merge;
-    property: keyof U extends T ? keyof U : never;
-    snapshot: U;
-    target: Rx.Stateful<U>;
+  export interface JoinOperator {
+    type: StateOperatorType.Join;
+    target: Rx.Stateful<any>;
   }
 
   export interface SignalOperator<T = any> {
@@ -75,7 +65,7 @@ export namespace Rx {
 
   export interface MapOperator<T, U = any> {
     type: StateOperatorType.Map;
-    func: (t: T) => U;
+    func: (t: T, prev?: U | undefined) => U | undefined;
     target: Stateful<U>;
   }
 
@@ -100,8 +90,8 @@ export namespace Rx {
 
   export type StateObserver<T> = NextObserver<T>;
 
-  export interface NextObserver<T> {
-    next: (value: T) => void;
+  export interface NextObserver<T, U = any> {
+    next: (value: T, prev?: U) => U;
     error?: (err: any) => void;
     complete?: () => void;
   }
@@ -113,6 +103,6 @@ export namespace Rx {
   export interface Subscribable<T> {
     snapshot?: T;
     observers?: NextObserver<T>[];
-    subscribe(observer: NextObserver<T>): Subscription;
+    subscribe<O extends NextObserver<T>>(observer: O): Subscription;
   }
 }

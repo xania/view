@@ -1,13 +1,13 @@
 ﻿import { distinct, filter, interval, merge, State } from '@xania/state';
 import { Path } from './core/path';
-import { Router, RouteTrigger } from './core/router';
+import { RouteTrigger } from './core/router';
 
 const locations$ = interval(200, () => location.pathname).map((pathname) => ({
   pathname: pathname,
   trigger: RouteTrigger.Location,
 }));
 
-export function createBrowser(virtualPath: Path): Router {
+export function createBrowser(virtualPath: Path) {
   const clicks$ = clicks();
 
   return {

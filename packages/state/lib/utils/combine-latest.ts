@@ -1,5 +1,4 @@
-﻿import { connect } from '../graph';
-import { MapOperator, pushOperator } from '../operators/map';
+﻿import { MapOperator, pushOperator } from '../operators/map';
 import { Rx } from '../rx';
 import { subscribe } from '../observable/subscribe';
 import { from } from './from';
@@ -13,22 +12,23 @@ export function combineLatest<TArgs extends [...Rx.StateInput<any>[]]>(
   args: [...TArgs]
 ) {
   const argsLen = args.length;
-  const snapshot: any[] = new Array(argsLen);
-  const target = new CombinedState<UnwrapStates<TArgs>>(snapshot as any);
+
+  const snapshot: any = new Array(argsLen);
+  const sources: any = new Array(argsLen);
+  const target = new CombinedState<UnwrapStates<TArgs>>(snapshot, sources);
+
+  const joinOp: Rx.JoinOperator = {
+    type: Rx.StateOperatorType.Join,
+    target,
+  };
 
   for (let i = 0; i < argsLen; i++) {
     const source = from(args[i] as any) as Rx.Stateful<any>;
-    connect(source, target);
 
+    sources[i] = source;
     snapshot[i] = source.snapshot;
 
-    const mergeOp: Rx.MergeOperator<any, any> = {
-      type: Rx.StateOperatorType.Merge,
-      property: i,
-      snapshot,
-      target,
-    };
-    pushOperator(source, mergeOp);
+    pushOperator(source, joinOp);
   }
 
   return target;
@@ -38,8 +38,22 @@ class CombinedState<T extends [...any[]]> implements Rx.Stateful<T> {
   observers?: Rx.NextObserver<T>[];
   operators?: Rx.StateOperator<T>[];
   dirty = false;
+  depth = 0;
 
-  constructor(public readonly snapshot: T) {}
+  constructor(
+    public readonly snapshot: T,
+    public sources: { [P in keyof T]: Rx.Stateful<T> }
+  ) {
+    for (let i = 0, len = sources.length; i < len; i++) {
+      const s = sources[i];
+
+      if (s.depth !== undefined) {
+        if (s.depth >= this.depth) {
+          this.depth = s.depth + 1;
+        }
+      }
+    }
+  }
 
   get() {
     return this.snapshot;
@@ -59,7 +73,6 @@ class CombinedState<T extends [...any[]]> implements Rx.Stateful<T> {
 
     const target = new Value<U>(mappedValue);
     const operator: any = new MapOperator(f, target);
-    connect(this, target);
     pushOperator(this, operator);
 
     return target;

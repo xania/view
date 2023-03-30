@@ -3,31 +3,55 @@ import type { Rx } from '../rx';
 import { MapOperator, pushOperator } from '../operators/map';
 import { prop } from '../operators/prop';
 import { bind } from '../operators/bind';
-import { connect } from '../graph';
 import { combineLatest } from '../utils/combine-latest';
 import { read } from '../signal/computed';
 
 export class Value<T> implements Rx.Stateful<T> {
   readonly observers?: Rx.StateObserver<T>[];
   readonly operators?: Rx.StateOperator<T>[];
+  deps?: Rx.Stateful<any> | Rx.Stateful<any>[];
 
   public dirty: Rx.Stateful['dirty'] = false;
 
   constructor(
-    public snapshot?: T,
-    public subscribe: Rx.Subscribable<T>['subscribe'] = _subscribe
+    public snapshot?: T | undefined,
+    public subscribe: Rx.Subscribable<T>['subscribe'] = _subscribe as any
   ) {}
+
+  dispose() {
+    const { deps } = this;
+    if (deps) {
+      if (deps instanceof Array) {
+        for (const dep of deps) {
+          this.disconnect(dep);
+        }
+      } else {
+        this.disconnect(deps);
+      }
+    }
+  }
+
+  disconnect(dep: Rx.Stateful) {
+    const operators = dep.operators;
+    if (operators) {
+      for (let i = operators.length - 1; i >= 0; i--) {
+        const op = operators[i];
+        if (op.target === this) {
+          operators.splice(i, 1);
+        }
+      }
+    }
+  }
 
   get = read;
   read = read;
 
-  map<U>(f: (x: T) => U) {
+  map<U>(f: (x: T) => U | undefined) {
     const { snapshot } = this;
     const mapTarget = new Value<U>(
       snapshot !== undefined ? f(snapshot) : undefined
     );
     const mop: any = new MapOperator(f, mapTarget);
-    connect(this, mapTarget);
     pushOperator(this, mop);
     return mapTarget;
   }

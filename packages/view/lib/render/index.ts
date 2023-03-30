@@ -23,7 +23,7 @@ export function render(
   rootChildren: JSX.Element,
   container: HTMLElement,
   domFactory: DomFactory = document
-): JSX.MaybePromise<RenderContext> {
+): any {
   function traverse(
     stack: [RenderContext, RenderTarget, JSX.Element][]
   ): Promise<any>[] {
@@ -207,6 +207,10 @@ export function render(
             }
           }
         }
+      } else if (isDisposable(curr)) {
+        context.disposables.push(curr);
+      } else if (isSubscription(curr)) {
+        context.subscriptions.push(curr);
       } else {
         console.log('unknown', curr);
       }
@@ -218,7 +222,7 @@ export function render(
   const context = new RenderContext(container, new Map(), new Graph(), 0);
   const promises = traverse([[context, context, rootChildren]]);
   if (promises.length === 0) return context;
-  return Promise.all(promises).then(() => context);
+  return [promises, context];
 }
 
 export * from './unrender';

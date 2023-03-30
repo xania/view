@@ -1,94 +1,97 @@
 ﻿import { Rx } from './rx';
 import { notify } from './notify';
-import { Computed } from './signal';
-import { connect } from './graph';
 import { from } from './utils/from';
 import { pushOperator, removeOperator } from './operators/map';
 
-export function sync(...stack: Rx.Stateful[]) {
+export async function sync(...stack: Rx.Stateful[]) {
   // const pending: Rx.SignalOperator[] = [];
-
   while (stack.length) {
-    let state = stack.pop();
-    while (state) {
-      if (state.dirty === Rx.STALE) {
-        if (state instanceof Computed) {
-          state.recompute();
-        }
-      }
+    let state = stack.pop()!;
+    //      if (state.dirty === Rx.STALE) {
+    //         if (state instanceof Computed) {
+    //           state.recompute();
+    //         }
+    //       }
+    // {
 
-      if (state.dirty === true) {
-        state.dirty = false;
+    if (state.observers) notify(state);
 
-        if (state.observers) notify(state);
+    const { snapshot, operators } = state;
 
-        const { snapshot, operators } = state;
-
-        if (operators !== undefined) {
-          for (let o = operators.length - 1; o >= 0; o--) {
-            const operator = operators[o];
-            switch (operator.type) {
-              case Rx.StateOperatorType.Property:
-                if (snapshot !== undefined) {
-                  const mappedValue =
-                    snapshot === null ? null : snapshot[operator.name];
-                  const { target } = operator;
-                  if (target.snapshot !== mappedValue) {
-                    target.snapshot = mappedValue;
-                    target.dirty = true;
-                  }
-                }
-                break;
-              case Rx.StateOperatorType.Map:
-                const mappedValue = operator.func(snapshot);
-                const { target } = operator;
-                if (target.snapshot !== mappedValue) {
-                  target.snapshot = mappedValue;
-                  target.dirty = true;
-                }
-                break;
-              case Rx.StateOperatorType.Connect:
-                if (operator.target.snapshot !== snapshot) {
-                  operator.target.snapshot = snapshot;
-                  operator.target.dirty = true;
-                }
-                break;
-              case Rx.StateOperatorType.Bind:
-                updateBind(state, operator);
-                break;
-              case Rx.StateOperatorType.Merge:
-                const { property } = operator;
-                if (operator.snapshot[property] !== snapshot) {
-                  operator.snapshot[property] = snapshot;
-                  const { target } = operator;
-                  if (!target.dirty) {
-                    target.dirty = true;
-                    // pending.push(target);
-                    stack.push(target);
-                  }
-                }
-                break;
-              case Rx.StateOperatorType.Signal:
-                if ((state as any)[operator.key] !== operator.target.version) {
-                  operators.splice(o, 1);
-                  (state as any)[operator.key] = undefined;
-                } else {
-                  operator.target.dirty = Rx.STALE;
-                }
-                // operators.splice(o, 1);
-                // if (operator.update()) {
-                //   const target = operator.target;
-                //   // if (target.dirty) {
-                //   console.log('push:', curr + ' => ' + target);
-                //   // stack.push(target);
-                //   // }
-                // }
-                break;
+    if (snapshot !== undefined && operators !== undefined) {
+      for (let o = operators.length - 1; o >= 0; o--) {
+        const operator = operators[o];
+        switch (operator.type) {
+          case Rx.StateOperatorType.Property:
+            if (snapshot !== undefined) {
+              const mappedValue =
+                snapshot === null ? null : snapshot[operator.name];
+              const { target } = operator;
+              if (
+                mappedValue !== undefined &&
+                target.snapshot !== mappedValue
+              ) {
+                target.snapshot = mappedValue;
+                stack.push(target);
+              }
             }
-          }
+            break;
+          case Rx.StateOperatorType.Map:
+            const { target } = operator;
+            const mappedValue = await operator.func(
+              snapshot,
+              await target.snapshot
+            );
+            if (mappedValue !== undefined && target.snapshot !== mappedValue) {
+              if (mappedValue instanceof Promise) {
+                debugger;
+              }
+              target.snapshot = mappedValue;
+              stack.push(target);
+            }
+            break;
+          case Rx.StateOperatorType.Connect:
+            if (operator.target.snapshot !== snapshot) {
+              operator.target.snapshot = snapshot;
+              stack.push(operator.target);
+            }
+            break;
+          case Rx.StateOperatorType.Bind:
+            if (updateBind(state, operator)) {
+              stack.push(operator.target);
+            }
+            break;
+          case Rx.StateOperatorType.Join:
+            console.log('join');
+            // const { property } = operator;
+            // if (operator.snapshot[property] !== snapshot) {
+            //   operator.snapshot[property] = snapshot;
+            //   const { target } = operator;
+            //   if (!target.dirty) {
+            //     target.dirty = true;
+            //     // pending.push(target);
+            //     stack.push(target);
+            //   }
+            // }
+            break;
+          case Rx.StateOperatorType.Signal:
+            if ((state as any)[operator.key] !== operator.target.version) {
+              operators.splice(o, 1);
+              (state as any)[operator.key] = undefined;
+            } else {
+              operator.target.dirty = Rx.STALE;
+            }
+            // operators.splice(o, 1);
+            // if (operator.update()) {
+            //   const target = operator.target;
+            //   // if (target.dirty) {
+            //   console.log('push:', curr + ' => ' + target);
+            //   // stack.push(target);
+            //   // }
+            // }
+            break;
         }
       }
-      state = (state as any).right;
     }
   }
 }
@@ -133,7 +136,7 @@ export function sync(...stack: Rx.Stateful[]) {
 //                 bindTarget.dirty = true;
 //               }
 //               break;
-//             // case Rx.StateOperatorType.Merge:
+//             // case Rx.StateOperatorType.Join:
 //             //   const { property } = operator;
 //             //   if (operator.snapshot[property] !== snapshot) {
 //             //     operator.snapshot[property] = snapshot;
@@ -182,11 +185,10 @@ function updateBind<T>(
     const boundState = from(binder(sourceValue)) as Rx.Stateful<any>;
     if (prevState !== boundState) {
       if (prevState) {
-        connect(prevState, operator.target);
         removeOperator(prevState, connectOp);
       }
+      operator.boundState = boundState;
       if (boundState) {
-        connect(boundState, operator.target);
         pushOperator(boundState, connectOp);
 
         const boundValue = boundState.snapshot;
@@ -194,11 +196,10 @@ function updateBind<T>(
           const { target } = operator;
           if (target.snapshot !== boundValue) {
             target.snapshot = boundValue;
-            target.dirty = true;
+            return true;
           }
         }
       }
-      operator.boundState = boundState;
     }
   }
   return false;

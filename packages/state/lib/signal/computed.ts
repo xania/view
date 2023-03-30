@@ -1,16 +1,15 @@
 ﻿// import { UnwrapStates } from '../observable/combine-latest';
-import { connect } from '../graph';
 import { Value } from '../observable/value';
 import { pushOperator } from '../operators/map';
 import { Rx } from '../rx';
 import { nodeToString } from './utils';
 
-export function computed<T>(fn: () => T, label?: string) {
-  const computed = new Computed(fn, undefined as T, label);
-  computed.recompute();
-  computed.dirty = false;
-  return computed;
-}
+// export function computed<T>(fn: () => T, label?: string) {
+//   const computed = new Computed(fn, undefined as T, label);
+//   computed.recompute();
+//   computed.dirty = false;
+//   return computed;
+// }
 
 // function resolveRoots(deps: (Rx.Root | Rx.Computed)[], retval: Rx.Root[] = []) {
 //   retval.length = 0;
@@ -56,38 +55,37 @@ export function computed<T>(fn: () => T, label?: string) {
 //   }
 // }
 
-export class Computed<T = any>
-  extends Value<T>
-  implements Rx.SignalOperator<T>
-{
-  constructor(public fn: () => T, snapshot: T, public label?: string) {
-    super(snapshot);
-  }
+// export class Computed<T = any>
+//   extends Value<T>
+//   implements Rx.SignalOperator<T>
+// {
+//   constructor(public fn: () => T, snapshot: T, public label?: string) {
+//     super(snapshot);
+//   }
 
-  root?: Rx.Stateful<T>['root'];
-  version = 1;
+//   version = 1;
 
-  readonly type = Rx.StateOperatorType.Signal;
-  target = this;
+//   readonly type = Rx.StateOperatorType.Signal;
+//   target = this;
 
-  read = read;
-  get = read;
+//   read = read;
+//   get = read;
 
-  toString = nodeToString;
+//   toString = nodeToString;
 
-  dependsOn(dep: Rx.Stateful) {
-    const { key } = this;
+//   dependsOn(dep: Rx.Stateful) {
+//     const { key } = this;
 
-    if (!(dep as any)[key]) {
-      connect(dep, this);
-      pushOperator(dep, this);
-    }
-    (dep as any)[key] = this.version;
-  }
+//     if (!(dep as any)[key]) {
+//       // connect(dep, this);
+//       pushOperator(dep, this);
+//     }
+//     (dep as any)[key] = this.version;
+//   }
 
-  key = Symbol();
-  recompute = recompute;
-}
+//   key = Symbol();
+//   recompute = recompute;
+// }
 
 interface ComputeContext<T = any> {
   readonly key: symbol;

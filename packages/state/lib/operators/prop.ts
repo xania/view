@@ -1,6 +1,5 @@
 ﻿import { Rx } from '../rx';
 import { State } from '../observable/state';
-import { connect } from '../graph';
 import { pushOperator } from './map';
 
 export class PropertyOperator<T, K extends keyof T = keyof T>
@@ -26,7 +25,6 @@ export function prop<T, K extends keyof T>(
   const target = new State<T[K]>(mappedValue);
   const mop = new PropertyOperator<T>(name, target as any);
 
-  connect(this, target);
   pushOperator(this, mop);
 
   return target;

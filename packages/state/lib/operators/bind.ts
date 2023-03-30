@@ -1,5 +1,4 @@
-﻿import { connect } from '../graph';
-import type { Value } from '../observable/value';
+﻿import type { Value } from '../observable/value';
 import { Rx } from '../rx';
 import { from } from '../utils/from';
 import { pushOperator } from './map';
@@ -9,11 +8,7 @@ export function bind<T, U>(
   binder: (t: T) => Rx.StateInput<U>,
   target: Value<U>
 ) {
-  // const { snapshot } = source;
-
   target.dirty = Rx.STALE;
-
-  connect(source, target);
 
   const connectOp = {
     type: Rx.StateOperatorType.Connect,
@@ -25,7 +20,6 @@ export function bind<T, U>(
     snapshot !== undefined ? from(binder(snapshot)) : undefined;
 
   if (boundState) {
-    connect(boundState, target);
     pushOperator(boundState, connectOp);
 
     if (

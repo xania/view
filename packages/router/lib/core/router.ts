@@ -1,9 +1,4 @@
-﻿import { Value } from '@xania/state';
-import { Path } from './path';
-
-export interface Router {
-  routes: Value<Route>;
-}
+﻿import { Path } from './path';
 
 export interface Route {
   path: Path;

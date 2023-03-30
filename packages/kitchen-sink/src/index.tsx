@@ -11,12 +11,14 @@ export const routeMaps: RouteMapInput<any>[] = [
   routeMap(["tabs"], (ctx) => import("./tabs").then((e) => e.TabsApp(ctx))),
 ];
 
-const appElt = document.getElementById("app")!;
+function App() {
+  return (
+    <div class={classes["outlet"]}>
+      {WebApp({
+        routeMaps: routeMaps,
+      })}
+    </div>
+  );
+}
 
-WebApp({
-  routeMaps: routeMaps,
-  theme: classes,
-  render(view) {
-    return render(view, appElt);
-  },
-}).attachTo(appElt);
+render(<App />, document.getElementById("app"));

@@ -5,6 +5,7 @@
   type Program = import('../../lib/compile/program').Program;
   type IfExpression = import('../../lib').IfExpression;
   type ListExpression = import('../../lib').ListExpression;
+  type Disposable = { dispose(): any };
 
   type Primitive = string | number;
 
@@ -20,7 +21,8 @@
     | Viewable
     | Attachable
     | IfExpression
-    | ListExpression;
+    | ListExpression
+    | Disposable;
 
   /**
    * True type of an element is the <code>TagDescriptor</code> not JSX>Element,

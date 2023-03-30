@@ -2,17 +2,30 @@
 
 export class MapOperator<T, U> implements Rx.MapOperator<T, U> {
   type: Rx.StateOperatorType.Map = Rx.StateOperatorType.Map;
-  constructor(public func: (t: T) => U, public target: Rx.Stateful<U>) {}
+  constructor(
+    public func: (t: T) => U | undefined,
+    public target: Rx.Stateful<U>
+  ) {}
 }
 
 export function pushOperator(g: Rx.Stateful, op: Rx.StateOperator<any>) {
   // this.dependent = mop;
   const { operators } = g;
   if (operators) {
-    if (operators.includes(op)) debugger;
-    else operators.push(op);
+    operators.push(op);
   } else {
     g.operators = [op];
+  }
+
+  const { deps } = op.target;
+  if (deps) {
+    if (deps instanceof Array) {
+      deps.push(g);
+    } else {
+      op.target.deps = [deps, g];
+    }
+  } else {
+    op.target.deps = g;
   }
 }
 export function removeOperator(s: Rx.Stateful, op: Rx.StateOperator) {
@@ -27,5 +40,15 @@ export function removeOperator(s: Rx.Stateful, op: Rx.StateOperator) {
         break;
       }
     }
+  }
+
+  const { deps } = op.target;
+  if (deps instanceof Array) {
+    const idx = deps.indexOf(s);
+    if (idx >= 0) {
+      deps.splice(idx, 1);
+    }
+  } else if (deps === s) {
+    op.target.deps = undefined;
   }
 }

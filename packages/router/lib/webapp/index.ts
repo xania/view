@@ -1,168 +1,172 @@
-﻿import {
-  Path,
-  RouteComponentInput,
-  RouteContext,
-  Router,
-  RouteResolution,
-} from '../core';
-import { createRouteResolver, RouteMapInput } from '../core';
+﻿import { Path } from '../core';
+import { RouteMapInput } from '../core';
 
-import boxes from './animations/boxes';
+// import boxes from './animations/boxes';
 import { createBrowser } from '../browser-router';
 import { CssClasses } from './page';
-import { distinct, State } from '@xania/state';
 
 import webapp from './webapp.module.scss';
-import { Disposable, disposeAll, Tree } from './disposable';
-import { ChildRouter } from '../child-router';
+import { Router } from '../child-router';
 
-const routeEnd = Symbol('end');
+// const routeEnd = Symbol('end');
 
 export interface WebAppProps<TView> {
   routeMaps: RouteMapInput<TView>[];
-  router?: Router;
-  // rootView: any;
-  theme: Partial<CssClasses>;
-  render(view: TView | RouteError): Tree<Disposable>;
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
-  const {
-    routeMaps,
-    router = createBrowser([]),
-    theme = {} as CssClasses,
-  } = props;
-  const rootResolve = createRouteResolver(routeMaps);
+  const { routeMaps } = props;
 
-  return {
-    attachTo(target: HTMLElement) {
-      if (theme.outlet) target.classList.add(theme.outlet);
-
-      const outletRoot = document.createElement('div');
-      const rootPageContext = {
-        path: [],
-        fullpath: [],
-        resolvePath: rootResolve,
-        router,
-      };
-
-      const viewCache: [
-        RouteResolution<TView>,
-        TView | RouteError,
-        Tree<Disposable>
-      ][] = [];
-
-      return router.routes
-        .pipe(distinct('path'))
-        .bind((route) => {
-          const disposeLoader = createLoader(target);
-
-          if (theme['outlet__root--collapsed'])
-            if (route.path.length > 0) {
-              outletRoot.classList.add(theme['outlet__root--collapsed']);
-            } else {
-              outletRoot.classList.remove(theme['outlet__root--collapsed']);
-            }
-
-          type OutputItem =
-            | [number, TView | RouteError, RouteResolution<TView>]
-            | [number, typeof routeEnd];
-          const output = new State<OutputItem>();
-
-          function traverse(
-            stack: Tree<TView | RouteError | null>[],
-            remainingPath: Path,
-            index: number,
-            resolution: RouteResolution<TView>
-          ): Promise<number> | number {
-            while (stack.length) {
-              const curr = stack.pop();
-              // if (curr !== null && curr !== undefined) {
-              if (curr instanceof Array) {
-                for (let i = curr.length - 1; i >= 0; i--) {
-                  stack.push(curr[i]);
-                }
-              } else if (curr instanceof Promise) {
-                return curr.then((v: any) => {
-                  stack.push(v);
-                  return traverse(stack, remainingPath, index, resolution);
-                });
-              } else if (curr) {
-                output.set([index++, curr, resolution]);
-              }
-              //}
-            }
-            return index;
-          }
-
-          function applyResolution(
-            stack: Tree<TView | RouteError | null>[],
-            resolution: RouteResolution<TView> | null,
-            index: number
-          ): number | Promise<number> {
-            if (!resolution) {
-              return index;
-            }
-
-            const result = applyComponent(resolution.component, {
-              fullpath: resolution.appliedPath,
-              router: router,
-            });
-
-            const remainingPath = route.path.slice(
-              resolution.appliedPath.length
-            );
-
-            stack.push(result);
-            return traverse(stack, remainingPath, index, resolution);
-          }
-
-          rootResolve(route.path).then(async (resolution) => {
-            const index = await applyResolution([], resolution, 0);
-            output.set([index, routeEnd]);
-            disposeLoader();
-          });
-
-          // traverse(rootPageContext, route.path, (p: Page<TView>) =>
-          //   page.set(p)
-          // ).then(() => {
-          // });
-          return output;
-        })
-        .subscribe({
-          next([index, view, resolution]) {
-            const entry = viewCache[index];
-            if (entry) {
-              if (entry[1] === view) return;
-              disposeAll(entry[2]);
-            }
-
-            if (view === routeEnd) {
-              for (let i = index; i < viewCache.length; i++) {
-                disposeAll(viewCache[i][2]);
-              }
-              viewCache.length = index;
-            } else {
-              viewCache[index] = [resolution!, view, props.render(view)];
-            }
-          },
-        });
-      // .subscribe({
-      //   next(page) {
-      //     const { parent } = page;
-      //     if (parent.next) {
-      //       disposeNext(parent);
-      //     }
-      //     parent.next = page;
-
-      //     if (page.view !== null) {
-      //       page.renderResult = props.renderPage(page.view);
-      //     }
-      //   },
-      // });
+  return Router({
+    context: {
+      path: [],
+      fullpath: [],
+      routes: createBrowser([]).routes,
     },
-  };
+    routeMaps,
+  });
 }
+
+//   const rootResolve = createRouteResolver(routeMaps);
+
+//   return {
+//     attachTo(target: HTMLElement) {
+//       if (theme.outlet) target.classList.add(theme.outlet);
+
+//       const outletRoot = document.createElement('div');
+//       // const rootPageContext = {
+//       //   path: [],
+//       //   fullpath: [],
+//       //   resolvePath: rootResolve,
+//       //   router,
+//       // };
+
+//       const viewCache: [
+//         RouteResolution<TView>,
+//         (TView | RouteError)[],
+//         Tree<Disposable>
+//       ][] = [];
+
+//       function applyComponent<TView>(
+//         component: RouteComponentInput<TView>,
+//         context: RouteContext
+//       ): Tree<TView | RouteError> {
+//         try {
+//           return component instanceof Function ? component(context) : component;
+//         } catch (err) {
+//           return new RouteError(err);
+//         }
+//       }
+
+//       return (
+//         router.routes
+//           // .pipe(distinct('path'))
+//           .bind((route) => {
+//             const disposeLoader = createLoader(target);
+
+//             if (theme['outlet__root--collapsed'])
+//               if (route.path.length > 0) {
+//                 outletRoot.classList.add(theme['outlet__root--collapsed']);
+//               } else {
+//                 outletRoot.classList.remove(theme['outlet__root--collapsed']);
+//               }
+
+//             type OutputItem =
+//               | [number, TView | RouteError | any, RouteResolution<TView>]
+//               | [number, typeof routeEnd];
+//             const output = new State<OutputItem>();
+
+//             function applyResolution(
+//               resolution: RouteResolution<TView> | null,
+//               index: number
+//             ): number | Promise<number> {
+//               if (!resolution) {
+//                 return index;
+//               }
+
+//               const cacheEntry = viewCache[index];
+
+//               if (
+//                 cacheEntry &&
+//                 matchPath(cacheEntry[0].appliedPath, resolution.appliedPath)
+//               ) {
+//                 return index + 1;
+//               }
+
+//               const result = applyComponent(resolution.component, {
+//                 fullpath: resolution.appliedPath,
+//                 path: resolution.appliedPath,
+//                 router: router,
+//               });
+//               output.set([index, result, resolution]);
+//               return index + 1;
+//             }
+
+//             rootResolve(route.path).then(async (resolution) => {
+//               const index = await applyResolution(resolution, 0);
+//               output.set([index, routeEnd]);
+//               disposeLoader();
+//             });
+
+//             // traverse(rootPageContext, route.path, (p: Page<TView>) =>
+//             //   page.set(p)
+//             // ).then(() => {
+//             // });
+//             return output;
+//           })
+//           .subscribe({
+//             next([index, view, resolution]) {
+//               // const entry = viewCache[index];
+//               // if (entry) {
+//               //   if (
+//               //     resolution &&
+//               //     matchPath(entry[0].appliedPath, resolution.appliedPath)
+//               //   ) {
+//               //     entry[1].push(view);
+//               //   }
+//               //     return;
+//               //   disposeAll(entry[2]);
+//               // }
+
+//               if (view === routeEnd) {
+//                 for (let i = index; i < viewCache.length; i++) {
+//                   disposeAll(viewCache[i][2]);
+//                 }
+//                 viewCache.length = index;
+//               } else {
+//                 const entry = viewCache[index];
+//                 if (
+//                   entry &&
+//                   matchPath(entry[0].appliedPath, resolution!.appliedPath)
+//                 ) {
+//                   entry[1].push(view);
+//                   entry[2] = [entry[2], props.render(view)];
+//                 } else {
+//                   if (entry) {
+//                     disposeAll(entry[2]);
+//                   }
+//                   viewCache[index] = [resolution!, [view], props.render(view)];
+//                 }
+//               }
+//             },
+//           })
+//       );
+//       // .subscribe({
+//       //   next(page) {
+//       //     const { parent } = page;
+//       //     if (parent.next) {
+//       //       disposeNext(parent);
+//       //     }
+//       //     parent.next = page;
+
+//       //     if (page.view !== null) {
+//       //       page.renderResult = props.renderPage(page.view);
+//       //     }
+//       //   },
+//       // });
+//     },
+//   };
+// }
 
 // function traverse<TView>(
 //   parent: PageContext<TView>,
@@ -263,36 +267,25 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
 //   }
 // }
 
-function applyComponent<TView>(
-  component: RouteComponentInput<TView>,
-  context: RouteContext
-): Tree<TView | RouteError> {
-  try {
-    return component instanceof Function ? component(context) : component;
-  } catch (err) {
-    return new RouteError(err);
-  }
-}
-
 // interface PageContext<TView = any> extends RouteContext {
 //   path: Path;
 //   next?: Page<TView>;
 //   resolvePath: RouteResolver<TView>;
 // }
 
-function createLoader(target: HTMLElement) {
-  const animation = boxes();
-  const loader = document.createElement('div');
+// function createLoader(target: HTMLElement) {
+//   const animation = boxes();
+//   const loader = document.createElement('div');
 
-  loader.className = webapp.loading;
+//   loader.className = webapp.loading;
 
-  loader.appendChild(animation);
-  target.appendChild(loader);
+//   loader.appendChild(animation);
+//   target.appendChild(loader);
 
-  return function () {
-    setTimeout(() => loader.remove(), 200);
-  };
-}
+//   return function () {
+//     setTimeout(() => loader.remove(), 200);
+//   };
+// }
 // function disposeNext(parent: PageContext) {
 //   while (parent.next) {
 //     disposeAll(parent.next.renderResult);
@@ -327,4 +320,22 @@ function startsWith(path: Path, prefix: Path) {
   }
 
   return true;
+}
+
+class PathCache<T = any> {
+  entries: { path: Path; index: number; value: T }[] = [];
+  get(index: number, path: Path) {
+    const { entries } = this;
+    for (const entry of entries) {
+      if (entry.index === index && matchPath(entry.path, path)) {
+        return entry.value;
+      }
+    }
+    return undefined;
+  }
+
+  set(index: number, path: Path, value: T) {
+    const { entries } = this;
+    entries.push({ index, path, value });
+  }
 }

@@ -1,9 +1,4 @@
-﻿import {
-  ChildRouter,
-  RouteContext,
-  routeMap,
-  RouteMapInput,
-} from "@xania/router";
+﻿import { Router, RouteContext, routeMap, RouteMapInput } from "@xania/router";
 import { Page } from "../page";
 
 export function InvoiceApp(context: RouteContext) {
@@ -17,7 +12,9 @@ export function InvoiceApp(context: RouteContext) {
       <Page>
         <div>invoices {new Date().getTime()}</div>
       </Page>
-      <ChildRouter context={context} routeMaps={routes} />
+      <Page>
+        <Router context={context} routeMaps={routes} />
+      </Page>
       <Page>
         <div>invoices {new Date().getTime()}</div>
       </Page>
@@ -27,22 +24,22 @@ export function InvoiceApp(context: RouteContext) {
 
 function Hello() {
   return (
-    <Page>
+    <>
       <div>hello {new Date().getTime()}</div>
       <a class="router-link" href="./hi">
         hi
       </a>
-    </Page>
+    </>
   );
 }
 
 function Hi() {
   return (
-    <Page>
+    <>
       <div>hi {new Date().getTime()}</div>
       <a class="router-link" href="./hello">
         hello
       </a>
-    </Page>
+    </>
   );
 }

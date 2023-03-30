@@ -1,4 +1,4 @@
-﻿import { connect, State } from '..';
+﻿import { State } from '..';
 import { pushOperator } from '../operators/map';
 import { Rx } from '../rx';
 
@@ -11,7 +11,6 @@ export function merge<T>(...sources: Rx.Stateful<T>[]) {
   };
 
   for (const source of sources) {
-    connect(source, target);
     pushOperator(source, connectOp);
 
     const { snapshot } = source;

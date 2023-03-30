@@ -1,16 +1,11 @@
-﻿import {
-  ChildRouter,
-  RouteContext,
-  routeMap,
-  RouteMapInput,
-} from "@xania/router";
+﻿import { Router, RouteContext, routeMap, RouteMapInput } from "@xania/router";
 import { Page } from "../page";
 
 import classes from "./tabs.module.scss";
 
 export function TabsApp(context: RouteContext) {
   const routes: RouteMapInput[] = [
-    routeMap(["a"], () => <div>a</div>),
+    routeMap(["a"], () => delay(<div>a</div>, 2000)),
     routeMap(["b"], () => <div>b</div>),
   ];
 
@@ -27,7 +22,15 @@ export function TabsApp(context: RouteContext) {
           </a>
         </div>
       </Page>
-      <ChildRouter context={context} routeMaps={routes} />
+      <Page>
+        <Router loader={"loading..."} context={context} routeMaps={routes} />
+      </Page>
     </>
   );
+}
+
+function delay<T>(value: T, millis: number = 400) {
+  return new Promise<T>((resolve) => {
+    setTimeout(() => resolve(value), millis);
+  });
 }
