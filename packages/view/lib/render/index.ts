@@ -30,7 +30,7 @@ export function render(
     const promises: Promise<any>[] = [];
     while (stack.length) {
       const [context, currentTarget, curr] = stack.pop()!;
-      if (curr === null || curr === undefined) {
+      if (context.disposed || curr === null || curr === undefined) {
         continue;
       } else if (curr instanceof Array) {
         for (let i = curr.length - 1; i >= 0; i--) {
