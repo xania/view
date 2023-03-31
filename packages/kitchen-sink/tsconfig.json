@@ -2,6 +2,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "@xania/view",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "composite": true
   }
 }

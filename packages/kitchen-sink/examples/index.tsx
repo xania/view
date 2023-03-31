@@ -3,7 +3,7 @@ import classes from "./webapp.module.scss";
 import "./root.scss";
 import "./body.scss";
 
-export async function ExamplesApp() {
+export function ExamplesApp() {
   const routeMaps = [
     ["counter", () => import("./counter").then((e) => e.App())],
     ["time", () => import("./time").then((e) => e.App())],
