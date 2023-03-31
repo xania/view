@@ -102,24 +102,24 @@ class RouteView implements RouteContext {
     if (resolution && resolution.component) {
       const { component } = resolution;
 
-      if (component instanceof Function) {
-        if (loader) {
-          return [
-            {
-              dispose() {
-                unrender(loader);
-              },
+      const view = component instanceof Function ? component(this) : component;
+
+      if (loader) {
+        return [
+          {
+            dispose() {
+              unrender(loader);
             },
-            suspense(component(this)),
-            {
-              attachTo() {
-                unrender(loader);
-              },
+          },
+          suspense(view),
+          {
+            attachTo() {
+              unrender(loader);
             },
-          ];
-        } else {
-          return component(this);
-        }
+          },
+        ];
+      } else {
+        return view;
       }
     }
   }

@@ -21,5 +21,8 @@ export default defineConfig({
       formats: ['es', 'cjs'],
     },
     sourcemap: true,
+    rollupOptions: {
+      external: ['@xania/view', '@xania/state'],
+    },
   },
 });
