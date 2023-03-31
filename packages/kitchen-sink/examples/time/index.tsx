@@ -1,5 +1,5 @@
 ﻿import { state, UpdateFunction } from "@xania/view";
-import { Page } from "../../src/page";
+import { Page } from "../components/page";
 import { delay } from "../utils";
 
 /**

@@ -1,5 +1,5 @@
 ﻿import { Router, RouteContext, routeMap, RouteMapInput } from "@xania/router";
-import { Page } from "../../src/page";
+import { Page } from "../components/page";
 
 import classes from "./tabs.module.scss";
 

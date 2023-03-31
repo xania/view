@@ -64,37 +64,52 @@ async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
 }
 
 async function installExamples(projectPath: string, actions: Action[]) {
-  type GithubContents = [
-    { name: string; path: string; git_url: string; type: "dir" | "file" }
-  ];
-  const templates: GithubContents = await fetch(
-    "https://api.github.com/repos/xania/view/contents/packages/kitchen-sink/examples"
-  ).then((e) => e.json());
-
-  const choices = templates
-    .filter((tpl) => tpl.type === "dir")
-    .map((tpl) => ({ name: tpl.name }));
-  choices.push({ name: "skip" });
-
-  const response = await multiselect({
-    name: "examples",
-    choices,
+  const response = await select({
+    name: "example app",
+    message: "include example app",
+    choices: [{ name: "yes" }, { name: "no" }],
   });
 
-  const names: string[] = [];
-
-  for (const choice of response) {
-    const tpl = templates.find((e) => e.name === choice);
-    if (tpl) {
-      const localPath = resolve(projectPath, "examples/" + tpl.name);
-      names.push("examples/" + tpl.name);
-      actions.push(subgit("xania/view/" + tpl.path, localPath));
-    }
+  switch (response) {
+    case "yes":
+      actions.push(
+        subgit(
+          "xania/view/packages/kitchen-sink/examples",
+          resolve(projectPath, "./examples")
+        )
+      );
+      break;
+    case "no":
+      break;
   }
 
-  actions.push(
-    file(resolve(projectPath, "examples/list.json"), JSON.stringify(names))
-  );
+  // type GithubContents = [
+  //   { name: string; path: string; git_url: string; type: "dir" | "file" }
+  // ];
+  // const templates: GithubContents = await fetch(
+  //   "https://api.github.com/repos/xania/view/contents/packages/kitchen-sink/examples"
+  // ).then((e) => e.json());
+
+  // const choices = templates
+  //   .filter((tpl) => tpl.type === "dir")
+  //   .map((tpl) => ({ name: tpl.name }));
+  // choices.push({ name: "skip" });
+
+  // const response = await multiselect({
+  //   name: "examples",
+  //   choices,
+  // });
+
+  // const names: string[] = [];
+
+  // for (const choice of response) {
+  //   const tpl = templates.find((e) => e.name === choice);
+  //   if (tpl) {
+  //     const localPath = resolve(projectPath, "examples/" + tpl.name);
+  //     names.push("examples/" + tpl.name);
+  //     actions.push(subgit("xania/view/" + tpl.path, localPath));
+  //   }
+  // }
 
   return actions;
 }

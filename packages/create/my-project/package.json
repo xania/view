@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "@xania/state": "^0.1.58",
-    "@xania/view": "^0.4.31"
-  }
-}

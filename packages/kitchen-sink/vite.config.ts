@@ -12,7 +12,7 @@ export default defineConfig({
     port: 1981,
     host: "0.0.0.0",
   },
-  plugins: [listDir(), resumable()],
+  plugins: [resumable()],
   resolve: {
     alias: {
       "~": path.resolve(__dirname),
@@ -31,25 +31,3 @@ export default defineConfig({
     },
   },
 });
-
-function listDir(): Plugin {
-  return {
-    name: "list dir",
-    configureServer(vite) {
-      vite.middlewares.use("/examples/list", async (req, res, next) => {
-        const directoryListing: Dirent[] = await readdir(
-          resolve(__dirname, "examples"),
-          {
-            withFileTypes: true,
-          }
-        );
-
-        const data = directoryListing
-          .filter((dl) => dl.isDirectory())
-          .map((dl) => dl.name);
-        res.end(JSON.stringify(data));
-      });
-      console.log("list dir");
-    },
-  };
-}

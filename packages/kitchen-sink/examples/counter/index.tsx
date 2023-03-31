@@ -1,5 +1,5 @@
 ﻿import { state } from "@xania/view";
-import { Page } from "../../src/page";
+import { Page } from "../components/page";
 
 /**
  * There are no rules about where u can put your state
