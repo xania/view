@@ -1,9 +1,9 @@
 ﻿import { Router, RouteContext, routeMap, RouteMapInput } from "@xania/router";
-import { Page } from "../page";
+import { Page } from "../../src/page";
 
 import classes from "./tabs.module.scss";
 
-export function TabsApp(context: RouteContext) {
+export function App(context: RouteContext) {
   const routes: RouteMapInput[] = [
     routeMap(["a"], () => delay(<div>a</div>, 2000)),
     routeMap(["b"], () => <div>b</div>),

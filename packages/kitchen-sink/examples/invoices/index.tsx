@@ -1,13 +1,12 @@
 ﻿import { Router, RouteContext, routeMap, RouteMapInput } from "@xania/router";
-import { Page } from "../page";
+import { Page } from "../../src/page";
 
-export function InvoiceApp(context: RouteContext) {
+export function App(context: RouteContext) {
   const routes: RouteMapInput[] = [
     routeMap(["hi"], () => <Hi />),
     routeMap(["hello"], () => <Hello />),
   ];
 
-  console.log(context.fullpath);
   return (
     <>
       <Page>

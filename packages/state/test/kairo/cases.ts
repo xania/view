@@ -8,7 +8,7 @@ import { triangle } from './triangle';
 import { unstable } from './unstable';
 
 import { ReactiveFramework } from '../util/reactiveFramework';
-import { computed, signal, batch } from '../../lib';
+import { signal, batch } from '../../lib';
 
 export const cases = {
   avoidablePropagation,
@@ -21,7 +21,7 @@ export const cases = {
   unstable,
 };
 
-export async function runCase(c: typeof cases['avoidablePropagation']) {
+export async function runCase(c: (typeof cases)['avoidablePropagation']) {
   const iter = framework.withBuild(() => {
     const iter = c(framework);
     return iter;
@@ -38,7 +38,7 @@ export async function runCase(c: typeof cases['avoidablePropagation']) {
 const framework: ReactiveFramework = {
   name: '@xania/state',
   signal: signal,
-  computed: computed,
+  computed: signal,
   run: () => {},
   effect() {},
   withBatch: batch,

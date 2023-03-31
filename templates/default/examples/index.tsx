@@ -1,10 +1,7 @@
-﻿import { WebApp, routeMap, RouteMapInput } from "@xania/router";
+﻿import { WebApp, routeMap } from "@xania/router";
 import { render } from "@xania/view";
-import classes from "./webapp.module.scss";
-import "./root.scss";
-import "./body.scss";
 
-async function App() {
+async function ExamplesApp() {
   const dirs: string[] = await fetch("/examples/list").then(
     (e) => e.json() as any
   );
@@ -39,4 +36,4 @@ async function App() {
   );
 }
 
-render(<App />, document.getElementById("app"));
+render(<ExamplesApp />, document.getElementById("app"));

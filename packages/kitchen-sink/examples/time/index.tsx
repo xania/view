@@ -10,7 +10,7 @@ function timeToString() {
   return new Date().toLocaleTimeString();
 }
 
-export function TimeApp() {
+export function App() {
   const time = state(timeToString());
   const count = state(100);
 

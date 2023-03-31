@@ -5,6 +5,7 @@ import { npmInstall, npmUninstall } from "./actions/npm";
 import { tsconfig } from "./actions/tsconfig";
 import { vite } from "./actions/vite";
 import { resolve } from "node:path";
+import { file } from "./actions/file";
 
 const { select } = enquirer;
 
@@ -80,13 +81,18 @@ async function installExamples(projectPath: string, actions: Action[]) {
     choices,
   });
 
+  const names: string[] = [];
+
   for (const choice of response) {
     const tpl = templates.find((e) => e.name === choice);
     if (tpl) {
       const localPath = resolve(projectPath, "examples/" + tpl.name);
+      names.push("examples/" + tpl.name);
       actions.push(subgit("xania/view/" + tpl.path, localPath));
     }
   }
+
+  actions.push(file("examples/list.json", JSON.stringify(names)));
 
   return actions;
 }
