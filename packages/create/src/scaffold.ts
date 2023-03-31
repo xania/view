@@ -92,7 +92,9 @@ async function installExamples(projectPath: string, actions: Action[]) {
     }
   }
 
-  actions.push(file("examples/list.json", JSON.stringify(names)));
+  actions.push(
+    file(resolve(projectPath, "examples/list.json"), JSON.stringify(names))
+  );
 
   return actions;
 }
