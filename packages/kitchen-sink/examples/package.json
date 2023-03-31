@@ -1,6 +1,12 @@
-﻿{
+{
   "name": "@xania/examples",
+  "version": "0.0.1",
+  "description": "xania examples project",
+  "type": "module",
+  "author": "Ibrahim ben Salah",
+  "license": "ISC",
   "devDependencies": {
     "sass": "latest"
-  }
+  },
+  "main": "index.tsx"
 }
