@@ -12,6 +12,7 @@ import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 import {
   IfExpression,
+  isCommand,
   ListExpression,
   ListMutationCommand,
   State,
@@ -221,6 +222,8 @@ export function render(
         context.disposables.push(curr);
       } else if (isSubscription(curr)) {
         context.subscriptions.push(curr);
+      } else if (isCommand(curr)) {
+        context.applyCommands(curr);
       } else {
         console.log('unknown', curr);
       }

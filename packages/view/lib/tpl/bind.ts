@@ -24,15 +24,24 @@ export function templateBind<T, U>(
         // wait for completion of curr, then resume traverse
         return curr.then((resolved) => (stack.push(resolved), traverse(stack)));
       } else if (curr) {
-        const funResult = binder.apply(null, [curr, ...args]);
-        if (funResult instanceof Promise) {
-          // wait for completion of result, then resume traverse
-          return funResult.then((resolved) => {
-            templateAppend(output, resolved);
-            return traverse(stack);
-          });
+        if (isIterable(curr)) {
+          // console.log('async iter', curr);
+          const arr: any[] = [];
+          for (const x of curr) {
+            if (x) arr.unshift(x);
+          }
+          stack.push(...arr);
+        } else {
+          const funResult = binder.apply(null, [curr, ...args]);
+          if (funResult instanceof Promise) {
+            // wait for completion of result, then resume traverse
+            return funResult.then((resolved) => {
+              templateAppend(output, resolved);
+              return traverse(stack);
+            });
+          }
+          templateAppend(output, funResult);
         }
-        templateAppend(output, funResult);
       }
     }
 
@@ -57,4 +66,19 @@ export function templateAppend<U>(output: U[], additions: JSX.MaybeArray<U>) {
   } else {
     output.push(additions);
   }
+}
+
+export function isIterable<T>(obj: any): obj is Iterable<T> {
+  if (!obj) return false;
+  return (
+    obj.constructor !== String &&
+    Symbol.iterator &&
+    obj?.[Symbol.iterator] instanceof Function
+  );
+}
+
+export function isAsyncIterable<T>(obj: any): obj is AsyncIterable<T> {
+  return (
+    Symbol.asyncIterator && obj?.[Symbol.asyncIterator] instanceof Function
+  );
 }

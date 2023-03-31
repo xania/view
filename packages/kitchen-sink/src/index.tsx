@@ -8,7 +8,7 @@ export const routeMaps: any[] = [
   ["invoices", (ctx) => import("./invoices").then((e) => e.InvoiceApp(ctx))],
   ["tabs", (ctx) => import("./tabs").then((e) => e.TabsApp(ctx))],
   ["counter", (ctx) => import("../examples/counter").then((e) => e.App())],
-  ["time", (ctx) => import("../examples/time").then((e) => e.App())],
+  ["time", (ctx) => import("../examples/time").then((e) => e.TimeApp())],
 ];
 
 function App() {

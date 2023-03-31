@@ -1,22 +1,30 @@
-﻿import { RenderContext } from '../render/render-context';
-import { BindFunction, templateBind } from '../tpl';
-import { isListMutation, ListMutation } from './list/mutation';
+﻿import { ListMutation } from './list/mutation';
 import { State, Stateful } from './state';
 
-export class UpdateCommand<T = unknown> {
+export class UpdateStateCommand<T = unknown> {
   constructor(public state: Stateful<T>, public updater: T | ((x: T) => T)) {}
 }
+
+export class UpdateCommand {
+  constructor(
+    public updateFn: (scope: {
+      get<T>(s: Stateful<T>): T | undefined;
+    }) => Generator<JSX.Template<Command>> | JSX.Template<Command>
+  ) {}
+}
+
+export type UpdateFunction = UpdateCommand['updateFn'];
 
 export class ListMutationCommand<T = any> {
   constructor(public state: State<T>, public mutation: ListMutation<any>) {}
 }
 
-export type Command = UpdateCommand | ListMutationCommand;
+export type Command = UpdateFunction | UpdateStateCommand | ListMutationCommand;
 
-/////////////////////////////////////////
-//// helper methods /////////////////
-/////////////////////////////////////////
-
-export function isCommand(value: JSX.EventHandler): value is Command {
-  return value instanceof UpdateCommand || value instanceof ListMutationCommand;
+export function isCommand(value: any): value is Command {
+  return (
+    value instanceof Function ||
+    value instanceof UpdateStateCommand ||
+    value instanceof ListMutationCommand
+  );
 }

@@ -1,5 +1,6 @@
 import { If, List, listSource, render, state } from "@xania/view";
 import { RenderContext } from "@xania/view/lib/render/render-context";
+import { delay } from "../examples/utils";
 import "./style.scss";
 
 const result = render(
@@ -57,12 +58,6 @@ function ListDemo() {
       </List>
     </div>
   );
-}
-
-function delay<T>(value: T, millis: number = 400) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), millis);
-  });
 }
 
 function ViewableDemo() {

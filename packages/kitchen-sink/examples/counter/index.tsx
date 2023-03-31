@@ -1,4 +1,4 @@
-﻿import { render, state } from "@xania/view";
+﻿import { state } from "@xania/view";
 import { Page } from "../../src/page";
 
 /**

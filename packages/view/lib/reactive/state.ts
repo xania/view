@@ -1,4 +1,4 @@
-﻿import { UpdateCommand } from './commands';
+﻿import { UpdateStateCommand } from './commands';
 
 export interface Stateful<T = any> {
   initial?: JSX.MaybePromise<T | undefined>;
@@ -22,10 +22,10 @@ export class State<T = any> implements Stateful<T> {
   update(valueOrUpdater: JSX.MaybePromise<T | ((x: T) => T)>) {
     if (valueOrUpdater instanceof Promise) {
       return valueOrUpdater.then(
-        (resolved) => new UpdateCommand<T>(this, resolved)
+        (resolved) => new UpdateStateCommand<T>(this, resolved)
       );
     }
-    return new UpdateCommand<T>(this, valueOrUpdater);
+    return new UpdateStateCommand<T>(this, valueOrUpdater);
   }
 }
 

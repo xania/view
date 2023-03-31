@@ -3,9 +3,10 @@ import {
   Command,
   isCommand,
   ListMutationCommand,
+  UpdateCommand,
   Stateful,
   StateMapper,
-  UpdateCommand,
+  UpdateStateCommand,
 } from '../reactive';
 import { ListMutation } from '../reactive/list/mutation';
 import { BindFunction, templateBind } from '../tpl';
@@ -96,12 +97,17 @@ export class RenderContext {
   applyCommands(
     commands: JSX.Template<Command>,
     applyChange?: BindFunction<any, any>
-  ) {
+  ): any {
     const context = this;
     return templateBind(commands, async (message: Command) => {
+      if (this.disposed) return;
+      if (message instanceof Function) {
+        return this.applyCommands(message(context) as any) as any;
+      }
+
       const state = message.state;
       const currentValue = await context.get(state);
-      if (message instanceof UpdateCommand) {
+      if (message instanceof UpdateStateCommand) {
         const updater = message.updater;
 
         const newValue = await (updater instanceof Function

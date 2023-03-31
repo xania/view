@@ -1,6 +1,6 @@
-﻿import { interval } from "@xania/state";
-import { render, state } from "@xania/view";
+﻿import { state, UpdateFunction } from "@xania/view";
 import { Page } from "../../src/page";
+import { delay } from "../utils";
 
 /**
  * There are no rules about where u can put your state
@@ -10,18 +10,29 @@ function timeToString() {
   return new Date().toLocaleTimeString();
 }
 
-export function App() {
-  /**
-   * Typically, state should be part of your Component
-   */
+export function TimeApp() {
   const time = state(timeToString());
+  const count = state(100);
+
+  const update: UpdateFunction = function* (context) {
+    yield time.update(timeToString);
+    const ms = context.get(count);
+    yield delay(update, ms);
+  };
 
   return (
     <>
-      {interval(() => time.update(timeToString))}{" "}
+      {update}
       <Page>
-        <h1>Time lord</h1>
+        <h1>Time</h1>
         <div>{time}</div>
+        <div>
+          <button click={count.update((x) => x + 100)}>+</button>
+          <span style="display: inline-block; width: 60px; text-align: center;">
+            {count}
+          </span>
+          <button click={count.update((x) => x - 100)}>-</button>
+        </div>
       </Page>
     </>
   );

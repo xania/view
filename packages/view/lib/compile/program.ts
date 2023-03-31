@@ -16,7 +16,7 @@ import {
 } from './hydrate-operation';
 import { applyEventOperations, applySignalOperations } from './execute';
 import { Attachable } from '../render/attachable';
-import { UpdateCommand } from '../reactive';
+import { UpdateStateCommand } from '../reactive';
 import { Graph, RenderContext } from '../render/render-context';
 
 export const scopeProp = Symbol('scope');
@@ -169,7 +169,7 @@ export class Program implements Attachable {
               currentTarget.contains(eventTarget)
             ) {
               const messages =
-                eventHandler instanceof UpdateCommand
+                eventHandler instanceof UpdateStateCommand
                   ? eventHandler
                   : eventHandler instanceof Function
                   ? eventHandler(syntheticEvent(eventName, originalEvent))

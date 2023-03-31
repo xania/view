@@ -67,43 +67,43 @@ export class Value<T> implements Rx.Stateful<T> {
     return this.snapshot?.toString() ?? '';
   }
 
-  [Symbol.asyncIterator] = (): AsyncIterator<T> => {
-    const state = this;
-    let subscription: Rx.Subscription | null = null;
+  // [Symbol.asyncIterator] = (): AsyncIterator<T> => {
+  //   const state = this;
+  //   let subscription: Rx.Subscription | null = null;
 
-    const pending: T[] = [];
-    let _resolver: null | ((next: { value: T }) => void) = null;
+  //   const pending: T[] = [];
+  //   let _resolver: null | ((next: { value: T }) => void) = null;
 
-    subscription = state.subscribe({
-      next(value: T) {
-        if (_resolver !== null && _resolver !== undefined) {
-          _resolver({ value });
-          // resolver of a Promise can only be used once
-          _resolver = null;
-        } else pending.push(value);
-      },
-    });
+  //   subscription = state.subscribe({
+  //     next(value: T) {
+  //       if (_resolver !== null && _resolver !== undefined) {
+  //         _resolver({ value });
+  //         // resolver of a Promise can only be used once
+  //         _resolver = null;
+  //       } else pending.push(value);
+  //     },
+  //   });
 
-    function sub(resolve: (v: IteratorResult<T>) => void) {
-      if (pending.length > 0) {
-        resolve({ value: pending.shift() as T });
-      } else {
-        _resolver = resolve;
-      }
-    }
-    return {
-      next() {
-        return new Promise(sub);
-      },
-      return() {
-        if (subscription) subscription.unsubscribe();
-        return Promise.resolve({ value: state.snapshot, done: true });
-      },
-      throw(err: any) {
-        return Promise.reject(err);
-      },
-    };
-  };
+  //   function sub(resolve: (v: IteratorResult<T>) => void) {
+  //     if (pending.length > 0) {
+  //       resolve({ value: pending.shift() as T });
+  //     } else {
+  //       _resolver = resolve;
+  //     }
+  //   }
+  //   return {
+  //     next() {
+  //       return new Promise(sub);
+  //     },
+  //     return() {
+  //       if (subscription) subscription.unsubscribe();
+  //       return Promise.resolve({ value: state.snapshot, done: true });
+  //     },
+  //     throw(err: any) {
+  //       return Promise.reject(err);
+  //     },
+  //   };
+  // };
 
   join<U>(x: Rx.StateInput<U>): Value<[T, U]>;
   join<U, R>(x: Rx.StateInput<U>, map: (x: T, y: U) => R): Value<R>;
