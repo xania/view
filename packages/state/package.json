@@ -1,6 +1,6 @@
 {
   "name": "@xania/state",
-  "version": "0.1.58",
+  "version": "0.2.0-alpha.1",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -24,7 +24,7 @@
     "dev": "npx vite --watch build",
     "build": "npx vite build",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build"
+    "prepublishOnly": "npm run clean && npm version prerelease && npm run build"
   },
   "prettier": {
     "printWidth": 80,
