@@ -1,25 +1,33 @@
 ﻿import { ListMutation } from './list/mutation';
 import { State, Stateful } from './state';
 
-export class UpdateStateCommand<T = unknown> {
-  constructor(public state: Stateful<T>, public updater: T | ((x: T) => T)) {}
-}
-
-export class UpdateCommand {
+export class UpdateStateCommand<T = any> {
   constructor(
-    public updateFn: (scope: {
-      get<T>(s: Stateful<T>): T | undefined;
-    }) => Generator<JSX.Template<Command>> | JSX.Template<Command>
+    public state: Stateful<T>,
+    public updater: JSX.MaybePromise<T> | ((x: T) => JSX.MaybePromise<T>)
   ) {}
 }
 
-export type UpdateFunction = UpdateCommand['updateFn'];
+// export class UpdateCommand {
+//   constructor(
+//     public updateFn: (scope: {
+//       get<T>(s: Stateful<T>): T | undefined;
+//     }) => JSX.MaybePromise<Generator<Command> | Command>
+//   ) {}
+// }
+
+export type UpdateFunction = (scope: {
+  get<T>(s: Stateful<T>): T | undefined;
+}) => JSX.MaybePromise<Generator<Command> | Command>;
 
 export class ListMutationCommand<T = any> {
   constructor(public state: State<T>, public mutation: ListMutation<any>) {}
 }
 
-export type Command = UpdateFunction | UpdateStateCommand | ListMutationCommand;
+export type Command =
+  | UpdateFunction
+  | UpdateStateCommand<any>
+  | ListMutationCommand;
 
 export function isCommand(value: any): value is Command {
   return (

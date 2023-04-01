@@ -7,17 +7,17 @@ import { delay } from "../utils";
  */
 
 function timeToString() {
-  return new Date().toLocaleTimeString();
+  return Promise.resolve(new Date().toLocaleTimeString());
 }
 
 export function App() {
   const time = state(timeToString());
   const count = state(100);
 
-  const update: UpdateFunction = function* (context) {
+  const update: UpdateFunction = function* (scope) {
     yield time.update(timeToString);
-    const ms = context.get(count);
-    yield delay(update, ms);
+    const ms = scope.get(count);
+    // yield delay(update, ms);
   };
 
   return (

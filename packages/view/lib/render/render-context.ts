@@ -3,7 +3,6 @@ import {
   Command,
   isCommand,
   ListMutationCommand,
-  UpdateCommand,
   Stateful,
   StateMapper,
   UpdateStateCommand,

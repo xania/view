@@ -9,10 +9,10 @@
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Disposable = { dispose(): any };
 
-  type Primitive = string | number;
+  type Primitive = string | number | unknown;
 
   interface Stateful<T = any> {
-    initial?: MaybePromise<T>;
+    initial?: JSX.MaybePromise<T | undefined>;
   }
 
   type Value =
@@ -38,7 +38,5 @@
   type Nothing = null | undefined | void;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
-  type Template<T> =
-    | MaybePromise<Nothing | Just<T> | Template<T>[]>
-    | Promise<Template<T>>;
+  type Template<T> = MaybePromise<Nothing | Just<T> | Template<T>[]>;
 }

@@ -19,12 +19,7 @@ export class State<T = any> implements Stateful<T> {
     return this.map((x) => (x ? tru : fals));
   }
 
-  update(valueOrUpdater: JSX.MaybePromise<T | ((x: T) => T)>) {
-    if (valueOrUpdater instanceof Promise) {
-      return valueOrUpdater.then(
-        (resolved) => new UpdateStateCommand<T>(this, resolved)
-      );
-    }
+  update(valueOrUpdater: UpdateStateCommand<T>['updater']) {
     return new UpdateStateCommand<T>(this, valueOrUpdater);
   }
 }
