@@ -1,11 +1,6 @@
-﻿import { defineConfig, Plugin } from "vite";
-import { resumable } from "../vite-plugin-resumable/lib/index";
+﻿import { defineConfig } from "vite";
+import { resumable } from "vite-plugin-resumable";
 import path from "node:path";
-
-import { ViteDevServer, PluginOption } from "vite";
-import { dirname, basename, join, resolve } from "path";
-import { readdir, access, writeFile } from "fs/promises";
-import { Dirent } from "fs";
 
 export default defineConfig({
   server: {
@@ -25,9 +20,12 @@ export default defineConfig({
         __dirname,
         "../jsx/jsx-runtime.ts"
       ),
-      "@xania/jsx": path.resolve(__dirname, "../jsx/lib/index.ts"),
       "@xania/state": path.resolve(__dirname, "../state/index.ts"),
       "@xania/router": path.resolve(__dirname, "../router/index.ts"),
+      "vite-plugin-resumable": path.resolve(
+        __dirname,
+        "../vite-plugin-resumable/lib/index.ts"
+      ),
     },
   },
 });
