@@ -1,4 +1,4 @@
-﻿import { WebApp, routeMap } from "@xania/router";
+﻿import { RouteContext, WebApp, routeMap } from "@xania/router";
 import classes from "./webapp.module.scss";
 import "./root.scss";
 import "./body.scss";
@@ -6,7 +6,12 @@ import "./body.scss";
 export function ExamplesApp() {
   const routeMaps = [
     ["counter", () => import("./counter").then((e) => e.App())],
+    ["clock", () => import("./clock").then((e) => e.App())],
     ["time", () => import("./time").then((e) => e.App())],
+    [
+      "invoices",
+      (ctx: RouteContext) => import("./invoices").then((e) => e.App(ctx)),
+    ],
   ] as const;
 
   return (

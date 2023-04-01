@@ -170,8 +170,21 @@ export function render(
               applyClassList(element as HTMLElement, curr.classList);
             }
 
-            if (curr.attrs) {
-              applyAttributes(element as HTMLElement, curr.attrs);
+            const { attrs } = curr;
+            if (attrs) {
+              const target = element as HTMLElement & Record<string, any>;
+              for (let i = 0, len = attrs.length; i < len; i++) {
+                const { name, value } = attrs[i];
+                if (value instanceof State) {
+                  context.valueOperator(value, {
+                    type: 'prop',
+                    object: target,
+                    prop: name,
+                  });
+                } else {
+                  target[name] = value;
+                }
+              }
             }
 
             if (curr.events) {

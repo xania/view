@@ -9,7 +9,7 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T>;
+  type AttrValue<T> = T | Promise<T> | Stateful<Primitive>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;
@@ -47,7 +47,7 @@
   interface ElementCustomAttributes {
     class?: ClassInput;
     className?: ClassInput;
-    style?: AttrValue<string>;
+    style?: AttrValue<Value>;
   }
 
   interface ElementChildrenAttribute {

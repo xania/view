@@ -188,6 +188,9 @@ export class RenderContext {
           case 'text':
             operator.text.data = newValue;
             break;
+          case 'prop':
+            operator.object[operator.prop] = newValue;
+            break;
           case 'map':
             const mappedValue = operator.map(newValue);
             if (this.set(operator, mappedValue)) {
@@ -289,6 +292,7 @@ export type ValueOperator =
   | ViewOperator
   | TextOperator
   | MapOperator
+  | PropertyOperator
   // | EventOperator
   | ReconcileOperator<any, any>;
 
@@ -298,6 +302,12 @@ export type ValueOperator =
 interface TextOperator {
   type: 'text';
   text: Text;
+}
+
+interface PropertyOperator {
+  type: 'prop';
+  object: Record<string, string>;
+  prop: string;
 }
 
 export interface ViewOperator {

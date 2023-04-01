@@ -1,0 +1,218 @@
+﻿.Clock {
+  text-align: center;
+  color: #f3f3f3;
+  flex: 1;
+}
+
+.Clock-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .Clock-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.Clock-header {
+  background-color: #282c34;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.Clock-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.Clock {
+  section {
+    width: 160px;
+    height: 160px;
+    margin: 30px;
+    background: #fff
+      url("https://images.unsplash.com/photo-1601662528567-526cd06f6582?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=3358&q=80")
+      center center;
+    border: 6px solid #000;
+    border-radius: 50%;
+    margin-top: 6px;
+    box-shadow: inset 40px 40px 90px rgba(0, 0, 0, 0.2),
+      inset 10px 10px 30px rgba(0, 0, 0, 0.5), 20px 20px 30px rgba(0, 0, 0, 0.4),
+      40px 40px 60px rgba(0, 0, 0, 0.4);
+    position: relative;
+    z-index: 1;
+  }
+
+  section:before {
+    content: "";
+    width: 95%;
+    height: 95%;
+    border-radius: 50%;
+    display: block;
+    background: transparent;
+    border: 4px solid white;
+  }
+
+  /* highlight at top left of black outline */
+  section:after {
+    content: "";
+    width: 105%;
+    height: 105%;
+    border-radius: 50%;
+    display: block;
+    background: transparent;
+    position: absolute;
+    top: -2.5%;
+    left: -2.5%;
+    box-shadow: -3px -3px 9px rgba(255, 255, 255, 0.8);
+  }
+}
+
+.credits {
+  color: gray;
+  font-size: 12px;
+}
+
+.credits a {
+  color: rgba(146, 239, 255, 0.267);
+  text-decoration: none;
+}
+
+.credits a:hover {
+  color: rgb(146, 239, 255);
+}
+
+.label {
+  position: absolute;
+  top: 38px;
+  left: 37%;
+  font-size: 16px;
+  color: #333;
+}
+
+.hourhand,
+.secondhand,
+.minutehand {
+  width: 50px;
+  height: 4px;
+  background: #000;
+  position: absolute;
+  top: 90px;
+  left: calc(50% - 7px);
+  z-index: 2;
+  transform: rotate(-139deg);
+  transform-origin: 16%;
+  -webkit-filter: drop-shadow(12px 12px 7px rgba(0, 0, 0, 0.5));
+  drop-shadow: (12px 12px 7px rgba(0, 0, 0, 0.5));
+}
+
+.hourhand:after,
+.secondhand:after,
+.minutehand:after {
+  content: "";
+  background: #000;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  z-index: 3;
+  position: absolute;
+  top: -3px;
+  left: 3px;
+}
+
+.hourhand {
+  border-top-right-radius: 20%;
+  border-bottom-right-radius: 20%;
+  box-shadow: -10px 0px 10px rgba(0, 0, 0, 0.4);
+}
+
+.minutehand {
+  width: 80px;
+  height: 2px;
+  top: 90px;
+  transform: rotate(-39deg);
+  transform-origin: 10%;
+  border-top-right-radius: 30%;
+  border-bottom-right-radius: 30%;
+  box-shadow: -10px 10px 10px rgba(0, 0, 0, 0.4);
+}
+
+.minutehand:before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  z-index: 99;
+  position: absolute;
+  top: -3.4px;
+  left: 3.4px;
+  box-shadow: -2px -2px 7px rgba(255, 255, 255, 0.6);
+}
+
+.minutehand:after {
+  top: -4px;
+}
+
+.secondhand {
+  width: 70px;
+  height: 1px;
+  top: 90px;
+  transform: rotate(160deg);
+  transform-origin: 11.5%;
+  box-shadow: -10px -10px 10px rgba(0, 0, 0, 0.4);
+}
+.secondhand:after {
+  top: -4.5px;
+}
+
+.hour12,
+.hour1,
+.hour2,
+.hour3,
+.hour4,
+.hour5 {
+  height: 2px;
+  width: 110px;
+  background: transparent;
+  border-left: 14px solid #000;
+  border-right: 14px solid #000;
+  transform: translate(-50%, -50%);
+  /*     transform-origin: right bottom; */
+  top: 50%;
+  left: 50%;
+  position: absolute;
+}
+
+.hour3 {
+  transform: rotate(90deg) translate(0, 68px);
+}
+
+.hour1 {
+  transform: rotate(120deg) translate(34px, 60px);
+}
+
+.hour2 {
+  transform: rotate(150deg) translate(58px, 36px);
+}
+
+.hour4 {
+  transform: rotate(210deg) translate(60px, -34px);
+}
+
+.hour5 {
+  transform: rotate(240deg) translate(34px, -60px);
+}
