@@ -11,7 +11,7 @@
     "clean": "npx rimraf dist",
     "dev": "tsup src/cli.ts --sourcemap --format cjs --target node16 --watch",
     "prepublishOnly": "npm run clean && npm version patch && npm run build",
-    "test": "npx rimraf test-app && node dist/cli.cjs test-app"
+    "test": "npx rimraf my-project && node dist/cli.cjs test-app"
   },
   "bin": {
     "xania": "dist/cli.cjs"
@@ -20,7 +20,6 @@
     "dist"
   ],
   "devDependencies": {
-    "@types/degit": "^2.8.3",
     "@types/node": "^17.0.29",
     "prettier": "^2.8.1",
     "tsup": "^5.12.1",
@@ -28,7 +27,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "degit": "^2.8.4",
     "enquirer": "^2.3.6",
     "execa": "^7.0.0",
     "rimraf": "^3.0.2"

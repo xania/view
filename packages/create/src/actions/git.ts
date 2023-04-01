@@ -11,7 +11,7 @@ export function git(
   targetPath: string
 ): Action {
   return async (context: ActionContext) => {
-    const subdir = resolve(context.projectDir, "./" + targetPath);
+    const subdir = resolve(context.cwd, "./" + targetPath);
     const runOps: CommonOptions<any> = { cwd: subdir };
 
     mkdirSync(subdir, { recursive: true });
