@@ -5,6 +5,9 @@
   "type": "module",
   "author": "Ibrahim ben Salah",
   "license": "ISC",
+  "exports": {
+    "import": "./index.tsx"
+  },
   "devDependencies": {
     "sass": "latest"
   },

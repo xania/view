@@ -1,4 +1,4 @@
-﻿import { WebApp, routeMap, RouteMapInput } from "@xania/router";
+﻿import { WebApp, routeMap } from "@xania/router";
 import classes from "./webapp.module.scss";
 import "./root.scss";
 import "./body.scss";

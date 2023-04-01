@@ -1,5 +1,5 @@
 ﻿import { defineConfig } from "vite";
-import { resumable } from "vite-plugin-resumable";
+import { resumable } from "../vite-plugin-resumable/lib/index";
 import path from "node:path";
 
 export default defineConfig({
@@ -22,10 +22,6 @@ export default defineConfig({
       ),
       "@xania/state": path.resolve(__dirname, "../state/index.ts"),
       "@xania/router": path.resolve(__dirname, "../router/index.ts"),
-      "vite-plugin-resumable": path.resolve(
-        __dirname,
-        "../vite-plugin-resumable/lib/index.ts"
-      ),
     },
   },
 });
