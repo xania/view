@@ -9,7 +9,7 @@
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Disposable = { dispose(): any };
 
-  type Primitive = string | number | unknown;
+  type Primitive = string | number;
 
   interface Stateful<T = any> {
     initial?: JSX.MaybePromise<T | undefined>;

@@ -17,7 +17,7 @@ export function App() {
   const update: UpdateFunction = function* (scope) {
     yield time.update(timeToString);
     const ms = scope.get(count);
-    // yield delay(update, ms);
+    yield delay(update, ms);
   };
 
   return (

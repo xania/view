@@ -18,7 +18,7 @@ export class UpdateStateCommand<T = any> {
 
 export type UpdateFunction = (scope: {
   get<T>(s: Stateful<T>): T | undefined;
-}) => JSX.MaybePromise<Generator<Command> | Command>;
+}) => Generator<JSX.MaybePromise<Command>> | Command;
 
 export class ListMutationCommand<T = any> {
   constructor(public state: State<T>, public mutation: ListMutation<any>) {}

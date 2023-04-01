@@ -8,14 +8,7 @@ export function suspense(children: JSX.Children): SuspenseReturnType {
   return templateBind(children, (value) => {
     if (value instanceof State) {
       if (value.initial instanceof Promise) {
-        return value.initial.then((resolved) => {
-          const clone = {
-            ...value,
-            initial: resolved,
-          };
-          Reflect.setPrototypeOf(clone, clone.constructor.prototype);
-          return clone;
-        });
+        return value.initial.then(() => value);
       }
     } else if (isDomDescriptor(value)) {
       if (value.type === DomDescriptorType.Element && value.children) {
