@@ -8,7 +8,7 @@ export function Route(props: RouteProps<JSX.Element>) {
 interface Route {}
 
 export interface RouteProps<TView> {
-  path: RouteMap<TView>['match'] | Path | string;
+  path?: RouteMap<TView>['match'] | Path | string;
   children: RouteMap<TView>['component'];
 }
 

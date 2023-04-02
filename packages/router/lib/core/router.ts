@@ -9,7 +9,6 @@ import {
   unrender,
 } from '@xania/view';
 import {
-  createRouteResolver,
   Path,
   pathMatcher,
   Route,
@@ -53,48 +52,6 @@ export function Router(props: RouterProps<any>) {
       return child;
     }
   });
-
-  const rootResolve = createRouteResolver(
-    children instanceof Array ? children : [children]
-  );
-
-  return {
-    attachTo(target: HTMLElement) {
-      const views = events.map(
-        async (route: RouteEvent, prevView?: RouteView) => {
-          const resolution = await rootResolve(route.path);
-          if (!resolution) {
-            return null;
-          }
-          if (prevView) {
-            if (
-              prevView &&
-              matchPath(prevView.resolution.appliedPath, resolution.appliedPath)
-            ) {
-              return prevView;
-            }
-          }
-          return new RouteView(resolution, context, render(loader, target));
-        }
-      );
-
-      return [
-        views.subscribe({
-          prev: undefined as any,
-          async next(v) {
-            const view = await v;
-            const { prev } = this;
-            if (prev) {
-              unrender(prev);
-            }
-            if (view) {
-              this.prev = render(view, target);
-            }
-          },
-        }),
-      ];
-    },
-  };
 }
 
 function relativeTo(prefix: Path) {
@@ -165,16 +122,6 @@ class RouteView implements RouteContext {
   }
 }
 
-function matchPath(x: Path, y: Path) {
-  if (x.length === 0) return true;
-
-  for (let i = 0; i < x.length; i++) {
-    if (y[i] !== x[i]) return false;
-  }
-
-  return true;
-}
-
 export interface RouteEvent {
   path: Path;
   trigger: RouteTrigger;
@@ -191,15 +138,17 @@ class RouteHandler {
   attachTo(target: HTMLElement) {
     const { path } = this.props;
 
-    const matchFn =
-      path instanceof Function
-        ? path
-        : pathMatcher(path instanceof Array ? path : path.split('/'));
+    const matchFn = path instanceof Function ? path : pathMatcher(path);
 
     const views = this.context.events.map(
       async (route: RouteEvent, prevView?: RouteView) => {
         if (prevView) {
-          if (pathStartsWith(route.path, prevView.resolution.appliedPath)) {
+          const prevResolution = prevView.resolution;
+          if (
+            path
+              ? pathStartsWith(route.path, prevResolution.appliedPath)
+              : route.path.length === 0
+          ) {
             return prevView;
           }
         }

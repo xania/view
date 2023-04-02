@@ -4,43 +4,27 @@ import "./root.scss";
 import "./body.scss";
 
 export function ExamplesApp() {
-  const routeMaps: [
-    string,
-    RouteMapInput["path"],
-    RouteMapInput["component"]
-  ][] = [
-    ["Counter", ["counter"], () => import("./counter").then((e) => e.App())],
-    ["Clock", ["clock"], () => import("./clock").then((e) => e.App())],
-    ["Time", ["time"], () => import("./time").then((e) => e.App())],
-    [
-      "Invoices",
-      ["invoices"],
-      (ctx: RouteContext) => import("./invoices").then((e) => e.App(ctx)),
-    ],
-    [
-      "Home",
-      (p) => (p.length === 0 ? [] : null),
-      () => import("./clock").then((e) => e.App()),
-    ],
-  ];
-
   return (
     <>
-      <section>
-        <a class="router-link" href="/">
-          home
-        </a>
-        <a class="router-link" href="/tabs">
-          tabs
-        </a>
-        {routeMaps.map((r) => (
-          <a class="router-link" href={"/" + r[1]}>
-            {r[0]}
-          </a>
-        ))}
-      </section>
       <div class={classes["outlet"]}>
         <WebApp>
+          <Route>
+            <a class="router-link" href="/">
+              home
+            </a>
+            <a class="router-link" href="/clock">
+              counter
+            </a>
+            <a class="router-link" href="/tabs">
+              tabs
+            </a>
+            <a class="router-link" href="/time">
+              time
+            </a>
+            <a class="router-link" href="/clock">
+              clock
+            </a>
+          </Route>
           <Route path={"clock"}>
             {() => import("./clock").then((e) => e.App())}
           </Route>

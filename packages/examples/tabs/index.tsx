@@ -32,11 +32,15 @@ export function App() {
         </div>
       </Page>
       <Page>
+        <Route path="a">
+          <div>Wait for it...</div>
+        </Route>
         {delay(
           <Route path="a">
-            Wait for it...{() => delay(<div>a</div>, 2000)}
+            <div>Almost there....</div>
+            {() => delay(<div>a</div>, 2000)}
           </Route>,
-          5000
+          2000
         )}
         <Route path="b">{() => <div>b</div>}</Route>
         <Route path="c">

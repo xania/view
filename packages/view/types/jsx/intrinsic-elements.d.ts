@@ -31,17 +31,10 @@
     [P in keyof T]: T[P] extends U ? P : never;
   }[keyof T];
 
-  // HTMLElementTagNameMap
-
   type IntrinsicElements = {
     [P in keyof TagNameMap]: TagNameMap[P] &
       ElementChildrenAttribute &
       ElementCustomAttributes;
-    // div: E<{ class?: string }>;
-    // header: E<{ class: string }>;
-    // button: E<{ class: string; click: Function }>;
-    // span: E<{ class: string }>;
-    // p: E<{ class: string }>;
   };
 
   interface ElementCustomAttributes {
