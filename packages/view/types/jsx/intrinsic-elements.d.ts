@@ -39,12 +39,15 @@
 
   interface ElementCustomAttributes {
     class?: ClassInput;
+    for?: AttrValue<Value>;
+    role?: AttrValue<Value>;
+    tabindex?: AttrValue<Value>;
     className?: ClassInput;
     style?: AttrValue<Value>;
   }
 
   interface ElementChildrenAttribute {
-    children?: Element | MaybePromise<Element>[];
+    children?: MaybePromise<Element> | MaybePromise<Element>[];
   }
 
   type Children = ElementChildrenAttribute['children'];

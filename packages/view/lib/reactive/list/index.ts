@@ -8,7 +8,7 @@ export function List<T>(props: ListExpression<T>) {
 export class ListExpression<T = any> {
   constructor(
     public source: Stateful<T[]> | T[],
-    public children: (item: State<T>, dispose: Command) => JSX.Children
+    public children: (item: State<T>, dispose: Command) => JSX.Element
   ) {}
 }
 

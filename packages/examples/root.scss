@@ -6,9 +6,6 @@ body {
   box-sizing: border-box;
   position: fixed;
   overflow: hidden;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
 }
 
 .outline {
@@ -20,7 +17,7 @@ body {
 .router-link {
   text-decoration: none;
   margin: 10px;
-  color: inherit;
+  color: white;
 }
 
 .mdc-top-app-bar {

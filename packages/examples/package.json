@@ -9,7 +9,9 @@
     "import": "./index.tsx"
   },
   "devDependencies": {
-    "sass": "latest"
+    "sass": "latest",
+    "tailwindcss": "^3.3.1"
   },
-  "main": "index.tsx"
+  "main": "index.tsx",
+  "dependencies": {}
 }

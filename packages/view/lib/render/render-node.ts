@@ -25,7 +25,11 @@ export function applyClassList(
   classList: ElementDescriptor['classList']
 ) {
   if (classList) {
-    target.classList.add(...classList);
+    try {
+      target.classList.add(...classList);
+    } catch (err) {
+      debugger;
+    }
   }
 }
 
