@@ -1,42 +1,77 @@
 ﻿import { Value } from '@xania/state';
-import { render, suspense, unrender } from '@xania/view';
+import {
+  Component,
+  DomDescriptorType,
+  isDomDescriptor,
+  render,
+  suspense,
+  tmap,
+  unrender,
+} from '@xania/view';
 import {
   createRouteResolver,
   Path,
+  pathMatcher,
+  Route,
   RouteContext,
-  RouteMapInput,
+  RouteProps,
   RouteResolution,
 } from '../core';
 
 interface RouterProps<TView> {
   context: RouteContext;
-  routeMaps: RouteMapInput<TView>[];
+  children: JSX.Template<TView>;
   loader?: any;
 }
 
 export function Router(props: RouterProps<any>) {
-  const { context, loader } = props;
-  const { routes } = context;
+  const { context, loader, children } = props;
+  const { events } = context;
 
-  const rootResolve = createRouteResolver(props.routeMaps);
+  return tmap(children, function mapRoutes(child): any {
+    if (child instanceof Component) {
+      if (child.func === Route) return new RouteHandler(context, child.props);
+      else return child;
+    } else if (isDomDescriptor(child)) {
+      switch (child.type) {
+        case DomDescriptorType.Element:
+          if (child.children) {
+            return {
+              ...child,
+              children: tmap(child.children, mapRoutes),
+            };
+          }
+        default:
+          return child;
+      }
+    } else {
+      return child;
+    }
+  });
+
+  const rootResolve = createRouteResolver(
+    children instanceof Array ? children : [children]
+  );
 
   return {
     attachTo(target: HTMLElement) {
-      const views = routes.map(async (route: Route, prevView?: RouteView) => {
-        const resolution = await rootResolve(route.path);
-        if (!resolution) {
-          return null;
-        }
-        if (prevView) {
-          if (
-            prevView &&
-            matchPath(prevView.resolution.appliedPath, resolution.appliedPath)
-          ) {
-            return prevView;
+      const views = events.map(
+        async (route: RouteEvent, prevView?: RouteView) => {
+          const resolution = await rootResolve(route.path);
+          if (!resolution) {
+            return null;
           }
+          if (prevView) {
+            if (
+              prevView &&
+              matchPath(prevView.resolution.appliedPath, resolution.appliedPath)
+            ) {
+              return prevView;
+            }
+          }
+          return new RouteView(resolution, context, render(loader, target));
         }
-        return new RouteView(resolution, context, render(loader, target));
-      });
+      );
 
       return [
         views.subscribe({
@@ -58,7 +93,7 @@ export function Router(props: RouterProps<any>) {
 }
 
 function relativeTo(prefix: Path) {
-  return (route: Route) => {
+  return (route: RouteEvent) => {
     if (route.path.length < prefix.length) {
       return undefined;
     }
@@ -69,7 +104,7 @@ function relativeTo(prefix: Path) {
       }
     }
 
-    const relative: Route = {
+    const relative: RouteEvent = {
       ...route,
       path: route.path.slice(prefix.length),
     }; //
@@ -81,7 +116,7 @@ function relativeTo(prefix: Path) {
 class RouteView implements RouteContext {
   public path: Path;
   public fullpath: Path;
-  public routes: Value<Route>;
+  public events: Value<RouteEvent>;
 
   constructor(
     public resolution: RouteResolution,
@@ -90,11 +125,11 @@ class RouteView implements RouteContext {
   ) {
     this.path = resolution.appliedPath;
     this.fullpath = [...parent.fullpath, ...resolution.appliedPath];
-    this.routes = parent.routes.map(relativeTo(resolution.appliedPath));
+    this.events = parent.events.map(relativeTo(resolution.appliedPath));
   }
 
   dispose() {
-    this.routes.dispose();
+    this.events.dispose();
   }
 
   view() {
@@ -135,7 +170,7 @@ function matchPath(x: Path, y: Path) {
   return true;
 }
 
-export interface Route {
+export interface RouteEvent {
   path: Path;
   trigger: RouteTrigger;
 }
@@ -144,4 +179,70 @@ export enum RouteTrigger {
   Click,
   Location,
   PopState,
+}
+
+class RouteHandler {
+  constructor(public context: RouteContext, public props: RouteProps<any>) {}
+  attachTo(target: HTMLElement) {
+    const { path } = this.props;
+
+    const matchFn =
+      path instanceof Function
+        ? path
+        : pathMatcher(path instanceof Array ? path : path.split('/'));
+
+    const views = this.context.events.map(
+      async (route: RouteEvent, prevView?: RouteView) => {
+        if (prevView) {
+          if (
+            prevView &&
+            pathEqual(route.path, prevView.resolution.appliedPath)
+          ) {
+            return prevView;
+          }
+        }
+
+        const segment = await matchFn(route.path);
+        if (!segment) {
+          return null;
+        }
+
+        const appliedPath = route.path.slice(0, segment.length);
+
+        const resolution = {
+          appliedPath,
+          component: this.props.children,
+          params: segment.params,
+        } satisfies RouteResolution<any>;
+
+        return new RouteView(resolution, this.context, null);
+      }
+    );
+
+    return views.subscribe({
+      prev: undefined as any,
+      async next(v) {
+        const view = await v;
+        const { prev } = this;
+        if (prev) {
+          unrender(prev);
+        }
+        if (view) {
+          this.prev = render(view, target);
+        }
+      },
+    });
+
+    // return render(this.props.children, target);
+  }
+}
+
+function pathEqual(p1: Path, p2: Path) {
+  if (p1.length !== p2.length) return false;
+
+  for (let i = 0; i < p1.length; i++) {
+    if (p1[i] !== p2[i]) return false;
+  }
+
+  return true;
 }

@@ -11,7 +11,7 @@ export function browserRoutes(virtualPath: Path) {
   const clicks$ = clicks();
 
   return {
-    routes: merge(locations$, clicks$, popStates$)
+    events: merge(locations$, clicks$, popStates$)
       .pipe(distinct('pathname'))
       .map(({ trigger, pathname }) => ({
         trigger,

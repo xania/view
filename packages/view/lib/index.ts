@@ -5,3 +5,4 @@ export * from './tpl';
 export * from './reactive';
 export * from './intrinsic';
 export * from './disposable';
+export * from './component';

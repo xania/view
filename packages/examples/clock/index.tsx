@@ -1,4 +1,4 @@
-﻿import { state } from "@xania/view";
+﻿import { state, update } from "@xania/view";
 import classes from "./clock.module.scss";
 import { delay } from "../utils";
 
@@ -14,13 +14,13 @@ export function App() {
 
 export function Clock() {
   var now = state(0);
-  const update = function* update() {
+  const tick = update(function* () {
     const d = new Date();
     yield now.update(d.getTime() - d.getTimezoneOffset() * 60000);
 
     // schedule update after 1 sec
-    yield delay(update, 1000);
-  };
+    yield delay(tick, 1000);
+  });
 
   function transform(fn: (d: number) => number) {
     return (d: number) => `transform: rotate(${fn(d)}deg);`;
@@ -28,7 +28,7 @@ export function Clock() {
 
   return (
     <>
-      {update}
+      {tick}
       <section>
         <div class={classes["label"]}>SEIKO</div>
         <div

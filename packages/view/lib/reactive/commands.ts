@@ -8,13 +8,13 @@ export class UpdateStateCommand<T = any> {
   ) {}
 }
 
-// export class UpdateCommand {
-//   constructor(
-//     public updateFn: (scope: {
-//       get<T>(s: Stateful<T>): T | undefined;
-//     }) => JSX.MaybePromise<Generator<Command> | Command>
-//   ) {}
-// }
+export class UpdateCommand {
+  constructor(
+    public updateFn: (scope: {
+      get<T>(s: Stateful<T>): T | undefined;
+    }) => Generator<JSX.MaybePromise<Command>> | Command
+  ) {}
+}
 
 export type UpdateFunction = (scope: {
   get<T>(s: Stateful<T>): T | undefined;
@@ -25,14 +25,18 @@ export class ListMutationCommand<T = any> {
 }
 
 export type Command =
-  | UpdateFunction
+  | UpdateCommand
   | UpdateStateCommand<any>
   | ListMutationCommand;
 
 export function isCommand(value: any): value is Command {
   return (
-    value instanceof Function ||
+    value instanceof UpdateCommand ||
     value instanceof UpdateStateCommand ||
     value instanceof ListMutationCommand
   );
+}
+
+export function update(updateFn: UpdateCommand['updateFn']) {
+  return new UpdateCommand(updateFn);
 }

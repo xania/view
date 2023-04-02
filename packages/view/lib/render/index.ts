@@ -20,6 +20,7 @@ import {
 import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
 import { isSubscribable } from '../reactive/observable';
+import { Component } from '../component';
 
 export function render(
   rootChildren: JSX.Element,
@@ -27,7 +28,7 @@ export function render(
   domFactory: DomFactory = document
 ): any {
   function traverse(
-    stack: [RenderContext, RenderTarget, JSX.Element][]
+    stack: [RenderContext, RenderTarget, JSX.MaybePromise<JSX.Element>][]
   ): Promise<any>[] {
     const promises: Promise<any>[] = [];
     while (stack.length) {
@@ -44,9 +45,16 @@ export function render(
       } else if (curr.constructor === Number) {
         const textNode = domFactory.createTextNode(curr.toString());
         currentTarget.appendChild(textNode);
+      } else if (curr instanceof Function) {
+        const funcResult = curr();
+        if (funcResult) {
+          stack.push([context, currentTarget, funcResult]);
+        }
       } else if (curr.constructor === String) {
         const textNode = domFactory.createTextNode(curr);
         currentTarget.appendChild(textNode);
+      } else if (curr instanceof Component) {
+        stack.push([context, currentTarget, curr.execute()]);
       } else if (curr instanceof State) {
         const stateNode = domFactory.createTextNode('..');
         currentTarget.appendChild(stateNode);

@@ -1,4 +1,6 @@
-﻿export type BindFunction<T, U> = (
+﻿import { isIterable } from './utils';
+
+export type BindFunction<T, U> = (
   x: NonNullable<T>,
   ...args: any[]
 ) => JSX.Template<U>;
@@ -7,12 +9,14 @@ export function templateBind<T, U>(
   rootChildren: JSX.Template<T>,
   binder: BindFunction<T, U>,
   ...args: any[]
-): JSX.Template<U> {
+): JSX.MaybePromise<JSX.Template<U>> {
   const output: JSX.MaybePromise<NonNullable<U>>[] = [];
 
   return traverse([rootChildren]);
 
-  function traverse(stack: JSX.Template<T>[]): JSX.Template<U> {
+  function traverse(
+    stack: JSX.MaybePromise<JSX.Template<T>>[]
+  ): JSX.MaybePromise<JSX.Template<U>> {
     while (stack.length) {
       const curr = stack.pop()!;
 
@@ -20,6 +24,9 @@ export function templateBind<T, U>(
         for (let i = curr.length - 1; i >= 0; i--) {
           stack.push(curr[i]);
         }
+      } else if (curr instanceof Function) {
+        const retval = curr();
+        if (retval) stack.push(retval);
       } else if (curr instanceof Promise) {
         // wait for completion of curr, then resume traverse
         return curr.then((resolved) => (stack.push(resolved), traverse(stack)));
@@ -66,19 +73,4 @@ export function templateAppend<U>(output: U[], additions: JSX.MaybeArray<U>) {
   } else {
     output.push(additions);
   }
-}
-
-export function isIterable<T>(obj: any): obj is Iterable<T> {
-  if (!obj) return false;
-  return (
-    obj.constructor !== String &&
-    Symbol.iterator &&
-    obj?.[Symbol.iterator] instanceof Function
-  );
-}
-
-export function isAsyncIterable<T>(obj: any): obj is AsyncIterable<T> {
-  return (
-    Symbol.asyncIterator && obj?.[Symbol.asyncIterator] instanceof Function
-  );
 }

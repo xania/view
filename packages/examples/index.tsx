@@ -1,18 +1,28 @@
-﻿import { RouteContext, WebApp, routeMap } from "@xania/router";
+﻿import { Route, RouteContext, RouteMapInput, WebApp } from "@xania/router";
 import classes from "./webapp.module.scss";
 import "./root.scss";
 import "./body.scss";
 
 export function ExamplesApp() {
-  const routeMaps = [
-    ["counter", () => import("./counter").then((e) => e.App())],
-    ["clock", () => import("./clock").then((e) => e.App())],
-    ["time", () => import("./time").then((e) => e.App())],
+  const routeMaps: [
+    string,
+    RouteMapInput["path"],
+    RouteMapInput["component"]
+  ][] = [
+    ["Counter", ["counter"], () => import("./counter").then((e) => e.App())],
+    ["Clock", ["clock"], () => import("./clock").then((e) => e.App())],
+    ["Time", ["time"], () => import("./time").then((e) => e.App())],
     [
-      "invoices",
+      "Invoices",
+      ["invoices"],
       (ctx: RouteContext) => import("./invoices").then((e) => e.App(ctx)),
     ],
-  ] as const;
+    [
+      "Home",
+      (p) => (p.length === 0 ? [] : null),
+      () => import("./clock").then((e) => e.App()),
+    ],
+  ];
 
   return (
     <>
@@ -20,16 +30,30 @@ export function ExamplesApp() {
         <a class="router-link" href="/">
           home
         </a>
+        <a class="router-link" href="/tabs">
+          tabs
+        </a>
         {routeMaps.map((r) => (
-          <a class="router-link" href={"/" + r[0]}>
+          <a class="router-link" href={"/" + r[1]}>
             {r[0]}
           </a>
         ))}
       </section>
       <div class={classes["outlet"]}>
-        {WebApp({
-          routeMaps: routeMaps.map((r) => routeMap(r[0].split("/"), r[1])),
-        })}
+        <WebApp>
+          <Route path={"clock"}>
+            {() => import("./clock").then((e) => e.App())}
+          </Route>
+          <Route path={"counter"}>
+            {() => import("./counter").then((e) => e.App())}
+          </Route>
+          <Route path={"time"}>
+            {() => import("./time").then((e) => e.App())}
+          </Route>
+          <Route path={"tabs"}>
+            {() => import("./tabs").then((e) => e.App())}
+          </Route>
+        </WebApp>
       </div>
     </>
   );

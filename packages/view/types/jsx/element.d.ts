@@ -38,5 +38,7 @@
   type Nothing = null | undefined | void;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
-  type Template<T> = MaybePromise<Nothing | Just<T> | Template<T>[]>;
+  type Template<T> =
+    | MaybePromise<Nothing | Just<T> | Template<T>[]>
+    | (() => MaybePromise<Template<T>>);
 }

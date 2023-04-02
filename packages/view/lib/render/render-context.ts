@@ -5,6 +5,7 @@ import {
   ListMutationCommand,
   Stateful,
   StateMapper,
+  UpdateCommand,
   UpdateStateCommand,
 } from '../reactive';
 import { ListMutation } from '../reactive/list/mutation';
@@ -100,8 +101,8 @@ export class RenderContext {
     const context = this;
     return templateBind(commands, async (message: Command) => {
       if (this.disposed) return;
-      if (message instanceof Function) {
-        return this.applyCommands(message(context) as any) as any;
+      if (message instanceof UpdateCommand) {
+        return this.applyCommands(message.updateFn(context) as any) as any;
       }
 
       const state = message.state;

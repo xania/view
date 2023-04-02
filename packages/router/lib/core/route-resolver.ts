@@ -50,14 +50,19 @@ export function createRouteResolver<TView>(
     return Promise.resolve(null);
   }
 
-  function compile(routes: RouteMapInput<TView>[] | undefined): Route<TView>[] {
-    const results: Route<TView>[] = [];
+  function compile(
+    routes: RouteMapInput<TView>[] | undefined
+  ): RouteMap<TView>[] {
+    const results: RouteMap<TView>[] = [];
     if (routes instanceof Array) {
       for (const route of routes) {
-        const { match, component } = route;
+        const { path, component } = route;
 
         results.push({
-          match: match instanceof Function ? match : pathMatcher(match),
+          match:
+            path instanceof Function
+              ? path
+              : pathMatcher(path instanceof Array ? path : path.split('/')),
           component,
         });
       }
@@ -66,7 +71,7 @@ export function createRouteResolver<TView>(
   }
 }
 
-function pathMatcher(pathTemplate: PathTemplate) {
+export function pathMatcher(pathTemplate: PathTemplate) {
   const matchers = compilePathTemplate(pathTemplate);
   return (path: Path) => {
     const { length } = pathTemplate;
@@ -105,11 +110,11 @@ export type RouteResolver<TView = any> = (
 export interface RouteResolution<TView = any> {
   appliedPath: string[];
   params?: RouteParams;
-  resolver: RouteResolver<TView>;
+  resolver?: RouteResolver<TView>;
   component: RouteComponentInput<TView> | null;
 }
 
-interface Route<TView> {
+export interface RouteMap<TView> {
   match(path: Path): RouteSegment | Promise<RouteSegment> | null;
   component: RouteComponentInput<TView>;
 }
@@ -130,21 +135,9 @@ function isArrayEmpty(arr: any[]) {
 //   };
 // }
 
-export type RouteComponentInput<TView = any> =
-  | TView
-  | ((context: RouteContext) => TView);
+export type RouteComponentInput<TView = any> = TView;
 
 export interface RouteMapInput<TView = any> {
-  match: Route<TView>['match'] | Path;
+  path: RouteMap<TView>['match'] | Path | string;
   component: RouteComponentInput<TView>;
-}
-
-export function routeMap<TView>(
-  match: RouteMapInput<TView>['match'],
-  component: RouteMapInput<TView>['component']
-): RouteMapInput<TView> {
-  return {
-    match,
-    component,
-  };
 }
