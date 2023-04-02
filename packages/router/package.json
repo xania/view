@@ -2,7 +2,7 @@
   "name": "@xania/router",
   "author": "Ibrahim ben Salah",
   "license": "MIT",
-  "version": "0.0.3-alpha.4",
+  "version": "0.0.4",
   "description": "",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -20,7 +20,7 @@
     "dev": "npx vite --watch build",
     "build": "npm run clean && npx vite build",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm version prerelease && npm run build",
+    "prepublishOnly": "npm version patch && npm run build",
     "lint": "tsc"
   },
   "prettier": {

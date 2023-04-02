@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.5.3-alpha.1",
+  "version": "0.5.5",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -44,7 +44,7 @@
     "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
     "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm version prerelease && npm run build ",
+    "prepublishOnly": "npm version patch && npm run build ",
     "lint": "tsc"
   },
   "prettier": {

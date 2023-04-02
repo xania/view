@@ -2,7 +2,7 @@
 
 import init, { input } from "./init";
 import { Action } from "./actions/action";
-import scaffold from "./scaffold";
+// import scaffold from "./scaffold";
 import { npmInstall } from "./actions/npm";
 import { select } from "enquirer";
 import { run } from "./run";
@@ -12,7 +12,7 @@ checkVersion().then((ok) => {
     input().then(async (inputs) => {
       const [actions, projectPath] = await init(inputs);
       await execute(actions);
-      await scaffold(projectPath).then(execute);
+      // await scaffold(projectPath).then(execute);
 
       await execute([npmInstall(projectPath)]);
     });

@@ -48,7 +48,7 @@ async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
       break;
     case "install from npm":
       actions.push(
-        npmInstall(targetPath, "@xania/view", "@xania/state"),
+        npmInstall(targetPath, "@xania/view"),
         vite(targetPath, {}),
         subgit("xania/view/packages/view", resolve(targetPath, "./xania/view")),
         subgit(
