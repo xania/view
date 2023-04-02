@@ -21,6 +21,7 @@
     "@xania/state": "latest"
   },
   "devDependencies": {
-    "vite": "latest"
+    "vite": "latest",
+    "@types/node": "latest"
   }
 }
