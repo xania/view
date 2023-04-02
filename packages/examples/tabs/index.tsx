@@ -6,8 +6,8 @@
   Route,
 } from "@xania/router";
 import { Page } from "../components/page";
-
 import classes from "./tabs.module.scss";
+import { delay } from "../utils";
 
 export function App() {
   const routes: RouteMapInput[] = [
@@ -32,7 +32,12 @@ export function App() {
         </div>
       </Page>
       <Page>
-        <Route path="a">{() => delay(<div>a</div>, 2000)}</Route>
+        {delay(
+          <Route path="a">
+            Wait for it...{() => delay(<div>a</div>, 2000)}
+          </Route>,
+          5000
+        )}
         <Route path="b">{() => <div>b</div>}</Route>
         <Route path="c">
           <div>c</div>
@@ -41,10 +46,4 @@ export function App() {
       </Page>
     </>
   );
-}
-
-function delay<T>(value: T, millis: number = 400) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), millis);
-  });
 }
