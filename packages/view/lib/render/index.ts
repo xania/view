@@ -265,13 +265,17 @@ export * from './dom-factory';
 export * from './viewable';
 export * from './attachable';
 
-class AnchorTarget {
+class AnchorTarget implements RenderTarget {
   constructor(public anchorNode: Comment) {}
 
   appendChild(child: Node) {
     const { anchorNode } = this;
     const { parentElement } = anchorNode;
     parentElement!.insertBefore(child, anchorNode);
+  }
+
+  addEventListener() {
+    debugger;
   }
 }
 
@@ -282,5 +286,13 @@ class RootTarget {
     const { context, target } = this;
     target.appendChild(child);
     context.nodes.push(child);
+  }
+
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions
+  ) {
+    debugger;
   }
 }

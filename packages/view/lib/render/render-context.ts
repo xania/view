@@ -12,8 +12,9 @@ import { ListMutation } from '../reactive/list/mutation';
 import { BindFunction, templateBind } from '../tpl';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
+import { RenderTarget } from './target';
 
-export class RenderContext {
+export class RenderContext implements RenderTarget {
   public children: RenderContext[] = [];
 
   public nodes: Node[] = [];
@@ -23,7 +24,7 @@ export class RenderContext {
   public disposed = false;
 
   constructor(
-    public container: HTMLElement,
+    public container: RenderTarget,
     public scope = new Map<Stateful | ValueOperator, any>(),
     //    public scope: Scope,4
     public graph: Graph,
@@ -57,6 +58,13 @@ export class RenderContext {
       this.nodes.push(node);
     }
   }
+
+  addEventListener: RenderTarget['addEventListener'] = (
+    eventName,
+    eventHandler
+  ) => {
+    return this.container.addEventListener(eventName, eventHandler);
+  };
 
   applyEvents(target: HTMLElement, events: Record<string, any>) {
     for (const eventName in events) {
@@ -341,7 +349,7 @@ export class Graph {
   }
 }
 
-export class SynthaticElement {
+export class SynthaticElement implements RenderTarget {
   public nodes: Node[] = [];
   public events: any[] = [];
   public attached = false;
@@ -358,6 +366,12 @@ export class SynthaticElement {
       parentElement.insertBefore(node, anchorNode);
     }
   }
+
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions | undefined
+  ): void {}
 
   attach() {
     const { anchorNode } = this;

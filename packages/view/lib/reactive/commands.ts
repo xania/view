@@ -10,9 +10,12 @@ export class UpdateStateCommand<T = any> {
 
 export class UpdateCommand {
   constructor(
-    public updateFn: (scope: {
-      get<T>(s: Stateful<T>): T | undefined;
-    }) => Generator<JSX.MaybePromise<Command>> | Command
+    public updateFn: (
+      this: UpdateCommand,
+      scope: {
+        get<T>(s: Stateful<T>): T | undefined;
+      }
+    ) => Generator<JSX.MaybePromise<Command>> | Command
   ) {}
 }
 

@@ -199,10 +199,7 @@ class RouteHandler {
     const views = this.context.events.map(
       async (route: RouteEvent, prevView?: RouteView) => {
         if (prevView) {
-          if (
-            prevView &&
-            pathEqual(route.path, prevView.resolution.appliedPath)
-          ) {
+          if (pathStartsWith(route.path, prevView.resolution.appliedPath)) {
             return prevView;
           }
         }
@@ -246,16 +243,14 @@ class RouteHandler {
         }
       },
     });
-
-    // return render(this.props.children, target);
   }
 }
 
-function pathEqual(p1: Path, p2: Path) {
-  if (p1.length !== p2.length) return false;
+function pathStartsWith(p1: Path, prefix: Path) {
+  if (p1.length < prefix.length) return false;
 
-  for (let i = 0; i < p1.length; i++) {
-    if (p1[i] !== p2[i]) return false;
+  for (let i = 0; i < prefix.length; i++) {
+    if (p1[i] !== prefix[i]) return false;
   }
 
   return true;

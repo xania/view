@@ -44,14 +44,17 @@ export function ExamplesApp() {
           <Route path={"clock"}>
             {() => import("./clock").then((e) => e.App())}
           </Route>
-          <Route path={"counter"}>
+          <Route path="counter">
             {() => import("./counter").then((e) => e.App())}
           </Route>
-          <Route path={"time"}>
+          <Route path="time">
             {() => import("./time").then((e) => e.App())}
           </Route>
-          <Route path={"tabs"}>
+          <Route path="tabs">
             {() => import("./tabs").then((e) => e.App())}
+            <Route path="a">
+              {() => import("./time").then((e) => e.App())}
+            </Route>
           </Route>
         </WebApp>
       </div>

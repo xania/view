@@ -74,23 +74,17 @@ export function createRouteResolver<TView>(
 export function pathMatcher(pathTemplate: PathTemplate) {
   const matchers = compilePathTemplate(pathTemplate);
   return (path: Path) => {
-    const { length } = pathTemplate;
-    if ((length === 0 && path.length > 0) || length > path.length) {
-      return null;
-    }
     const params = {};
-    for (var i = 0; i < length; i++) {
-      const match = matchers[i](path[i]);
-      if (!match) {
-        return null;
-      } else if (match !== true) {
-        Object.assign(params, match);
-      }
+    let applied = 0;
+    for (let i = 0, len = matchers.length; i < len; i++) {
+      const matcher = matchers[i];
+      const match = matcher(path, applied);
+      if (match === false) return null;
+      const { length, ...rest } = match;
+      applied += length;
+      Object.assign(params, rest);
     }
-    return {
-      length: length,
-      params,
-    } as RouteSegment;
+    return { length: applied, params } as RouteSegment;
   };
 }
 

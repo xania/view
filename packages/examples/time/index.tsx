@@ -1,4 +1,4 @@
-﻿import { state, UpdateFunction } from "@xania/view";
+﻿import { state, update, UpdateFunction } from "@xania/view";
 import { Page } from "../components/page";
 import { delay } from "../utils";
 
@@ -14,15 +14,13 @@ export function App() {
   const time = state(timeToString());
   const count = state(100);
 
-  const update: UpdateFunction = function* (scope) {
-    yield time.update(timeToString);
-    const ms = scope.get(count);
-    yield delay(update, ms);
-  };
-
   return (
     <>
-      {update}
+      {update(function* (scope) {
+        yield time.update(timeToString);
+        const ms = scope.get(count);
+        yield delay(this, ms);
+      })}
       <Page>
         <h1>Time</h1>
         <div>{time}</div>
