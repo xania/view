@@ -31,7 +31,12 @@ export function Router(props: RouterProps<any>) {
   return tmap(children, function mapRoutes(child): any {
     if (child instanceof Component) {
       if (child.func === Route) return new RouteHandler(context, child.props);
-      else return child;
+      else if (child.props?.children) {
+        return new Component(child.func, {
+          ...child.props,
+          children: tmap(child.props.children, mapRoutes),
+        });
+      } else return child;
     } else if (isDomDescriptor(child)) {
       switch (child.type) {
         case DomDescriptorType.Element:
@@ -209,9 +214,18 @@ class RouteHandler {
 
         const appliedPath = route.path.slice(0, segment.length);
 
+        const routeContext = {
+          path: appliedPath,
+          fullpath: [...this.context.fullpath, ...appliedPath],
+          events: this.context.events.map(relativeTo(appliedPath)),
+        };
+
         const resolution = {
           appliedPath,
-          component: this.props.children,
+          component: Router({
+            context: routeContext,
+            children: this.props.children,
+          }),
           params: segment.params,
         } satisfies RouteResolution<any>;
 

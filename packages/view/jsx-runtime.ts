@@ -6,7 +6,9 @@ import { Component } from './lib/component';
 type nameOrFunction = string | Function;
 
 export function jsx(name: nameOrFunction, props?: any) {
-  if (name instanceof Function) {
+  if (name === Fragment) {
+    return Fragment(props);
+  } else if (name instanceof Function) {
     return new Component(name, props);
   }
 

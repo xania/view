@@ -7,6 +7,7 @@
   type ListExpression = import('../../lib').ListExpression;
   type Command = import('../../lib').Command;
   type UpdateFunction = import('../../lib').UpdateFunction;
+  type Component = import('../../lib').Component;
   type Disposable = { dispose(): any };
 
   type Primitive = string | number;
@@ -25,7 +26,8 @@
     | IfExpression
     | ListExpression
     | Disposable
-    | Command;
+    | Command
+    | Component;
 
   /**
    * True type of an element is the <code>TagDescriptor</code> not JSX>Element,

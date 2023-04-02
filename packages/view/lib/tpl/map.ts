@@ -1,9 +1,10 @@
-﻿import { isIterable } from './utils';
+﻿import { Component } from '../component';
+import { isIterable } from './utils';
 
 export function tmap<T, U>(
   template: JSX.Template<T>,
   map: (x: T) => U
-): JSX.Template<U> {
+): JSX.MaybePromise<JSX.Template<U>> {
   const retval: JSX.Template<U>[] = [];
   const stack = [template];
   while (stack.length) {
@@ -16,7 +17,9 @@ export function tmap<T, U>(
         stack.push(curr[i]);
       }
     } else if (curr instanceof Promise) {
-      retval.push(curr.then((resolved) => tmap(resolved, map)));
+      retval.push(
+        curr.then((resolved) => tmap(resolved, map)) as JSX.Template<U>
+      );
     } else if (isIterable(curr)) {
       // console.log('async iter', curr);
       const arr: any[] = [];
@@ -24,10 +27,12 @@ export function tmap<T, U>(
         if (x) arr.unshift(x);
       }
       stack.push(...arr);
+    } else if (curr instanceof Function) {
+      retval.push(() => tmap(curr() as any, map));
     } else {
       retval.push(map(curr));
     }
   }
 
-  return retval;
+  return retval as any;
 }
