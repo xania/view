@@ -7,6 +7,10 @@ export function App() {
       completed: true,
       label: "Get the milk",
     },
+    {
+      completed: false,
+      label: "Say hi",
+    },
   ]);
   return (
     <>
@@ -33,23 +37,25 @@ interface NewTodoProps {
 }
 
 function NewTodo(props: NewTodoProps) {
-  const newTodoText = state("");
-  function onNewTodoKeyUp(e: JSX.EventContext<Event, HTMLInputElement>) {
+  function onNewTodoKeyUp(
+    e: JSX.EventContext<KeyboardEvent, HTMLInputElement>
+  ) {
     const label = e.currentTarget.value;
-    // if (e.key === "Enter" && label) {
-    //   const newItem: TodoItem = {
-    //     label,
-    //     completed: false
-    //   };
-    //   props.onNew(newItem);
-    //   // newTodoText.select(e.node);
-    // }
+    if (e.key === "Enter" && label) {
+      const newItem: TodoItem = {
+        label,
+        completed: false,
+      };
+
+      e.currentTarget.value = "";
+      // newTodoText.select(e.node);
+      return [props.onNew(newItem)];
+    }
   }
   return (
     <input
       class={classes["new-todo"]}
       placeholder="What needs to be done?"
-      value={newTodoText}
       keyup={onNewTodoKeyUp}
     />
   );
@@ -118,16 +124,13 @@ function TodoList(props: TodoListProps) {
       <List source={items}>
         {(row, dispose) => (
           <li
-          // class={[
-          //   editing,
-          //   row.map((x) => (x.completed ? "completed" : null)),
-          // ]}
+            class={row.map((x) => (x.completed ? classes["completed"] : null))}
           >
             <div class={classes["view"]}>
               <input
                 class={classes["toggle"]}
                 type="checkbox"
-                // checked={row.get("completed")}
+                checked={row.get("completed")}
                 change={(e) =>
                   row.get("completed").update(e.currentTarget.checked)
                 }

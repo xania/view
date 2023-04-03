@@ -5,18 +5,31 @@ export interface Stateful<T = any> {
 }
 
 export class State<T = any> implements Stateful<T> {
+  // cache properties so that a single StateProperty instance is created for each unique property key.
+  // update command can target this instance to identify necessary changes.
+  properties?: { [P in keyof T]?: StateProperty<T, P> };
+
   constructor(public initial?: JSX.MaybePromise<T | undefined>) {}
 
   map<U>(mapper: (x: T) => JSX.MaybePromise<U>): StateMapper<T, U> {
     return new StateMapper<T, U>(this, mapper);
   }
 
-  prop<K extends keyof T>(key: K): StateMapper<T, T[K]> {
-    return new StateMapper<T, T[K]>(this, (obj) => obj[key]);
+  prop<K extends keyof T>(key: K): StateProperty<T, K> {
+    const properties: this['properties'] =
+      this.properties ?? (this.properties = {});
+
+    const prop = properties[key];
+    if (prop) return prop;
+
+    const sp = new StateProperty(this, key);
+    properties[key] = sp;
+
+    return sp;
   }
   get = this.prop;
 
-  toggle(tru: boolean, fals: boolean) {
+  toggle<U>(tru: U, fals: U) {
     return this.map((x) => (x ? tru : fals));
   }
 
@@ -31,6 +44,12 @@ export class StateMapper<T, U> extends State<U> {
     public mapper: (x: T) => JSX.MaybePromise<U>
   ) {
     super(map(source.initial, mapper));
+  }
+}
+
+export class StateProperty<T, K extends keyof T> extends State<T[K]> {
+  constructor(public source: Stateful<T>, public name: K) {
+    super(map(source.initial, (x) => x[name]));
   }
 }
 

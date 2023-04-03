@@ -1,5 +1,5 @@
 ﻿declare namespace JSX {
-  type ClassValue = string | string[];
+  type ClassValue = null | undefined | string | string[] | Stateful<ClassValue>;
 
   export type ClassInput = ClassInput[] | ClassValue | Promise<ClassValue>;
 }

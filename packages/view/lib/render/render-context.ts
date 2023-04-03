@@ -5,6 +5,7 @@ import {
   ListMutationCommand,
   Stateful,
   StateMapper,
+  StateProperty,
   UpdateCommand,
   UpdateStateCommand,
 } from '../reactive';
@@ -130,6 +131,21 @@ export class RenderContext implements RenderTarget {
             const changes = context.sync(operators, newValue);
             if (applyChange) return templateBind(changes, applyChange);
           }
+
+          if (state instanceof StateProperty) {
+            let root = state.source;
+
+            while (root instanceof StateProperty) {
+              root = root.source;
+            }
+
+            const rootValue = context.get(root);
+            const operators = this.graph.operatorsMap.get(root);
+            if (operators) {
+              const changes = context.sync(operators, rootValue);
+              if (applyChange) return templateBind(changes, applyChange);
+            }
+          }
         }
       } else if (message instanceof ListMutationCommand) {
         const { mutation } = message;
@@ -197,11 +213,36 @@ export class RenderContext implements RenderTarget {
           case 'text':
             operator.text.data = newValue;
             break;
-          case 'prop':
+          case 'set':
             operator.object[operator.prop] = newValue;
             break;
+          case 'add':
+            const prevList: any[] | undefined = context.scope.get(operator);
+            const newList: any[] | undefined = newValue;
+            if (newList) {
+              for (const x of newList) {
+                operator.list.add(x);
+              }
+              if (prevList) {
+                for (const x of prevList) {
+                  if (!newList.includes(x)) {
+                    operator.list.remove(x);
+                  }
+                }
+              }
+            } else if (prevList) {
+              for (const x of prevList) {
+                operator.list.remove(x);
+              }
+            }
+            context.scope.set(operator, newList);
+            break;
+          case 'get':
           case 'map':
-            const mappedValue = operator.map(newValue);
+            const mappedValue =
+              operator.type === 'map'
+                ? operator.map(newValue)
+                : newValue[operator.prop];
             if (this.set(operator, mappedValue)) {
               if (mappedValue instanceof Promise) {
                 promises.push(
@@ -246,30 +287,38 @@ export class RenderContext implements RenderTarget {
     return Promise.all(promises);
   }
 
-  async initialize(state: Stateful) {}
-
   async valueOperator(state: Stateful, operator: ValueOperator) {
     const { operatorsMap } = this.graph;
 
-    if (state instanceof StateMapper && !operatorsMap.has(state)) {
-      await this.valueOperator(state.source, {
-        type: 'map',
-        map: state.mapper,
-        target: state,
-      });
-    }
-
-    if (!this.scope.has(state)) {
-      const init = await state.initial;
-
-      if (init instanceof Array) {
-        this.scope.set(state, init.slice(0));
-      } else {
-        this.scope.set(state, init);
+    if (!operatorsMap.has(state)) {
+      if (state instanceof StateMapper) {
+        await this.valueOperator(state.source, {
+          type: 'map',
+          map: state.mapper,
+          target: state,
+        });
+      } else if (state instanceof StateProperty) {
+        await this.valueOperator(state.source, {
+          type: 'get',
+          prop: state.name,
+          target: state,
+        });
       }
     }
 
-    const currentValue = this.scope.get(state);
+    if (operator.type === 'reconcile') {
+      if (!this.scope.has(state)) {
+        const init = await state.initial;
+
+        if (init instanceof Array) {
+          this.scope.set(state, init.slice(0));
+        } else {
+          this.scope.set(state, init);
+        }
+      }
+    }
+
+    const currentValue = this.get(state);
 
     if (operatorsMap.has(state)) {
       operatorsMap.get(state)!.push(operator);
@@ -281,18 +330,40 @@ export class RenderContext implements RenderTarget {
   }
 
   get(state: NonNullable<any>): any {
-    return this.scope.get(state);
+    if (state instanceof StateProperty) {
+      const currentSource = this.get(state.source);
+      if (currentSource === null || currentSource === undefined) {
+        return currentSource;
+      }
+      return currentSource[state.name];
+    } else {
+      return this.scope.get(state);
+    }
   }
 
-  set(state: NonNullable<any>, newValue: any) {
+  set(state: NonNullable<any>, newValue: any): boolean {
     const { scope } = this;
 
-    const currentValue = scope.get(state);
-    if (newValue === currentValue) {
-      return false;
+    if (state instanceof StateProperty) {
+      const currentSource = scope.get(state.source);
+      if (currentSource) {
+        if (currentSource[state.name] !== newValue) {
+          currentSource[state.name] = newValue;
+          return true;
+        } else {
+          return false;
+        }
+      } else {
+        return this.set(state.source, { [state.name]: newValue });
+      }
     } else {
-      scope.set(state, newValue);
-      return true;
+      const currentValue = scope.get(state);
+      if (newValue === currentValue) {
+        return false;
+      } else {
+        scope.set(state, newValue);
+        return true;
+      }
     }
   }
 }
@@ -301,9 +372,11 @@ export type ValueOperator =
   | ViewOperator
   | TextOperator
   | MapOperator
-  | PropertyOperator
+  | GetOperator
+  | SetOperator
   // | EventOperator
-  | ReconcileOperator<any, any>;
+  | ReconcileOperator<any, any>
+  | AddOperator<any>;
 
 // interface EventOperator {
 //   type: 'event';
@@ -313,10 +386,21 @@ interface TextOperator {
   text: Text;
 }
 
-interface PropertyOperator {
-  type: 'prop';
+interface AddOperator<T = any> {
+  type: 'add';
+  list: { add(x: T): any; remove(x: T): any };
+}
+
+interface SetOperator {
+  type: 'set';
   object: Record<string, string>;
   prop: string;
+}
+
+interface GetOperator {
+  type: 'get';
+  prop: string;
+  target: Stateful;
 }
 
 export interface ViewOperator {

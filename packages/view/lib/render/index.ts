@@ -174,8 +174,33 @@ export function render(
             const element = domFactory.createElement(curr.name);
             currentTarget.appendChild(element);
 
-            if (curr.classList) {
-              applyClassList(element as HTMLElement, curr.classList);
+            const { classList } = curr;
+            if (classList) {
+              try {
+                const stack: any[] = [classList];
+                while (stack.length) {
+                  const curr = stack.pop();
+                  if (curr === undefined || curr === null) {
+                    // ignore
+                  } else if (curr instanceof Array) {
+                    stack.push(...curr);
+                  } else if (curr instanceof State) {
+                    context.valueOperator(curr.map(split), {
+                      type: 'add',
+                      list: element.classList,
+                    });
+                  } else if (curr.constructor === String) {
+                    for (const item of curr.split(' ')) {
+                      const cl = item.trim();
+                      if (cl) {
+                        element.classList.add(cl);
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                debugger;
+              }
             }
 
             const { attrs } = curr;
@@ -187,7 +212,7 @@ export function render(
                   // ignore
                 } else if (value instanceof State) {
                   context.valueOperator(value, {
-                    type: 'prop',
+                    type: 'set',
                     object: target,
                     prop: name,
                   });
@@ -297,4 +322,13 @@ class RootTarget {
   ) {
     debugger;
   }
+}
+
+const emptyArr: string[] = [];
+
+function split(x: string): string[] {
+  if (x === null) {
+    return emptyArr;
+  }
+  return x.split(' ');
 }

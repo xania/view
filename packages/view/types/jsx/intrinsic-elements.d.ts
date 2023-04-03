@@ -9,7 +9,7 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T> | Stateful<Primitive>;
+  type AttrValue<T> = T | Promise<T> | Stateful<T>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;

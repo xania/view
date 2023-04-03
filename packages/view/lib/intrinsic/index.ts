@@ -1,4 +1,5 @@
-﻿import {
+﻿import { State } from '../reactive';
+import {
   DomDescriptor,
   DomDescriptorType,
   AttrDescriptor,
@@ -32,6 +33,9 @@ export function intrinsic(
               else template.classList = [cl];
             }
           }
+        } else if (attrValue instanceof State) {
+          if (template.classList) template.classList.push(attrValue);
+          else template.classList = [attrValue];
         } else if (attrValue) {
           const classList = attrValue.split(' ');
           if (template.classList) template.classList.push(...classList);
