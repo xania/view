@@ -306,17 +306,17 @@ export class RenderContext implements RenderTarget {
       }
     }
 
-    if (operator.type === 'reconcile') {
-      if (!this.scope.has(state)) {
-        const init = await state.initial;
+    // if (operator.type === 'reconcile') {
+    if (!this.scope.has(state)) {
+      const init = await state.initial;
 
-        if (init instanceof Array) {
-          this.scope.set(state, init.slice(0));
-        } else {
-          this.scope.set(state, init);
-        }
+      if (init instanceof Array) {
+        this.scope.set(state, init.slice(0));
+      } else {
+        this.scope.set(state, init);
       }
     }
+    // }
 
     const currentValue = this.get(state);
 

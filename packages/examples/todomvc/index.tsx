@@ -117,14 +117,17 @@ interface TodoListProps {
 function TodoList(props: TodoListProps) {
   const { items } = props;
   // const row = useContext<TodoItem>();
-  const editing = state(false);
+  const editing = state(true);
 
   return (
     <ul class={classes["todo-list"]}>
       <List source={items}>
         {(row, dispose) => (
           <li
-            class={row.map((x) => (x.completed ? classes["completed"] : null))}
+            class={[
+              editing.map((x) => (!x ? classes["editing"] : null)),
+              row.map((x) => (x.completed ? classes["completed"] : null)),
+            ]}
           >
             <div class={classes["view"]}>
               <input
@@ -135,7 +138,9 @@ function TodoList(props: TodoListProps) {
                   row.get("completed").update(e.currentTarget.checked)
                 }
               />
-              <label dblclick={row.update((x) => x)}>{row.get("label")}</label>
+              <label dblclick={editing.update((x) => !x)}>
+                {row.get("label")}
+              </label>
               <button class={classes["destroy"]} click={dispose}></button>
             </div>
             <input
