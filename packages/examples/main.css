@@ -1,3 +1,24 @@
 ﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+section {
+  border: 1px solid lightgray;
+  border-radius: 10p;
+  padding: 10px;
+}
+
+.router-link {
+  text-decoration: none;
+  margin: 10px;
+  color: white;
+}

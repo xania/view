@@ -1,20 +1,15 @@
 ﻿import { Route, WebApp } from "@xania/router";
 import classes from "./webapp.module.scss";
-import "./root.scss";
-import "./body.scss";
+import "./main.css";
 import "./dist/output.css";
 
 export function ExamplesApp() {
   return (
     <>
+      <Navigation />
       <div class={classes["outlet"]}>
         <WebApp>
-          <Route>
-            <Navigation />
-          </Route>
-          <Route path={"clock"}>
-            {() => import("./clock").then((e) => e.App())}
-          </Route>
+          <Route>{() => import("./clock").then((e) => e.App())}</Route>
           <Route path="counter">
             {() => import("./counter").then((e) => e.App())}
           </Route>
@@ -82,44 +77,20 @@ function Navigation() {
                 <img
                   class="block h-8 w-auto lg:hidden"
                   src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                  alt="Your Company"
+                  alt="Xania"
                 />
                 <img
                   class="hidden h-8 w-auto lg:block"
                   src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                  alt="Your Company"
+                  alt="Xania"
                 />
               </div>
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
-                  <a
-                    href="#"
-                    class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium"
-                    aria-current="page"
-                  >
-                    Dashboard
-                  </a>
-
-                  <a
-                    href="#"
-                    class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                  >
-                    Team
-                  </a>
-
-                  <a
-                    href="#"
-                    class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                  >
-                    Projects
-                  </a>
-
-                  <a
-                    href="#"
-                    class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium"
-                  >
-                    Calendar
-                  </a>
+                  <MenuItem title="Clock" current={true} href="/" />
+                  {/* <MenuItem title="Counter" href="/counter" />
+                  <MenuItem title="Tabs" href="/tabs" />
+                  <MenuItem title="Time" href="/time" /> */}
                 </div>
               </div>
             </div>
@@ -162,7 +133,7 @@ function Navigation() {
                     />
                   </button>
                 </div>
-                <div
+                {/* <div
                   class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                   role="menu"
                   aria-orientation="vertical"
@@ -196,7 +167,7 @@ function Navigation() {
                   >
                     Sign out
                   </a>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -204,14 +175,7 @@ function Navigation() {
 
         <div class="sm:hidden" id="mobile-menu">
           <div class="space-y-1 px-2 pb-3 pt-2">
-            <a
-              href="#"
-              class="bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-              aria-current="page"
-            >
-              Dashboard
-            </a>
-
+            <MobileMenuItem title="Dashboard" />
             <a
               href="#"
               class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
@@ -234,23 +198,34 @@ function Navigation() {
             </a>
           </div>
         </div>
-
-        <a class="router-link" href="/">
-          home
-        </a>
-        <a class="router-link" href="/counter">
-          counter
-        </a>
-        <a class="router-link" href="/tabs">
-          tabs
-        </a>
-        <a class="router-link" href="/time">
-          time
-        </a>
-        <a class="router-link" href="/clock">
-          clock
-        </a>
       </nav>
     </>
+  );
+}
+
+function MenuItem(props: { title: string; current?: boolean; href: string }) {
+  const clazz = props.current
+    ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
+    : "text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium";
+
+  return (
+    <a
+      href={props.href}
+      class={["router-link", clazz]}
+      aria-current={props.current && "page"}
+    >
+      {props.title}
+    </a>
+  );
+}
+
+function MobileMenuItem(props: { title: string; current?: boolean }) {
+  return (
+    <a
+      href="#"
+      class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+    >
+      Team
+    </a>
   );
 }

@@ -26,7 +26,20 @@ export function applyClassList(
 ) {
   if (classList) {
     try {
-      target.classList.add(...classList);
+      const stack: any[] = [classList];
+      while (stack.length) {
+        const curr = stack.pop()!;
+        if (curr instanceof Array) {
+          stack.push(...curr);
+        } else if (curr?.constructor === String) {
+          for (const item of curr.split(' ')) {
+            const cl = item.trim();
+            if (cl) {
+              target.classList.add(cl);
+            }
+          }
+        }
+      }
     } catch (err) {
       debugger;
     }

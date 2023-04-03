@@ -8,6 +8,9 @@
   "exports": {
     "import": "./index.tsx"
   },
+  "scripts": {
+    "dev": "npx tailwindcss -i ./main.css -o ./dist/output.css --watch"
+  },
   "devDependencies": {
     "sass": "latest",
     "tailwindcss": "^3.3.1"
