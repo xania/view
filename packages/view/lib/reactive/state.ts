@@ -14,6 +14,7 @@ export class State<T = any> implements Stateful<T> {
   prop<K extends keyof T>(key: K): StateMapper<T, T[K]> {
     return new StateMapper<T, T[K]>(this, (obj) => obj[key]);
   }
+  get = this.prop;
 
   toggle(tru: boolean, fals: boolean) {
     return this.map((x) => (x ? tru : fals));

@@ -42,7 +42,7 @@ export function Clock() {
                 <div id={classes["sh"]}>
                   <div class={classes["hh"]}>
                     <div
-                      style={now.map(transform(hours, "1.9em"))}
+                      style={now.map(transform(hours))}
                       class={classes["h"]}
                     ></div>
                   </div>

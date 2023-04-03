@@ -1,11 +1,17 @@
 ﻿export type ListMutation<T> =
   | AddRowMutation<T>
+  | FilterRowMutation<T>
   | DisposeRowMutation
   | RemoveRowMutation;
 
 interface AddRowMutation<T> {
   type: 'add';
   itemOrGetter: T | ((arr: T[]) => T);
+}
+
+interface FilterRowMutation<T> {
+  type: 'filter';
+  filter: (item: T) => boolean;
 }
 
 interface DisposeRowMutation {

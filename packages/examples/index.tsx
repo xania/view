@@ -22,6 +22,7 @@ export function ExamplesApp() {
               {() => import("./time").then((e) => e.App())}
             </Route>
           </Route>
+          <Route path="todo">{import("./todomvc").then((e) => e.App())}</Route>
         </WebApp>
       </div>
     </>
@@ -88,6 +89,7 @@ function Navigation() {
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
                   <MenuItem title="Clock" current={true} href="/" />
+                  <MenuItem title="Todo" href="/todo" />
                   {/* <MenuItem title="Counter" href="/counter" />
                   <MenuItem title="Tabs" href="/tabs" />
                   <MenuItem title="Time" href="/time" /> */}
@@ -175,27 +177,7 @@ function Navigation() {
 
         <div class="sm:hidden" id="mobile-menu">
           <div class="space-y-1 px-2 pb-3 pt-2">
-            <MobileMenuItem title="Dashboard" />
-            <a
-              href="#"
-              class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >
-              Team
-            </a>
-
-            <a
-              href="#"
-              class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >
-              Projects
-            </a>
-
-            <a
-              href="#"
-              class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
-            >
-              Calendar
-            </a>
+            <MobileMenuItem title="Clock" href="/" />
           </div>
         </div>
       </nav>
@@ -206,7 +188,7 @@ function Navigation() {
 function MenuItem(props: { title: string; current?: boolean; href: string }) {
   const clazz = props.current
     ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-    : "text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium";
+    : "hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-base font-medium";
 
   return (
     <a
@@ -219,13 +201,18 @@ function MenuItem(props: { title: string; current?: boolean; href: string }) {
   );
 }
 
-function MobileMenuItem(props: { title: string; current?: boolean }) {
+function MobileMenuItem(props: {
+  title: string;
+  current?: boolean;
+  href: string;
+}) {
   return (
     <a
-      href="#"
-      class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+      href={props.href}
+      class="router-link text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+      aria-current={props.current && "page"}
     >
-      Team
+      {props.title}
     </a>
   );
 }

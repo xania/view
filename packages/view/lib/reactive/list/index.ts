@@ -16,11 +16,18 @@ export function listSource<T>(value?: JSX.MaybePromise<T[]>) {
   return new ListSource(value);
 }
 
-class ListSource<T> extends State<T[]> {
+export class ListSource<T> extends State<T[]> {
   push<T>(itemOrGetter: T | ((arr: T[]) => T)) {
     return new ListMutationCommand(this, {
       type: 'add',
       itemOrGetter,
+    });
+  }
+
+  filter(f: (item: T) => boolean) {
+    return new ListMutationCommand(this, {
+      type: 'filter',
+      filter: f,
     });
   }
 }

@@ -5,6 +5,11 @@
 .Clock {
   text-align: center;
   flex: 1;
+  box-sizing: content-box;
+
+  * {
+    box-sizing: content-box;
+  }
 
   .credits {
     color: gray;
@@ -14,12 +19,12 @@
   }
 
   .credits a {
-    color: rgba(146, 239, 255, 0.267);
+    color: rgba(60, 154, 170, 0.795);
     text-decoration: none;
   }
 
   .credits a:hover {
-    color: rgb(146, 239, 255);
+    color: rgb(12, 103, 119);
   }
 }
 

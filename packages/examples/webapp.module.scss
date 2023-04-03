@@ -26,11 +26,13 @@ $height: 80px;
   padding: 0;
   margin: 0;
   flex: 1;
+  flex-direction: column;
   display: flex;
 
-  background-color: #282c34;
+  padding-top: 30px;
 
-  justify-content: center;
+  background-color: #f3f3f3;
+
   align-items: center;
 
   overflow: auto;
