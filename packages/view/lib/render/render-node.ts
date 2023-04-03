@@ -25,7 +25,24 @@ export function applyClassList(
   classList: ElementDescriptor['classList']
 ) {
   if (classList) {
-    target.classList.add(...classList);
+    try {
+      const stack: any[] = [classList];
+      while (stack.length) {
+        const curr = stack.pop()!;
+        if (curr instanceof Array) {
+          stack.push(...curr);
+        } else if (curr?.constructor === String) {
+          for (const item of curr.split(' ')) {
+            const cl = item.trim();
+            if (cl) {
+              target.classList.add(cl);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      debugger;
+    }
   }
 }
 

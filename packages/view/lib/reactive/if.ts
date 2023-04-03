@@ -5,16 +5,14 @@ export interface IfProps {
   children: JSX.Children;
 }
 
-export function If(props: IfProps): JSX.Children {
+export async function If(props: IfProps): Promise<JSX.Children> {
   if (props.condition instanceof Promise) {
-    return props.condition.then((resolved) =>
-      If({ ...props, condition: resolved })
-    );
-  }
-  if (props.condition instanceof State) {
-    return new IfExpression(props.condition, props.children);
+    const condition = await props.condition;
+    return If({ condition, children: props.children });
+  } else if (props.condition instanceof State) {
+    return new IfExpression(props.condition, props.children as JSX.Element);
   } else if (props.condition) {
-    return props.children;
+    return props.children as JSX.Element;
   } else {
     return null;
   }
@@ -23,6 +21,6 @@ export function If(props: IfProps): JSX.Children {
 export class IfExpression {
   constructor(
     public condition: JSX.Stateful<boolean>,
-    public content: JSX.Children
+    public content: JSX.Element
   ) {}
 }

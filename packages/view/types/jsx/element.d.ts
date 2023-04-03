@@ -1,4 +1,13 @@
-﻿declare module JSX {
+﻿interface Promise<T> {
+  /**
+   * just by redefining `then` from Promise interface where we simplify type definitions,
+   * this greatly simplifies e.g. render method and resolves / eliminate many weird typescript
+   * errors
+   */
+  then<U>(resolve: (x: T) => U | Promise<U>): Promise<U>;
+}
+
+declare module JSX {
   type DomDescriptor = import('../../lib/intrinsic/descriptors').DomDescriptor;
   type Viewable = import('../../lib/render/viewable').Viewable;
   type Attachable = import('../../lib/render/attachable').Attachable;
@@ -38,9 +47,13 @@
 
   type Just<T> = T;
   type Nothing = null | undefined | void;
+  // type Future<T> = Promise<T>; // | Promise<Future<T>>;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
   type Template<T> =
-    | MaybePromise<Nothing | Just<T> | Template<T>[]>
-    | (() => MaybePromise<Template<T>>);
+    | Nothing
+    | Just<T>
+    | Template<T>[]
+    | Promise<Template<T>>
+    | (() => Template<T>);
 }

@@ -1,13 +1,11 @@
-﻿import { Template } from './template';
-
-export function reduce<T>(
-  template: Template<T>,
+﻿export function reduce<T>(
+  template: JSX.Template<T>,
   reducer: (x: T, y: T) => T
 ): JSX.MaybePromise<T | null> {
   let acc: T | null = null;
-  const stack: Template<T>[] = [];
+  const stack: JSX.Template<T>[] = [];
 
-  function traverse(initial: Template<T>): JSX.MaybePromise<T | null> {
+  function traverse(initial: JSX.Template<T>): JSX.MaybePromise<T | null> {
     if (initial !== null && initial !== undefined) {
       stack.push(initial);
     }
@@ -20,6 +18,8 @@ export function reduce<T>(
         }
       } else if (curr instanceof Promise) {
         return curr.then(traverse);
+      } else if (curr instanceof Function) {
+        stack.push(curr());
       } else if (curr !== null && curr !== undefined) {
         if (acc === null) {
           acc = curr;

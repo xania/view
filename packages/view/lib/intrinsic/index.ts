@@ -33,8 +33,9 @@ export function intrinsic(
             }
           }
         } else if (attrValue) {
-          if (template.classList) template.classList.push(attrValue);
-          else template.classList = [attrValue];
+          const classList = attrValue.split(' ');
+          if (template.classList) template.classList.push(...classList);
+          else template.classList = classList;
         }
       } else if (isEventKey(attrName)) {
         const eventHandler: JSX.EventHandler = attrValue;

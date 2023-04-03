@@ -1,5 +1,5 @@
 ﻿import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
-import { applyAttributes, applyClassList } from './render-node';
+import { applyClassList } from './render-node';
 import type { RenderTarget } from './target';
 import {
   Graph,
@@ -26,7 +26,7 @@ export function render(
   rootChildren: JSX.Element,
   container: HTMLElement,
   domFactory: DomFactory = document
-): any {
+): JSX.Template<RenderContext> {
   function traverse(
     stack: [RenderContext, RenderTarget, JSX.MaybePromise<JSX.Element>][]
   ): Promise<any>[] {
@@ -183,7 +183,9 @@ export function render(
               const target = element as HTMLElement & Record<string, any>;
               for (let i = 0, len = attrs.length; i < len; i++) {
                 const { name, value } = attrs[i];
-                if (value instanceof State) {
+                if (value === null || value === undefined) {
+                  // ignore
+                } else if (value instanceof State) {
                   context.valueOperator(value, {
                     type: 'prop',
                     object: target,

@@ -1,5 +1,4 @@
-﻿import { Component } from '../component';
-import { isIterable } from './utils';
+﻿import { isIterable } from './utils';
 
 export function tmap<T, U>(
   template: JSX.Template<T>,
