@@ -216,7 +216,7 @@ export class RenderContext implements RenderTarget {
           case 'set':
             operator.object[operator.prop] = newValue;
             break;
-          case 'add':
+          case 'list':
             const prevList: any[] | undefined = context.scope.get(operator);
             const newList: any[] | undefined = newValue;
             if (newList) {
@@ -272,6 +272,9 @@ export class RenderContext implements RenderTarget {
             } else {
               operator.element.detach();
             }
+            break;
+          case 'effect':
+            operator.effect(newValue, operator.node);
             break;
           // case 'event':
           //   res.push({ state: node });
@@ -376,7 +379,8 @@ export type ValueOperator =
   | SetOperator
   // | EventOperator
   | ReconcileOperator<any, any>
-  | AddOperator<any>;
+  | ListOperator<any>
+  | EffectOperator;
 
 // interface EventOperator {
 //   type: 'event';
@@ -386,8 +390,14 @@ interface TextOperator {
   text: Text;
 }
 
-interface AddOperator<T = any> {
-  type: 'add';
+interface EffectOperator<T = any> {
+  type: 'effect';
+  node: Node;
+  effect: (value: T, node: Node) => void;
+}
+
+interface ListOperator<T = any> {
+  type: 'list';
   list: { add(x: T): any; remove(x: T): any };
 }
 

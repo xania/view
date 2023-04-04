@@ -17,17 +17,19 @@ declare module JSX {
   type Command = import('../../lib').Command;
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Component = import('../../lib').Component;
+  type StateEffect<T> = import('../../lib').StateEffect<T>;
   type Disposable = { dispose(): any };
 
   type Primitive = string | number;
 
-  interface Stateful<T = any> {
+  interface State<T = any> {
     initial?: JSX.MaybePromise<T | undefined>;
   }
 
   type Value =
     | Primitive
-    | Stateful<Primitive>
+    | State<Primitive>
+    | StateEffect<T>
     | DomDescriptor
     | Program
     | Viewable

@@ -22,7 +22,9 @@ export function ExamplesApp() {
               {() => import("./time").then((e) => e.App())}
             </Route>
           </Route>
-          <Route path="todo">{import("./todomvc").then((e) => e.App())}</Route>
+          <Route path="todo">
+            {() => import("./todomvc").then((e) => e.App())}
+          </Route>
         </WebApp>
       </div>
     </>

@@ -26,7 +26,7 @@
   };
 
   type TagEvents<TElement> = {
-    [E in keyof HTMLElementEventMap]?: EventHandler<E, TElement>;
+    [E in keyof HTMLElementEventMap]?: MaybeArray<EventHandler<E, TElement>>;
   };
 
   type Command = import('../../lib/reactive/commands').Command;

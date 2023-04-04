@@ -16,6 +16,7 @@ import {
   ListExpression,
   ListMutationCommand,
   State,
+  StateEffect,
 } from '../reactive';
 import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
@@ -62,6 +63,14 @@ export function render(
           context.valueOperator(curr, {
             type: 'text',
             text: stateNode,
+          })
+        );
+      } else if (curr instanceof StateEffect) {
+        promises.push(
+          context.valueOperator(curr.state, {
+            type: 'effect',
+            node: currentTarget as any,
+            effect: curr.effect,
           })
         );
       } else if (curr instanceof ListExpression) {
@@ -186,7 +195,7 @@ export function render(
                     stack.push(...curr);
                   } else if (curr instanceof State) {
                     context.valueOperator(curr.map(split), {
-                      type: 'add',
+                      type: 'list',
                       list: element.classList,
                     });
                   } else if (curr.constructor === String) {

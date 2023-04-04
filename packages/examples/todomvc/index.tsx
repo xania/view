@@ -1,4 +1,11 @@
-﻿import { If, List, listSource, ListSource, state } from "@xania/view";
+﻿import {
+  Attachable,
+  If,
+  List,
+  listSource,
+  ListSource,
+  state,
+} from "@xania/view";
 import classes from "./index.module.scss";
 
 export function App() {
@@ -117,7 +124,7 @@ interface TodoListProps {
 function TodoList(props: TodoListProps) {
   const { items } = props;
   // const row = useContext<TodoItem>();
-  const editing = state(true);
+  const editing = state(false);
 
   return (
     <ul class={classes["todo-list"]}>
@@ -125,7 +132,7 @@ function TodoList(props: TodoListProps) {
         {(row, dispose) => (
           <li
             class={[
-              editing.map((x) => (!x ? classes["editing"] : null)),
+              editing.map((x) => (x ? classes["editing"] : null)),
               row.map((x) => (x.completed ? classes["completed"] : null)),
             ]}
           >
@@ -138,15 +145,13 @@ function TodoList(props: TodoListProps) {
                   row.get("completed").update(e.currentTarget.checked)
                 }
               />
-              <label dblclick={editing.update((x) => !x)}>
-                {row.get("label")}
-              </label>
+              <label dblclick={editing.update(true)}>{row.get("label")}</label>
               <button class={classes["destroy"]} click={dispose}></button>
             </div>
             <input
               class={classes["edit"]}
               value={row.get("label")}
-              blur={editing.update(false)}
+              focusout={editing.update(false)}
               keyup={(evnt) => {
                 // if (evnt.key === "Enter") {
                 //   evnt.data.label = evnt.currentTarget.value;
@@ -157,6 +162,9 @@ function TodoList(props: TodoListProps) {
                 // }
               }}
             >
+              {editing.effect(focusInput)}
+              {/* <If condition={editing}>{attach(focusInput)}</If> */}
+              {/* {editing.effect(focusInput)} */}
               {/* {editing.attach(focusInput)} */}
               {/* {$((_, { key, node }) =>
               currentEditing.pipe(
@@ -177,9 +185,10 @@ interface TodoItem {
   completed: boolean;
 }
 
-function focusInput(inputElt: HTMLInputElement) {
-  setTimeout(() => {
-    inputElt.focus();
-    inputElt.setSelectionRange(0, inputElt.value.length);
-  });
+function focusInput(editing: boolean, node: Node) {
+  if (editing && node instanceof HTMLInputElement)
+    setTimeout(() => {
+      node.focus();
+      node.setSelectionRange(0, node.value.length);
+    });
 }

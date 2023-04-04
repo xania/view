@@ -1,6 +1,4 @@
-﻿import { Template } from '../tpl';
-
-export function ready(result: Template): Promise<any> {
+﻿export function ready(result: JSX.Template): Promise<any> {
   if (result instanceof Array) {
     return Promise.all(result);
   }
