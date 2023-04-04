@@ -47,7 +47,7 @@
   }
 
   interface ElementChildrenAttribute {
-    children?: Template<Value>;
+    children?: Template<Value | (() => Template<Value>)>;
   }
 
   type Children = ElementChildrenAttribute['children'];

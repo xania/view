@@ -57,5 +57,5 @@ declare module JSX {
     | Just<T>
     | Template<T>[]
     | Promise<Template<T>>
-    | (() => Template<T>);
+    | Iterable<T>;
 }

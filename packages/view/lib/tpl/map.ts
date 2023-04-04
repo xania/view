@@ -1,11 +1,11 @@
 ﻿import { isIterable } from './utils';
 
-export function tmap<T, U>(
+export function tmap<T = any, U = any>(
   template: JSX.Template<T>,
   map: (x: T) => U
 ): JSX.MaybePromise<JSX.Template<U>> {
   const retval: JSX.Template<U>[] = [];
-  const stack = [template];
+  const stack: any[] = [template];
   while (stack.length) {
     const curr = stack.pop()!;
 
@@ -19,19 +19,21 @@ export function tmap<T, U>(
       retval.push(
         curr.then((resolved) => tmap(resolved, map)) as JSX.Template<U>
       );
+    } else if (curr instanceof TemplateIterator) {
+      console.log(curr);
     } else if (isIterable(curr)) {
       // console.log('async iter', curr);
-      const arr: any[] = [];
-      for (const x of curr) {
-        if (x) arr.unshift(x);
-      }
-      stack.push(...arr);
-    } else if (curr instanceof Function) {
-      retval.push(() => tmap(curr() as any, map));
+      const iter = curr[Symbol.iterator]();
+      stack.push(new TemplateIterator(iter));
+      throw Error('not yet implemented');
     } else {
       retval.push(map(curr));
     }
   }
 
   return retval as any;
+}
+
+class TemplateIterator<T = any> {
+  constructor(public iter: Iterator<T>) {}
 }

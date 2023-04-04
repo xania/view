@@ -1,11 +1,10 @@
 ﻿import { DomDescriptorType, isDomDescriptor } from '../intrinsic/descriptors';
-import { applyClassList } from './render-node';
 import type { RenderTarget } from './target';
 import {
   Graph,
   RenderContext,
   SynthaticElement,
-  ViewOperator,
+  ShowOperator,
 } from './render-context';
 import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
@@ -22,14 +21,16 @@ import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
 import { isSubscribable } from '../reactive/observable';
 import { Component } from '../component';
+import { isIterable } from '../tpl/utils';
+import { TemplateIterator } from '../tpl/iterator';
 
 export function render(
-  rootChildren: JSX.Element,
+  rootChildren: JSX.Children,
   container: HTMLElement,
   domFactory: DomFactory = document
 ): JSX.Template<RenderContext> {
   function traverse(
-    stack: [RenderContext, RenderTarget, JSX.MaybePromise<JSX.Element>][]
+    stack: [RenderContext, RenderTarget, JSX.Children][]
   ): Promise<any>[] {
     const promises: Promise<any>[] = [];
     while (stack.length) {
@@ -43,6 +44,12 @@ export function render(
             stack.push([context, currentTarget, item]);
           }
         }
+      } else if (curr instanceof TemplateIterator) {
+        const next = curr.iter.next();
+        if (!next.done) {
+          stack.push([context, currentTarget, curr]);
+        }
+        stack.push([context, currentTarget, next.value]);
       } else if (curr.constructor === Number) {
         const textNode = domFactory.createTextNode(curr.toString());
         currentTarget.appendChild(textNode);
@@ -52,7 +59,7 @@ export function render(
           stack.push([context, currentTarget, funcResult]);
         }
       } else if (curr.constructor === String) {
-        const textNode = domFactory.createTextNode(curr);
+        const textNode = domFactory.createTextNode(curr as string);
         currentTarget.appendChild(textNode);
       } else if (curr instanceof Component) {
         stack.push([context, currentTarget, curr.execute()]);
@@ -155,17 +162,21 @@ export function render(
           );
         }
       } else if (curr instanceof IfExpression) {
-        const anchorNode = domFactory.createComment('ifx');
-        currentTarget.appendChild(anchorNode);
+        const condition = curr.condition;
+        if (condition instanceof State) {
+          const anchorNode = domFactory.createComment('ifx');
+          currentTarget.appendChild(anchorNode);
 
-        const synthElt = new SynthaticElement(anchorNode);
-        stack.push([context, synthElt, curr.content]);
-        const viewOperator: ViewOperator = {
-          type: 'view',
-          element: synthElt,
-        };
-        promises.push(context.valueOperator(curr.condition, viewOperator));
-
+          const synthElt = new SynthaticElement(anchorNode);
+          stack.push([context, synthElt, curr.content]);
+          const showOperator: ShowOperator = {
+            type: 'show',
+            element: synthElt,
+          };
+          promises.push(context.valueOperator(condition, showOperator));
+        } else if (condition) {
+          stack.push([context, currentTarget, curr.content]);
+        }
         // console.log(curr);
       } else if (curr instanceof Promise) {
         promises.push(
@@ -257,7 +268,8 @@ export function render(
         context.subscriptions.push(
           curr.subscribe({
             next(newValue) {
-              context.applyCommands(newValue as any);
+              debugger;
+              // context.handleCommand(newValue as any);
               // textNode.data = newValue?.toString() ?? '';
             },
           })
@@ -267,7 +279,9 @@ export function render(
       } else if (isSubscription(curr)) {
         context.subscriptions.push(curr);
       } else if (isCommand(curr)) {
-        context.applyCommands(curr);
+        context.handleCommands(curr);
+      } else if (isIterable(curr)) {
+        stack.push([context, currentTarget, new TemplateIterator(curr as any)]);
       } else {
         console.log('unknown', curr);
       }
@@ -328,3 +342,9 @@ function split(x: string): string[] {
   }
   return x.split(' ');
 }
+
+export * from './unrender';
+export * from './ready';
+export * from './dom-factory';
+export * from './viewable';
+export * from './attachable';

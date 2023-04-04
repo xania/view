@@ -1,7 +1,7 @@
 ﻿import { Path } from './path';
 import { RouteMap } from './route-resolver';
 
-export function Route(props: RouteProps<JSX.Element>) {
+export function Route(props: RouteProps<JSX.Children>) {
   return `error route [${props.path}]`;
 }
 

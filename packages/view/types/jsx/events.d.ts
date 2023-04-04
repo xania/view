@@ -34,10 +34,7 @@
   type EventHandler<
     E extends keyof HTMLElementEventMap = any,
     TElement = any
-  > =
-    | EventHandlerFn<E, TElement>
-    | EventHandlerObj<E, TElement>
-    | MaybePromise<Command>;
+  > = EventHandlerFn<E, TElement> | EventHandlerObj<E, TElement> | Command;
 
   type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
     handleEvent: EventHandlerFn<E, TElement>;
