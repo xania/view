@@ -4,9 +4,11 @@
   List,
   listSource,
   ListSource,
+  State,
   state,
 } from "@xania/view";
 import classes from "./index.module.scss";
+import { delay } from "../utils";
 
 export function App() {
   const items = listSource<TodoItem>([
@@ -153,25 +155,15 @@ function TodoList(props: TodoListProps) {
               value={row.get("label")}
               focusout={editing.update(false)}
               keyup={(evnt) => {
-                // if (evnt.key === "Enter") {
-                //   evnt.data.label = evnt.currentTarget.value;
-                //   items.update(() => [evnt.data]);
-                //   editing.clear();
-                // } else if (evnt.event.key === "Escape") {
-                //   editing.clear();
-                // }
+                if (evnt.key === "Enter") {
+                  return [
+                    editing.update(false),
+                    row.get("label").update(evnt.currentTarget.value),
+                  ];
+                }
               }}
             >
-              {editing.effect(focusInput)}
-              {/* <If condition={editing}>{attach(focusInput)}</If> */}
-              {/* {editing.effect(focusInput)} */}
-              {/* {editing.attach(focusInput)} */}
-              {/* {$((_, { key, node }) =>
-              currentEditing.pipe(
-                Ro.filter((x) => x === key),
-                Ro.map(() => focusInput(node as HTMLInputElement))
-              )
-            )} */}
+              {focusWhen(editing)}
             </input>
           </li>
         )}
@@ -185,10 +177,16 @@ interface TodoItem {
   completed: boolean;
 }
 
-function focusInput(editing: boolean, node: Node) {
-  if (editing && node instanceof HTMLInputElement)
-    setTimeout(() => {
-      node.focus();
-      node.setSelectionRange(0, node.value.length);
-    });
+function focusWhen(editing: State<boolean>) {
+  return {
+    attachTo(node: HTMLInputElement) {
+      return editing.effect((e) => {
+        if (editing && node instanceof HTMLInputElement)
+          setTimeout(() => {
+            node.focus();
+            node.setSelectionRange(0, node.value.length);
+          });
+      });
+    },
+  };
 }

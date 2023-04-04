@@ -37,16 +37,13 @@ export class State<T = any> implements Stateful<T> {
     return new UpdateStateCommand<T>(this, valueOrUpdater);
   }
 
-  effect(fn: (value: T, node: Node) => void) {
+  effect(fn: (value: T) => void) {
     return new StateEffect(this, fn);
   }
 }
 
 export class StateEffect<T = any> {
-  constructor(
-    public state: Stateful,
-    public effect: (value: T, node: Node) => void
-  ) {}
+  constructor(public state: Stateful, public effect: (value: T) => void) {}
 }
 
 export class StateMapper<T, U> extends State<U> {

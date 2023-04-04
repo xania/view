@@ -248,24 +248,11 @@ export function render(
       } else if (isViewable(curr)) {
         stack.push([context, currentTarget, curr.view()]);
       } else if (isAttachable(curr)) {
-        promises.push(register([curr.attachTo(currentTarget, domFactory)]));
-
-        async function register(stack: any[]) {
-          while (stack.length) {
-            const res = stack.pop();
-            if (res instanceof Promise) {
-              stack.push(await res);
-            } else if (res instanceof Array) {
-              stack.push(...res);
-            } else if (res) {
-              if (isSubscription(res)) {
-                context.subscriptions.push(res);
-              } else if (isDisposable(res)) {
-                context.disposables.push(res);
-              }
-            }
-          }
-        }
+        stack.push([
+          context,
+          currentTarget,
+          curr.attachTo(currentTarget, domFactory),
+        ]);
       } else if (isSubscribable(curr)) {
         context.subscriptions.push(
           curr.subscribe({
