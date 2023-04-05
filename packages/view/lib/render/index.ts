@@ -273,7 +273,6 @@ export function render(
       } else if (isSubscription(curr)) {
         context.subscriptions.push(curr);
       } else if (isCommand(curr)) {
-        console.log('graph', context.graph);
         context.handleCommands(curr);
       } else if (isIterable(curr)) {
         stack.push([context, currentTarget, new TemplateIterator(curr as any)]);

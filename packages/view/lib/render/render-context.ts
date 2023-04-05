@@ -84,7 +84,6 @@ export class RenderContext implements RenderTarget {
   }
 
   handleCommand = (message: Command): JSX.MaybePromise<Command | undefined> => {
-    console.log(message, this.graph);
     const context = this;
     if (context.disposed) return;
 
@@ -95,8 +94,8 @@ export class RenderContext implements RenderTarget {
     const state = message.state;
     const currentValue = context.get(state);
     if (currentValue instanceof Promise) {
-      return currentValue.then((x) => {
-        context.set(state, currentValue);
+      return currentValue.then((resolved) => {
+        context.set(state, resolved);
         return this.handleCommand(message);
       });
     }
@@ -284,6 +283,22 @@ export class RenderContext implements RenderTarget {
   //   });
   // }
 
+  pending = new Map<ValueOperator, any>();
+  concurrent<O extends ValueOperator>(
+    operator: O,
+    promise: Promise<any>,
+    resolve: (operator: O, resolved: any) => any
+  ) {
+    this.pending.set(operator, promise);
+
+    return promise.then((resolved) => {
+      if (this.pending.get(operator) === promise) {
+        resolve(operator, resolved);
+      }
+      this.pending.delete(operator)
+    });
+  }
+
   sync(operators: ValueOperator[], newValue: any, mutation?: any): any {
     const promises: Promise<any>[] = [];
 
@@ -304,6 +319,13 @@ export class RenderContext implements RenderTarget {
             promises.push(operator.reconcile(newValue, previous, mutation));
             break;
           case 'text':
+            if (newValue instanceof Promise) {
+              this.concurrent(
+                operator,
+                newValue,
+                (operator, resolved) => (operator.text.data = resolved)
+              );
+            }
             operator.text.data = newValue;
             break;
           case 'set':
@@ -402,18 +424,6 @@ export class RenderContext implements RenderTarget {
       }
     }
 
-    // if (operator.type === 'reconcile') {
-    if (!this.scope.has(state)) {
-      const init = state.initial;
-
-      if (init instanceof Array) {
-        this.scope.set(state, init.slice(0));
-      } else {
-        this.scope.set(state, init);
-      }
-    }
-    // }
-
     const currentValue = this.get(state);
 
     if (operatorsMap.has(state)) {
@@ -432,8 +442,10 @@ export class RenderContext implements RenderTarget {
         return currentSource;
       }
       return currentSource[state.name];
-    } else {
+    } else if (this.scope.has(state)) {
       return this.scope.get(state);
+    } else {
+      return state.initial;
     }
   }
 

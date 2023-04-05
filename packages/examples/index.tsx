@@ -91,6 +91,7 @@ function Navigation() {
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
                   <MenuItem title="Clock" current={true} href="/" />
+                  <MenuItem title="Counter" href="/counter" />
                   <MenuItem title="Todo" href="/todo" />
                   {/* <MenuItem title="Counter" href="/counter" />
                   <MenuItem title="Tabs" href="/tabs" />
