@@ -1,4 +1,4 @@
-﻿export function ready(result: JSX.Template): Promise<any> {
+﻿export function ready(result: JSX.Sequence): Promise<any> {
   if (result instanceof Array) {
     return Promise.all(result);
   }

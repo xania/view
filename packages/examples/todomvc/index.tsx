@@ -16,10 +16,10 @@ export function App() {
       completed: true,
       label: "Get the milk",
     },
-    {
-      completed: false,
-      label: "Say hi",
-    },
+    // {
+    //   completed: false,
+    //   label: "Say hi",
+    // },
   ]);
   return (
     <>

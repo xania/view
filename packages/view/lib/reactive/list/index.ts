@@ -1,4 +1,5 @@
-﻿import { Command, ListMutationCommand } from '../commands';
+﻿import { RenderContext } from '../../render/render-context';
+import { Command, ListMutationCommand } from '../commands';
 import { State, Stateful } from '../state';
 
 export function List<T>(props: ListExpression<T>) {
@@ -29,5 +30,11 @@ export class ListSource<T> extends State<T[]> {
       type: 'filter',
       filter: f,
     });
+  }
+}
+
+export class ItemState<T = any> extends State<T> {
+  constructor(public listContext: RenderContext) {
+    super();
   }
 }

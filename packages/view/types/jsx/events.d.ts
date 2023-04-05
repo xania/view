@@ -42,5 +42,5 @@
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
     e: EventContext<HTMLElementEventMap[E], TElement>
-  ) => Template<Command>;
+  ) => Sequence<Command>;
 }

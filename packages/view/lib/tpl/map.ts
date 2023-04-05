@@ -1,10 +1,10 @@
 ﻿import { isIterable } from './utils';
 
 export function tmap<T = any, U = any>(
-  template: JSX.Template<T>,
+  template: JSX.Sequence<T>,
   map: (x: T) => U
-): JSX.MaybePromise<JSX.Template<U>> {
-  const retval: JSX.Template<U>[] = [];
+): JSX.MaybePromise<JSX.Sequence<U>> {
+  const retval: JSX.Sequence<U>[] = [];
   const stack: any[] = [template];
   while (stack.length) {
     const curr = stack.pop()!;
@@ -17,7 +17,7 @@ export function tmap<T = any, U = any>(
       }
     } else if (curr instanceof Promise) {
       retval.push(
-        curr.then((resolved) => tmap(resolved, map)) as JSX.Template<U>
+        curr.then((resolved) => tmap(resolved, map)) as JSX.Sequence<U>
       );
     } else if (curr instanceof TemplateIterator) {
       console.log(curr);

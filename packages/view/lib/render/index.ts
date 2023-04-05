@@ -12,6 +12,7 @@ import { isViewable } from './viewable';
 import {
   IfExpression,
   isCommand,
+  ItemState,
   ListExpression,
   ListMutationCommand,
   State,
@@ -28,7 +29,7 @@ export function render(
   rootChildren: JSX.Children,
   container: HTMLElement,
   domFactory: DomFactory = document
-): JSX.Template<RenderContext> {
+): JSX.Sequence<RenderContext> {
   function traverse(
     stack: [RenderContext, RenderTarget, JSX.Children][]
   ): Promise<any>[] {
@@ -77,7 +78,7 @@ export function render(
           effect: curr.effect,
         });
       } else if (curr instanceof ListExpression) {
-        const item = new State();
+        const item = new ItemState(context);
         const source = curr.source;
 
         const disposeCmd = new ListMutationCommand(item, {
@@ -99,7 +100,7 @@ export function render(
 
                 for (let i = data.length - 1; i >= 0; i--) {
                   const scope = new Map();
-                  scope.set(item, data[i]);
+                  scope.set(item.key, data[i]);
 
                   const childContext = new RenderContext(
                     context.container,
@@ -123,7 +124,7 @@ export function render(
                   case 'add':
                     const newRow = data[data.length - 1];
                     const scope = new Map();
-                    scope.set(item, newRow);
+                    scope.set(item.key, newRow);
 
                     const childContext = new RenderContext(
                       context.container,
@@ -262,9 +263,7 @@ export function render(
         context.subscriptions.push(
           curr.subscribe({
             next(newValue) {
-              debugger;
-              // context.handleCommand(newValue as any);
-              // textNode.data = newValue?.toString() ?? '';
+              context.handleCommand(newValue as any);
             },
           })
         );
@@ -275,7 +274,7 @@ export function render(
       } else if (isCommand(curr)) {
         context.handleCommands(curr);
       } else if (isIterable(curr)) {
-        stack.push([context, currentTarget, new TemplateIterator(curr as any)]);
+        stack.push([context, currentTarget, new TemplateIterator(curr)]);
       } else {
         console.log('unknown', curr);
       }

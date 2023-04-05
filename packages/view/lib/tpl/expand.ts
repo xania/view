@@ -2,13 +2,13 @@
 import { isIterable } from './utils';
 
 export function texpand<T = any>(
-  template: JSX.Template<T>,
-  map: (x: T) => JSX.Template<T>
+  template: JSX.Sequence<T>,
+  map: (x: T) => JSX.Sequence<T>
 ): JSX.MaybePromise<void> {
   return traverse([template]);
   // const stack: JSX.Template<T>[] = [template];
   function traverse(
-    stack: JSX.Template<T | TemplateIterator<T>>[]
+    stack: JSX.Sequence<T | TemplateIterator<T>>[]
   ): JSX.MaybePromise<void> {
     while (stack.length) {
       const curr = stack.pop()!;

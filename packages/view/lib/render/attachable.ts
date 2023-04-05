@@ -2,7 +2,7 @@
 import { RenderTarget } from './target';
 
 export interface Attachable {
-  attachTo(conatiner: RenderTarget, domFactory: DomFactory): JSX.Template<any>;
+  attachTo(conatiner: RenderTarget, domFactory: DomFactory): JSX.Sequence<any>;
 }
 
 export function isAttachable(value: any): value is Attachable {

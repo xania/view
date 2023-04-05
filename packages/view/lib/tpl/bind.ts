@@ -3,20 +3,20 @@
 export type BindFunction<T, U> = (
   x: NonNullable<T>,
   ...args: any[]
-) => JSX.Template<U>;
+) => JSX.Sequence<U>;
 
 export function templateBind<T, U>(
-  rootChildren: JSX.Template<T>,
+  rootChildren: JSX.Sequence<T>,
   binder: BindFunction<T, U>,
   ...args: any[]
-): JSX.MaybePromise<JSX.Template<U>> {
+): JSX.MaybePromise<JSX.Sequence<U>> {
   const output: JSX.MaybePromise<NonNullable<U>>[] = [];
 
   return traverse([rootChildren]);
 
   function traverse(
-    stack: JSX.MaybePromise<JSX.Template<T>>[]
-  ): JSX.MaybePromise<JSX.Template<U>> {
+    stack: JSX.MaybePromise<JSX.Sequence<T>>[]
+  ): JSX.MaybePromise<JSX.Sequence<U>> {
     while (stack.length) {
       const curr = stack.pop()!;
 

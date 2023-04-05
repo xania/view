@@ -19,7 +19,7 @@ import {
 
 interface RouterProps<TView> {
   context: RouteContext;
-  children: JSX.Template<TView>;
+  children: JSX.Sequence<TView>;
   loader?: any;
 }
 

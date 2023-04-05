@@ -4,7 +4,7 @@ import { Disposable, isDisposable } from '../disposable';
 import { isSubscription } from './subscibable';
 import { RenderContext } from './render-context';
 
-export function unrender(result: JSX.Template<Removable | View | Disposable>) {
+export function unrender(result: JSX.Sequence<Removable | View | Disposable>) {
   const stack = [result];
 
   while (stack.length > 0) {

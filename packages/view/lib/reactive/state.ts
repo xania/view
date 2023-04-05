@@ -1,13 +1,12 @@
 ﻿import { UpdateStateCommand } from './commands';
 
 export interface Stateful<T = any> {
+  key: number;
   initial?: JSX.MaybePromise<T | undefined>;
 }
 
 export class State<T = any> implements Stateful<T> {
-  // cache properties so that a single StateProperty instance is created for each unique property key.
-  // update command can target this instance to identify necessary changes.
-  properties?: { [P in keyof T]?: StateProperty<T, P> };
+  public key: number = Math.random();
 
   constructor(public initial?: JSX.MaybePromise<T | undefined>) {}
 
@@ -16,16 +15,7 @@ export class State<T = any> implements Stateful<T> {
   }
 
   prop<K extends keyof T>(key: K): StateProperty<T, K> {
-    const properties: this['properties'] =
-      this.properties ?? (this.properties = {});
-
-    const prop = properties[key];
-    if (prop) return prop;
-
-    const sp = new StateProperty(this, key);
-    properties[key] = sp;
-
-    return sp;
+    return new StateProperty(this, key);
   }
   get = this.prop;
 
@@ -48,30 +38,57 @@ export class StateEffect<T = any> {
 
 export class StateMapper<T, U> extends State<U> {
   constructor(
-    public source: Stateful<T>,
+    public source: State<T>,
     public mapper: (x: T) => JSX.MaybePromise<U>
   ) {
-    super(map(source.initial, mapper));
+    super(mapValue(source.initial, mapper));
   }
 }
 
 export class StateProperty<T, K extends keyof T> extends State<T[K]> {
-  constructor(public source: Stateful<T>, public name: K) {
-    super(map(source.initial, (x) => x[name]));
+  constructor(public source: State<T>, public name: K) {
+    super(mapValue<T, T[K]>(source.initial, (x) => x[name]));
+
+    this.key = source.key + hashCode(name as string);
   }
 }
 
-export function map<T, U>(
-  x: JSX.MaybePromise<T | undefined>,
-  mapper: (x: T) => JSX.MaybePromise<U>
+// export function map<T, U>(
+//   x: JSX.MaybePromise<T | undefined>,
+//   mapper: (x: T) => JSX.MaybePromise<U>
+// ): JSX.MaybePromise<U | undefined> {
+//   if (x === undefined) {
+//     return undefined;
+//   }
+//   if (x instanceof Promise) {
+//     return x.then((resolved) =>
+//       resolved === undefined ? undefined : mapper(resolved)
+//     );
+//   }
+//   return mapper(x);
+// }
+
+export function mapValue<T, U>(
+  current: JSX.MaybePromise<T | undefined> | undefined,
+  mapper: JSX.MaybePromise<U | undefined> | ((x: T) => JSX.MaybePromise<U>)
 ): JSX.MaybePromise<U | undefined> {
-  if (x === undefined) {
-    return undefined;
+  if (mapper instanceof Function) {
+    if (current === undefined) return undefined;
+    if (current instanceof Promise) {
+      return current.then((resolved) => mapValue(resolved, mapper));
+    }
+    return mapper(current);
+  } else {
+    return mapper;
   }
-  if (x instanceof Promise) {
-    return x.then((resolved) =>
-      resolved === undefined ? undefined : mapper(resolved)
-    );
+}
+
+function hashCode(string: string) {
+  var hash = 0;
+  for (var i = 0; i < string.length; i++) {
+    var code = string.charCodeAt(i);
+    hash = (hash << 5) - hash + code;
+    hash = hash & hash; // Convert to 32bit integer
   }
-  return mapper(x);
+  return hash;
 }

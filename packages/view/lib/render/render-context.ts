@@ -3,6 +3,7 @@ import {
   Command,
   isCommand,
   ListMutationCommand,
+  mapValue,
   Stateful,
   StateMapper,
   StateProperty,
@@ -15,6 +16,8 @@ import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
 
+const stateProp = Symbol('state');
+
 export class RenderContext implements RenderTarget {
   public children: RenderContext[] = [];
 
@@ -26,7 +29,7 @@ export class RenderContext implements RenderTarget {
 
   constructor(
     public container: RenderTarget,
-    public scope = new Map<Stateful | ValueOperator, any>(),
+    public scope = new Map<number | ValueOperator, any>(),
     //    public scope: Scope,4
     public graph: Graph,
     public index: number,
@@ -79,7 +82,7 @@ export class RenderContext implements RenderTarget {
     }
   }
 
-  handleCommands(command: JSX.Template<Command>) {
+  handleCommands(command: JSX.Sequence<Command>) {
     return texpand<Command>(command, this.handleCommand);
   }
 
@@ -102,33 +105,10 @@ export class RenderContext implements RenderTarget {
 
     if (message instanceof UpdateStateCommand) {
       const updater = message.updater;
-
       const newValue = mapValue(currentValue, updater);
 
-      if (newValue !== undefined && context.set(state, newValue)) {
-        const operators = this.graph.operatorsMap.get(state);
-        if (operators) {
-          context.sync(operators, newValue);
-        }
-
-        if (state instanceof StateProperty) {
-          let root = state.source;
-
-          while (root instanceof StateProperty) {
-            root = root.source;
-          }
-
-          const rootValue = context.get(root);
-          const operators = this.graph.operatorsMap.get(root);
-          if (operators) {
-            context.sync(operators, rootValue);
-          }
-        } else {
-          const operators = this.graph.operatorsMap.get(state);
-          if (operators) {
-            context.sync(operators, newValue);
-          }
-        }
+      if (newValue !== undefined) {
+        context.set(state, newValue);
       }
     } else if (message instanceof ListMutationCommand) {
       const { mutation } = message;
@@ -149,9 +129,7 @@ export class RenderContext implements RenderTarget {
 
             array.splice(context.index, 1);
 
-            const operators = context.parent.graph.operatorsMap.get(
-              mutation.source
-            );
+            const operators = context.parent.graph.get(mutation.source);
             if (operators) {
               context.parent.sync(operators, array, {
                 type: 'remove',
@@ -162,7 +140,7 @@ export class RenderContext implements RenderTarget {
           break;
       }
 
-      const operators = context.graph.operatorsMap.get(state);
+      const operators = context.graph.operatorsMap.get(state.key);
       if (operators) {
         context.sync(operators, currentValue, mutation);
       }
@@ -295,18 +273,15 @@ export class RenderContext implements RenderTarget {
       if (this.pending.get(operator) === promise) {
         resolve(operator, resolved);
       }
-      this.pending.delete(operator)
+      this.pending.delete(operator);
     });
   }
 
   sync(operators: ValueOperator[], newValue: any, mutation?: any): any {
-    const promises: Promise<any>[] = [];
-
     const stack: RenderContext[] = [this];
 
     while (stack.length) {
       let context = stack.pop()!;
-      const { graph } = context;
 
       for (let i = 0; i < operators.length; i++) {
         const operator = operators[i];
@@ -315,8 +290,8 @@ export class RenderContext implements RenderTarget {
             if (!context.scope.has(operator)) {
               context.scope.set(operator, []);
             }
-            const previous = context.get(operator);
-            promises.push(operator.reconcile(newValue, previous, mutation));
+            const previous = context.scope.get(operator);
+            operator.reconcile(newValue, previous, mutation);
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -325,8 +300,9 @@ export class RenderContext implements RenderTarget {
                 newValue,
                 (operator, resolved) => (operator.text.data = resolved)
               );
+            } else {
+              operator.text.data = newValue;
             }
-            operator.text.data = newValue;
             break;
           case 'set':
             operator.object[operator.prop] = newValue;
@@ -358,27 +334,13 @@ export class RenderContext implements RenderTarget {
               operator.type === 'map'
                 ? operator.map(newValue)
                 : newValue[operator.prop];
-            if (this.set(operator, mappedValue)) {
-              if (mappedValue instanceof Promise) {
-                promises.push(
-                  mappedValue.then((resolved) => {
-                    if (
-                      this.get(operator) === mappedValue &&
-                      this.set(operator.target, resolved)
-                    ) {
-                      const operators = graph.operatorsMap.get(operator.target);
-                      if (operators) {
-                        return this.sync(operators, resolved);
-                      }
-                    }
-                  })
-                );
-              } else if (this.set(operator.target, mappedValue)) {
-                const operators = graph.operatorsMap.get(operator.target);
-                if (operators) {
-                  promises.push(this.sync(operators, mappedValue));
-                }
-              }
+
+            if (mappedValue instanceof Promise) {
+              this.concurrent(operator, mappedValue, (operator, resolved) => {
+                this.set(operator.target, resolved);
+              });
+            } else {
+              this.set(operator.target, mappedValue);
             }
             break;
           case 'show':
@@ -397,42 +359,64 @@ export class RenderContext implements RenderTarget {
         }
       }
 
-      for (const child of context.children) {
-        stack.push(child);
+      // for (const child of context.children) {
+      //   stack.push(child);
+      // }
+    }
+  }
+
+  connect(node: Stateful<any>, operator: ValueOperator) {
+    const { operatorsMap } = this.graph;
+
+    if (!operatorsMap.has(node.key)) {
+      if (node instanceof StateMapper) {
+        this.connect(node.source, {
+          type: 'map',
+          map: node.mapper,
+          target: node,
+        });
+      } else if (node instanceof StateProperty) {
+        this.connect(node.source, {
+          type: 'get',
+          prop: node.name,
+          target: node,
+        });
       }
     }
 
-    return Promise.all(promises);
+    const currentValue = this.get(node);
+    if (currentValue !== undefined) {
+      this.sync([operator], currentValue);
+    }
+
+    const key = node.key;
+    if (operatorsMap.has(key)) {
+      operatorsMap.get(key)!.push(operator);
+    } else {
+      operatorsMap.set(key, [operator]);
+    }
+
+    // if (!this.graph.has(state)) {
+    //   if (state instanceof StateMapper) {
+    //     this.valueOperator(state.source, {
+    //       type: 'map',
+    //       map: state.mapper,
+    //       target: state,
+    //     });
+    //   } else if (state instanceof StateProperty) {
+    //     this.valueOperator(state.source, {
+    //       type: 'get',
+    //       prop: state.name,
+    //       target: state,
+    //     });
+    //   }
+    // }
+
+    // throw new Error('Method not implemented.');
   }
 
   valueOperator(state: Stateful, operator: ValueOperator) {
-    const { operatorsMap } = this.graph;
-
-    if (!operatorsMap.has(state)) {
-      if (state instanceof StateMapper) {
-        this.valueOperator(state.source, {
-          type: 'map',
-          map: state.mapper,
-          target: state,
-        });
-      } else if (state instanceof StateProperty) {
-        this.valueOperator(state.source, {
-          type: 'get',
-          prop: state.name,
-          target: state,
-        });
-      }
-    }
-
-    const currentValue = this.get(state);
-
-    if (operatorsMap.has(state)) {
-      operatorsMap.get(state)!.push(operator);
-    } else {
-      operatorsMap.set(state, [operator]);
-    }
-
-    if (currentValue !== undefined) this.sync([operator], currentValue);
+    this.connect(state, operator);
   }
 
   get(state: NonNullable<any>): any {
@@ -442,22 +426,26 @@ export class RenderContext implements RenderTarget {
         return currentSource;
       }
       return currentSource[state.name];
-    } else if (this.scope.has(state)) {
-      return this.scope.get(state);
+    } else if (this.scope.has(state.key)) {
+      return this.scope.get(state.key);
     } else {
       return state.initial;
     }
   }
 
-  set(state: NonNullable<any>, newValue: any): boolean {
+  set(state: Stateful, newValue: any): boolean {
     const { scope } = this;
 
     if (state instanceof StateProperty) {
-      const currentSource = scope.get(state.source);
+      const currentSource = scope.get(state.source.key);
       if (currentSource) {
         if (currentSource[state.name] !== newValue) {
           currentSource[state.name] = newValue;
-          return true;
+
+          const sourceOperators = this.graph.operatorsMap.get(state.source.key);
+          if (sourceOperators) {
+            this.sync(sourceOperators, currentSource);
+          }
         } else {
           return false;
         }
@@ -465,14 +453,20 @@ export class RenderContext implements RenderTarget {
         return this.set(state.source, { [state.name]: newValue });
       }
     } else {
-      const currentValue = scope.get(state);
+      const currentValue = scope.get(state.key);
       if (newValue === currentValue) {
         return false;
       } else {
-        scope.set(state, newValue);
-        return true;
+        scope.set(state.key, newValue);
       }
     }
+
+    const operators = this.graph.operatorsMap.get(state.key);
+    if (operators) {
+      this.sync(operators, newValue);
+    }
+
+    return true;
   }
 }
 
@@ -530,21 +524,14 @@ interface MapOperator {
 }
 
 export class Graph {
-  public readonly operatorsMap: Map<Stateful, ValueOperator[]> = new Map();
-  // public readonly operatorsMap: Map<Stateful, ValueOperator[]> = new Map();
+  public readonly operatorsMap: Map<number, ValueOperator[]> = new Map();
 
-  get(node: Stateful) {
-    return this.operatorsMap.get(node);
+  has(node: Stateful) {
+    return (node as any)[stateProp] !== undefined;
   }
 
-  append(other: Graph) {
-    for (const [node, operators] of other.operatorsMap) {
-      if (this.operatorsMap.has(node)) {
-        this.operatorsMap.get(node)!.push(...operators);
-      } else {
-        this.operatorsMap.set(node, [...operators]);
-      }
-    }
+  get(node: Stateful) {
+    return this.operatorsMap.get(node.key);
   }
 }
 
@@ -604,19 +591,4 @@ export interface ReconcileOperator<T, U> {
     previous: U[],
     mutation?: ListMutation<any>
   ) => Promise<void>;
-}
-
-function mapValue<T, U>(
-  current: T | undefined,
-  mapper: JSX.MaybePromise<U> | ((x: T) => JSX.MaybePromise<U>)
-): JSX.MaybePromise<U | undefined> {
-  if (mapper instanceof Function) {
-    if (current === undefined) return undefined;
-    if (current instanceof Promise) {
-      return current.then((resolved) => mapValue(resolved, mapper));
-    }
-    return mapper(current);
-  } else {
-    return mapper;
-  }
 }

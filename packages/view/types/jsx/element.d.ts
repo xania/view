@@ -45,17 +45,17 @@ declare module JSX {
    * type Element represents the return type of a Component. In Xania return type can
    * be a variety of different possibilities represented here as follows:
    */
-  type Element = Template<Value>;
+  type Element = Sequence<Value>;
 
   type Just<T> = T;
   type Nothing = null | undefined | void;
   // type Future<T> = Promise<T>; // | Promise<Future<T>>;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
-  type Template<T> =
+  type Sequence<T> =
     | Nothing
     | Just<T>
-    | Template<T>[]
-    | Promise<Template<T>>
+    | Sequence<T>[]
+    | Promise<Sequence<T>>
     | Iterable<T>;
 }
