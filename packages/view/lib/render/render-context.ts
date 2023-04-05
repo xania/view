@@ -84,6 +84,7 @@ export class RenderContext implements RenderTarget {
   }
 
   handleCommand = (message: Command): JSX.MaybePromise<Command | undefined> => {
+    console.log(message, this.graph);
     const context = this;
     if (context.disposed) return;
 
@@ -105,7 +106,7 @@ export class RenderContext implements RenderTarget {
 
       const newValue = mapValue(currentValue, updater);
 
-      if (currentValue !== undefined && context.set(state, newValue)) {
+      if (newValue !== undefined && context.set(state, newValue)) {
         const operators = this.graph.operatorsMap.get(state);
         if (operators) {
           context.sync(operators, newValue);
@@ -122,6 +123,11 @@ export class RenderContext implements RenderTarget {
           const operators = this.graph.operatorsMap.get(root);
           if (operators) {
             context.sync(operators, rootValue);
+          }
+        } else {
+          const operators = this.graph.operatorsMap.get(state);
+          if (operators) {
+            context.sync(operators, newValue);
           }
         }
       }
@@ -377,18 +383,18 @@ export class RenderContext implements RenderTarget {
     return Promise.all(promises);
   }
 
-  async valueOperator(state: Stateful, operator: ValueOperator) {
+  valueOperator(state: Stateful, operator: ValueOperator) {
     const { operatorsMap } = this.graph;
 
     if (!operatorsMap.has(state)) {
       if (state instanceof StateMapper) {
-        await this.valueOperator(state.source, {
+        this.valueOperator(state.source, {
           type: 'map',
           map: state.mapper,
           target: state,
         });
       } else if (state instanceof StateProperty) {
-        await this.valueOperator(state.source, {
+        this.valueOperator(state.source, {
           type: 'get',
           prop: state.name,
           target: state,
@@ -398,7 +404,7 @@ export class RenderContext implements RenderTarget {
 
     // if (operator.type === 'reconcile') {
     if (!this.scope.has(state)) {
-      const init = await state.initial;
+      const init = state.initial;
 
       if (init instanceof Array) {
         this.scope.set(state, init.slice(0));
@@ -416,7 +422,7 @@ export class RenderContext implements RenderTarget {
       operatorsMap.set(state, [operator]);
     }
 
-    if (currentValue !== undefined) await this.sync([operator], currentValue);
+    if (currentValue !== undefined) this.sync([operator], currentValue);
   }
 
   get(state: NonNullable<any>): any {

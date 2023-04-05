@@ -66,20 +66,16 @@ export function render(
       } else if (curr instanceof State) {
         const stateNode = domFactory.createTextNode('..');
         currentTarget.appendChild(stateNode);
-        promises.push(
-          context.valueOperator(curr, {
-            type: 'text',
-            text: stateNode,
-          })
-        );
+        context.valueOperator(curr, {
+          type: 'text',
+          text: stateNode,
+        });
       } else if (curr instanceof StateEffect) {
-        promises.push(
-          context.valueOperator(curr.state, {
-            type: 'effect',
-            node: currentTarget as any,
-            effect: curr.effect,
-          })
-        );
+        context.valueOperator(curr.state, {
+          type: 'effect',
+          node: currentTarget as any,
+          effect: curr.effect,
+        });
       } else if (curr instanceof ListExpression) {
         const item = new State();
         const source = curr.source;
@@ -95,71 +91,69 @@ export function render(
         currentTarget.appendChild(anchorNode);
 
         if (source instanceof State) {
-          promises.push(
-            context.valueOperator(source, {
-              type: 'reconcile',
-              async reconcile(data, retval, action) {
-                if (action === undefined) {
-                  const stack: any[] = [];
+          context.valueOperator(source, {
+            type: 'reconcile',
+            async reconcile(data, retval, action) {
+              if (action === undefined) {
+                const stack: any[] = [];
 
-                  for (let i = data.length - 1; i >= 0; i--) {
+                for (let i = data.length - 1; i >= 0; i--) {
+                  const scope = new Map();
+                  scope.set(item, data[i]);
+
+                  const childContext = new RenderContext(
+                    context.container,
+                    scope,
+                    new Graph(),
+                    i,
+                    context
+                  );
+                  retval[i] = childContext;
+                  stack.push([
+                    childContext,
+                    new RootTarget(childContext, anchorTarget),
+                    template,
+                  ]);
+                }
+
+                await Promise.all(traverse(stack));
+              } else {
+                const type = action.type;
+                switch (type) {
+                  case 'add':
+                    const newRow = data[data.length - 1];
                     const scope = new Map();
-                    scope.set(item, data[i]);
+                    scope.set(item, newRow);
 
                     const childContext = new RenderContext(
                       context.container,
                       scope,
                       new Graph(),
-                      i,
+                      retval.length,
                       context
                     );
-                    retval[i] = childContext;
-                    stack.push([
-                      childContext,
-                      new RootTarget(childContext, anchorTarget),
-                      template,
-                    ]);
-                  }
-
-                  await Promise.all(traverse(stack));
-                } else {
-                  const type = action.type;
-                  switch (type) {
-                    case 'add':
-                      const newRow = data[data.length - 1];
-                      const scope = new Map();
-                      scope.set(item, newRow);
-
-                      const childContext = new RenderContext(
-                        context.container,
-                        scope,
-                        new Graph(),
-                        retval.length,
-                        context
-                      );
-                      retval.push(childContext);
-                      await Promise.all(
-                        traverse([
-                          [
-                            childContext,
-                            new RootTarget(childContext, anchorTarget),
-                            template,
-                          ],
-                        ])
-                      );
-                      break;
-                    case 'remove':
-                      retval[action.index].dispose();
-                      retval.splice(action.index, 1);
-                      for (let i = action.index; i < retval.length; i++) {
-                        retval[i].index = i;
-                      }
-                      break;
-                  }
+                    retval.push(childContext);
+                    await Promise.all(
+                      traverse([
+                        [
+                          childContext,
+                          new RootTarget(childContext, anchorTarget),
+                          template,
+                        ],
+                      ])
+                    );
+                    break;
+                  case 'remove':
+                    retval[action.index].dispose();
+                    retval.splice(action.index, 1);
+                    for (let i = action.index; i < retval.length; i++) {
+                      retval[i].index = i;
+                    }
+                    break;
                 }
-              },
-            })
-          );
+              }
+            },
+          });
         }
       } else if (curr instanceof IfExpression) {
         const condition = curr.condition;
@@ -173,7 +167,7 @@ export function render(
             type: 'show',
             element: synthElt,
           };
-          promises.push(context.valueOperator(condition, showOperator));
+          context.valueOperator(condition, showOperator);
         } else if (condition) {
           stack.push([context, currentTarget, curr.content]);
         }
@@ -279,6 +273,7 @@ export function render(
       } else if (isSubscription(curr)) {
         context.subscriptions.push(curr);
       } else if (isCommand(curr)) {
+        console.log('graph', context.graph);
         context.handleCommands(curr);
       } else if (isIterable(curr)) {
         stack.push([context, currentTarget, new TemplateIterator(curr as any)]);

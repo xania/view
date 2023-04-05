@@ -31,7 +31,6 @@ export function texpand<T = any>(
         }
         stack.push(next.value);
       } else if (isIterable(curr)) {
-        // console.log('async iter', curr);
         stack.push(new TemplateIterator<T>(curr as any));
       } else {
         stack.push(map(curr));
