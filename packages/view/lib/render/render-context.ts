@@ -79,24 +79,8 @@ export class RenderContext implements RenderTarget {
     }
   }
 
-  // handleCommands(eventHandler: JSX.EventHandler, eventObj: any) {
-  //   texpand<JSX.EventHandler>(eventHandler, (handlerOrCommand) => {
-  //     if (handlerOrCommand instanceof Function) {
-  //       return handlerOrCommand(eventObj);
-  //     } else if (isCommand(handlerOrCommand)) {
-  //       return this.handleCommand(handlerOrCommand, eventObj);
-  //     } else {
-  // event ??= syntheticEvent(eventName, originalEvent, target);
-  //       return handlerOrCommand.handleEvent(event);
-  //     }
-  //   });
-
-  // }
-
-  handleCommands(command: Command) {
-    return texpand<Command>(command, (command) => {
-      return this.handleCommand(command);
-    });
+  handleCommands(command: JSX.Template<Command>) {
+    return texpand<Command>(command, this.handleCommand);
   }
 
   handleCommand = (message: Command): JSX.MaybePromise<Command | undefined> => {
@@ -124,7 +108,7 @@ export class RenderContext implements RenderTarget {
       if (currentValue !== undefined && context.set(state, newValue)) {
         const operators = this.graph.operatorsMap.get(state);
         if (operators) {
-          return context.sync(operators, newValue);
+          context.sync(operators, newValue);
         }
 
         if (state instanceof StateProperty) {
@@ -137,7 +121,7 @@ export class RenderContext implements RenderTarget {
           const rootValue = context.get(root);
           const operators = this.graph.operatorsMap.get(root);
           if (operators) {
-            return context.sync(operators, rootValue);
+            context.sync(operators, rootValue);
           }
         }
       }
@@ -164,7 +148,7 @@ export class RenderContext implements RenderTarget {
               mutation.source
             );
             if (operators) {
-              return context.parent.sync(operators, array, {
+              context.parent.sync(operators, array, {
                 type: 'remove',
                 index: context.index,
               } as ListMutation<any>);
@@ -175,7 +159,7 @@ export class RenderContext implements RenderTarget {
 
       const operators = context.graph.operatorsMap.get(state);
       if (operators) {
-        return context.sync(operators, currentValue, mutation);
+        context.sync(operators, currentValue, mutation);
       }
     } else {
       console.log(context);
@@ -196,9 +180,9 @@ export class RenderContext implements RenderTarget {
           eventObj ??= syntheticEvent(eventName, originalEvent, target);
 
           if (eventHandler instanceof Function) {
-            return eventHandler(eventObj) as any;
+            return this.handleCommands(eventHandler(eventObj));
           } else if (!isCommand(eventHandler)) {
-            return eventHandler.handleEvent(eventObj) as any;
+            return this.handleCommands(eventHandler.handleEvent(eventObj));
           }
           return this.handleCommands(eventHandler);
         }
