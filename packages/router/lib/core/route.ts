@@ -6,6 +6,7 @@ export function Route(props: RouteProps<JSX.Children>) {
 }
 
 export interface RouteProps<TView> {
+  index?: boolean;
   path?: RouteMap<TView>['match'] | Path | string;
   children: RouteMap<TView>['component'];
 }

@@ -15,6 +15,7 @@ import {
   ItemState,
   ListExpression,
   ListMutationCommand,
+  mapValue,
   State,
   StateEffect,
 } from '../reactive';
@@ -78,20 +79,26 @@ export function render(
           effect: curr.effect,
         });
       } else if (curr instanceof ListExpression) {
-        const item = new ItemState(context);
         const source = curr.source;
 
-        const disposeCmd = new ListMutationCommand(item, {
-          type: 'dispose',
-          source,
-        });
-        const template = curr.children(item, disposeCmd);
-
-        const anchorNode = domFactory.createComment('');
-        const anchorTarget = new AnchorTarget(anchorNode);
-        currentTarget.appendChild(anchorNode);
-
         if (source instanceof State) {
+          const item = new ItemState(context, source);
+
+          context.set(
+            source,
+            mapValue(source.initial, (r) => [...r])
+          );
+
+          const disposeCmd = new ListMutationCommand(item, {
+            type: 'dispose',
+            source,
+          });
+          const template = curr.children(item, disposeCmd);
+
+          const anchorNode = domFactory.createComment('');
+          const anchorTarget = new AnchorTarget(anchorNode);
+          currentTarget.appendChild(anchorNode);
+
           context.connect(source, {
             type: 'reconcile',
             async reconcile(data, retval, action) {

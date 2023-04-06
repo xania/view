@@ -34,7 +34,7 @@ export class ListSource<T> extends State<T[]> {
 }
 
 export class ItemState<T = any> extends State<T> {
-  constructor(public listContext: RenderContext) {
+  constructor(public listContext: RenderContext, public parent: State<T[]>) {
     super();
   }
 }

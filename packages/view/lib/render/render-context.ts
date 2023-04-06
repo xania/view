@@ -2,8 +2,10 @@
 import {
   Command,
   isCommand,
+  ItemState,
   ListMutationCommand,
   mapValue,
+  State,
   Stateful,
   StateMapper,
   StateProperty,
@@ -419,11 +421,6 @@ export class RenderContext implements RenderTarget {
       if (currentSource) {
         if (currentSource[state.name] !== newValue) {
           currentSource[state.name] = newValue;
-
-          const sourceOperators = this.graph.operatorsMap.get(state.source.key);
-          if (sourceOperators) {
-            this.sync(sourceOperators, currentSource);
-          }
         } else {
           return false;
         }
@@ -439,12 +436,32 @@ export class RenderContext implements RenderTarget {
       }
     }
 
-    const operators = this.graph.operatorsMap.get(state.key);
-    if (operators) {
-      this.sync(operators, newValue);
-    }
+    this.notify(state);
 
     return true;
+  }
+
+  notify(state: Stateful) {
+    const operators = this.graph.operatorsMap.get(state.key);
+    if (operators) {
+      this.sync(operators, this.get(state));
+    }
+
+    if (state instanceof StateProperty) {
+      this.notify(state.source);
+    } else {
+      if (state instanceof ItemState) {
+        const listOperators = state.listContext.graph.operatorsMap.get(
+          state.parent.key
+        );
+        if (listOperators) {
+          state.listContext.sync(
+            listOperators.filter((x) => x.type === 'map'),
+            state.listContext.scope.get(state.parent.key)
+          );
+        }
+      }
+    }
   }
 }
 
