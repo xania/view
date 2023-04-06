@@ -7,8 +7,8 @@ export function ExamplesApp() {
   return (
     <>
       <Navigation />
-      <div class={classes["outlet"]}>
-        <WebApp>
+      <WebApp>
+        <div class={classes["outlet"]}>
           <Route>{() => import("./clock").then((e) => e.App())}</Route>
           <Route path="counter">
             {() => import("./counter").then((e) => e.App())}
@@ -25,8 +25,8 @@ export function ExamplesApp() {
           <Route path="todo">
             {() => import("./todomvc").then((e) => e.App())}
           </Route>
-        </WebApp>
-      </div>
+        </div>
+      </WebApp>
     </>
   );
 }

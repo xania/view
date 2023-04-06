@@ -395,28 +395,6 @@ export class RenderContext implements RenderTarget {
     } else {
       operatorsMap.set(key, [operator]);
     }
-
-    // if (!this.graph.has(state)) {
-    //   if (state instanceof StateMapper) {
-    //     this.valueOperator(state.source, {
-    //       type: 'map',
-    //       map: state.mapper,
-    //       target: state,
-    //     });
-    //   } else if (state instanceof StateProperty) {
-    //     this.valueOperator(state.source, {
-    //       type: 'get',
-    //       prop: state.name,
-    //       target: state,
-    //     });
-    //   }
-    // }
-
-    // throw new Error('Method not implemented.');
-  }
-
-  valueOperator(state: Stateful, operator: ValueOperator) {
-    this.connect(state, operator);
   }
 
   get(state: NonNullable<any>): any {

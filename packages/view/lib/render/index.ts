@@ -67,12 +67,12 @@ export function render(
       } else if (curr instanceof State) {
         const stateNode = domFactory.createTextNode('..');
         currentTarget.appendChild(stateNode);
-        context.valueOperator(curr, {
+        context.connect(curr, {
           type: 'text',
           text: stateNode,
         });
       } else if (curr instanceof StateEffect) {
-        context.valueOperator(curr.state, {
+        context.connect(curr.state, {
           type: 'effect',
           node: currentTarget as any,
           effect: curr.effect,
@@ -92,7 +92,7 @@ export function render(
         currentTarget.appendChild(anchorNode);
 
         if (source instanceof State) {
-          context.valueOperator(source, {
+          context.connect(source, {
             type: 'reconcile',
             async reconcile(data, retval, action) {
               if (action === undefined) {
@@ -168,11 +168,10 @@ export function render(
             type: 'show',
             element: synthElt,
           };
-          context.valueOperator(condition, showOperator);
+          context.connect(condition, showOperator);
         } else if (condition) {
           stack.push([context, currentTarget, curr.content]);
         }
-        // console.log(curr);
       } else if (curr instanceof Promise) {
         promises.push(
           curr.then((resolved): any => {
@@ -200,7 +199,7 @@ export function render(
                   } else if (curr instanceof Array) {
                     stack.push(...curr);
                   } else if (curr instanceof State) {
-                    context.valueOperator(curr.map(split), {
+                    context.connect(curr.map(split), {
                       type: 'list',
                       list: element.classList,
                     });
@@ -226,7 +225,7 @@ export function render(
                 if (value === null || value === undefined) {
                   // ignore
                 } else if (value instanceof State) {
-                  context.valueOperator(value, {
+                  context.connect(value, {
                     type: 'set',
                     object: target,
                     prop: name,

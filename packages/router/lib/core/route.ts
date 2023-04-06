@@ -2,7 +2,7 @@
 import { RouteMap } from './route-resolver';
 
 export function Route(props: RouteProps<JSX.Children>) {
-  return `error route [${props.path}]`;
+  throw `error route [${props.path}]`;
 }
 
 export interface RouteProps<TView> {
