@@ -1,4 +1,7 @@
-﻿export type ListMutation<T> =
+﻿import { ListSource } from '.';
+import { RenderContext } from '../../render/render-context';
+
+export type ListMutation<T> =
   | AddRowMutation<T>
   | FilterRowMutation<T>
   | DisposeRowMutation
@@ -16,7 +19,8 @@ interface FilterRowMutation<T> {
 
 interface DisposeRowMutation {
   type: 'dispose';
-  source: any;
+  list: ListSource;
+  context: RenderContext;
 }
 
 interface RemoveRowMutation {

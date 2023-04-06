@@ -1,4 +1,5 @@
-﻿import { ListMutation } from './list/mutation';
+﻿import { ItemState, ListSource } from './list';
+import { ListMutation } from './list/mutation';
 import { State, Stateful } from './state';
 
 export class UpdateStateCommand<T = any> {
@@ -24,7 +25,10 @@ export type UpdateFunction = (scope: {
 }) => Generator<JSX.MaybePromise<Command>> | Command;
 
 export class ListMutationCommand<T = any> {
-  constructor(public state: State<T>, public mutation: ListMutation<any>) {}
+  constructor(
+    public state: ListSource<T>,
+    public mutation: ListMutation<any>
+  ) {}
 }
 
 export type Command =

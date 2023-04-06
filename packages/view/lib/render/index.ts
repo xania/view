@@ -15,6 +15,7 @@ import {
   ItemState,
   ListExpression,
   ListMutationCommand,
+  ListSource,
   mapValue,
   State,
   StateEffect,
@@ -66,7 +67,7 @@ export function render(
       } else if (curr instanceof Component) {
         stack.push([context, currentTarget, curr.execute()]);
       } else if (curr instanceof State) {
-        const stateNode = domFactory.createTextNode('..');
+        const stateNode = domFactory.createTextNode('');
         currentTarget.appendChild(stateNode);
         context.connect(curr, {
           type: 'text',
@@ -79,90 +80,74 @@ export function render(
           effect: curr.effect,
         });
       } else if (curr instanceof ListExpression) {
-        const source = curr.source;
+        const source =
+          curr.source instanceof Array
+            ? new ListSource(curr.source)
+            : curr.source;
 
-        if (source instanceof State) {
-          const item = new ItemState(context, source);
+        const item = new ItemState(context, source);
 
+        if (!context.graph.scope.has(source.key))
           context.set(
             source,
             mapValue(source.initial, (r) => [...r])
           );
 
-          const disposeCmd = new ListMutationCommand(item, {
-            type: 'dispose',
-            source,
-          });
-          const template = curr.children(item, disposeCmd);
+        const disposeCmd = new ListMutationCommand(source, {
+          type: 'dispose',
+          list: source,
+          context,
+        });
+        const template = curr.children(item, disposeCmd);
 
-          const anchorNode = domFactory.createComment('');
-          const anchorTarget = new AnchorTarget(anchorNode);
-          currentTarget.appendChild(anchorNode);
+        const anchorNode = domFactory.createComment('');
+        const anchorTarget = new AnchorTarget(anchorNode);
+        currentTarget.appendChild(anchorNode);
 
-          context.connect(source, {
-            type: 'reconcile',
-            async reconcile(data, retval, action) {
-              if (action === undefined) {
-                const stack: any[] = [];
+        context.connect(source, {
+          type: 'reconcile',
+          async reconcile(data, action) {
+            if (action === undefined) {
+              const stack: any[] = [];
 
-                for (let i = data.length - 1; i >= 0; i--) {
-                  const scope = new Map();
-                  scope.set(item.key, data[i]);
+              for (let i = data.length - 1; i >= 0; i--) {
+                const scope = new Map();
+                scope.set(item.key, data[i]);
 
-                  const childContext = new RenderContext(
-                    context.container,
-                    scope,
-                    new Graph(),
-                    i,
-                    context
-                  );
-                  retval[i] = childContext;
-                  stack.push([
-                    childContext,
-                    new RootTarget(childContext, anchorTarget),
-                    template,
-                  ]);
-                }
-
-                await Promise.all(traverse(stack));
-              } else {
-                const type = action.type;
-                switch (type) {
-                  case 'add':
-                    const newRow = data[data.length - 1];
-                    const scope = new Map();
-                    scope.set(item.key, newRow);
-
-                    const childContext = new RenderContext(
-                      context.container,
-                      scope,
-                      new Graph(),
-                      retval.length,
-                      context
-                    );
-                    retval.push(childContext);
-                    await Promise.all(
-                      traverse([
-                        [
-                          childContext,
-                          new RootTarget(childContext, anchorTarget),
-                          template,
-                        ],
-                      ])
-                    );
-                    break;
-                  case 'remove':
-                    retval[action.index].dispose();
-                    retval.splice(action.index, 1);
-                    for (let i = action.index; i < retval.length; i++) {
-                      retval[i].index = i;
-                    }
-                    break;
-                }
+                const childContext = (source.children[i] ??= new RenderContext(
+                  context.container,
+                  new Graph(scope),
+                  i,
+                  context
+                ));
+                stack.push([
+                  childContext,
+                  new RootTarget(childContext, anchorTarget),
+                  template,
+                ]);
               }
-            },
-          });
-        }
+
+              await Promise.all(traverse(stack));
+            } else {
+              const type = action.type;
+              switch (type) {
+                case 'add':
+                  const rowIndex = data.length - 1;
+                  const childContext = source.children[rowIndex];
+                  await Promise.all(
+                    traverse([
+                      [
+                        childContext,
+                        new RootTarget(childContext, anchorTarget),
+                        template,
+                      ],
+                    ])
+                  );
+                  break;
+              }
+            }
+          },
+        });
       } else if (curr instanceof IfExpression) {
         const condition = curr.condition;
         if (condition instanceof State) {
@@ -289,7 +274,7 @@ export function render(
     return promises;
   }
 
-  const context = new RenderContext(container, new Map(), new Graph(), 0);
+  const context = new RenderContext(container, new Graph(), 0);
   const promises = traverse([[context, context, rootChildren]]);
   if (promises.length === 0) return context;
   return [promises, context];

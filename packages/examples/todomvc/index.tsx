@@ -16,10 +16,10 @@ export function App() {
       completed: true,
       label: "Get the milk",
     },
-    // {
-    //   completed: false,
-    //   label: "Say hi",
-    // },
+    {
+      completed: false,
+      label: "Say hi",
+    },
   ]);
   return (
     <>
@@ -31,7 +31,13 @@ export function App() {
             <h1>todos</h1>
             <NewTodo onNew={(item) => items.push(item)} />
           </header>
+
           <TodoList items={items} />
+          <div>
+            -------------------------------------------------------------------------------------
+          </div>
+          <TodoList items={items} />
+
           <If condition={items.map((l) => l.length > 0)}>
             <TodoFooter items={items} />
           </If>

@@ -4,8 +4,8 @@ import {
   isCommand,
   ItemState,
   ListMutationCommand,
+  ListSource,
   mapValue,
-  State,
   Stateful,
   StateMapper,
   StateProperty,
@@ -21,7 +21,7 @@ import { RenderTarget } from './target';
 const stateProp = Symbol('state');
 
 export class RenderContext implements RenderTarget {
-  public children: RenderContext[] = [];
+  // public children: RenderContext[] = [];
 
   public nodes: Node[] = [];
   public disposables: Disposable[] = [];
@@ -31,8 +31,6 @@ export class RenderContext implements RenderTarget {
 
   constructor(
     public container: RenderTarget,
-    public scope = new Map<number | ValueOperator, any>(),
-    //    public scope: Scope,4
     public graph: Graph,
     public index: number,
     public parent?: RenderContext
@@ -116,6 +114,8 @@ export class RenderContext implements RenderTarget {
       const { mutation } = message;
       switch (mutation.type) {
         case 'add':
+          const list = message.state;
+          const rowIndex = list.children.length;
           if (mutation.itemOrGetter instanceof Function) {
             if (currentValue !== undefined) {
               const newRow = mutation.itemOrGetter(currentValue);
@@ -124,21 +124,34 @@ export class RenderContext implements RenderTarget {
           } else {
             currentValue.push(mutation.itemOrGetter);
           }
+
+          const scope = new Map();
+          scope.set(list.itemKey, currentValue[rowIndex]);
+          list.children.push(
+            new RenderContext(
+              context.container,
+              new Graph(scope),
+              rowIndex,
+              context
+            )
+          );
+
           break;
         case 'dispose':
-          if (context.parent) {
-            const array = context.parent.get(mutation.source);
+          const listContext = mutation.context;
+          const array = listContext.get(mutation.list);
 
-            array.splice(context.index, 1);
+          const disposeIndex = context.index;
+          array.splice(disposeIndex, 1);
+          context.dispose();
 
-            const operators = context.parent.graph.get(mutation.source);
-            if (operators) {
-              context.parent.sync(operators, array, {
-                type: 'remove',
-                index: context.index,
-              } as ListMutation<any>);
-            }
+          const children = mutation.list.children;
+          children.splice(disposeIndex, 1);
+
+          for (let i = disposeIndex; i < children.length; i++) {
+            children[i].index = i;
           }
+
           break;
       }
 
@@ -289,11 +302,7 @@ export class RenderContext implements RenderTarget {
         const operator = operators[i];
         switch (operator.type) {
           case 'reconcile':
-            if (!context.scope.has(operator)) {
-              context.scope.set(operator, []);
-            }
-            const previous = context.scope.get(operator);
-            operator.reconcile(newValue, previous, mutation);
+            operator.reconcile(newValue, mutation);
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -310,7 +319,8 @@ export class RenderContext implements RenderTarget {
             operator.object[operator.prop] = newValue;
             break;
           case 'list':
-            const prevList: any[] | undefined = context.scope.get(operator);
+            const prevList: any[] | undefined =
+              context.graph.scope.get(operator);
             const newList: any[] | undefined = newValue;
             if (newList) {
               for (const x of newList) {
@@ -328,7 +338,7 @@ export class RenderContext implements RenderTarget {
                 operator.list.remove(x);
               }
             }
-            context.scope.set(operator, newList);
+            context.graph.scope.set(operator, newList);
             break;
           case 'get':
           case 'map':
@@ -371,6 +381,7 @@ export class RenderContext implements RenderTarget {
     const { operatorsMap } = this.graph;
 
     if (!operatorsMap.has(node.key)) {
+      operatorsMap.set(node.key, [operator]);
       if (node instanceof StateMapper) {
         this.connect(node.source, {
           type: 'map',
@@ -384,18 +395,13 @@ export class RenderContext implements RenderTarget {
           target: node,
         });
       }
+    } else {
+      operatorsMap.get(node.key)!.push(operator);
     }
 
     const currentValue = this.get(node);
     if (currentValue !== undefined) {
       this.sync([operator], currentValue);
-    }
-
-    const key = node.key;
-    if (operatorsMap.has(key)) {
-      operatorsMap.get(key)!.push(operator);
-    } else {
-      operatorsMap.set(key, [operator]);
     }
   }
 
@@ -406,15 +412,15 @@ export class RenderContext implements RenderTarget {
         return currentSource;
       }
       return currentSource[state.name];
-    } else if (this.scope.has(state.key)) {
-      return this.scope.get(state.key);
+    } else if (this.graph.scope.has(state.key)) {
+      return this.graph.scope.get(state.key);
     } else {
       return state.initial;
     }
   }
 
   set(state: Stateful, newValue: any): boolean {
-    const { scope } = this;
+    const { scope } = this.graph;
 
     if (state instanceof StateProperty) {
       const currentSource = scope.get(state.source.key);
@@ -442,6 +448,11 @@ export class RenderContext implements RenderTarget {
   }
 
   notify(state: Stateful) {
+    if (state instanceof ListSource) {
+      console.log('notify list');
+      return;
+    }
+
     const operators = this.graph.operatorsMap.get(state.key);
     if (operators) {
       this.sync(operators, this.get(state));
@@ -452,12 +463,12 @@ export class RenderContext implements RenderTarget {
     } else {
       if (state instanceof ItemState) {
         const listOperators = state.listContext.graph.operatorsMap.get(
-          state.parent.key
+          state.list.key
         );
         if (listOperators) {
           state.listContext.sync(
-            listOperators.filter((x) => x.type === 'map'),
-            state.listContext.scope.get(state.parent.key)
+            listOperators.filter((x) => x.type !== 'reconcile'),
+            state.listContext.graph.scope.get(state.list.key)
           );
         }
       }
@@ -472,7 +483,7 @@ export type ValueOperator =
   | GetOperator
   | SetOperator
   // | EventOperator
-  | ReconcileOperator<any, any>
+  | ReconcileOperator<any>
   | ListOperator<any>
   | EffectOperator;
 
@@ -520,6 +531,8 @@ interface MapOperator {
 
 export class Graph {
   public readonly operatorsMap: Map<number, ValueOperator[]> = new Map();
+
+  constructor(public scope = new Map<number | ValueOperator, any>()) {}
 
   has(node: Stateful) {
     return (node as any)[stateProp] !== undefined;
@@ -579,11 +592,7 @@ export class SynthaticElement implements RenderTarget {
   dispose() {}
 }
 
-export interface ReconcileOperator<T, U> {
+export interface ReconcileOperator<T> {
   type: 'reconcile';
-  reconcile: (
-    data: T[],
-    previous: U[],
-    mutation?: ListMutation<any>
-  ) => Promise<void>;
+  reconcile: (data: T[], mutation?: ListMutation<any>) => Promise<void>;
 }

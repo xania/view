@@ -1,4 +1,4 @@
-﻿import { RenderContext } from '../../render/render-context';
+﻿import { Graph, RenderContext } from '../../render/render-context';
 import { Command, ListMutationCommand } from '../commands';
 import { State, Stateful } from '../state';
 
@@ -8,7 +8,7 @@ export function List<T>(props: ListExpression<T>) {
 
 export class ListExpression<T = any> {
   constructor(
-    public source: Stateful<T[]> | T[],
+    public source: ListSource<T> | T[],
     public children: (item: State<T>, dispose: Command) => JSX.Element
   ) {}
 }
@@ -17,13 +17,17 @@ export function listSource<T>(value?: JSX.MaybePromise<T[]>) {
   return new ListSource(value);
 }
 
-export class ListSource<T> extends State<T[]> {
+export class ListSource<T = any> extends State<T[]> {
+  public itemKey: number = this.key + 1;
+
   push<T>(itemOrGetter: T | ((arr: T[]) => T)) {
     return new ListMutationCommand(this, {
       type: 'add',
       itemOrGetter,
     });
   }
+
+  children: RenderContext[] = [];
 
   filter(f: (item: T) => boolean) {
     return new ListMutationCommand(this, {
@@ -34,7 +38,8 @@ export class ListSource<T> extends State<T[]> {
 }
 
 export class ItemState<T = any> extends State<T> {
-  constructor(public listContext: RenderContext, public parent: State<T[]>) {
+  constructor(public listContext: RenderContext, public list: ListSource) {
     super();
+    this.key = list.itemKey;
   }
 }
