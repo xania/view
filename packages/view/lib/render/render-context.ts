@@ -14,6 +14,7 @@ import {
 } from '../reactive';
 import { ListMutation } from '../reactive/list/mutation';
 import { texpand } from '../tpl';
+import { AnchorTarget } from './anchor-target';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
@@ -86,7 +87,7 @@ export class RenderContext implements RenderTarget {
     return texpand<Command>(command, this.handleCommand);
   }
 
-  handleCommand = (message: Command): JSX.MaybePromise<Command | undefined> => {
+  handleCommand = async (message: Command): Promise<Command | undefined> => {
     const context = this;
     if (context.disposed) return;
 
@@ -95,13 +96,7 @@ export class RenderContext implements RenderTarget {
     }
 
     const state = message.state;
-    const currentValue = context.get(state);
-    if (currentValue instanceof Promise) {
-      return currentValue.then((resolved) => {
-        context.set(state, resolved);
-        return this.handleCommand(message);
-      });
-    }
+    const currentValue = await context.get(state);
 
     if (message instanceof UpdateStateCommand) {
       const updater = message.updater;
@@ -130,28 +125,39 @@ export class RenderContext implements RenderTarget {
 
           const scope = new Map();
           scope.set(list.itemKey, currentValue[rowIndex]);
-          children.push(
-            new RenderContext(
-              context.container,
-              new Graph(scope),
-              rowIndex,
-              context
-            )
+
+          const newRowContext = new RenderContext(
+            context.container,
+            new Graph(scope),
+            rowIndex,
+            context
           );
+
+          children.push(newRowContext);
 
           const operators = context.graph.operatorsMap.get(state.key);
           if (operators) {
-            context.sync(operators, currentValue, mutation);
+            for (const op of operators) {
+              if (op.type === 'reconcile') {
+                op.render([newRowContext]);
+              }
+            }
+
+            context.sync(
+              operators.filter((o) => o.type !== 'reconcile'),
+              currentValue
+            );
           }
 
           break;
         case 'dispose':
           const listContext = mutation.context;
+          const rowContext = context;
           const array = listContext.get(mutation.list);
 
-          const disposeIndex = context.index;
+          const disposeIndex = rowContext.index;
           array.splice(disposeIndex, 1);
-          context.dispose();
+          rowContext.dispose();
 
           const disposeChildren = listContext.graph.scope.get(
             mutation.list.childrenKey
@@ -162,17 +168,19 @@ export class RenderContext implements RenderTarget {
             disposeChildren[i].index = i;
           }
 
+          // listContext.notify(state, currentValue, mutation)
           const disposeOperators = listContext.graph.operatorsMap.get(
             state.key
           );
           if (disposeOperators) {
-            listContext.sync(disposeOperators, currentValue, mutation);
+            listContext.sync(
+              disposeOperators.filter((o) => o.type !== 'reconcile'),
+              currentValue
+            );
           }
 
           break;
       }
-    } else {
-      console.log(context);
     }
   };
 
@@ -200,94 +208,6 @@ export class RenderContext implements RenderTarget {
     }
   }
 
-  // applyCommands(
-  //   commands: JSX.Template<Command>,
-  //   applyChange?: BindFunction<any, any>
-  // ): any {
-  //   const context = this;
-  //   return templateBind(commands, async (message: Command) => {
-  //     if (this.disposed) return;
-  //     if (message instanceof UpdateCommand) {
-  //       return this.applyCommands(message.updateFn(context) as any) as any;
-  //     }
-
-  //     const state = message.state;
-  //     const currentValue = await context.get(state);
-  //     if (message instanceof UpdateStateCommand) {
-  //       const updater = message.updater;
-
-  //       const newValue = await (updater instanceof Function
-  //         ? currentValue === undefined
-  //           ? undefined
-  //           : updater(currentValue)
-  //         : updater);
-
-  //       if (newValue !== undefined && context.set(state, newValue)) {
-  //         const operators = this.graph.operatorsMap.get(state);
-  //         if (operators) {
-  //           const changes = context.sync(operators, newValue);
-  //           if (applyChange) return templateBind(changes, applyChange);
-  //         }
-
-  //         if (state instanceof StateProperty) {
-  //           let root = state.source;
-
-  //           while (root instanceof StateProperty) {
-  //             root = root.source;
-  //           }
-
-  //           const rootValue = context.get(root);
-  //           const operators = this.graph.operatorsMap.get(root);
-  //           if (operators) {
-  //             const changes = context.sync(operators, rootValue);
-  //             if (applyChange) return templateBind(changes, applyChange);
-  //           }
-  //         }
-  //       }
-  //     } else if (message instanceof ListMutationCommand) {
-  //       const { mutation } = message;
-  //       switch (mutation.type) {
-  //         case 'add':
-  //           if (mutation.itemOrGetter instanceof Function) {
-  //             if (currentValue !== undefined) {
-  //               const newRow = mutation.itemOrGetter(currentValue);
-  //               currentValue.push(newRow);
-  //             }
-  //           } else {
-  //             currentValue.push(mutation.itemOrGetter);
-  //           }
-  //           break;
-  //         case 'dispose':
-  //           if (context.parent) {
-  //             const array = context.parent.get(mutation.source);
-
-  //             array.splice(context.index, 1);
-
-  //             const operators = context.parent.graph.operatorsMap.get(
-  //               mutation.source
-  //             );
-  //             if (operators) {
-  //               const changes = context.parent.sync(operators, array, {
-  //                 type: 'remove',
-  //                 index: context.index,
-  //               } as ListMutation<any>);
-  //               if (applyChange) return templateBind(changes, applyChange);
-  //             }
-  //           }
-  //           break;
-  //       }
-
-  //       const operators = context.graph.operatorsMap.get(state);
-  //       if (operators) {
-  //         const changes = context.sync(operators, currentValue, mutation);
-  //         if (applyChange) return templateBind(changes, applyChange);
-  //       }
-  //     } else {
-  //       console.log(context);
-  //     }
-  //   });
-  // }
-
   pending = new Map<ValueOperator, any>();
   concurrent<O extends ValueOperator>(
     operator: O,
@@ -304,7 +224,7 @@ export class RenderContext implements RenderTarget {
     });
   }
 
-  sync(operators: ValueOperator[], newValue: any, mutation?: any): any {
+  sync(operators: ValueOperator[], newValue: any): any {
     const stack: RenderContext[] = [this];
 
     while (stack.length) {
@@ -332,7 +252,7 @@ export class RenderContext implements RenderTarget {
               );
             }
             const children = scope.get(operator.childrenKey);
-            operator.reconcile(newValue, children, mutation);
+            operator.render(children);
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -472,24 +392,23 @@ export class RenderContext implements RenderTarget {
       }
     }
 
-    this.notify(state);
+    this.notify(state, newValue);
 
     return true;
   }
 
-  notify(state: Stateful) {
+  notify(state: Stateful, stateValue: any) {
     if (state instanceof ListSource) {
-      console.log('notify list');
       return;
     }
 
     const operators = this.graph.operatorsMap.get(state.key);
     if (operators) {
-      this.sync(operators, this.get(state));
+      this.sync(operators, stateValue);
     }
 
     if (state instanceof StateProperty) {
-      this.notify(state.source);
+      this.notify(state.source, this.get(state.source));
     } else {
       if (state instanceof ItemState) {
         const listOperators = state.listContext.graph.operatorsMap.get(
@@ -516,7 +435,8 @@ export type ValueOperator =
   // | EventOperator
   | ReconcileOperator<any>
   | ListOperator<any>
-  | EffectOperator;
+  | EffectOperator
+  | RenderOperator;
 
 // interface EventOperator {
 //   type: 'event';
@@ -627,9 +547,17 @@ export interface ReconcileOperator<T> {
   type: 'reconcile';
   childrenKey: number;
   itemKey: number;
+  template: any;
+  anchorTarget: AnchorTarget;
+  render(contexts: RenderContext[]): Promise<any>;
   reconcile: (
     data: T[],
     contexts: RenderContext[],
     mutation?: ListMutation<any>
   ) => Promise<void>;
+}
+
+export interface RenderOperator {
+  type: 'render';
+  render(context: RenderContext): Promise<any>;
 }
