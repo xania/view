@@ -112,10 +112,13 @@ export class RenderContext implements RenderTarget {
       }
     } else if (message instanceof ListMutationCommand) {
       const { mutation } = message;
+      const children = this.graph.scope.get(
+        message.state.childrenKey
+      )! as RenderContext[];
       switch (mutation.type) {
         case 'add':
           const list = message.state;
-          const rowIndex = list.children.length;
+          const rowIndex = children.length;
           if (mutation.itemOrGetter instanceof Function) {
             if (currentValue !== undefined) {
               const newRow = mutation.itemOrGetter(currentValue);
@@ -127,7 +130,7 @@ export class RenderContext implements RenderTarget {
 
           const scope = new Map();
           scope.set(list.itemKey, currentValue[rowIndex]);
-          list.children.push(
+          children.push(
             new RenderContext(
               context.container,
               new Graph(scope),
@@ -135,6 +138,11 @@ export class RenderContext implements RenderTarget {
               context
             )
           );
+
+          const operators = context.graph.operatorsMap.get(state.key);
+          if (operators) {
+            context.sync(operators, currentValue, mutation);
+          }
 
           break;
         case 'dispose':
@@ -145,19 +153,23 @@ export class RenderContext implements RenderTarget {
           array.splice(disposeIndex, 1);
           context.dispose();
 
-          const children = mutation.list.children;
-          children.splice(disposeIndex, 1);
+          const disposeChildren = listContext.graph.scope.get(
+            mutation.list.childrenKey
+          )!;
+          disposeChildren.splice(disposeIndex, 1);
 
-          for (let i = disposeIndex; i < children.length; i++) {
-            children[i].index = i;
+          for (let i = disposeIndex; i < disposeChildren.length; i++) {
+            disposeChildren[i].index = i;
+          }
+
+          const disposeOperators = listContext.graph.operatorsMap.get(
+            state.key
+          );
+          if (disposeOperators) {
+            listContext.sync(disposeOperators, currentValue, mutation);
           }
 
           break;
-      }
-
-      const operators = context.graph.operatorsMap.get(state.key);
-      if (operators) {
-        context.sync(operators, currentValue, mutation);
       }
     } else {
       console.log(context);
@@ -302,7 +314,25 @@ export class RenderContext implements RenderTarget {
         const operator = operators[i];
         switch (operator.type) {
           case 'reconcile':
-            operator.reconcile(newValue, mutation);
+            const scope = context.graph.scope;
+            if (!scope.has(operator.childrenKey)) {
+              scope.set(
+                operator.childrenKey,
+                (newValue as any[]).map((item, index) => {
+                  const childScope = new Map();
+                  childScope.set(operator.itemKey, item);
+
+                  return new RenderContext(
+                    context.container,
+                    new Graph(childScope),
+                    index,
+                    context
+                  );
+                })
+              );
+            }
+            const children = scope.get(operator.childrenKey);
+            operator.reconcile(newValue, children, mutation);
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -465,10 +495,11 @@ export class RenderContext implements RenderTarget {
         const listOperators = state.listContext.graph.operatorsMap.get(
           state.list.key
         );
-        if (listOperators) {
+        const data = state.listContext.get(state.list);
+        if (listOperators && data) {
           state.listContext.sync(
             listOperators.filter((x) => x.type !== 'reconcile'),
-            state.listContext.graph.scope.get(state.list.key)
+            data
           );
         }
       }
@@ -594,5 +625,11 @@ export class SynthaticElement implements RenderTarget {
 
 export interface ReconcileOperator<T> {
   type: 'reconcile';
-  reconcile: (data: T[], mutation?: ListMutation<any>) => Promise<void>;
+  childrenKey: number;
+  itemKey: number;
+  reconcile: (
+    data: T[],
+    contexts: RenderContext[],
+    mutation?: ListMutation<any>
+  ) => Promise<void>;
 }

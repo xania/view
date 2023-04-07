@@ -87,12 +87,6 @@ export function render(
 
         const item = new ItemState(context, source);
 
-        if (!context.graph.scope.has(source.key))
-          context.set(
-            source,
-            mapValue(source.initial, (r) => [...r])
-          );
-
         const disposeCmd = new ListMutationCommand(source, {
           type: 'dispose',
           list: source,
@@ -106,20 +100,13 @@ export function render(
 
         context.connect(source, {
           type: 'reconcile',
-          async reconcile(data, action) {
+          childrenKey: source.childrenKey,
+          itemKey: source.itemKey,
+          async reconcile(data, contexts, action) {
             if (action === undefined) {
               const stack: any[] = [];
-
               for (let i = data.length - 1; i >= 0; i--) {
-                const scope = new Map();
-                scope.set(item.key, data[i]);
-
-                const childContext = (source.children[i] ??= new RenderContext(
-                  context.container,
-                  new Graph(scope),
-                  i,
-                  context
-                ));
+                const childContext = contexts[i];
                 stack.push([
                   childContext,
                   new RootTarget(childContext, anchorTarget),
@@ -133,7 +120,7 @@ export function render(
               switch (type) {
                 case 'add':
                   const rowIndex = data.length - 1;
-                  const childContext = source.children[rowIndex];
+                  const childContext = contexts[rowIndex];
                   await Promise.all(
                     traverse([
                       [

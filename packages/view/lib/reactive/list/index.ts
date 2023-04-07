@@ -19,15 +19,14 @@ export function listSource<T>(value?: JSX.MaybePromise<T[]>) {
 
 export class ListSource<T = any> extends State<T[]> {
   public itemKey: number = this.key + 1;
+  public childrenKey: number = this.key + 2;
 
-  push<T>(itemOrGetter: T | ((arr: T[]) => T)) {
+  push(itemOrGetter: T | ((arr: T[]) => T)): ListMutationCommand<T> {
     return new ListMutationCommand(this, {
       type: 'add',
       itemOrGetter,
     });
   }
-
-  children: RenderContext[] = [];
 
   filter(f: (item: T) => boolean) {
     return new ListMutationCommand(this, {
