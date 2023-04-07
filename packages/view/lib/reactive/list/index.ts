@@ -8,7 +8,7 @@ export function List<T>(props: ListExpression<T>) {
 
 export class ListExpression<T = any> {
   constructor(
-    public source: ListSource<T> | T[],
+    public source: State<T[]> | T[],
     public children: (item: State<T>, dispose: Command) => JSX.Element
   ) {}
 }
@@ -18,8 +18,8 @@ export function listSource<T>(value?: JSX.MaybePromise<T[]>) {
 }
 
 export class ListSource<T = any> extends State<T[]> {
-  public itemKey: number = this.key + 1;
-  public childrenKey: number = this.key + 2;
+  // public itemKey: number = this.key + 1;
+  // public childrenKey: number = this.key + 2;
 
   push(itemOrGetter: T | ((arr: T[]) => T)): ListMutationCommand<T> {
     return new ListMutationCommand(this, {
@@ -31,14 +31,18 @@ export class ListSource<T = any> extends State<T[]> {
   filter(f: (item: T) => boolean) {
     return new ListMutationCommand(this, {
       type: 'filter',
+      list: this,
       filter: f,
     });
   }
 }
 
 export class ItemState<T = any> extends State<T> {
-  constructor(public listContext: RenderContext, public list: ListSource) {
+  constructor(public listContext: RenderContext, public list: State<T[]>) {
     super();
-    this.key = list.itemKey;
+    this.key = list.key + ITEM_KEY_OFFSET;
   }
 }
+
+export const ITEM_KEY_OFFSET = 1;
+export const CHILDREN_KEY_OFFSET = 2;

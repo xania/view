@@ -63,7 +63,6 @@ function NewTodo(props: NewTodoProps) {
       };
 
       e.currentTarget.value = "";
-      // newTodoText.select(e.node);
       return [props.onNew(newItem)];
     }
   }
@@ -82,18 +81,6 @@ interface TodoListProps {
 
 function TodoFooter(props: TodoListProps) {
   const { items } = props;
-
-  function all(item: TodoItem) {
-    return true;
-  }
-
-  function active(item: TodoItem) {
-    return item.completed !== true;
-  }
-
-  function completed(item: TodoItem) {
-    return item.completed === true;
-  }
 
   return (
     <footer class={classes["footer"]}>
@@ -125,13 +112,8 @@ function TodoFooter(props: TodoListProps) {
   );
 }
 
-interface TodoListProps {
-  items: ListSource<TodoItem>;
-}
-
 function TodoList(props: TodoListProps) {
   const { items } = props;
-  // const row = useContext<TodoItem>();
   const editing = state(false);
 
   return (
@@ -195,4 +177,16 @@ function focusWhen(editing: State<boolean>) {
       });
     },
   };
+}
+
+function all(item: TodoItem) {
+  return true;
+}
+
+function active(item: TodoItem) {
+  return item.completed !== true;
+}
+
+function completed(item: TodoItem) {
+  return item.completed === true;
 }

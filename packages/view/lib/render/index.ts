@@ -10,8 +10,10 @@ import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 import {
+  CHILDREN_KEY_OFFSET,
   IfExpression,
   isCommand,
+  ITEM_KEY_OFFSET,
   ItemState,
   ListExpression,
   ListMutationCommand,
@@ -97,10 +99,9 @@ function renderStack(
 
       context.connect(source, {
         type: 'reconcile',
-        childrenKey: source.childrenKey,
-        itemKey: source.itemKey,
+        childrenKey: source.key + CHILDREN_KEY_OFFSET,
+        itemKey: source.key + ITEM_KEY_OFFSET,
         template,
-        anchorTarget,
         render(contexts: RenderContext[]) {
           const stack: any[] = [];
           for (let i = contexts.length - 1; i >= 0; i--) {
@@ -113,41 +114,6 @@ function renderStack(
           }
 
           return Promise.all(renderStack(stack, domFactory));
-        },
-        async reconcile(data, contexts, action) {
-          if (action === undefined) {
-            const stack: any[] = [];
-            for (let i = data.length - 1; i >= 0; i--) {
-              const childContext = contexts[i];
-              stack.push([
-                childContext,
-                new RootTarget(childContext, anchorTarget),
-                template,
-              ]);
-            }
-
-            await Promise.all(renderStack(stack, domFactory));
-          } else {
-            const type = action.type;
-            switch (type) {
-              case 'add':
-                const rowIndex = data.length - 1;
-                const childContext = contexts[rowIndex];
-                await Promise.all(
-                  renderStack(
-                    [
-                      [
-                        childContext,
-                        new RootTarget(childContext, anchorTarget),
-                        template,
-                      ],
-                    ],
-                    domFactory
-                  )
-                );
-                break;
-            }
-          }
         },
       });
     } else if (curr instanceof IfExpression) {

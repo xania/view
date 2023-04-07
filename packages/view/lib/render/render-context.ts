@@ -1,10 +1,11 @@
 ﻿import { Disposable } from '../disposable';
 import {
+  CHILDREN_KEY_OFFSET,
   Command,
   isCommand,
+  ITEM_KEY_OFFSET,
   ItemState,
   ListMutationCommand,
-  ListSource,
   mapValue,
   Stateful,
   StateMapper,
@@ -12,9 +13,7 @@ import {
   UpdateCommand,
   UpdateStateCommand,
 } from '../reactive';
-import { ListMutation } from '../reactive/list/mutation';
 import { texpand } from '../tpl';
-import { AnchorTarget } from './anchor-target';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
@@ -22,8 +21,6 @@ import { RenderTarget } from './target';
 const stateProp = Symbol('state');
 
 export class RenderContext implements RenderTarget {
-  // public children: RenderContext[] = [];
-
   public nodes: Node[] = [];
   public disposables: Disposable[] = [];
   public subscriptions: Subscription[] = [];
@@ -35,11 +32,7 @@ export class RenderContext implements RenderTarget {
     public graph: Graph,
     public index: number,
     public parent?: RenderContext
-  ) {
-    // if (parent) {
-    //   parent.children.push(this);
-    // }
-  }
+  ) {}
 
   dispose() {
     this.disposed = true;
@@ -108,7 +101,7 @@ export class RenderContext implements RenderTarget {
     } else if (message instanceof ListMutationCommand) {
       const { mutation } = message;
       const children = this.graph.scope.get(
-        message.state.childrenKey
+        message.state.key + CHILDREN_KEY_OFFSET
       )! as RenderContext[];
       switch (mutation.type) {
         case 'add':
@@ -124,7 +117,7 @@ export class RenderContext implements RenderTarget {
           }
 
           const scope = new Map();
-          scope.set(list.itemKey, currentValue[rowIndex]);
+          scope.set(list.key + ITEM_KEY_OFFSET, currentValue[rowIndex]);
 
           const newRowContext = new RenderContext(
             context.container,
@@ -160,7 +153,7 @@ export class RenderContext implements RenderTarget {
           rowContext.dispose();
 
           const disposeChildren = listContext.graph.scope.get(
-            mutation.list.childrenKey
+            mutation.list.key + CHILDREN_KEY_OFFSET
           )!;
           disposeChildren.splice(disposeIndex, 1);
 
@@ -398,10 +391,6 @@ export class RenderContext implements RenderTarget {
   }
 
   notify(state: Stateful, stateValue: any) {
-    if (state instanceof ListSource) {
-      return;
-    }
-
     const operators = this.graph.operatorsMap.get(state.key);
     if (operators) {
       this.sync(operators, stateValue);
@@ -548,13 +537,7 @@ export interface ReconcileOperator<T> {
   childrenKey: number;
   itemKey: number;
   template: any;
-  anchorTarget: AnchorTarget;
   render(contexts: RenderContext[]): Promise<any>;
-  reconcile: (
-    data: T[],
-    contexts: RenderContext[],
-    mutation?: ListMutation<any>
-  ) => Promise<void>;
 }
 
 export interface RenderOperator {

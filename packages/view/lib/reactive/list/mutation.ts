@@ -1,5 +1,6 @@
 ﻿import { ListSource } from '.';
 import { RenderContext } from '../../render/render-context';
+import { State } from '../state';
 
 export type ListMutation<T> =
   | AddRowMutation<T>
@@ -14,12 +15,13 @@ interface AddRowMutation<T> {
 
 interface FilterRowMutation<T> {
   type: 'filter';
+  list: State<T[]>;
   filter: (item: T) => boolean;
 }
 
 interface DisposeRowMutation {
   type: 'dispose';
-  list: ListSource;
+  list: State;
   context: RenderContext;
 }
 

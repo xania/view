@@ -25,10 +25,7 @@ export type UpdateFunction = (scope: {
 }) => Generator<JSX.MaybePromise<Command>> | Command;
 
 export class ListMutationCommand<T = any> {
-  constructor(
-    public state: ListSource<T>,
-    public mutation: ListMutation<any>
-  ) {}
+  constructor(public state: State<T[]>, public mutation: ListMutation<any>) {}
 }
 
 export type Command =
