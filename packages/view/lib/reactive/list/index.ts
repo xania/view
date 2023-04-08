@@ -57,5 +57,5 @@ export class ItemState<T = any> extends State<T> {
 }
 
 export const ROW_KEY_OFFSET = 1;
-export const CHILDREN_KEY_OFFSET = 2;
-export const FILTER_KEY_OFFSET = 3;
+export const GRAPHS_KEY_OFFSET = 2;
+// export const FILTER_KEY_OFFSET = 3;

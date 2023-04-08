@@ -1,6 +1,5 @@
 ﻿import { Disposable } from '../disposable';
 import {
-  CHILDREN_KEY_OFFSET,
   Command,
   isCommand,
   ROW_KEY_OFFSET,
@@ -12,9 +11,9 @@ import {
   StateProperty,
   UpdateCommand,
   UpdateStateCommand,
+  GRAPHS_KEY_OFFSET,
 } from '../reactive';
 import { texpand } from '../tpl';
-import { AnchorTarget } from './anchor-target';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
@@ -22,11 +21,12 @@ import { RenderTarget } from './target';
 const stateProp = Symbol('state');
 
 export class RenderContext implements RenderTarget {
-  public nodes: Node[] = [];
+  public nodes: ChildNode[] = [];
   public disposables: Disposable[] = [];
   public subscriptions: Subscription[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
   public disposed = false;
+  public dettached = false;
 
   constructor(
     public container: HTMLElement,
@@ -67,6 +67,24 @@ export class RenderContext implements RenderTarget {
     return newRowContext;
   }
 
+  dettach() {
+    this.dettached = true;
+    for (const node of this.nodes) {
+      node.remove();
+    }
+  }
+
+  attach(container: HTMLElement, anchorNode?: Node) {
+    this.dettached = false;
+    for (const node of this.nodes) {
+      if (anchorNode) {
+        container.insertBefore(node, anchorNode);
+      } else {
+        container.appendChild(node);
+      }
+    }
+  }
+
   dispose() {
     this.disposed = true;
 
@@ -87,7 +105,7 @@ export class RenderContext implements RenderTarget {
     }
   }
 
-  appendChild(node: Node) {
+  appendChild(node: ChildNode) {
     if (!this.disposed) {
       const { anchorNode } = this;
       if (anchorNode) {
@@ -143,60 +161,48 @@ export class RenderContext implements RenderTarget {
       }
     } else if (message instanceof ListMutationCommand) {
       const { mutation } = message;
-      const children = this.graph.scope.get(
-        message.state.key + CHILDREN_KEY_OFFSET
-      )! as RenderContext[];
       switch (mutation.type) {
         case 'filter':
-          {
-            for (
-              let rowIndex = 0, k = 0;
-              rowIndex < currentValue.length;
-              rowIndex++, k++
-            ) {
-              let child = children[k];
-              const row = currentValue[rowIndex];
-              if (!child || child.index > rowIndex) {
-                let anchorNode: Comment | undefined = undefined;
-                for (let j = k; j < children.length; j++) {
-                  if (children[j].nodes.length > 0) {
-                    anchorNode = document.createComment('');
-                    const container = children[j].nodes[0].parentElement!;
-                    container.insertBefore(anchorNode, children[j].nodes[0]);
-                    break;
-                  }
-                }
+          const listOperators = context.graph.operatorsMap.get(
+            message.state.key
+          );
+          if (!listOperators) break;
 
-                children.splice(
-                  k,
-                  0,
-                  this.renderRow(
-                    message.state,
-                    currentValue,
-                    rowIndex,
-                    anchorNode
-                  )
-                );
-              } else if (child.index === rowIndex) {
-                if (!mutation.predicate(row)) {
-                  child.dispose();
-                  children.splice(k--, 1);
+          for (const operator of listOperators) {
+            if (operator.type !== 'reconcile') continue;
+            const children = operator.children;
+            if (children.length !== currentValue.length) {
+              throw Error('out of sync');
+            }
+
+            for (let i = 0; i < currentValue.length; i++) {
+              const row = currentValue[i];
+              const dettached = !mutation.predicate(row);
+
+              const child = children[i];
+              if (dettached !== child.dettached) {
+                if (dettached) child.dettach();
+                else {
+                  let anchorNode: ChildNode | undefined =
+                    operator.listAnchorNode;
+                  for (let j = i; j < children.length; j++) {
+                    if (
+                      !children[j].dettached &&
+                      children[j].nodes.length > 0
+                    ) {
+                      anchorNode = children[j].nodes[0];
+                      break;
+                    }
+                  }
+
+                  child.attach(operator.container, anchorNode);
                 }
-              } else {
-                rowIndex--;
               }
             }
           }
-
-          // while (rowIndex < currentValue.length) {
-          //   children.push(
-          //     this.renderRow(message.state, currentValue, rowIndex++)
-          //   );
-          // }
           break;
         case 'add':
           const list = message.state;
-          const addIndex = children.length;
           if (mutation.itemOrGetter instanceof Function) {
             if (currentValue !== undefined) {
               const newRow = mutation.itemOrGetter(currentValue);
@@ -206,45 +212,50 @@ export class RenderContext implements RenderTarget {
             currentValue.push(mutation.itemOrGetter);
           }
 
-          children.push(this.renderRow(list, currentValue, addIndex));
-
           const operators = context.graph.operatorsMap.get(list.key);
           if (operators) {
-            context.sync(
-              operators.filter((o) => o.type !== 'reconcile'),
-              currentValue
-            );
+            context.sync(operators, currentValue);
           }
-
           break;
         case 'dispose':
           const listContext = mutation.context;
           const rowContext = context;
           const array = listContext.get(mutation.list);
+          const rowIndex = rowContext.index;
+          array.splice(rowIndex, 1);
 
-          const disposeIndex = rowContext.index;
-          array.splice(disposeIndex, 1);
-          rowContext.dispose();
+          const graphs = listContext.graph.scope.get(
+            message.state.key + GRAPHS_KEY_OFFSET
+          ) as Graph[];
+          graphs.splice(rowIndex, 1);
 
-          const disposeChildren = listContext.graph.scope.get(
-            mutation.list.key + CHILDREN_KEY_OFFSET
-          )!;
-          disposeChildren.splice(disposeIndex, 1);
-
-          for (let i = disposeIndex; i < disposeChildren.length; i++) {
-            disposeChildren[i].index = i;
-          }
-
-          // listContext.notify(state, currentValue, mutation)
           const disposeOperators = listContext.graph.operatorsMap.get(
-            state.key
+            message.state.key
           );
-          if (disposeOperators) {
-            listContext.sync(
-              disposeOperators.filter((o) => o.type !== 'reconcile'),
-              currentValue
-            );
+          if (!disposeOperators) break;
+
+          for (const operator of disposeOperators) {
+            if (operator.type === 'reconcile') {
+              const rowContext = operator.children[rowIndex];
+              operator.children.splice(rowIndex, 1);
+              rowContext.dispose();
+
+              for (let i = rowIndex; i < operator.children.length; i++) {
+                operator.children[i].index = i;
+              }
+            }
           }
+
+          listContext.notify(state, currentValue);
+          // const disposeOperators = listContext.graph.operatorsMap.get(
+          //   state.key
+          // );
+          // if (disposeOperators) {
+          //   listContext.sync(
+          //     disposeOperators.filter((o) => o.type !== 'reconcile'),
+          //     currentValue
+          //   );
+          // }
 
           break;
       }
@@ -301,25 +312,43 @@ export class RenderContext implements RenderTarget {
         const operator = operators[i];
         switch (operator.type) {
           case 'reconcile':
-            const scope = context.graph.scope;
-            if (!scope.has(operator.childrenKey)) {
-              scope.set(
-                operator.childrenKey,
-                (newValue as any[]).map((item, index) => {
-                  const childScope = new Map();
-                  childScope.set(operator.itemKey, item);
-
-                  return new RenderContext(
-                    context.container,
-                    new Graph(childScope),
-                    index,
-                    context
-                  );
-                })
-              );
+            if (!this.graph.scope.has(operator.graphsKey)) {
+              this.graph.scope.set(operator.graphsKey, []);
             }
-            const children = scope.get(operator.childrenKey);
-            operator.render(children);
+            const graphs = this.graph.scope.get(operator.graphsKey) as Graph[];
+
+            const contexts: RenderContext[] = [];
+            for (
+              let rowIndex = operator.children.length;
+              rowIndex < newValue.length;
+              rowIndex++
+            ) {
+              const childScope = new Map();
+              childScope.set(operator.itemKey, newValue[rowIndex]);
+
+              const graph = (graphs[rowIndex] ??= new Graph(childScope));
+
+              const childContext = new RenderContext(
+                context.container,
+                graph,
+                rowIndex,
+                context
+              );
+              operator.children.push(childContext);
+              contexts.push(childContext);
+            }
+            operator.render(contexts);
+
+            if (operator.children.length > newValue.length) {
+              for (let j = newValue.length; j < operator.children.length; j++) {
+                operator.children[j].dispose();
+              }
+
+              operator.children.length = newValue.length;
+            }
+            if (graphs.length > newValue.length) {
+              graphs.length = newValue.length;
+            }
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -608,9 +637,12 @@ export class SynthaticElement implements RenderTarget {
 
 export interface ReconcileOperator<T> {
   type: 'reconcile';
-  childrenKey: number;
+  children: RenderContext[];
   itemKey: number;
+  graphsKey: number;
   template: any;
+  container: HTMLElement;
+  listAnchorNode: Comment;
   render(contexts: RenderContext[]): Promise<any>;
 }
 

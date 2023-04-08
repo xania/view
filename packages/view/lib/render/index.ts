@@ -10,7 +10,6 @@ import { DomFactory } from './dom-factory';
 import { isAttachable } from './attachable';
 import { isViewable } from './viewable';
 import {
-  CHILDREN_KEY_OFFSET,
   IfExpression,
   isCommand,
   ROW_KEY_OFFSET,
@@ -20,6 +19,7 @@ import {
   ListSource,
   State,
   StateEffect,
+  GRAPHS_KEY_OFFSET,
 } from '../reactive';
 import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
@@ -93,14 +93,17 @@ function renderStack(
       });
       const template = curr.children(item, disposeCmd);
 
-      const anchorNode = domFactory.createComment('');
-      const listAnchorTarget = new AnchorTarget(anchorNode);
-      currentTarget.appendChild(anchorNode);
+      const listAnchorNode = domFactory.createComment('');
+      const listAnchorTarget = new AnchorTarget(listAnchorNode);
+      currentTarget.appendChild(listAnchorNode);
 
       context.connect(source, {
         type: 'reconcile',
-        childrenKey: source.key + CHILDREN_KEY_OFFSET,
+        children: [],
         itemKey: source.key + ROW_KEY_OFFSET,
+        graphsKey: source.key + GRAPHS_KEY_OFFSET,
+        container: currentTarget as HTMLElement,
+        listAnchorNode,
         template,
         render(contexts: RenderContext[]) {
           const stack: any[] = [];
