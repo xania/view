@@ -27,10 +27,6 @@ export function App() {
           </header>
 
           <TodoList items={items} />
-          <div>
-            -----------------------------------------------------------------------------------------
-          </div>
-          <TodoList items={items} />
 
           <If condition={items.map((l) => l.length > 0)}>
             <TodoFooter items={items} />
