@@ -13,13 +13,25 @@ export class ListExpression<T = any> {
   ) {}
 }
 
-export function listSource<T>(value?: JSX.MaybePromise<T[]>) {
-  return new ListSource(value);
+export function listSource<T>(
+  initial?: JSX.MaybePromise<T[]>,
+  predicate?: Predicate<T>
+) {
+  return new ListSource(initial, predicate);
 }
+
+type Predicate<T> = (x: T) => boolean;
 
 export class ListSource<T = any> extends State<T[]> {
   // public itemKey: number = this.key + 1;
   // public childrenKey: number = this.key + 2;
+
+  constructor(
+    initial?: JSX.MaybePromise<T[] | undefined>,
+    public predicate?: Predicate<T>
+  ) {
+    super(initial);
+  }
 
   push(itemOrGetter: T | ((arr: T[]) => T)): ListMutationCommand<T> {
     return new ListMutationCommand(this, {
@@ -28,11 +40,11 @@ export class ListSource<T = any> extends State<T[]> {
     });
   }
 
-  filter(f: (item: T) => boolean) {
+  filter(predicate: (item: T) => boolean) {
     return new ListMutationCommand(this, {
       type: 'filter',
       list: this,
-      filter: f,
+      predicate: predicate,
     });
   }
 }
@@ -40,9 +52,10 @@ export class ListSource<T = any> extends State<T[]> {
 export class ItemState<T = any> extends State<T> {
   constructor(public listContext: RenderContext, public list: State<T[]>) {
     super();
-    this.key = list.key + ITEM_KEY_OFFSET;
+    this.key = list.key + ROW_KEY_OFFSET;
   }
 }
 
-export const ITEM_KEY_OFFSET = 1;
+export const ROW_KEY_OFFSET = 1;
 export const CHILDREN_KEY_OFFSET = 2;
+export const FILTER_KEY_OFFSET = 3;

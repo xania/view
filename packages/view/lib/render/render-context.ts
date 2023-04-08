@@ -3,7 +3,7 @@ import {
   CHILDREN_KEY_OFFSET,
   Command,
   isCommand,
-  ITEM_KEY_OFFSET,
+  ROW_KEY_OFFSET,
   ItemState,
   ListMutationCommand,
   mapValue,
@@ -14,6 +14,7 @@ import {
   UpdateStateCommand,
 } from '../reactive';
 import { texpand } from '../tpl';
+import { AnchorTarget } from './anchor-target';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
@@ -28,14 +29,50 @@ export class RenderContext implements RenderTarget {
   public disposed = false;
 
   constructor(
-    public container: RenderTarget,
+    public container: HTMLElement,
     public graph: Graph,
     public index: number,
-    public parent?: RenderContext
+    public parent?: RenderContext,
+    public anchorNode?: Comment
   ) {}
+
+  renderRow(
+    list: Stateful,
+    currentValue: any,
+    rowIndex: number,
+    anchorNode?: Comment
+  ) {
+    const context = this;
+
+    const scope = new Map();
+    scope.set(list.key + ROW_KEY_OFFSET, currentValue[rowIndex]);
+
+    const newRowContext = new RenderContext(
+      context.container,
+      new Graph(scope),
+      rowIndex,
+      context,
+      anchorNode
+    );
+
+    const operators = context.graph.operatorsMap.get(list.key);
+    if (operators) {
+      for (const op of operators) {
+        if (op.type === 'reconcile') {
+          op.render([newRowContext]);
+        }
+      }
+    }
+
+    return newRowContext;
+  }
 
   dispose() {
     this.disposed = true;
+
+    if (this.anchorNode) {
+      this.anchorNode.remove();
+    }
 
     for (const d of this.disposables) {
       d.dispose();
@@ -52,7 +89,13 @@ export class RenderContext implements RenderTarget {
 
   appendChild(node: Node) {
     if (!this.disposed) {
-      this.container.appendChild(node);
+      const { anchorNode } = this;
+      if (anchorNode) {
+        this.container.insertBefore(node, anchorNode);
+      } else {
+        this.container.appendChild(node);
+      }
+
       this.nodes.push(node);
     }
   }
@@ -104,9 +147,56 @@ export class RenderContext implements RenderTarget {
         message.state.key + CHILDREN_KEY_OFFSET
       )! as RenderContext[];
       switch (mutation.type) {
+        case 'filter':
+          {
+            for (
+              let rowIndex = 0, k = 0;
+              rowIndex < currentValue.length;
+              rowIndex++, k++
+            ) {
+              let child = children[k];
+              const row = currentValue[rowIndex];
+              if (!child || child.index > rowIndex) {
+                let anchorNode: Comment | undefined = undefined;
+                for (let j = k; j < children.length; j++) {
+                  if (children[j].nodes.length > 0) {
+                    anchorNode = document.createComment('');
+                    const container = children[j].nodes[0].parentElement!;
+                    container.insertBefore(anchorNode, children[j].nodes[0]);
+                    break;
+                  }
+                }
+
+                children.splice(
+                  k,
+                  0,
+                  this.renderRow(
+                    message.state,
+                    currentValue,
+                    rowIndex,
+                    anchorNode
+                  )
+                );
+              } else if (child.index === rowIndex) {
+                if (!mutation.predicate(row)) {
+                  child.dispose();
+                  children.splice(k--, 1);
+                }
+              } else {
+                rowIndex--;
+              }
+            }
+          }
+
+          // while (rowIndex < currentValue.length) {
+          //   children.push(
+          //     this.renderRow(message.state, currentValue, rowIndex++)
+          //   );
+          // }
+          break;
         case 'add':
           const list = message.state;
-          const rowIndex = children.length;
+          const addIndex = children.length;
           if (mutation.itemOrGetter instanceof Function) {
             if (currentValue !== undefined) {
               const newRow = mutation.itemOrGetter(currentValue);
@@ -116,26 +206,10 @@ export class RenderContext implements RenderTarget {
             currentValue.push(mutation.itemOrGetter);
           }
 
-          const scope = new Map();
-          scope.set(list.key + ITEM_KEY_OFFSET, currentValue[rowIndex]);
+          children.push(this.renderRow(list, currentValue, addIndex));
 
-          const newRowContext = new RenderContext(
-            context.container,
-            new Graph(scope),
-            rowIndex,
-            context
-          );
-
-          children.push(newRowContext);
-
-          const operators = context.graph.operatorsMap.get(state.key);
+          const operators = context.graph.operatorsMap.get(list.key);
           if (operators) {
-            for (const op of operators) {
-              if (op.type === 'reconcile') {
-                op.render([newRowContext]);
-              }
-            }
-
             context.sync(
               operators.filter((o) => o.type !== 'reconcile'),
               currentValue

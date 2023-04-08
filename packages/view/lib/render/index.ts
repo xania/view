@@ -13,7 +13,7 @@ import {
   CHILDREN_KEY_OFFSET,
   IfExpression,
   isCommand,
-  ITEM_KEY_OFFSET,
+  ROW_KEY_OFFSET,
   ItemState,
   ListExpression,
   ListMutationCommand,
@@ -94,13 +94,13 @@ function renderStack(
       const template = curr.children(item, disposeCmd);
 
       const anchorNode = domFactory.createComment('');
-      const anchorTarget = new AnchorTarget(anchorNode);
+      const listAnchorTarget = new AnchorTarget(anchorNode);
       currentTarget.appendChild(anchorNode);
 
       context.connect(source, {
         type: 'reconcile',
         childrenKey: source.key + CHILDREN_KEY_OFFSET,
-        itemKey: source.key + ITEM_KEY_OFFSET,
+        itemKey: source.key + ROW_KEY_OFFSET,
         template,
         render(contexts: RenderContext[]) {
           const stack: any[] = [];
@@ -108,11 +108,15 @@ function renderStack(
             const childContext = contexts[i];
             stack.push([
               childContext,
-              new RootTarget(childContext, anchorTarget),
+              new RootTarget(
+                childContext,
+                childContext.anchorNode
+                  ? new AnchorTarget(childContext.anchorNode)
+                  : listAnchorTarget
+              ),
               template,
             ]);
           }
-
           return Promise.all(renderStack(stack, domFactory));
         },
       });

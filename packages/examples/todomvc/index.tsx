@@ -1,26 +1,20 @@
-﻿import {
-  Attachable,
-  If,
-  List,
-  listSource,
-  ListSource,
-  State,
-  state,
-} from "@xania/view";
+﻿import { If, List, listSource, ListSource, State, state } from "@xania/view";
 import classes from "./index.module.scss";
-import { delay } from "../utils";
 
 export function App() {
-  const items = listSource<TodoItem>([
-    {
-      completed: true,
-      label: "Get the milk",
-    },
-    {
-      completed: false,
-      label: "Say hi",
-    },
-  ]);
+  const items = listSource<TodoItem>(
+    [
+      {
+        completed: true,
+        label: "Get the milk",
+      },
+      {
+        completed: false,
+        label: "Say hi",
+      },
+    ],
+    completed
+  );
   return (
     <>
       {/* <Css value="todoapp-container header" /> */}
