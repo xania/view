@@ -1,4 +1,4 @@
-<svg width="256" height="256" fill="none" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="256" height="256"><svg width="256" height="256" fill="none" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
 	<style>
 		.text {
 			fill: var(--theme-text);
@@ -7,5 +7,6 @@
 			fill: var(--theme-accent);
 		}
 	</style>
-	<polygon style="stroke: none; fill-opacity: 1; fill: currentColor;" points="4.633 84.345 146.915 4.209 337.442 333.747 480.541 85.98 336.625 5.845 290.014 85.163 479.723 414.7 336.624 497.29 146.915 167.752 5.451 413.882 146.915 497.29 194.342 415.518"></polygon>
-</svg>	
+  <polygon style="stroke: none; fill-opacity: 1; fill: currentColor;" points="25.299 63.867 145.525 65.344 300.33 261.373 450.998 152.169 447.729 39.789 275.08 166.942 467.835 412.279 347.073 423.879 200.462 226.546 49.559 353.629 44.759 488.443 230.108 324.284"></polygon>
+</svg><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
+</style></svg>

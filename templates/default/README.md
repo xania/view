@@ -10,4 +10,4 @@ npm start
 
 ---
 
-This project was created using [@xania/create-app](https://github.com/xania/create-xania)
+This project was created using [create-xania](https://github.com/xania/view/create)
