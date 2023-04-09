@@ -1,4 +1,4 @@
-﻿import { Route, WebApp } from "@xania/router";
+﻿import { Route, RouteContext, WebApp } from "@xania/router";
 import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
@@ -23,7 +23,7 @@ export function ExamplesApp() {
             </Route>
           </Route>
           <Route path="todo">
-            {() => import("./todomvc").then((e) => e.App())}
+            {(ctx: RouteContext) => import("./todomvc").then((e) => e.App(ctx))}
           </Route>
         </div>
       </WebApp>

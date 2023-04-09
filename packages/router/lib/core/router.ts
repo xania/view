@@ -54,6 +54,22 @@ export function Router(props: RouterProps<any>) {
   });
 }
 
+function remainingTo(prefix: Path) {
+  return (route: RouteEvent) => {
+    if (route.path.length < prefix.length) {
+      return undefined;
+    }
+
+    for (let i = 0; i < prefix.length; i++) {
+      if (route.path[i] !== prefix[i]) {
+        return undefined;
+      }
+    }
+
+    return route.path.slice(prefix.length);
+  };
+}
+
 function relativeTo(prefix: Path) {
   return (route: RouteEvent) => {
     if (route.path.length < prefix.length) {
@@ -79,6 +95,7 @@ class RouteView implements RouteContext {
   public path: Path;
   public fullpath: Path;
   public events: Value<RouteEvent>;
+  public remaining: Value<Path>;
 
   constructor(
     public resolution: RouteResolution,
@@ -88,6 +105,7 @@ class RouteView implements RouteContext {
     this.path = resolution.appliedPath;
     this.fullpath = [...parent.fullpath, ...resolution.appliedPath];
     this.events = parent.events.map(relativeTo(resolution.appliedPath));
+    this.remaining = parent.events.map(remainingTo(resolution.appliedPath));
   }
 
   dispose() {
@@ -99,7 +117,14 @@ class RouteView implements RouteContext {
     if (resolution && resolution.component) {
       const { component } = resolution;
 
-      const view = component instanceof Function ? component(this) : component;
+      const routeContext: RouteContext = this;
+      const view = tmap(component, (element) => {
+        if (element instanceof Function) {
+          return element(routeContext);
+        } else {
+          return element;
+        }
+      });
 
       if (loader) {
         return [
@@ -160,9 +185,10 @@ class RouteHandler {
 
         const appliedPath = route.path.slice(0, segment.length);
 
-        const routeContext = {
+        const routeContext: RouteContext = {
           path: appliedPath,
           fullpath: [...this.context.fullpath, ...appliedPath],
+          remaining: this.context.events.map(remainingTo(appliedPath)),
           events: this.context.events.map(relativeTo(appliedPath)),
         };
 

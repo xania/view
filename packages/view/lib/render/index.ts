@@ -231,7 +231,7 @@ function renderStack(
       context.subscriptions.push(
         curr.subscribe({
           next(newValue) {
-            context.handleCommand(newValue as any);
+            context.handleCommands(newValue as any);
           },
         })
       );
@@ -270,9 +270,12 @@ export * from './attachable';
 
 const emptyArr: string[] = [];
 
-function split(x: string): string[] {
+function split(x: string): string[] | undefined {
   if (x === null) {
     return emptyArr;
+  }
+  if (x === undefined) {
+    return undefined;
   }
   return x.split(' ');
 }

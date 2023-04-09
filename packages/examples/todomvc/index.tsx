@@ -1,7 +1,19 @@
-﻿import { If, List, listSource, ListSource, State, state } from "@xania/view";
+﻿import {
+  If,
+  List,
+  listSource,
+  ListSource,
+  State,
+  state,
+  update,
+} from "@xania/view";
 import classes from "./index.module.scss";
+import { RouteContext } from "@xania/router";
 
-export function App() {
+type Mode = "completed" | "active" | "all";
+
+export function App({ remaining }: RouteContext) {
+  const mode = state<Mode>();
   const items = listSource<TodoItem>(
     [
       {
@@ -15,10 +27,20 @@ export function App() {
     ],
     completed
   );
+
   return (
     <>
-      {/* <Css value="todoapp-container header" /> */}
-      <div>(work in progress)</div>
+      {remaining.map((path) => {
+        const newMode = path[0] ?? "all";
+        switch (newMode) {
+          case "completed":
+            return [mode.update("completed"), items.filter(completed)];
+          case "active":
+            return [mode.update("active"), items.filter(active)];
+          default:
+            return [mode.update("all"), items.filter(all)];
+        }
+      })}
       <section class={classes["todoapp"]}>
         <div>
           <header class={classes["header"]}>
@@ -29,7 +51,7 @@ export function App() {
           <TodoList items={items} />
 
           <If condition={items.map((l) => l.length > 0)}>
-            <TodoFooter items={items} />
+            <TodoFooter items={items} mode={mode} />
           </If>
         </div>
       </section>
@@ -69,8 +91,13 @@ interface TodoListProps {
   items: ListSource<TodoItem>;
 }
 
-function TodoFooter(props: TodoListProps) {
-  const { items } = props;
+interface TodoFooterProps {
+  items: ListSource<TodoItem>;
+  mode: State<"completed" | "active" | "all">;
+}
+
+function TodoFooter(props: TodoFooterProps) {
+  const { items, mode } = props;
 
   return (
     <footer class={classes["footer"]}>
@@ -85,17 +112,39 @@ function TodoFooter(props: TodoListProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a class={classes["selected"]} click={items.filter(all)}>
+          <a
+            href={"/todo/"}
+            class={[
+              "router-link",
+              mode.map((m) => (m === "all" ? classes["selected"] : null)),
+            ]}
+          >
             All
           </a>
         </li>
         <span> </span>
         <li>
-          <a click={items.filter(active)}>Active</a>
+          <a
+            href={"/todo/active"}
+            class={[
+              "router-link",
+              mode.map((m) => (m === "active" ? classes["selected"] : null)),
+            ]}
+          >
+            Active
+          </a>
         </li>
         <span> </span>
         <li>
-          <a click={items.filter(completed)}>Completed</a>
+          <a
+            href={"/todo/completed"}
+            class={[
+              "router-link",
+              mode.map((m) => (m === "completed" ? classes["selected"] : null)),
+            ]}
+          >
+            Completed
+          </a>
         </li>
       </ul>
     </footer>
