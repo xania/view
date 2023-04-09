@@ -35,7 +35,7 @@ interface RemoveRowMutation {
 interface EachRowMutation<T> {
   type: 'each';
   list: State<T[]>;
-  command: Command | ((row: State<T>) => Command);
+  command: Command;
 }
 
 export function isListMutation(value: any): value is ListMutation<any> {

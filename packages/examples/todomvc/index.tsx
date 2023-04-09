@@ -43,7 +43,11 @@ export function App({ remaining }: RouteContext) {
             class={classes["toggle-all"]}
             type="checkbox"
             checked={items.map((list) => list.every((todo) => todo.completed))}
-            click={items.each((todo) => todo.prop("completed").update(true))}
+            click={(e) =>
+              items.each((row) =>
+                row.prop("completed").update(e.currentTarget.checked)
+              )
+            }
           />
           <label for="toggle-all"></label>
         </header>

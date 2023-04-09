@@ -49,10 +49,12 @@ export class ListSource<T = any> extends State<T[]> {
   }
 
   each(command: Command | ((row: State<T>) => Command)) {
+    const row = new State<T>();
+    row.key = this.key + ROW_KEY_OFFSET;
     return new ListMutationCommand(this, {
       type: 'each',
       list: this,
-      command,
+      command: command instanceof Function ? command(row) : command,
     });
   }
 }

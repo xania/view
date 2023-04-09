@@ -162,6 +162,23 @@ export class RenderContext implements RenderTarget {
     } else if (message instanceof ListMutationCommand) {
       const { mutation } = message;
       switch (mutation.type) {
+        case 'each':
+          const eachOperators = context.graph.operatorsMap.get(
+            message.state.key
+          );
+          if (!eachOperators) break;
+
+          for (const op of eachOperators) {
+            if (op.type === 'reconcile') {
+              await Promise.all(
+                op.children.map((child) =>
+                  child.handleCommands(mutation.command)
+                )
+              );
+            }
+          }
+          this.sync(eachOperators, currentValue);
+          break;
         case 'filter':
           const listOperators = context.graph.operatorsMap.get(
             message.state.key

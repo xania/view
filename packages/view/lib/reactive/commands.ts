@@ -1,5 +1,4 @@
-﻿import { ItemState, ListSource } from './list';
-import { ListMutation } from './list/mutation';
+﻿import { ListMutation } from './list/mutation';
 import { State, Stateful } from './state';
 
 export class UpdateStateCommand<T = any> {
