@@ -6,8 +6,8 @@ import "./dist/output.css";
 export function ExamplesApp() {
   return (
     <>
-      <Navigation />
       <WebApp>
+        <Navigation />
         <div class={classes["outlet"]}>
           <Route>{() => import("./clock").then((e) => e.App())}</Route>
           <Route path="counter">
@@ -79,18 +79,18 @@ function Navigation() {
               <div class="flex flex-shrink-0 items-center">
                 <img
                   class="block h-8 w-auto lg:hidden"
-                  src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
+                  src="/favicon.svg"
                   alt="Xania"
                 />
                 <img
                   class="hidden h-8 w-auto lg:block"
-                  src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
+                  src="/favicon.svg"
                   alt="Xania"
                 />
               </div>
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
-                  <MenuItem title="Clock" current={true} href="/" />
+                  <MenuItem title="Clock" href="/" />
                   <MenuItem title="Counter" href="/counter" />
                   <MenuItem title="Todo" href="/todo" />
                   {/* <MenuItem title="Counter" href="/counter" />
@@ -179,9 +179,7 @@ function Navigation() {
         </div>
 
         <div class="sm:hidden" id="mobile-menu">
-          <div class="space-y-1 px-2 pb-3 pt-2">
-            <MobileMenuItem title="Clock" href="/" />
-          </div>
+          <div class="space-y-1 px-2 pb-3 pt-2"></div>
         </div>
       </nav>
     </>
