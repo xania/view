@@ -52,7 +52,7 @@ declare module JSX {
   // type Future<T> = Promise<T>; // | Promise<Future<T>>;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
-  type Sequence<T> =
+  type Sequence<T = any> =
     | Nothing
     | Just<T>
     | Sequence<T>[]

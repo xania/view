@@ -1,12 +1,4 @@
-﻿import {
-  If,
-  List,
-  listSource,
-  ListSource,
-  State,
-  state,
-  update,
-} from "@xania/view";
+﻿import { If, List, listSource, ListSource, State, state } from "@xania/view";
 import classes from "./index.module.scss";
 import { RouteContext } from "@xania/router";
 
@@ -42,18 +34,25 @@ export function App({ remaining }: RouteContext) {
         }
       })}
       <section class={classes["todoapp"]}>
-        <div>
-          <header class={classes["header"]}>
-            <h1>todos</h1>
-            <NewTodo onNew={(item) => items.push(item)} />
-          </header>
+        <header class={classes["header"]}>
+          <h1>todos</h1>
+          <NewTodo onNew={(item) => items.push(item)} />
 
-          <TodoList items={items} />
+          <input
+            id="toggle-all"
+            class={classes["toggle-all"]}
+            type="checkbox"
+            checked={items.map((list) => list.every((todo) => todo.completed))}
+            click={items.each((todo) => todo.prop("completed").update(true))}
+          />
+          <label for="toggle-all"></label>
+        </header>
 
-          <If condition={items.map((l) => l.length > 0)}>
-            <TodoFooter items={items} mode={mode} />
-          </If>
-        </div>
+        <TodoList items={items} />
+
+        <If condition={items.map((l) => l.length > 0)}>
+          <TodoFooter items={items} mode={mode} />
+        </If>
       </section>
     </>
   );

@@ -1,12 +1,14 @@
 ﻿import { ListSource } from '.';
 import { RenderContext } from '../../render/render-context';
+import { Command } from '../commands';
 import { State } from '../state';
 
 export type ListMutation<T> =
   | AddRowMutation<T>
   | FilterRowMutation<T>
   | DisposeRowMutation
-  | RemoveRowMutation;
+  | RemoveRowMutation
+  | EachRowMutation<T>;
 
 interface AddRowMutation<T> {
   type: 'add';
@@ -28,6 +30,12 @@ interface DisposeRowMutation {
 interface RemoveRowMutation {
   type: 'remove';
   index: number;
+}
+
+interface EachRowMutation<T> {
+  type: 'each';
+  list: State<T[]>;
+  command: Command | ((row: State<T>) => Command);
 }
 
 export function isListMutation(value: any): value is ListMutation<any> {

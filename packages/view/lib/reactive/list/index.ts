@@ -47,6 +47,14 @@ export class ListSource<T = any> extends State<T[]> {
       predicate: predicate,
     });
   }
+
+  each(command: Command | ((row: State<T>) => Command)) {
+    return new ListMutationCommand(this, {
+      type: 'each',
+      list: this,
+      command,
+    });
+  }
 }
 
 export class ItemState<T = any> extends State<T> {

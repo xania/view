@@ -188,7 +188,11 @@ function renderStack(
           if (attrs) {
             const target = element as HTMLElement & Record<string, any>;
             for (let i = 0, len = attrs.length; i < len; i++) {
-              const { name, value } = attrs[i];
+              const attr = attrs[i];
+
+              const value = attr.value;
+              const name = attr.name === 'for' ? 'htmlFor' : attr.name;
+
               if (value === null || value === undefined) {
                 // ignore
               } else if (value instanceof State) {

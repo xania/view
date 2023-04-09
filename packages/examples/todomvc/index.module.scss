@@ -119,8 +119,8 @@
   height: 34px;
   font-size: 0;
   position: absolute;
-  top: -52px;
-  left: -13px;
+  top: 25px;
+  left: 5px;
   -webkit-transform: rotate(90deg);
   transform: rotate(90deg);
 }
@@ -310,7 +310,9 @@
 }
 
 .filters li a.selected {
-  border-color: rgba(175, 47, 47, 0.2);
+  border-color: rgba(175, 47, 47, 0.534);
+  background-color: rgba(175, 47, 47, 0.575);
+  color: rgb(255, 255, 255);
 }
 
 .clear-completed,
