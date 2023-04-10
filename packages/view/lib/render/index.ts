@@ -209,10 +209,8 @@ function renderStack(
               } else {
                 try {
                   target.setAttribute(name, value);
-                  // target[name] = value;
-                } catch (err) {
-                  console.error(err);
-                }
+                  target[name] = value;
+                } catch (err) {}
               }
             }
           }
