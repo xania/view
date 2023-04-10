@@ -1,9 +1,8 @@
-﻿import { Stateful } from '../reactive';
-
-export enum DomDescriptorType {
+﻿export enum DomDescriptorType {
   Element = 8585231 /* keep as first */,
   Data,
   StaticElement,
+  Attribute,
   Text /* keep as last */,
 }
 
@@ -11,15 +10,14 @@ export type DomDescriptor =
   | StaticElementDescriptor
   | ElementDescriptor
   | TextDescriptor
-  | DataDescriptor;
+  | DataDescriptor
+  | AttrDescriptor;
 
 export type ElementDescriptor = {
   type: DomDescriptorType.Element;
-  classList?: (string | Stateful<string>)[];
   children?: JSX.Element;
-  attrs?: AttrDescriptor[] | null;
+  attrs?: { [name: string]: any };
   name: string;
-  events?: Record<string, JSX.EventHandler>;
 };
 
 export interface StaticElementDescriptor {
@@ -30,6 +28,7 @@ export interface StaticElementDescriptor {
 }
 
 export interface AttrDescriptor {
+  type: DomDescriptorType.Attribute;
   name: string;
   value: any;
 }

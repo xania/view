@@ -26,6 +26,9 @@ export function ExamplesApp() {
           <Route path="todo">
             {(ctx: RouteContext) => import("./todomvc").then((e) => e.App(ctx))}
           </Route>
+          <Route path="router">
+            {() => import("./router").then((e) => e.App())}
+          </Route>
         </div>
       </WebApp>
     </>
@@ -40,6 +43,7 @@ function Navigation() {
     { title: "Clock", href: "/" },
     { title: "Counter", href: "/counter" },
     { title: "Todo App", href: "/todo" },
+    { title: "Router", href: "/router" },
   ];
 
   return (

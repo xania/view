@@ -4,3 +4,4 @@ export * from './path-template';
 export * from './route-resolver';
 export * from './router-context';
 export * from './route';
+export * from './link';

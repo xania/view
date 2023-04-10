@@ -1,6 +1,7 @@
 ﻿import { Value } from '@xania/state';
 import {
   Component,
+  DomDescriptor,
   DomDescriptorType,
   isDomDescriptor,
   render,
@@ -9,6 +10,7 @@ import {
   unrender,
 } from '@xania/view';
 import {
+  Link,
   Path,
   pathMatcher,
   Route,
@@ -24,11 +26,28 @@ interface RouterProps<TView> {
 }
 
 export function Router(props: RouterProps<any>) {
-  const { context, loader, children } = props;
-  const { events } = context;
+  const { context, children } = props;
 
   return tmap(children, function mapRoutes(child): any {
     if (child instanceof Component) {
+      if (child.func === Link) {
+        const href = `/${context.fullpath.join('/')}/${child.props.to}`;
+        return [
+          {
+            type: DomDescriptorType.Attribute,
+            name: 'click',
+            value(e: JSX.EventContext) {
+              e.event.preventDefault();
+              pushPath(href);
+            },
+          },
+          {
+            type: DomDescriptorType.Attribute,
+            name: 'href',
+            value: href,
+          },
+        ] satisfies DomDescriptor[];
+      }
       if (child.func === Route) return new RouteHandler(context, child.props);
       else if (child.props?.children) {
         return new Component(child.func, {
@@ -120,9 +139,15 @@ class RouteView implements RouteContext {
       const routeContext: RouteContext = this;
       const view = tmap(component, (element) => {
         if (element instanceof Function) {
-          return element(routeContext);
+          return Router({
+            context: routeContext,
+            children: element(routeContext),
+          });
         } else {
-          return element;
+          return Router({
+            context: routeContext,
+            children: element,
+          });
         }
       });
 
@@ -229,4 +254,16 @@ function pathStartsWith(p1: Path, prefix: Path) {
   }
 
   return true;
+}
+
+function pushPath(pathname: string) {
+  let { pathname: old } = window.location;
+
+  if (old + '/' === pathname) {
+    window.history.replaceState(pathname, '', pathname);
+  } else if (old !== pathname) {
+    window.history.pushState(pathname, '', pathname);
+  } else {
+    // console.error("same as ", pathname);
+  }
 }

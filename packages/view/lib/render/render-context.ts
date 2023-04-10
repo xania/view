@@ -125,15 +125,16 @@ export class RenderContext implements RenderTarget {
     return this.container.addEventListener(eventName, eventHandler);
   };
 
-  applyEvents(target: HTMLElement, events: Record<string, any>) {
-    for (const eventName in events) {
-      const eventHandler = events[eventName];
-      if (this.events[eventName]) {
-        this.events[eventName].push([target, eventHandler]);
-      } else {
-        this.events[eventName] = [[target, eventHandler]];
-        this.container.addEventListener(eventName, this, true);
-      }
+  applyEvent(
+    target: HTMLElement,
+    eventName: string,
+    eventHandler: JSX.EventHandler
+  ) {
+    if (this.events[eventName]) {
+      this.events[eventName].push([target, eventHandler]);
+    } else {
+      this.events[eventName] = [[target, eventHandler]];
+      this.container.addEventListener(eventName, this, true);
     }
   }
 
@@ -149,10 +150,10 @@ export class RenderContext implements RenderTarget {
       return message.updateFn(context) as any;
     }
 
-    const state = message.state;
-    const currentValue = await context.get(state);
-
     if (message instanceof UpdateStateCommand) {
+      const state = message.state;
+      const currentValue = await context.get(state);
+
       const updater = message.updater;
       const newValue = mapValue(currentValue, updater);
 
@@ -160,6 +161,9 @@ export class RenderContext implements RenderTarget {
         context.set(state, newValue);
       }
     } else if (message instanceof ListMutationCommand) {
+      const state = message.state;
+      const currentValue = await context.get(state);
+
       const { mutation } = message;
       switch (mutation.type) {
         case 'each':
@@ -293,11 +297,12 @@ export class RenderContext implements RenderTarget {
           eventObj ??= syntheticEvent(eventName, originalEvent, target);
 
           if (eventHandler instanceof Function) {
-            return this.handleCommands(eventHandler(eventObj));
+            this.handleCommands(eventHandler(eventObj));
           } else if (!isCommand(eventHandler)) {
-            return this.handleCommands(eventHandler.handleEvent(eventObj));
+            this.handleCommands(eventHandler.handleEvent(eventObj));
+          } else {
+            this.handleCommands(eventHandler);
           }
-          return this.handleCommands(eventHandler);
         }
       }
     }

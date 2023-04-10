@@ -29,6 +29,7 @@ import { isIterable } from '../tpl/utils';
 import { TemplateIterator } from '../tpl/iterator';
 import { AnchorTarget } from './anchor-target';
 import { RootTarget } from './root-target';
+import { isEventKey } from '../intrinsic/event-keys';
 
 function renderStack(
   stack: [RenderContext, RenderTarget, JSX.Children][],
@@ -160,64 +161,13 @@ function renderStack(
           const element = domFactory.createElementNS(namespaceUri, curr.name);
           currentTarget.appendChild(element);
 
-          const { classList } = curr;
-          if (classList) {
-            try {
-              const stack: any[] = [classList];
-              while (stack.length) {
-                const curr = stack.pop();
-                if (curr === undefined || curr === null) {
-                  // ignore
-                } else if (curr instanceof Array) {
-                  stack.push(...curr);
-                } else if (curr instanceof State) {
-                  context.connect(curr.map(split), {
-                    type: 'list',
-                    list: element.classList,
-                  });
-                } else if (curr.constructor === String) {
-                  for (const item of curr.split(' ')) {
-                    const cl = item.trim();
-                    if (cl) {
-                      element.classList.add(cl);
-                    }
-                  }
-                }
-              }
-            } catch (err) {
-              debugger;
-            }
-          }
-
           const { attrs } = curr;
           if (attrs) {
-            const target = element as HTMLElement & Record<string, any>;
-            for (let i = 0, len = attrs.length; i < len; i++) {
-              const attr = attrs[i];
+            for (const attrName in attrs) {
+              const attrValue = attrs[attrName];
 
-              const value = attr.value;
-              const name = attr.name === 'for' ? 'htmlFor' : attr.name;
-
-              if (value === null || value === undefined) {
-                // ignore
-              } else if (value instanceof State) {
-                context.connect(value, {
-                  type: 'set',
-                  object: target,
-                  prop: name,
-                });
-              } else {
-                if (namespaceUri === 'http://www.w3.org/2000/svg')
-                  target.setAttribute(name, value);
-                else {
-                  target[name] = value;
-                }
-              }
+              renderAttr(context, element as Element, attrName, attrValue);
             }
-          }
-
-          if (curr.events) {
-            context.applyEvents(element as HTMLElement, curr.events);
           }
 
           const { children } = curr;
@@ -227,6 +177,9 @@ function renderStack(
               ...renderStack([[context, element, curr.children]], domFactory)
             );
           }
+          break;
+        case DomDescriptorType.Attribute:
+          renderAttr(context, currentTarget as Element, curr.name, curr.value);
           break;
         default:
           console.log('dom', curr);
@@ -298,3 +251,54 @@ export * from './ready';
 export * from './dom-factory';
 export * from './viewable';
 export * from './attachable';
+
+function renderAttr(
+  context: RenderContext,
+  element: Element,
+  attrName: string,
+  attrValue: any
+) {
+  if (attrName === 'class' || attrName === 'className') {
+    const stack: any[] = [attrValue];
+    while (stack.length) {
+      const curr = stack.pop();
+      if (curr === undefined || curr === null) {
+        // ignore
+      } else if (curr instanceof Array) {
+        stack.push(...curr);
+      } else if (curr instanceof State) {
+        context.connect(curr.map(split), {
+          type: 'list',
+          list: element.classList,
+        });
+      } else if (curr.constructor === String) {
+        for (const item of curr.split(' ')) {
+          const cl = item.trim();
+          if (cl) {
+            element.classList.add(cl);
+          }
+        }
+      }
+    }
+  } else if (isEventKey(attrName)) {
+    context.applyEvent(element as HTMLElement, attrName, attrValue);
+  } else {
+    const name = attrName === 'for' ? 'htmlFor' : attrName;
+
+    if (attrValue === null || attrValue === undefined) {
+      // ignore
+    } else if (attrValue instanceof State) {
+      context.connect(attrValue, {
+        type: 'set',
+        object: element as HTMLElement & Record<string, any>,
+        prop: name,
+      });
+    } else {
+      if (element.namespaceURI === 'http://www.w3.org/2000/svg')
+        element.setAttribute(name, attrValue);
+      else {
+        (element as any)[name] = attrValue;
+      }
+    }
+  }
+}
