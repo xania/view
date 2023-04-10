@@ -1,0 +1,12 @@
+{
+  "name": "@xania/headlessui",
+  "version": "0.0.1",
+  "description": "xania implementation of headlessui by tailwindcss",
+  "type": "module",
+  "author": "Ibrahim ben Salah",
+  "license": "ISC",
+  "exports": {
+    "import": "./index.ts"
+  },
+  "main": "index.ts"
+}

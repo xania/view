@@ -1,5 +1,5 @@
 ﻿export interface DomFactory {
-  createElement(name: string): HTMLElement;
+  createElementNS: Document['createElementNS'];
   createTextNode(value: string): Text;
   createComment: Document['createComment'];
 }

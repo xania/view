@@ -1,12 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="256" height="256"><svg width="256" height="256" fill="white" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-	<style>
-		.text {
-			fill: var(--theme-text);
-		}
-		.hover {
-			fill: var(--theme-accent);
-		}
-	</style>
-  <polygon style="stroke: none; fill-opacity: 1; fill: white;" points="25.299 63.867 145.525 65.344 300.33 261.373 450.998 152.169 447.729 39.789 275.08 166.942 467.835 412.279 347.073 423.879 200.462 226.546 49.559 353.629 44.759 488.443 230.108 324.284"></polygon>
-</svg><style>@media (prefers-color-scheme: dark) { :root { filter: none; } }
-</style></svg>
+<svg viewBox="134.39 62.207 167.839 152.581" xmlns="http://www.w3.org/2000/svg">
+  <rect x="227" y="109" width="70" height="70" style="stroke: none; fill: rgb(100, 121, 256);"></rect>
+  <rect x="188" y="164.277" width="30" height="30" style="fill: white; stroke: none;"></rect>
+  <polygon style="stroke: none; fill: rgb(0, 177, 237);" points="165 79 218 79 218 154 140 154 140 100"></polygon>
+</svg>

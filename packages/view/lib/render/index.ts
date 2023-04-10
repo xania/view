@@ -152,7 +152,12 @@ function renderStack(
     } else if (isDomDescriptor(curr)) {
       switch (curr.type) {
         case DomDescriptorType.Element:
-          const element = domFactory.createElement(curr.name);
+          const namespaceUri =
+            curr.name === 'svg'
+              ? 'http://www.w3.org/2000/svg'
+              : (currentTarget as HTMLElement).namespaceURI ??
+                'http://www.w3.org/1999/xhtml';
+          const element = domFactory.createElementNS(namespaceUri, curr.name);
           currentTarget.appendChild(element);
 
           const { classList } = curr;
@@ -202,7 +207,12 @@ function renderStack(
                   prop: name,
                 });
               } else {
-                target[name] = value;
+                try {
+                  target.setAttribute(name, value);
+                  // target[name] = value;
+                } catch (err) {
+                  console.error(err);
+                }
               }
             }
           }

@@ -2,6 +2,7 @@
 import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
+import { Button } from "@xania/headlessui";
 
 export function ExamplesApp() {
   return (
@@ -44,6 +45,7 @@ function Navigation() {
                 aria-controls="mobile-menu"
                 aria-expanded="false"
               >
+                <Button />
                 <span class="sr-only">Open main menu</span>
                 <svg
                   class="block h-6 w-6"

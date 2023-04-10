@@ -10,7 +10,7 @@
     "@types/connect": "^3.4.35",
     "@types/prettier": "^2.7.2",
     "connect": "^3.7.0",
-    "typescript": "^5.0.2",
+    "typescript": "^5.0.4",
     "vite": "^4.1.3"
   }
 }
