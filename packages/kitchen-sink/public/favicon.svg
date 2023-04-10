@@ -1,5 +1,5 @@
 <svg viewBox="134.39 62.207 167.839 152.581" xmlns="http://www.w3.org/2000/svg">
-  <rect x="227" y="109" width="70" height="70" style="stroke: none; fill: rgb(100, 121, 256);"></rect>
-  <rect x="188" y="164.277" width="30" height="30" style="fill: white; stroke: none;"></rect>
-  <polygon style="stroke: none; fill: rgb(0, 177, 237);" points="165 79 218 79 218 154 140 154 140 100"></polygon>
+  <rect x="227" y="109" width="70" height="70" style="stroke: none;"></rect>
+  <rect x="188" y="164.277" width="30" height="30" style="stroke: black; fill: rgb(255, 255, 255);"  stroke-width="3" ></rect>
+  <polygon style="stroke: none; fill: rgb(0, 120, 160);" points="165 79 218 79 218 154 140 154 140 100"></polygon>
 </svg>

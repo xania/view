@@ -2,7 +2,6 @@
 import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
-import { Button } from "@xania/headlessui";
 import { state } from "@xania/view";
 
 export function ExamplesApp() {
