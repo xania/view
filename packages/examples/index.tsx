@@ -3,6 +3,7 @@ import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
 import { Button } from "@xania/headlessui";
+import { state } from "@xania/view";
 
 export function ExamplesApp() {
   return (
@@ -33,6 +34,15 @@ export function ExamplesApp() {
 }
 
 function Navigation() {
+  const profile = state(false);
+  const open = state(false);
+
+  const navlinks: { title: string; href: string }[] = [
+    { title: "Clock", href: "/" },
+    { title: "Counter", href: "/counter" },
+    { title: "Todo App", href: "/todo" },
+  ];
+
   return (
     <>
       <nav class="bg-gray-800">
@@ -40,12 +50,12 @@ function Navigation() {
           <div class="relative flex h-16 items-center justify-between">
             <div class="absolute inset-y-0 left-0 flex items-center sm:hidden">
               <button
+                click={open.update((x) => !x)}
                 type="button"
                 class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
                 aria-controls="mobile-menu"
                 aria-expanded="false"
               >
-                <Button />
                 <span class="sr-only">Open main menu</span>
                 <svg
                   class="block h-6 w-6"
@@ -92,12 +102,9 @@ function Navigation() {
               </div>
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
-                  <MenuItem title="Clock" href="/" />
-                  <MenuItem title="Counter" href="/counter" />
-                  <MenuItem title="Todo" href="/todo" />
-                  {/* <MenuItem title="Counter" href="/counter" />
-                  <MenuItem title="Tabs" href="/tabs" />
-                  <MenuItem title="Time" href="/time" /> */}
+                  {navlinks.map((link) => (
+                    <MenuItem {...link} />
+                  ))}
                 </div>
               </div>
             </div>
@@ -123,9 +130,11 @@ function Navigation() {
                 </svg>
               </button>
 
+              {/* Profile dropdown */}
               <div class="relative ml-3">
                 <div>
                   <button
+                    click={profile.update((x) => !x)}
                     type="button"
                     class="flex rounded-full bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800"
                     id="user-menu-button"
@@ -140,8 +149,28 @@ function Navigation() {
                     />
                   </button>
                 </div>
-                {/* <div
-                  class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+
+                {/* 
+                
+                  Dropdown menu, show/hide based on menu state.
+
+                  Entering: "transition ease-out duration-100"
+                    From: "transform opacity-0 scale-95"
+                    To: "transform opacity-100 scale-100"
+                  Leaving: "transition ease-in duration-75"
+                    From: "transform opacity-100 scale-100"
+                    To: "transform opacity-0 scale-95" 
+
+                */}
+                <div
+                  class={[
+                    "absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
+                    ,
+                    profile.toggle(
+                      "transition ease-out duration-100 transform opacity-100 scale-100",
+                      "transition ease-in duration-75 transform opacity-0 scale-95"
+                    ),
+                  ]}
                   role="menu"
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
@@ -174,14 +203,26 @@ function Navigation() {
                   >
                     Sign out
                   </a>
-                </div> */}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="sm:hidden" id="mobile-menu">
-          <div class="space-y-1 px-2 pb-3 pt-2"></div>
+        {/* Mobile menu, show/hide based on menu state */}
+        <div class={["sm:hidden", open.false("hidden")]} id="mobile-menu">
+          <div class="space-y-1 px-2 pb-3 pt-2">
+            {/* Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" */}
+            {navlinks.map((link) => (
+              <a
+                href={link.href}
+                class="router-link text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+                click={open.update(false)}
+              >
+                {link.title}
+              </a>
+            ))}
+          </div>
         </div>
       </nav>
     </>

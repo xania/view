@@ -207,10 +207,11 @@ function renderStack(
                   prop: name,
                 });
               } else {
-                try {
+                if (namespaceUri === 'http://www.w3.org/2000/svg')
                   target.setAttribute(name, value);
+                else {
                   target[name] = value;
-                } catch (err) {}
+                }
               }
             }
           }

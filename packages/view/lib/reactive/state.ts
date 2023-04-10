@@ -19,6 +19,14 @@ export class State<T = any> implements Stateful<T> {
   }
   get = this.prop;
 
+  true<U>(trueValue: U) {
+    return this.map((x) => (x ? trueValue : null));
+  }
+
+  false<U>(trueValue: U) {
+    return this.map((x) => (!x ? trueValue : null));
+  }
+
   toggle<U>(tru: U, fals: U) {
     return this.map((x) => (x ? tru : fals));
   }
