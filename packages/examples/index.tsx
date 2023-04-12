@@ -29,6 +29,9 @@ export function ExamplesApp() {
           <Route path="router">
             {() => import("./router").then((e) => e.App())}
           </Route>
+          <Route path="grid">
+            {() => import("./grid").then((e) => e.App())}
+          </Route>
         </div>
       </WebApp>
     </>
@@ -44,6 +47,7 @@ function Navigation() {
     { title: "Counter", href: "/counter" },
     { title: "Todo App", href: "/todo" },
     { title: "Router", href: "/router" },
+    { title: "Grid", href: "/grid" },
   ];
 
   return (

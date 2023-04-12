@@ -29,6 +29,7 @@ import { SequenceIterator, isIterable } from '../utils/iterator';
 import { AnchorTarget } from './anchor-target';
 import { RootTarget } from './root-target';
 import { isEventKey } from '../intrinsic/event-keys';
+import { tmap } from '../seq';
 
 function renderStack(
   stack: [RenderContext, RenderTarget, JSX.Children][],
@@ -91,7 +92,14 @@ function renderStack(
         list: source,
         context,
       });
-      const template = curr.children(item, disposeCmd);
+
+      const template = tmap(curr.children, (child) => {
+        if (child instanceof Function) {
+          return child(item, disposeCmd);
+        } else {
+          return child;
+        }
+      });
 
       const listAnchorNode = domFactory.createComment('');
       const listAnchorTarget = new AnchorTarget(listAnchorNode);

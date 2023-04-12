@@ -1,4 +1,4 @@
-import { render, state, suspense } from "@xania/view";
+import { render, state, sequential } from "@xania/view";
 import "./style.scss";
 
 const viewable = {
@@ -19,7 +19,7 @@ const result1 = render(
 );
 // setTimeout(() => unrender(result1), 3000);
 
-render(suspense(<Component title="Suspended" />), document.body);
+render(sequential(<Component title="Suspended" />), document.body);
 
 // const result2 = render(compile(<Component title="Compiled" />), document.body);
 

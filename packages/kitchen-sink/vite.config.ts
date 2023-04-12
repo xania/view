@@ -22,6 +22,7 @@ export default defineConfig({
       ),
       "@xania/state": path.resolve(__dirname, "../state/index.ts"),
       "@xania/router": path.resolve(__dirname, "../router/index.ts"),
+      "@xania/grid": path.resolve(__dirname, "../grid/index.ts"),
     },
   },
 });
