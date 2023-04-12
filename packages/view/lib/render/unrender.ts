@@ -1,10 +1,7 @@
-﻿import { templateBind } from '../tpl';
-import { View } from '../compile';
-import { Disposable, isDisposable } from '../disposable';
+﻿import { Disposable, isDisposable } from '../disposable';
 import { isSubscription } from './subscibable';
-import { RenderContext } from './render-context';
 
-export function unrender(result: JSX.Sequence<Removable | View | Disposable>) {
+export function unrender(result: JSX.Sequence<Removable | Disposable>) {
   const stack = [result];
 
   while (stack.length > 0) {

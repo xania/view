@@ -13,7 +13,7 @@ import {
   UpdateStateCommand,
   GRAPHS_KEY_OFFSET,
 } from '../reactive';
-import { texpand } from '../tpl';
+import { texpand } from '../seq';
 import { syntheticEvent } from './render-node';
 import { Subscription } from './subscibable';
 import { RenderTarget } from './target';

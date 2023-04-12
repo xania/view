@@ -41,6 +41,7 @@
   "scripts": {
     "dev": "npm run clean && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npx vite --watch build",
     "build": "npm run clean && npx vite build && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
+    "tsup:headless": "tsup headless.ts --format esm --external @xania/view",
     "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
     "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
     "clean": "npx rimraf dist",

@@ -25,8 +25,7 @@ import { isSubscription } from './subscibable';
 import { isDisposable } from '../disposable';
 import { isSubscribable } from '../reactive/observable';
 import { Component } from '../component';
-import { isIterable } from '../tpl/utils';
-import { TemplateIterator } from '../tpl/iterator';
+import { SequenceIterator, isIterable } from '../utils/iterator';
 import { AnchorTarget } from './anchor-target';
 import { RootTarget } from './root-target';
 import { isEventKey } from '../intrinsic/event-keys';
@@ -47,7 +46,7 @@ function renderStack(
           stack.push([context, currentTarget, item]);
         }
       }
-    } else if (curr instanceof TemplateIterator) {
+    } else if (curr instanceof SequenceIterator) {
       const next = curr.iter.next();
       if (!next.done) {
         stack.push([context, currentTarget, curr]);
@@ -208,7 +207,7 @@ function renderStack(
     } else if (isCommand(curr)) {
       context.handleCommands(curr);
     } else if (isIterable(curr)) {
-      stack.push([context, currentTarget, new TemplateIterator(curr)]);
+      stack.push([context, currentTarget, new SequenceIterator(curr)]);
     } else {
       console.log('unknown', curr);
     }

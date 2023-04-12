@@ -1,4 +1,4 @@
-﻿import { isIterable } from './utils';
+﻿import { isIterable } from '../utils/iterator';
 
 export function tmap<T = any, U = any>(
   template: JSX.Sequence<T>,

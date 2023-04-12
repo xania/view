@@ -1,4 +1,11 @@
-﻿export function isIterable<T>(obj: any): obj is Iterable<T> {
+﻿export class SequenceIterator<T = any> {
+  constructor(
+    iterable: Iterable<T>,
+    public iter = iterable[Symbol.iterator]()
+  ) {}
+}
+
+export function isIterable<T>(obj: any): obj is Iterable<T> {
   if (!obj) return false;
   return (
     obj.constructor !== String &&

@@ -5,7 +5,7 @@ import {
   DomDescriptorType,
   isDomDescriptor,
   render,
-  suspense,
+  sequential,
   tmap,
   unrender,
 } from '@xania/view';
@@ -158,7 +158,7 @@ class RouteView implements RouteContext {
               unrender(loader);
             },
           },
-          suspense(view),
+          sequential(view),
           {
             attachTo() {
               unrender(loader);

@@ -1,5 +1,5 @@
-﻿import { TemplateIterator } from './iterator';
-import { isIterable } from './utils';
+﻿import { SequenceIterator } from '../utils/iterator';
+import { isIterable } from '../utils/iterator';
 
 export function texpand<T = any>(
   template: JSX.Sequence<T>,
@@ -8,7 +8,7 @@ export function texpand<T = any>(
   return traverse([template]);
   // const stack: JSX.Template<T>[] = [template];
   function traverse(
-    stack: JSX.Sequence<T | TemplateIterator<T>>[]
+    stack: JSX.Sequence<T | SequenceIterator<T>>[]
   ): JSX.MaybePromise<void> {
     while (stack.length) {
       const curr = stack.pop()!;
@@ -24,14 +24,14 @@ export function texpand<T = any>(
           stack.push(resolved);
           return traverse(stack);
         });
-      } else if (curr instanceof TemplateIterator) {
+      } else if (curr instanceof SequenceIterator) {
         const next = curr.iter.next();
         if (!next.done) {
           stack.push(curr);
         }
         stack.push(next.value);
       } else if (isIterable(curr)) {
-        stack.push(new TemplateIterator<T>(curr as any));
+        stack.push(new SequenceIterator<T>(curr as any));
       } else {
         stack.push(map(curr));
       }
