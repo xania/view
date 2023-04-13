@@ -16,14 +16,19 @@ interface CellProps<T> {
 
 export class Grid<T = any> {
   public readonly ds: State<DataSource<T>>;
-  public readonly offset: State<number> = new State(0);
 
   constructor(
     public readonly load: (start: number, end: number) => DataSource<T>,
     public readonly columns: Column<T>[],
-    public maxLength = 20
+    public windowSize = 10
   ) {
-    this.ds = this.offset.map((x) => load(x, maxLength));
+    this.ds = new State(load(0, windowSize * 2));
+  }
+
+  view() {
+    return this.ds.effect((x) => {
+      console.log(x);
+    });
   }
 
   Header = (props: HeaderProps<T>) => {
@@ -37,7 +42,39 @@ export class Grid<T = any> {
   Cell = (props: CellProps<T>) => {
     return this.columns.map((column) => tapply(props.children, [column]));
   };
+
+  updateWindow = (scrollPosition: number, rowHeight: number) => {
+    const { windowSize } = this;
+
+    const windowBottom = (scrollPosition / rowHeight) | 0;
+
+    const offset = windowBottom - (windowBottom % windowSize);
+
+    return this.ds.update((prev) => {
+      if (prev.offset === offset) {
+        return prev;
+      } else {
+        console.log('reload', offset);
+        return this.load(offset, windowSize * 2);
+      }
+    });
+  };
 }
 
 export * from './column';
 export * from './data-source';
+
+function debounce<T>(fn: (...args: any[]) => T, ts: number = 0) {
+  let current = 0;
+  return function (...args: any[]) {
+    const handle = Date.now();
+    current = handle;
+    return new Promise<T>((resolve) => {
+      setTimeout(() => {
+        if (current === handle) {
+          resolve(fn(...args));
+        }
+      }, ts);
+    });
+  };
+}

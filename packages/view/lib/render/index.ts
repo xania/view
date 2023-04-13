@@ -22,7 +22,7 @@ import {
   GRAPHS_KEY_OFFSET,
 } from '../reactive';
 import { isSubscription } from './subscibable';
-import { isDisposable } from '../disposable';
+import { isDisposable } from './disposable';
 import { isSubscribable } from '../reactive/observable';
 import { Component } from '../component';
 import { SequenceIterator, isIterable } from '../utils/iterator';

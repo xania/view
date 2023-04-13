@@ -18,7 +18,7 @@ interface AddRowMutation<T> {
 interface FilterRowMutation<T> {
   type: 'filter';
   list: State<T[]>;
-  predicate: (item: T) => boolean;
+  filter: (item: T) => boolean;
 }
 
 interface DisposeRowMutation {

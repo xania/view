@@ -1,4 +1,4 @@
-﻿import { Disposable, isDisposable } from '../disposable';
+﻿import { Disposable, isDisposable } from './disposable';
 import { isSubscription } from './subscibable';
 
 export function unrender(result: JSX.Sequence<Removable | Disposable>) {

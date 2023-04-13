@@ -9,7 +9,9 @@ export function List<T>(props: ListExpression<T>) {
 export class ListExpression<T = any> {
   constructor(
     public source: State<T[]> | T[],
-    public children: (item: State<T>, dispose: Command) => JSX.Element
+    public children: JSX.Sequence<
+      (item: State<T>, dispose: Command) => JSX.Element
+    >
   ) {}
 }
 
@@ -44,7 +46,7 @@ export class ListSource<T = any> extends State<T[]> {
     return new ListMutationCommand(this, {
       type: 'filter',
       list: this,
-      predicate: predicate,
+      filter: predicate,
     });
   }
 

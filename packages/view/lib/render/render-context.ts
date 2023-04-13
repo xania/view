@@ -1,4 +1,4 @@
-﻿import { Disposable } from '../disposable';
+﻿import { Disposable } from './disposable';
 import {
   Command,
   isCommand,
@@ -19,6 +19,7 @@ import { Subscription } from './subscibable';
 import { RenderTarget } from './target';
 
 const stateProp = Symbol('state');
+const indexProp = Symbol();
 
 export class RenderContext implements RenderTarget {
   public nodes: ChildNode[] = [];
@@ -191,14 +192,13 @@ export class RenderContext implements RenderTarget {
 
           for (const operator of listOperators) {
             if (operator.type !== 'reconcile') continue;
+            operator.filter = mutation.filter;
+
             const children = operator.children;
-            if (children.length !== currentValue.length) {
-              throw Error('out of sync');
-            }
 
             for (let i = 0; i < currentValue.length; i++) {
               const row = currentValue[i];
-              const dettached = !mutation.predicate(row);
+              const dettached = !mutation.filter(row);
 
               const child = children[i];
               if (dettached !== child.dettached) {
@@ -232,11 +232,7 @@ export class RenderContext implements RenderTarget {
           } else {
             currentValue.push(mutation.itemOrGetter);
           }
-
-          const operators = context.graph.operatorsMap.get(list.key);
-          if (operators) {
-            context.sync(operators, currentValue);
-          }
+          context.notify(list, currentValue);
           break;
         case 'dispose':
           const listContext = mutation.context;
@@ -245,39 +241,10 @@ export class RenderContext implements RenderTarget {
           const rowIndex = rowContext.index;
           array.splice(rowIndex, 1);
 
-          const graphs = listContext.graph.scope.get(
-            message.state.key + GRAPHS_KEY_OFFSET
-          ) as Graph[];
-          graphs.splice(rowIndex, 1);
-
           const disposeOperators = listContext.graph.operatorsMap.get(
             message.state.key
           );
-          if (!disposeOperators) break;
-
-          for (const operator of disposeOperators) {
-            if (operator.type === 'reconcile') {
-              const rowContext = operator.children[rowIndex];
-              operator.children.splice(rowIndex, 1);
-              rowContext.dispose();
-
-              for (let i = rowIndex; i < operator.children.length; i++) {
-                operator.children[i].index = i;
-              }
-            }
-          }
-
-          listContext.notify(state, currentValue);
-          // const disposeOperators = listContext.graph.operatorsMap.get(
-          //   state.key
-          // );
-          // if (disposeOperators) {
-          //   listContext.sync(
-          //     disposeOperators.filter((o) => o.type !== 'reconcile'),
-          //     currentValue
-          //   );
-          // }
-
+          if (disposeOperators) listContext.sync(disposeOperators, array);
           break;
       }
     }
@@ -339,38 +306,81 @@ export class RenderContext implements RenderTarget {
             }
             const graphs = this.graph.scope.get(operator.graphsKey) as Graph[];
 
-            const contexts: RenderContext[] = [];
+            const contexts = operator.children;
+            for (let i = 0, len = contexts.length; i < len; i++) {
+              contexts[i].index = -1; // mark stale
+            }
+
+            const newContexts: RenderContext[] = [];
+
             for (
-              let rowIndex = operator.children.length;
-              rowIndex < newValue.length;
+              let rowIndex = 0, len = newValue.length;
+              rowIndex < len;
               rowIndex++
             ) {
-              const childScope = new Map();
-              childScope.set(operator.itemKey, newValue[rowIndex]);
-
-              const graph = (graphs[rowIndex] ??= new Graph(childScope));
-
-              const childContext = new RenderContext(
-                context.container,
-                graph,
-                rowIndex,
-                context
-              );
-              operator.children.push(childContext);
-              contexts.push(childContext);
-            }
-            operator.render(contexts);
-
-            if (operator.children.length > newValue.length) {
-              for (let j = newValue.length; j < operator.children.length; j++) {
-                operator.children[j].dispose();
+              const row = newValue[rowIndex];
+              if (row === null || row === undefined) {
+                break; // ignore
               }
 
-              operator.children.length = newValue.length;
+              if (
+                row.constructor === Number ||
+                row.constructor === String ||
+                row.constructor === Symbol
+              ) {
+                const existingContext = contexts[rowIndex];
+                existingContext.index = rowIndex;
+              } else {
+                const previousIndex = row[indexProp];
+                row[indexProp] = rowIndex;
+
+                if (previousIndex === undefined) {
+                  // add
+
+                  const graph = new Graph(new Map([[operator.itemKey, row]]));
+
+                  const childContext = new RenderContext(
+                    context.container,
+                    graph,
+                    rowIndex,
+                    context
+                  );
+                  newContexts.push(childContext);
+                } else {
+                  // move
+                  const previousContext = contexts[previousIndex];
+                  previousContext.index = rowIndex;
+                  if (previousIndex !== rowIndex) {
+                    row[indexProp] = rowIndex;
+                  }
+                }
+              }
             }
-            if (graphs.length > newValue.length) {
-              graphs.length = newValue.length;
+
+            for (let i = contexts.length - 1; i >= 0; i--) {
+              const context = contexts[i];
+              if (context.index === -1) {
+                context.dispose();
+                contexts.splice(i, 1);
+              }
             }
+
+            contexts.push(...newContexts);
+            contexts.sort((x, y) => x.index - y.index);
+            operator.render(newContexts);
+
+            // operator.render(contexts);
+
+            // if (operator.children.length > newValue.length) {
+            //   for (let j = newValue.length; j < operator.children.length; j++) {
+            //     operator.children[j].dispose();
+            //   }
+
+            //   operator.children.length = newValue.length;
+            // }
+            // if (graphs.length > newValue.length) {
+            //   graphs.length = newValue.length;
+            // }
             break;
           case 'text':
             if (newValue instanceof Promise) {
@@ -474,13 +484,7 @@ export class RenderContext implements RenderTarget {
   }
 
   get(state: NonNullable<any>): any {
-    if (state instanceof StateProperty) {
-      const currentSource = this.get(state.source);
-      if (currentSource === null || currentSource === undefined) {
-        return currentSource;
-      }
-      return currentSource[state.name];
-    } else if (this.graph.scope.has(state.key)) {
+    if (this.graph.scope.has(state.key)) {
       return this.graph.scope.get(state.key);
     } else {
       return state.initial;
@@ -490,23 +494,20 @@ export class RenderContext implements RenderTarget {
   set(state: Stateful, newValue: any): boolean {
     const { scope } = this.graph;
 
+    const currentValue = scope.get(state.key);
+    if (newValue === currentValue) {
+      return false;
+    }
+    scope.set(state.key, newValue);
+
     if (state instanceof StateProperty) {
       const currentSource = scope.get(state.source.key);
       if (currentSource) {
         if (currentSource[state.name] !== newValue) {
           currentSource[state.name] = newValue;
-        } else {
-          return false;
         }
-      } else {
-        return this.set(state.source, { [state.name]: newValue });
-      }
-    } else {
-      const currentValue = scope.get(state.key);
-      if (newValue === currentValue) {
-        return false;
-      } else {
-        scope.set(state.key, newValue);
+        // } else {
+        //   this.set(state.source, { [state.name]: newValue });
       }
     }
 
@@ -530,10 +531,7 @@ export class RenderContext implements RenderTarget {
         );
         const data = state.listContext.get(state.list);
         if (listOperators && data) {
-          state.listContext.sync(
-            listOperators.filter((x) => x.type !== 'reconcile'),
-            data
-          );
+          state.listContext.sync(listOperators, data);
         }
       }
     }
@@ -666,6 +664,7 @@ export interface ReconcileOperator<T> {
   container: HTMLElement;
   listAnchorNode: Comment;
   render(contexts: RenderContext[]): Promise<any>;
+  filter?: (item: any) => boolean;
 }
 
 export interface RenderOperator {
