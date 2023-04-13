@@ -46,7 +46,7 @@ function Navigation() {
     { title: "Clock", href: "/" },
     { title: "Counter", href: "/counter" },
     { title: "Todo App", href: "/todo" },
-    { title: "Router", href: "/router" },
+    { title: "Router", href: "/router/button" },
     { title: "Grid", href: "/grid" },
   ];
 

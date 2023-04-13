@@ -1,13 +1,12 @@
 ﻿import { state, update } from "@xania/view";
 import classes from "./clock.module.scss";
 import { delay } from "../utils";
+import { Title } from "../components/heading";
 
 export function App() {
   return (
     <div class={classes["Clock"]}>
-      <h1 class="mt-0 mb-2 text-5xl font-medium leading-tight text-primary text-gray-300">
-        Reactive Clock
-      </h1>
+      <Title>Reactive Clock</Title>
       <br></br>
       <Clock />
       <span class={classes["credits"]}>

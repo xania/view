@@ -1,10 +1,13 @@
 ﻿import { Grid, Column, DataSource } from "@xania/grid";
 import gridcss from "./grid.module.scss";
+import { Title } from "../components/heading";
+
+const dataLength = 500000;
 
 function load(offset: number, size: number): DataSource<Person> {
   const data: Person[] = [];
 
-  for (let i = offset; i < 10000 && i < size + offset; i++) {
+  for (let i = offset; i < dataLength && i < size + offset; i++) {
     data.push({
       firstName: "p-" + i,
       lastName: "s",
@@ -18,7 +21,7 @@ function load(offset: number, size: number): DataSource<Person> {
   return {
     data,
     offset,
-    length: 10000,
+    length: dataLength,
   };
 }
 
@@ -36,18 +39,20 @@ export function App() {
   ]);
 
   const rowHeight = 40;
+  const headerHeight = 48;
 
   return (
     <>
-      <h1 class="mt-0 mb-2 text-5xl font-medium leading-tight text-primary text-gray-300">
-        Grid
-      </h1>
-      <div class="border-2 p-4">
+      <Title>Grid</Title>
+      <div
+        class="border-0 p-0 overflow-auto h-[30rem]"
+        scroll={(e) => grid.updateWindow(e.currentTarget.scrollTop, rowHeight)}
+      >
         <table
-          class={gridcss["grid"]}
-          scroll={(e) =>
-            grid.updateWindow(e.currentTarget.scrollTop, rowHeight)
-          }
+          class="block"
+          style={grid.ds.map(
+            (ds) => `height: ${ds.length * rowHeight + headerHeight}px;`
+          )}
         >
           <thead class="sticky top-0 bg-white">
             <tr>
@@ -58,11 +63,11 @@ export function App() {
               <td></td>
             </tr>
           </thead>
-          <tbody
-            style={grid.ds.map((ds) => `height: ${ds.length * rowHeight}px;`)}
-          >
+          <tbody>
             <tr>
               <td
+                class="p-0"
+                colSpan={5}
                 style={grid.ds.map(
                   (x) => `padding-top: ${x.offset * rowHeight}px`
                 )}
@@ -81,18 +86,6 @@ export function App() {
                 </tr>
               )}
             </grid.Row>
-            <tr>
-              <td
-                style={grid.ds.map(
-                  (x) =>
-                    `padding-top: ${
-                      (x.length - x.offset - x.data.length) * rowHeight
-                    }px`
-                )}
-              >
-                {}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>

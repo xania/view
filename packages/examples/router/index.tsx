@@ -1,13 +1,12 @@
 ﻿import { Route, Link } from "@xania/router";
 import { state } from "@xania/view";
+import { Title } from "../components/heading";
 
 export function App() {
   const current = state<string>();
   return (
     <>
-      <h1 class="mt-0 mb-2 text-5xl font-medium leading-tight text-primary text-gray-300">
-        Router
-      </h1>
+      <Title>Router</Title>
       <div>
         <p>
           The main menu header of this application is built using{" "}

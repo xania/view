@@ -43,10 +43,10 @@ export class Grid<T = any> {
     return this.columns.map((column) => tapply(props.children, [column]));
   };
 
-  updateWindow = (scrollPosition: number, rowHeight: number) => {
+  updateWindow = debounce((scrollPosition: number, rowHeight: number) => {
     const { windowSize } = this;
 
-    const windowBottom = (scrollPosition / rowHeight) | 0;
+    const windowBottom = scrollPosition / rowHeight;
 
     const offset = windowBottom - (windowBottom % windowSize);
 
@@ -54,17 +54,18 @@ export class Grid<T = any> {
       if (prev.offset === offset) {
         return prev;
       } else {
-        console.log('reload', offset);
-        return this.load(offset, windowSize * 2);
+        const cappedOffset = Math.min(offset, prev.length - 1);
+
+        return this.load(cappedOffset, windowSize * 2);
       }
     });
-  };
+  });
 }
 
 export * from './column';
 export * from './data-source';
 
-function debounce<T>(fn: (...args: any[]) => T, ts: number = 0) {
+function debounce<T>(fn: (...args: any[]) => T, ts: number = 10) {
   let current = 0;
   return function (...args: any[]) {
     const handle = Date.now();
