@@ -4,7 +4,7 @@ import gridcss from "./grid.module.scss";
 function load(offset: number, size: number): DataSource<Person> {
   const data: Person[] = [];
 
-  for (let i = offset; i < 1000000 && i < size + offset; i++) {
+  for (let i = offset; i < 10000 && i < size + offset; i++) {
     data.push({
       firstName: "p-" + i,
       lastName: "s",
@@ -32,15 +32,6 @@ export function App() {
     }),
     new Column({
       field: "age",
-    }),
-    new Column({
-      field: "visits",
-    }),
-    new Column({
-      field: "status",
-    }),
-    new Column({
-      field: "progress",
     }),
   ]);
 
