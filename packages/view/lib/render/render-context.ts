@@ -11,7 +11,6 @@ import {
   StateProperty,
   UpdateCommand,
   UpdateStateCommand,
-  GRAPHS_KEY_OFFSET,
 } from '../reactive';
 import { texpand } from '../seq';
 import { syntheticEvent } from './render-node';
@@ -21,11 +20,12 @@ import { RenderTarget } from './target';
 const stateProp = Symbol('state');
 const indexProp = Symbol();
 
-export class RenderContext implements RenderTarget {
+export class RenderContext {
   public nodes: ChildNode[] = [];
   public disposables: Disposable[] = [];
   public subscriptions: Subscription[] = [];
   public events: Record<string, [HTMLElement, JSX.EventHandler][]> = {};
+  public classList: string[] = [];
   public disposed = false;
   public dettached = false;
 
@@ -104,18 +104,9 @@ export class RenderContext implements RenderTarget {
     for (const node of this.nodes) {
       (node as ChildNode).remove();
     }
-  }
 
-  appendChild(node: ChildNode) {
-    if (!this.disposed) {
-      const { anchorNode } = this;
-      if (anchorNode) {
-        this.container.insertBefore(node, anchorNode);
-      } else {
-        this.container.appendChild(node);
-      }
-
-      this.nodes.push(node);
+    for (const cl of this.classList) {
+      this.container.classList.remove(cl);
     }
   }
 

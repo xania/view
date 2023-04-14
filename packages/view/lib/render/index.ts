@@ -55,7 +55,7 @@ function renderStack(
       stack.push([context, currentTarget, next.value]);
     } else if (curr.constructor === Number) {
       const textNode = domFactory.createTextNode(curr.toString());
-      currentTarget.appendChild(textNode);
+      appendChild(context, currentTarget, textNode);
     } else if (curr instanceof Function) {
       const funcResult = curr();
       if (funcResult) {
@@ -63,12 +63,12 @@ function renderStack(
       }
     } else if (curr.constructor === String) {
       const textNode = domFactory.createTextNode(curr as string);
-      currentTarget.appendChild(textNode);
+      appendChild(context, currentTarget, textNode);
     } else if (curr instanceof Component) {
       stack.push([context, currentTarget, curr.execute()]);
     } else if (curr instanceof State) {
       const stateNode = domFactory.createTextNode('');
-      currentTarget.appendChild(stateNode);
+      appendChild(context, currentTarget, stateNode);
       context.connect(curr, {
         type: 'text',
         text: stateNode,
@@ -103,7 +103,7 @@ function renderStack(
 
       const listAnchorNode = domFactory.createComment('');
       const listAnchorTarget = new AnchorTarget(listAnchorNode);
-      currentTarget.appendChild(listAnchorNode);
+      appendChild(context, currentTarget, listAnchorNode);
 
       context.connect(source, {
         type: 'reconcile',
@@ -135,7 +135,7 @@ function renderStack(
       const condition = curr.condition;
       if (condition instanceof State) {
         const anchorNode = domFactory.createComment('ifx');
-        currentTarget.appendChild(anchorNode);
+        appendChild(context, currentTarget, anchorNode);
 
         const synthElt = new SynthaticElement(anchorNode);
         stack.push([context, synthElt, curr.content]);
@@ -166,7 +166,7 @@ function renderStack(
               : (currentTarget as HTMLElement).namespaceURI ??
                 'http://www.w3.org/1999/xhtml';
           const element = domFactory.createElementNS(namespaceUri, curr.name);
-          currentTarget.appendChild(element);
+          appendChild(context, currentTarget, element);
 
           const { attrs } = curr;
           if (attrs) {
@@ -230,7 +230,10 @@ export function render(
   domFactory: DomFactory = document
 ): JSX.Sequence<RenderContext> {
   const context = new RenderContext(container, new Graph(), 0);
-  const promises = renderStack([[context, context, rootChildren]], domFactory);
+  const promises = renderStack(
+    [[context, container, rootChildren]],
+    domFactory
+  );
   if (promises.length === 0) return context;
   return [promises, context];
 }
@@ -283,6 +286,9 @@ function renderAttr(
           const cl = item.trim();
           if (cl) {
             element.classList.add(cl);
+            if (context.container === element) {
+              context.classList.push(cl);
+            }
           }
         }
       }
@@ -307,5 +313,26 @@ function renderAttr(
         (element as any)[name] = attrValue;
       }
     }
+  }
+}
+
+function appendChild(
+  context: RenderContext,
+  currentTarget: RenderTarget,
+  child: ChildNode
+) {
+  if (context.container === currentTarget) {
+    context.nodes.push(child);
+
+    if (!context.disposed) {
+      const { anchorNode } = context;
+      if (anchorNode) {
+        context.container.insertBefore(child, anchorNode);
+      } else {
+        context.container.appendChild(child);
+      }
+    }
+  } else {
+    currentTarget.appendChild(child);
   }
 }
