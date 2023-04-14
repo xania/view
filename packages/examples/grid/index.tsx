@@ -1,6 +1,7 @@
 ﻿import { Grid, Column, DataSource } from "@xania/grid";
 import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
+import { Page } from "../components/page";
 
 const dataLength = 500000;
 
@@ -42,7 +43,7 @@ export function App() {
   const headerHeight = 48;
 
   return (
-    <>
+    <Page>
       <Title>Grid</Title>
       <div
         class="border-0 p-0 overflow-auto h-[30rem]"
@@ -89,7 +90,7 @@ export function App() {
           </tbody>
         </table>
       </div>
-    </>
+    </Page>
   );
 }
 

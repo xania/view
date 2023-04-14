@@ -3,13 +3,17 @@ import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
 import { state } from "@xania/view";
+import { Page } from "./components/page";
+import { Attrs } from "@xania/view/headless";
 
 export function ExamplesApp() {
   return (
     <>
       <WebApp>
         <Navigation />
-        <div class={classes["outlet"]}>
+        <AppContainer>
+          <Attrs class="border-box border-solid bg-blue-400flex flex-row" />
+          <Page>main menu</Page>
           <Route>{() => import("./clock").then((e) => e.App())}</Route>
           <Route path="counter">
             {() => import("./counter").then((e) => e.App())}
@@ -32,9 +36,20 @@ export function ExamplesApp() {
           <Route path="grid">
             {() => import("./grid").then((e) => e.App())}
           </Route>
-        </div>
+          <Route path="admin">
+            {() => import("./admin").then((e) => e.App())}
+          </Route>
+        </AppContainer>
       </WebApp>
     </>
+  );
+}
+
+function AppContainer(props: { children: JSX.Children }) {
+  return (
+    <div class="h-full relative border-box flex align-middle p-0 m-0 flex-row bg-slate-100">
+      {props.children}
+    </div>
   );
 }
 
@@ -48,6 +63,7 @@ function Navigation() {
     { title: "Todo App", href: "/todo" },
     { title: "Router", href: "/router/button" },
     { title: "Grid", href: "/grid" },
+    { title: "Admin", href: "/admin" },
   ];
 
   return (

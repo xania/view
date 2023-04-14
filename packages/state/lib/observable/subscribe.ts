@@ -26,6 +26,10 @@ export function subscribe<T, O extends Rx.NextObserver<T>>(
         const idx = observers.indexOf(observer);
         observers?.splice(idx, 1);
       }
+
+      if (observer.complete) {
+        observer.complete();
+      }
     },
   };
 }

@@ -19,25 +19,25 @@ $height: 80px;
   box-sizing: border-box;
 }
 
-.outlet {
-  flex-direction: row;
-  box-sizing: border-box;
-  position: relative;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-  flex-direction: column;
-  display: flex;
+// .outlet {
+//   flex-direction: row;
+//   box-sizing: border-box;
+//   position: relative;
+//   padding: 0;
+//   margin: 0;
+//   flex: 1;
+//   flex-direction: column;
+//   display: flex;
 
-  padding-top: 30px;
+//   padding-top: 30px;
 
-  background-color: #f3f3f3;
+//   background-color: #f3f3f3;
 
-  align-items: center;
+//   align-items: center;
 
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
+//   overflow: auto;
+//   -webkit-overflow-scrolling: touch;
+// }
 
 .outlet__root {
   width: 350px;

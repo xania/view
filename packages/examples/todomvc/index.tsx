@@ -1,10 +1,11 @@
 ﻿import { If, List, listSource, ListSource, State, state } from "@xania/view";
 import classes from "./index.module.scss";
 import { RouteContext } from "@xania/router";
+import { Page } from "../components/page";
 
 type Mode = "completed" | "active" | "all";
 
-export function App({ remaining }: RouteContext) {
+export function App({}: RouteContext) {
   const mode = state<Mode>();
   const items = listSource<TodoItem>(
     [
@@ -21,8 +22,8 @@ export function App({ remaining }: RouteContext) {
   );
 
   return (
-    <>
-      {remaining.map((path) => {
+    <Page>
+      {/* {remaining.map((path) => {
         const newMode = path[0] ?? "all";
         switch (newMode) {
           case "completed":
@@ -32,7 +33,7 @@ export function App({ remaining }: RouteContext) {
           default:
             return [mode.update("all"), items.filter(all)];
         }
-      })}
+      })} */}
       <section class={classes["todoapp"]}>
         <header class={classes["header"]}>
           <h1>todos</h1>
@@ -58,7 +59,7 @@ export function App({ remaining }: RouteContext) {
           <TodoFooter items={items} mode={mode} />
         </If>
       </section>
-    </>
+    </Page>
   );
 }
 

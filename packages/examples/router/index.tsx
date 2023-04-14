@@ -1,13 +1,15 @@
 ﻿import { Route, Link } from "@xania/router";
 import { state } from "@xania/view";
 import { Title } from "../components/heading";
+import { Page } from "../components/page";
 
 export function App() {
   const current = state<string>();
   return (
     <>
-      <Title>Router</Title>
-      <div>
+      <Page>
+        <Title>Router</Title>
+
         <p>
           The main menu header of this application is built using{" "}
           <code>@xania/router</code>. Additionally we can load child routes
@@ -38,12 +40,14 @@ export function App() {
           page 2
           <Link to="anchor" />
         </a>
+      </Page>
 
+      <Page>
         <div class="border-solid border-2 border-indigo-600 p-4">
           <Route path="button">page 1</Route>
           <Route path="anchor">page 2</Route>
         </div>
-      </div>
+      </Page>
     </>
   );
 }
