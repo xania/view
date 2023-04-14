@@ -6,6 +6,5 @@ export interface RouteContext {
   params?: { [k: string]: any };
   fullpath: Path;
   path: Path;
-  remaining: Value<Path>;
   events: Value<RouteEvent>;
 }

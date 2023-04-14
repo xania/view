@@ -114,17 +114,13 @@ class RouteView implements RouteContext {
   public path: Path;
   public fullpath: Path;
   public events: Value<RouteEvent>;
-  public remaining: Value<Path>;
+  // public remaining: Value<Path>;
 
-  constructor(
-    public resolution: RouteResolution,
-    public parent: RouteContext,
-    public loader: any
-  ) {
+  constructor(public resolution: RouteResolution, public parent: RouteContext) {
     this.path = resolution.appliedPath;
     this.fullpath = [...parent.fullpath, ...resolution.appliedPath];
     this.events = parent.events.map(relativeTo(resolution.appliedPath));
-    this.remaining = parent.events.map(remainingTo(resolution.appliedPath));
+    // this.remaining = parent.events.map(remainingTo(resolution.appliedPath));
   }
 
   dispose() {
@@ -132,7 +128,7 @@ class RouteView implements RouteContext {
   }
 
   view() {
-    const { resolution, loader } = this;
+    const { resolution } = this;
     if (resolution && resolution.component) {
       const { component } = resolution;
 
@@ -151,23 +147,7 @@ class RouteView implements RouteContext {
         }
       });
 
-      if (loader) {
-        return [
-          {
-            dispose() {
-              unrender(loader);
-            },
-          },
-          sequential(view),
-          {
-            attachTo() {
-              unrender(loader);
-            },
-          },
-        ];
-      } else {
-        return view;
-      }
+      return view;
     }
   }
 }
@@ -209,11 +189,12 @@ class RouteHandler {
         }
 
         const appliedPath = route.path.slice(0, segment.length);
+        console.log(appliedPath);
 
         const routeContext: RouteContext = {
           path: appliedPath,
           fullpath: [...this.context.fullpath, ...appliedPath],
-          remaining: this.context.events.map(remainingTo(appliedPath)),
+          // remaining: this.context.events.map(remainingTo(appliedPath)),
           events: this.context.events.map(relativeTo(appliedPath)),
         };
 
@@ -226,20 +207,26 @@ class RouteHandler {
           params: segment.params,
         } satisfies RouteResolution<any>;
 
-        return new RouteView(resolution, this.context, null);
+        return new RouteView(resolution, this.context);
       }
     );
 
     return views.subscribe({
       prev: undefined as any,
-      async next(v) {
-        const view = await v;
+      async next(nextValue) {
+        const view = await nextValue;
         const { prev } = this;
         if (prev) {
           unrender(prev);
         }
         if (view) {
           this.prev = render(view, target);
+        }
+      },
+      complete() {
+        const { prev } = this;
+        if (prev) {
+          unrender(prev);
         }
       },
     });

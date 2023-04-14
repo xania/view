@@ -1,6 +1,4 @@
-﻿import { RouteMapInput } from '../core';
-
-import { browserRoutes } from './browser-routes';
+﻿import { browserRoutes } from './browser-routes';
 import { Router } from '../core/router';
 import { tmap } from '@xania/view';
 
