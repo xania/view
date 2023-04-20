@@ -1,8 +1,8 @@
 ﻿interface Promise<T> {
   /**
-   * just by redefining `then` from Promise interface where we simplify type definitions,
-   * this greatly simplifies e.g. render method and resolves / eliminate many weird typescript
-   * errors
+   * just by redefining `then` from Promise interface where we simplify
+   * it's type definitions, it greatly simplifies e.g. render method and
+   * resolves many weird typescript errors
    */
   then<U>(resolve: (x: T) => U | Promise<U>): Promise<U>;
 }
@@ -12,26 +12,21 @@ declare module JSX {
   type Viewable = import('../../lib/render/viewable').Viewable;
   type Attachable = import('../../lib/render/attachable').Attachable;
   type Program = import('../../lib/compile/program').Program;
-  type IfExpression = import('../../lib').IfExpression;
-  type ListExpression = import('../../lib').ListExpression;
-  type Command = import('../../lib').Command;
+  // type IfExpression = import('../../lib').IfExpression;
+  type ListExpression = import('../../lib/reactivity').ListExpression;
+  type Command = import('../../lib/reactivity').Command;
+  type State<T> = import('../../lib/reactivity').State;
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Component = import('../../lib').Component;
-  type StateEffect<T> = import('../../lib').StateEffect<T>;
   type Disposable = { dispose(): any };
 
   type Primitive = string | number;
 
-  interface State<T = any> {
-    initial?: JSX.MaybePromise<T | undefined>;
-  }
-
   type Value =
     | Primitive
     | State<Primitive>
-    | StateEffect<T>
+    //  | StateEffect<T>
     | DomDescriptor
-    | Program
     | Viewable
     | Attachable
     | IfExpression
@@ -48,7 +43,7 @@ declare module JSX {
   type Element = Sequence<Value>;
 
   type Just<T> = T;
-  type Nothing = null | undefined | void;
+  type Nothing = null | undefined;
   // type Future<T> = Promise<T>; // | Promise<Future<T>>;
   type MaybePromise<T> = T | Promise<T>;
   type MaybeArray<T> = T | T[];
@@ -56,6 +51,7 @@ declare module JSX {
     | Nothing
     | Just<T>
     | Sequence<T>[]
+    | Generator<Sequence<T>>
     | Promise<Sequence<T>>
     | Iterable<T>;
 }

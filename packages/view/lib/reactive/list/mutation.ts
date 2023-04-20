@@ -1,50 +1,73 @@
-﻿import { ListSource } from '.';
-import { RenderContext } from '../../render/render-context';
-import { Command } from '../commands';
-import { State } from '../state';
+﻿// import { Command, State } from '../../reactivity';
 
-export type ListMutation<T> =
-  | AddRowMutation<T>
-  | FilterRowMutation<T>
-  | DisposeRowMutation
-  | RemoveRowMutation
-  | EachRowMutation<T>;
+// export type ListMutation<T> =
+//   | AddRowMutation<T>
+//   | InsertRowMutation<T>
+//   | FilterRowMutation<T>
+//   // | DisposeRowMutation
+//   | RemoveRowMutation
+//   | EachRowMutation<T>
+//   | AppendRowsMutation<T>
+//   | MoveRowMutation
+//   | ResetMutation<T>;
 
-interface AddRowMutation<T> {
-  type: 'add';
-  itemOrGetter: T | ((arr: T[]) => T);
-}
+// interface ResetMutation<T> {
+//   type: 'reset';
+//   items: T[];
+// }
 
-interface FilterRowMutation<T> {
-  type: 'filter';
-  list: State<T[]>;
-  filter: (item: T) => boolean;
-}
+// interface MoveRowMutation {
+//   type: 'move';
+//   from: number;
+//   to: number;
+// }
 
-interface DisposeRowMutation {
-  type: 'dispose';
-  list: State;
-  context: RenderContext;
-}
+// export interface AddRowMutation<T> {
+//   type: 'add';
+//   itemOrGetter: T | ((arr: T[]) => T);
+// }
 
-interface RemoveRowMutation {
-  type: 'remove';
-  index: number;
-}
+// interface InsertRowMutation<T> {
+//   type: 'insert';
+//   item: T;
+//   index: number;
+// }
 
-interface EachRowMutation<T> {
-  type: 'each';
-  list: State<T[]>;
-  command: Command;
-}
+// interface AppendRowsMutation<T> {
+//   type: 'append';
+//   items: T[];
+// }
 
-export function isListMutation(value: any): value is ListMutation<any> {
-  if (value === null || value === undefined || value.type === undefined) {
-    return false;
-  }
+// interface FilterRowMutation<T> {
+//   type: 'filter';
+//   list: State<T[]>;
+//   filter: (item: T) => boolean;
+// }
 
-  if (value.type === 'add' || value.type === 'remove') {
-    return true;
-  }
-  return false;
-}
+// // interface DisposeRowMutation {
+// //   type: 'dispose';
+// //   list: State;
+// //   context: RenderContext;
+// // }
+
+// interface RemoveRowMutation {
+//   type: 'remove';
+//   index: number;
+// }
+
+// interface EachRowMutation<T> {
+//   type: 'each';
+//   list: State<T[]>;
+//   command: Command;
+// }
+
+// export function isListMutation(value: any): value is ListMutation<any> {
+//   if (value === null || value === undefined || value.type === undefined) {
+//     return false;
+//   }
+
+//   if (value.type === 'add' || value.type === 'remove') {
+//     return true;
+//   }
+//   return false;
+// }

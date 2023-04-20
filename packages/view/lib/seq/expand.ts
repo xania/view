@@ -3,7 +3,8 @@ import { isIterable } from '../utils/iterator';
 
 export function texpand<T = any>(
   template: JSX.Sequence<T>,
-  map: (x: T) => JSX.Sequence<T>
+  map: (x: T, ...args: any[]) => JSX.Sequence<T | void>,
+  ...args: any[]
 ): JSX.MaybePromise<void> {
   return traverse([template]);
   // const stack: JSX.Template<T>[] = [template];
@@ -33,7 +34,10 @@ export function texpand<T = any>(
       } else if (isIterable(curr)) {
         stack.push(new SequenceIterator<T>(curr as any));
       } else {
-        stack.push(map(curr));
+        const result = map(curr, ...args);
+        if (result !== null && result !== undefined) {
+          stack.push(result as any);
+        }
       }
     }
   }

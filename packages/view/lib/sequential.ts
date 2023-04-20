@@ -1,6 +1,6 @@
 ﻿import { tmap } from './seq';
 import { DomDescriptorType, isDomDescriptor } from './intrinsic/descriptors';
-import { State } from './reactive';
+import { State } from './reactivity';
 
 type SuspenseReturnType = JSX.MaybePromise<JSX.Value[]>;
 

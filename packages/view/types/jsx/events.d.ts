@@ -29,7 +29,7 @@
     [E in keyof HTMLElementEventMap]?: MaybeArray<EventHandler<E, TElement>>;
   };
 
-  type Command = import('../../lib/reactive/commands').Command;
+  type Command = import('../../lib/reactivity').Command;
 
   type EventHandler<
     E extends keyof HTMLElementEventMap = any,

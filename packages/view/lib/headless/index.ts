@@ -1,4 +1,4 @@
-﻿import { AttrDescriptor, DomDescriptor, DomDescriptorType } from '../lib';
+﻿import { AttrDescriptor, DomDescriptorType } from '../intrinsic';
 
 export function Attrs(
   props: JSX.Tag<Element> & JSX.ElementCustomAttributes

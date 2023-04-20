@@ -1,7 +1,7 @@
-﻿import { state, update } from "@xania/view";
-import classes from "./clock.module.scss";
+﻿import classes from "./clock.module.scss";
 import { delay } from "../utils";
 import { Title } from "../components/heading";
+import { state, update } from "@xania/view/reactivity";
 
 export function App() {
   return (
@@ -29,6 +29,7 @@ export function Clock() {
   return (
     <>
       {update(function* () {
+        console.log("update");
         const d = new Date();
         yield now.update(d.getTime() - d.getTimezoneOffset() * 60000);
         yield delay(this, 1000);

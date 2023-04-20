@@ -75,14 +75,18 @@ export function App() {
               ></td>
             </tr>
             <grid.Row>
-              {(row, dispose) => (
+              {(row) => (
                 <tr class={gridcss["grid-row"]}>
                   <td class="px-3 bg-white">&gt;</td>
                   <grid.Cell>
                     {(column) => <td class="px-2">{row.prop(column.field)}</td>}
                   </grid.Cell>
                   <td>
-                    <button click={dispose}>&times;</button>
+                    <button
+                    // click={dispose}
+                    >
+                      &times;
+                    </button>
                   </td>
                 </tr>
               )}

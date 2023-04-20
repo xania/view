@@ -1,10 +1,10 @@
-﻿import { state } from "@xania/view";
-import { Page } from "../components/page";
+﻿import { Page } from "../components/page";
 import { Title } from "../components/heading";
 import { Attrs } from "@xania/view/headless";
+import { State } from "@xania/view/reactivity";
 
 export function App() {
-  const count = state(0);
+  const count = new State(0);
 
   return (
     <>

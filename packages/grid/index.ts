@@ -1,6 +1,7 @@
-﻿import { List, ListExpression, ListSource, State, tapply } from '@xania/view';
+﻿import { tapply } from '@xania/view';
 import { Column } from './column';
 import { DataSource } from './data-source';
+import { List, ListExpression, State } from '@xania/view/reactivity';
 
 interface HeaderProps<T> {
   children: (column: Column<keyof T>) => JSX.Children;

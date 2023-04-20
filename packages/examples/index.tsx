@@ -2,7 +2,7 @@
 import classes from "./webapp.module.scss";
 import "./main.css";
 import "./dist/output.css";
-import { state } from "@xania/view";
+import { state } from "@xania/view/reactivity";
 import { Page } from "./components/page";
 import { Attrs } from "@xania/view/headless";
 

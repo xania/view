@@ -189,7 +189,7 @@ class RouteHandler {
         }
 
         const appliedPath = route.path.slice(0, segment.length);
-        console.log(appliedPath);
+        // console.log(appliedPath);
 
         const routeContext: RouteContext = {
           path: appliedPath,
