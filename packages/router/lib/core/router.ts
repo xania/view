@@ -5,7 +5,6 @@ import {
   DomDescriptorType,
   isDomDescriptor,
   render,
-  sequential,
   tmap,
   unrender,
 } from '@xania/view';

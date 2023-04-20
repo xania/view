@@ -6,7 +6,7 @@ import {
 import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { Component } from '../../component';
-import { Effect, State } from '../../reactivity/state';
+import { Effect, Model, State } from '../../reactivity/state';
 import { OperatorType } from '../../reactivity/operator';
 import { cpush } from '../../reactivity/collection';
 import { isAttachable, isViewable } from '../../render';
@@ -15,9 +15,10 @@ import { isDisposable } from '../../render/disposable';
 import { isSubscription } from '../../render/subscibable';
 import { ListExpression, ListMutationState, diff } from '../../reactivity/list';
 
-import { MutationOperator, itemTemplate } from './mutation-operator';
+import { MutationOperator } from './mutation-operator';
 import { AnchorElement } from './anchor-element';
 import { isCommand } from '../../reactivity';
+import { tmap } from '../../seq';
 
 export function renderStack(
   stack: [
@@ -76,7 +77,7 @@ export function renderStack(
 
       if (source instanceof Array) {
         for (let i = source.length - 1; i >= 0; i--) {
-          const template = itemTemplate(tpl.children, source[i]);
+          const template = itemTemplate(tpl.children, new State(source[i]));
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
@@ -86,10 +87,11 @@ export function renderStack(
           sandbox.nodes = cpush(sandbox.nodes, listAnchorNode);
         }
 
+        const template = itemTemplate(tpl.children, new Model());
         sandbox.connect(
           source instanceof ListMutationState ? source : source.pipe(diff),
           new MutationOperator(
-            tpl.children,
+            template,
             AnchorElement.create(sandbox.container, listAnchorNode)!
           )
         );
@@ -174,4 +176,14 @@ export function renderStack(
       console.log('unknown', tpl);
     }
   }
+}
+
+function itemTemplate(children: JSX.Children, model: State) {
+  return tmap(children, (child) => {
+    if (child instanceof Function) {
+      return child(model);
+    } else {
+      return child;
+    }
+  });
 }

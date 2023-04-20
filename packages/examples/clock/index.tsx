@@ -16,8 +16,13 @@ export function App() {
   );
 }
 
+function now() {
+  const d = new Date();
+  return d.getTime() - d.getTimezoneOffset() * 60000;
+}
+
 export function Clock() {
-  var now = state(0);
+  var time = state(now());
 
   function transform(fn: (d: number) => number, shift = "1em") {
     return (d: number) =>
@@ -29,9 +34,7 @@ export function Clock() {
   return (
     <>
       {update(function* () {
-        console.log("update");
-        const d = new Date();
-        yield now.update(d.getTime() - d.getTimezoneOffset() * 60000);
+        yield time.update(now);
         yield delay(this, 1000);
       })}
       <div id={classes["clock"]}>
@@ -42,20 +45,20 @@ export function Clock() {
                 <div id={classes["sh"]}>
                   <div class={classes["hh"]}>
                     <div
-                      style={now.map(transform(hours))}
+                      style={time.map(transform(hours))}
                       class={classes["h"]}
                     ></div>
                   </div>
                   <div class={classes["mm"]}>
                     <div
-                      style={now.map(transform(minutes, "1.6em"))}
+                      style={time.map(transform(minutes, "1.6em"))}
                       class={classes["m"]}
                     ></div>
                     <div class={classes["mr"]}></div>
                   </div>
                   <div class={classes["ss"]}>
                     <div
-                      style={now.map(transform(seconds))}
+                      style={time.map(transform(seconds))}
                       class={classes["s"]}
                     ></div>
                   </div>
@@ -134,20 +137,20 @@ export function Clock() {
                 </div>
                 <div class={classes["hh"]}>
                   <div
-                    style={now.map(transform(hours, "1em"))}
+                    style={time.map(transform(hours, "1em"))}
                     class={classes["h"]}
                   ></div>
                 </div>
                 <div class={classes["mm"]}>
                   <div
-                    style={now.map(transform(minutes, "1.6em"))}
+                    style={time.map(transform(minutes, "1.6em"))}
                     class={classes["m"]}
                   ></div>
                   <div class={classes["mr"]}></div>
                 </div>
                 <div class={classes["ss"]}>
                   <div
-                    style={now.map(transform(seconds))}
+                    style={time.map(transform(seconds))}
                     class={classes["s"]}
                   ></div>
                   <div class={classes["sr"]}></div>

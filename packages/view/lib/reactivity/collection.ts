@@ -35,16 +35,20 @@ export function cflat<T>(collection: Collection<T>): T[] {
 }
 
 export function cwalk<T, U>(
-  collection: Collection<T>,
+  collection: Collection<T> | undefined,
   walk: (x: T, idx: number) => U
 ) {
+  if (!collection) {
+    return;
+  }
   let index = 0;
   const stack = [collection];
   while (stack.length) {
     const curr = stack.pop()!;
     if (curr instanceof Array) {
       for (let i = curr.length - 1; i >= 0; i--) {
-        stack.push(curr[i]);
+        const c = curr[i];
+        if (c) stack.push(c);
       }
     } else if (curr) {
       walk(curr, index++);

@@ -1,8 +1,6 @@
-﻿import { tmap } from '../../seq';
-import { cfirst, cwalk } from '../../reactivity/collection';
+﻿import { cfirst, cwalk } from '../../reactivity/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
-import { State } from '../../reactivity/state';
 import { AnchorElement } from './anchor-element';
 import { renderStack } from './render-stack';
 import { ListMutation } from '../../reactivity';
@@ -15,7 +13,7 @@ export class MutationOperator<T = any> {
   public items: T[] = [];
 
   constructor(
-    public children: JSX.Children,
+    public template: JSX.Children,
     public currentTarget: Element | AnchorElement
   ) {}
 
@@ -38,7 +36,7 @@ export class MutationOperator<T = any> {
   }
 
   insert(item: T, index: number) {
-    const { sandboxes, currentTarget, children, rowIndexKey } = this;
+    const { sandboxes, currentTarget, rowIndexKey } = this;
     (item as any)[rowIndexKey] = index;
 
     const container =
@@ -48,8 +46,7 @@ export class MutationOperator<T = any> {
 
     const childSandbox = new Sandbox(container, Symbol(index), item);
     const insertAnchor = this.anchorAt(index);
-    const template = itemTemplate(children, item);
-    renderStack([[childSandbox, insertAnchor, template, true]]);
+    renderStack([[childSandbox, insertAnchor, this.template, true]]);
 
     for (let i = sandboxes.length; i > index; i--) {
       const preceding = sandboxes[i - 1];
@@ -89,14 +86,13 @@ export class MutationOperator<T = any> {
   }
 
   append(items: T[]) {
-    const { currentTarget, children, sandboxes } = this;
+    const { currentTarget, sandboxes, template } = this;
 
     for (let i = 0; i < items.length; i++) {
       const row = items[i];
       if (row === null || row === undefined) {
         continue;
       }
-      const template = itemTemplate(children, row);
 
       const container =
         currentTarget instanceof AnchorElement
@@ -232,15 +228,4 @@ export class MutationOperator<T = any> {
       return mutations;
     }
   }
-}
-
-export function itemTemplate(children: JSX.Children, data: any) {
-  const state = new State(data);
-  return tmap(children, (child) => {
-    if (child instanceof Function) {
-      return child(state);
-    } else {
-      return child;
-    }
-  });
 }

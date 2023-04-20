@@ -65,6 +65,26 @@ export function renderAttr(
   }
 }
 
-function split(s: string) {
-  return s.split(' ');
+function split(s: string | string[]) {
+  const stack = [s];
+  const ret: string[] = [];
+
+  while (stack.length) {
+    const curr = stack.pop()!;
+    if (curr === null || curr === undefined) {
+      // ignore
+    } else if (curr instanceof Array) {
+      for (let i = curr.length - 1; i >= 0; i--) {
+        stack.push(curr[i]);
+      }
+    } else if (curr.constructor === String) {
+      for (const s of curr.split(' ')) {
+        if (s) {
+          ret.push(s);
+        }
+      }
+    }
+  }
+
+  return ret;
 }

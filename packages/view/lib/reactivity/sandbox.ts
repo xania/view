@@ -8,7 +8,7 @@ import {
   PropertyOperator,
   ComputeOperator,
 } from './operator';
-import { Computed, Property, State, Value } from './state';
+import { Computed, Model, Property, State, Value } from './state';
 import { push } from './utils';
 import { Collection, cwalk } from './collection';
 import { Subscription } from '../render/subscibable';
@@ -122,6 +122,7 @@ export class Sandbox {
     const { operatorsKey } = this;
     while (arrows.length) {
       const [source, operator] = arrows.pop()!;
+
       push(source, operatorsKey, operator);
 
       if (source instanceof Computed) {
@@ -142,6 +143,11 @@ export class Sandbox {
             target: source,
           },
         ]);
+      } else if (source instanceof Model && this.model !== undefined) {
+        const stack: [Value, JSX.MaybeArray<Operator>][] = [
+          [this.model, operator],
+        ];
+        this.reconcile(stack);
       }
     }
   }
@@ -177,7 +183,10 @@ export class Sandbox {
         let childValue = newValue;
 
         while (parent) {
-          const parentValue = (parent[valueKey] ??= copyValue(parent.initial));
+          const parentValue =
+            parent instanceof Model
+              ? this.model
+              : parent[valueKey] ?? parent.initial;
 
           setValue(parentValue, state.name, childValue);
 
@@ -336,6 +345,8 @@ export class Sandbox {
   dispose() {
     this.disposed = true;
     cwalk(this.nodes, removeNode);
+
+    cwalk(this.subscriptions, unsubscribe);
   }
 }
 
@@ -344,28 +355,22 @@ function removeNode(node: ChildNode | undefined) {
     node.remove();
   }
 }
+function unsubscribe(subscription: Subscription) {
+  subscription.unsubscribe();
+}
 
-function copyValue<T>(value: Value<T>): Value<T> {
+function coalesce<T>(value: Value<T>, defaultValue: Value<T>): Value<T> {
   if (value === undefined || value === null) {
     return undefined;
   }
   if (value instanceof Promise) {
-    return value.then(copyValue) as Promise<T>;
-  } else if (
-    value.constructor === Number ||
-    value.constructor === String ||
-    value.constructor === BigInt ||
-    value.constructor === Boolean
-  ) {
-    return value;
-  } else if (value instanceof Array) {
-    return value.slice(0) as T;
+    return value.then((resolved) =>
+      coalesce(resolved, defaultValue)
+    ) as Promise<T>;
   } else if (value) {
-    return {
-      ...value,
-    };
+    return value;
   } else {
-    return {} as T;
+    return defaultValue;
   }
 }
 

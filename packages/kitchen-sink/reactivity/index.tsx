@@ -1,7 +1,7 @@
 ﻿import { render } from "@xania/view";
 import "../dist/output.css";
 import { Attrs } from "@xania/view/headless";
-import { State, List, mutations, If, DomCommand } from "@xania/view/reactivity";
+import { State, List, diff, If } from "@xania/view/reactivity";
 import * as Rx from "rxjs";
 import * as Ro from "rxjs/operators";
 
@@ -21,7 +21,7 @@ const status = user
   .prop("active")
   .map((active) => (active ? "active" : "inactive bg-red-300"));
 
-const abilities = user.prop("abilities").pipe(mutations);
+const abilities = user.prop("abilities").pipe(diff);
 
 function* onClick() {
   yield user.prop("active").update(toggle);
