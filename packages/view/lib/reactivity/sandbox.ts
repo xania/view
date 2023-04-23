@@ -8,7 +8,7 @@ import {
   PropertyOperator,
   ComputeOperator,
 } from './operator';
-import { Computed, Model, Property, State, Value } from './state';
+import { Computed, Property, State, Value } from './state';
 import { push } from './utils';
 import { Collection, cwalk } from './collection';
 import { Subscription } from '../render/subscibable';
@@ -20,8 +20,9 @@ import {
   UpdateStateCommand,
   isCommand,
 } from './command';
-import { ListMutationState } from './list';
+import { ListItemState, ListMutationState } from './list';
 import { AnchorElement } from '../render/browser/anchor-element';
+import { MutationOperator } from '../render/browser/mutation-operator';
 
 export class Sandbox {
   operatorsKey = Symbol();
@@ -143,13 +144,99 @@ export class Sandbox {
             target: source,
           },
         ]);
-      } else if (source instanceof Model && this.model !== undefined) {
+      } else if (source instanceof ListItemState && this.model !== undefined) {
         const stack: [Value, JSX.MaybeArray<Operator>][] = [
           [this.model, operator],
         ];
         this.reconcile(stack);
       }
     }
+  }
+
+  refresh(state: State) {
+    const { operatorsKey, valueKey } = this;
+    const sourceOperators: JSX.MaybeArray<Operator> | undefined = (
+      state as any
+    )[operatorsKey];
+
+    const currentValue =
+      state instanceof ListItemState
+        ? this.model
+        : (state as any)[valueKey] ?? state.initial;
+
+    const stack: [Value, JSX.MaybeArray<Operator>][] = [];
+    cwalk(sourceOperators, (parentOperator) => {
+      stack.push([currentValue, parentOperator]);
+    });
+
+    this.reconcile(stack);
+  }
+
+  onChange(state: Reactive, newValue: any) {
+    const { operatorsKey, valueKey } = this;
+
+    const stack: [Value, JSX.MaybeArray<Operator>][] = [];
+
+    if (state instanceof Property) {
+      let parent = state.parent as State & Reactive;
+      let childValue = newValue;
+
+      while (parent) {
+        const parentValue =
+          parent instanceof ListItemState
+            ? this.model
+            : parent[valueKey] ?? parent.initial;
+
+        setValue(parentValue, state.name, childValue);
+        cwalk(
+          parent[operatorsKey] as JSX.MaybeArray<Operator>,
+          (parentOperator) => {
+            if (parentOperator.type !== OperatorType.Property) {
+              stack.push([parentValue, parentOperator]);
+            }
+          }
+        );
+
+        if (parent instanceof Property) {
+          parent = parent.parent as State & Reactive;
+          childValue = parentValue;
+        } else if (parent instanceof ListItemState) {
+          const { listState, owner, items } = parent;
+          const changes = owner.onChange(listState.source as any, items);
+          cwalk((listState.source as any)[owner.operatorsKey], (operator) => {
+            if (
+              operator.type === OperatorType.Compute &&
+              operator.target !== listState
+            ) {
+              changes.push([items, operator]);
+            }
+          });
+          owner.reconcile(changes);
+          break;
+        }
+      }
+    } else if (state instanceof ListMutationState) {
+      let source = state.source as State & Reactive;
+      const sourceOperators: JSX.MaybeArray<Operator> | undefined =
+        source[operatorsKey];
+
+      const items = source[valueKey] ?? source.initial;
+
+      if (sourceOperators instanceof Array) {
+        for (const operator of sourceOperators) {
+          if (
+            operator.type !== OperatorType.Compute ||
+            operator.target !== state
+          ) {
+            stack.push([items, operator]);
+          }
+        }
+      }
+    } else if (state instanceof ListItemState) {
+      console.log(state);
+    }
+
+    return stack;
   }
 
   update<T>(
@@ -160,7 +247,7 @@ export class Sandbox {
     state: State<T> & Reactive,
     newValueOrReduce: Value<T> | ((value: T) => Value<T>)
   ) {
-    const { operatorsKey, valueKey } = this;
+    const { valueKey, operatorsKey } = this;
 
     const currentValue: Value<T> = state[valueKey] ?? state.initial;
 
@@ -175,73 +262,15 @@ export class Sandbox {
 
     if (newValue !== undefined && currentValue !== newValue) {
       state[valueKey] = newValue;
-
-      const stack: [Value, JSX.MaybeArray<Operator>][] = [];
-
-      if (state instanceof Property) {
-        let parent = state.parent as State & Reactive;
-        let childValue = newValue;
-
-        while (parent) {
-          const parentValue =
-            parent instanceof Model
-              ? this.model
-              : parent[valueKey] ?? parent.initial;
-
-          setValue(parentValue, state.name, childValue);
-
-          const parentOperators: JSX.MaybeArray<Operator> | undefined =
-            parent[operatorsKey];
-
-          if (parentOperators instanceof Array) {
-            for (let i = 0, len = parentOperators.length; i < len; i++) {
-              const parentOperator = parentOperators[i];
-              if (parentOperator.type !== OperatorType.Property) {
-                stack.push([parentValue, parentOperator]);
-              }
-            }
-          } else if (parentOperators) {
-            if (parentOperators.type !== OperatorType.Property) {
-              stack.push([parentValue, parentOperators]);
-            }
-          }
-
-          if (parent instanceof Property) {
-            parent = parent.parent as State & Reactive;
-            childValue = parentValue;
-          } else {
-            break;
-          }
-        }
-      } else if (state instanceof ListMutationState) {
-        let source = state.source as State & Reactive;
-        const sourceOperators: JSX.MaybeArray<Operator> | undefined =
-          source[operatorsKey];
-
-        const items = source[valueKey] ?? source.initial;
-
-        if (sourceOperators instanceof Array) {
-          for (const operator of sourceOperators) {
-            if (
-              operator.type !== OperatorType.Compute ||
-              operator.target !== state
-            ) {
-              stack.push([items, operator]);
-            }
-          }
-        }
+      if (state instanceof ListItemState) {
+        debugger;
       }
 
-      const stateOperators: JSX.MaybeArray<Operator> = state[operatorsKey];
-      if (stateOperators) {
-        if (stateOperators instanceof Array) {
-          for (let i = 0, len = stateOperators.length; i < len; i++) {
-            stack.push([newValue, stateOperators[i]]);
-          }
-        } else {
-          stack.push([newValue, stateOperators]);
-        }
-      }
+      const stack = this.onChange(state, newValue);
+
+      cwalk(state[operatorsKey] as Collection<Operator>, (operator) => {
+        stack.push([newValue, operator]);
+      });
 
       return this.reconcile(stack);
     }
@@ -252,7 +281,6 @@ export class Sandbox {
 
     while (stack.length) {
       const [newValue, operator] = stack.pop()!;
-
       if (operator instanceof Array) {
         for (let i = 0, len = operator.length; i < len; i++) {
           stack.push([newValue, operator[i]]);
@@ -275,6 +303,9 @@ export class Sandbox {
           operator.effect(newValue);
           break;
         case OperatorType.Assign:
+          // console.log(OperatorType[operator.type], operator.property);
+          // console.log(operator.target[operator.property], '=> ', newValue);
+
           operator.target[operator.property] = newValue;
           break;
 
@@ -302,18 +333,25 @@ export class Sandbox {
         case OperatorType.Compute:
           const { target } = operator as any;
           const previous = target[valueKey];
-          const reducedValue =
+          const computedValue =
             operator.type === OperatorType.Property
               ? newValue[operator.property]
               : operator.compute(newValue, previous);
 
-          if (reducedValue !== previous) {
-            target[valueKey] = reducedValue;
-          }
+          if (computedValue !== previous) {
+            target[valueKey] = computedValue;
 
-          const nextOperators = target[operatorsKey];
-          if (nextOperators) {
-            stack.push([reducedValue, nextOperators]);
+            // if (operator.type === OperatorType.Property)
+            //   console.log(OperatorType[operator.type], operator.property);
+            // else
+            //   console.log(OperatorType[operator.type], operator.compute.name);
+
+            // console.log('=> ', computedValue);
+
+            const nextOperators = target[operatorsKey];
+            if (nextOperators) {
+              stack.push([computedValue, nextOperators]);
+            }
           }
 
           break;

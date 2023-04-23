@@ -5,11 +5,13 @@ import {
   DomDescriptorType,
   isDomDescriptor,
   render,
+  tapply,
   tmap,
   unrender,
 } from '@xania/view';
 import {
   Link,
+  LinkProps,
   Path,
   pathMatcher,
   Route,
@@ -17,6 +19,7 @@ import {
   RouteProps,
   RouteResolution,
 } from '../core';
+import { State } from '@xania/view/reactivity';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -27,10 +30,15 @@ interface RouterProps<TView> {
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
-  return tmap(children, function mapRoutes(child): any {
+  return tmap(tapply(children, [context]), function mapRoutes(child): any {
     if (child instanceof Component) {
       if (child.func === Link) {
-        const href = `/${context.fullpath.join('/')}/${child.props.to}`;
+        const props: LinkProps = child.props;
+        const href =
+          context.fullpath.length > 0
+            ? `/${context.fullpath.join('/')}/${props.to}`
+            : `/${props.to}`;
+        const state = new State('');
         return [
           {
             type: DomDescriptorType.Attribute,
@@ -45,15 +53,21 @@ export function Router(props: RouterProps<any>) {
             name: 'href',
             value: href,
           },
-        ] satisfies DomDescriptor[];
+          {
+            type: DomDescriptorType.Attribute,
+            name: 'class',
+            value: state,
+          },
+          context.events.map((e) => {
+            return state.update(e.path[0] === props.to ? props.active : '');
+          }),
+        ];
       }
-      if (child.func === Route) return new RouteHandler(context, child.props);
-      else if (child.props?.children) {
-        return new Component(child.func, {
-          ...child.props,
-          children: tmap(child.props.children, mapRoutes),
-        });
-      } else return child;
+      if (child.func === Route) {
+        return new RouteHandler(context, child.props);
+      } else {
+        return tmap(child.execute(), mapRoutes);
+      }
     } else if (isDomDescriptor(child)) {
       switch (child.type) {
         case DomDescriptorType.Element:

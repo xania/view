@@ -3,18 +3,16 @@ import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { AnchorElement } from './anchor-element';
 import { renderStack } from './render-stack';
-import { ListMutation } from '../../reactivity';
+import { ListItemState, ListMutation } from '../../reactivity';
 
 export class MutationOperator<T = any> {
   public readonly type = OperatorType.Effect;
   public readonly sandboxes: Sandbox[] = [];
-  private readonly rowIndexKey = Symbol();
-
-  public items: T[] = [];
 
   constructor(
     public template: JSX.Children,
-    public currentTarget: Element | AnchorElement
+    public currentTarget: Element | AnchorElement,
+    public listItem: ListItemState<T>
   ) {}
 
   anchorAt(index: number) {
@@ -36,9 +34,9 @@ export class MutationOperator<T = any> {
   }
 
   insert(item: T, index: number) {
-    const { sandboxes, currentTarget, rowIndexKey } = this;
+    const { sandboxes, currentTarget, listItem } = this;
+    const { rowIndexKey } = listItem;
     (item as any)[rowIndexKey] = index;
-
     const container =
       currentTarget instanceof AnchorElement
         ? currentTarget.container
@@ -57,7 +55,8 @@ export class MutationOperator<T = any> {
   }
 
   move(from: number, to: number) {
-    const { sandboxes, rowIndexKey } = this;
+    const { sandboxes, listItem } = this;
+    const { rowIndexKey } = listItem;
     const subject = sandboxes[from];
     const toAnchorNode = this.anchorAt(to);
     if (toAnchorNode) {
@@ -86,13 +85,15 @@ export class MutationOperator<T = any> {
   }
 
   append(items: T[]) {
-    const { currentTarget, sandboxes, template } = this;
+    const { sandboxes, currentTarget, template, listItem } = this;
+    const { rowIndexKey } = listItem;
 
     for (let i = 0; i < items.length; i++) {
-      const row = items[i];
+      const row = items[i] as any;
       if (row === null || row === undefined) {
         continue;
       }
+      row[rowIndexKey] = sandboxes.length;
 
       const container =
         currentTarget instanceof AnchorElement
@@ -111,7 +112,8 @@ export class MutationOperator<T = any> {
   }
 
   effect(mutations: ListMutation<any>[]) {
-    const { sandboxes, items } = this;
+    const { sandboxes, listItem } = this;
+    const { items } = listItem;
 
     for (let i = 0; i < mutations.length; i++) {
       const mut = mutations[i];
@@ -150,7 +152,7 @@ export class MutationOperator<T = any> {
 
           break;
         case 'reset':
-          this.items = mut.items;
+          listItem.items = mut.items;
           this.reset(mut.items);
           break;
         default:
@@ -161,19 +163,21 @@ export class MutationOperator<T = any> {
   }
 
   reset(items: T[]) {
-    const { sandboxes, rowIndexKey } = this;
+    const { sandboxes, listItem } = this;
+    const { rowIndexKey } = listItem;
     if (sandboxes.length === 0) {
       this.append(items);
     } else {
-      for (let i = 0, len = sandboxes.length; i < len; i++) {
-        sandboxes[i].model![rowIndexKey] = i;
-      }
-
       for (let j = 0; j < items.length; j++) {
         const newRow = items[j] as any;
         if (newRow !== null && newRow !== undefined) {
           const currentRowIndex = newRow[rowIndexKey];
           if (currentRowIndex !== undefined) {
+            if (sandboxes[currentRowIndex].model !== newRow) {
+              sandboxes[currentRowIndex].model = newRow;
+              listItem.items[currentRowIndex] = newRow;
+              sandboxes[currentRowIndex].refresh(listItem);
+            }
             newRow[rowIndexKey] = -currentRowIndex - 1; // inverse flag
           }
         }

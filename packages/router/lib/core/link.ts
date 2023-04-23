@@ -1,5 +1,6 @@
-﻿interface LinkProps {
-  to?: string;
+﻿export interface LinkProps {
+  to: string;
+  active: string;
 }
 
 export function Link(props: LinkProps) {

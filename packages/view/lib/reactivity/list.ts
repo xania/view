@@ -1,4 +1,5 @@
 ﻿import { AddRowMutation, ListMutation } from './mutation';
+import { Sandbox } from './sandbox';
 import { Computed, State } from './state';
 
 export function List<T>(props: ListExpression<T>) {
@@ -36,4 +37,16 @@ export function If(props: IfProps) {
     new ListMutationState(props.condition.map((b) => (b ? [{}] : []))),
     props.children
   );
+}
+
+export class ListItemState<T> extends State<T> {
+  public items: T[] = [];
+
+  constructor(
+    public listState: ListMutationState<T>,
+    public owner: Sandbox,
+    public readonly rowIndexKey: symbol
+  ) {
+    super();
+  }
 }

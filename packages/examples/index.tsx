@@ -1,5 +1,4 @@
-﻿import { Route, RouteContext, WebApp } from "@xania/router";
-import classes from "./webapp.module.scss";
+﻿import { Link, Route, RouteContext, WebApp } from "@xania/router";
 import "./main.css";
 import "./dist/output.css";
 import { state } from "@xania/view/reactivity";
@@ -9,12 +8,14 @@ import { Attrs } from "@xania/view/headless";
 export function ExamplesApp() {
   return (
     <>
+      <Attrs class="flex flex-col" />
       <WebApp>
         <Navigation />
         <AppContainer>
-          <Attrs class="border-box border-solid bg-blue-400flex flex-row" />
           <Page>main menu</Page>
-          <Route>{() => import("./clock").then((e) => e.App())}</Route>
+          <Route path="clock">
+            {() => import("./clock").then((e) => e.App())}
+          </Route>
           <Route path="counter">
             {() => import("./counter").then((e) => e.App())}
           </Route>
@@ -47,7 +48,7 @@ export function ExamplesApp() {
 
 function AppContainer(props: { children: JSX.Children }) {
   return (
-    <div class="h-full relative border-box flex align-middle p-0 m-0 flex-row bg-slate-100">
+    <div class="relative flex-auto border-box flex align-middle p-0 m-0 flex-row bg-gray-100 overflow-auto">
       {props.children}
     </div>
   );
@@ -58,12 +59,12 @@ function Navigation() {
   const open = state(false);
 
   const navlinks: { title: string; href: string }[] = [
-    { title: "Clock", href: "/" },
-    { title: "Counter", href: "/counter" },
-    { title: "Todo App", href: "/todo" },
-    { title: "Router", href: "/router/button" },
-    { title: "Grid", href: "/grid" },
-    { title: "Admin", href: "/admin" },
+    { title: "Clock", href: "clock" },
+    { title: "Counter", href: "counter" },
+    { title: "Todo App", href: "todo" },
+    { title: "Router", href: "router/button" },
+    { title: "Grid", href: "grid" },
+    { title: "Admin", href: "admin" },
   ];
 
   return (
@@ -112,16 +113,19 @@ function Navigation() {
             </div>
             <div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
               <div class="flex flex-shrink-0 items-center">
-                <img
-                  class="block h-8 w-auto lg:hidden"
-                  src="/favicon.svg"
-                  alt="Xania"
-                />
-                <img
-                  class="hidden h-8 w-auto lg:block"
-                  src="/favicon.svg"
-                  alt="Xania"
-                />
+                <a>
+                  <Link to="" active="" />
+                  <img
+                    class="block h-8 w-auto lg:hidden"
+                    src="/favicon.svg"
+                    alt="Xania"
+                  />
+                  <img
+                    class="hidden h-8 w-auto lg:block"
+                    src="/favicon.svg"
+                    alt="Xania"
+                  />
+                </a>
               </div>
               <div class="hidden sm:ml-6 sm:block">
                 <div class="flex space-x-4">
@@ -253,16 +257,12 @@ function Navigation() {
 }
 
 function MenuItem(props: { title: string; current?: boolean; href: string }) {
-  const clazz = props.current
-    ? "bg-gray-900 text-white block rounded-md px-3 py-2 text-base font-medium"
-    : "hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-base font-medium";
-
   return (
     <a
-      href={props.href}
-      class={["router-link", clazz]}
+      class="hover:bg-gray-700 hover:text-white text-white block rounded-md px-3 py-2 text-base font-medium"
       aria-current={props.current && "page"}
     >
+      <Link to={props.href} active="bg-gray-900" />
       {props.title}
     </a>
   );

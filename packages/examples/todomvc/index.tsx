@@ -1,14 +1,7 @@
 ﻿import classes from "./index.module.scss";
-import { RouteContext } from "@xania/router";
+import { Link, RouteContext } from "@xania/router";
 import { Page } from "../components/page";
-import {
-  If,
-  List,
-  ListMutation,
-  State,
-  diff,
-  state,
-} from "@xania/view/reactivity";
+import { If, List, State, diff, state } from "@xania/view/reactivity";
 
 type Mode = "completed" | "active" | "all";
 
@@ -53,20 +46,22 @@ export function App({}: RouteContext) {
             class={classes["toggle-all"]}
             type="checkbox"
             checked={items.map((list) => list.every((todo) => todo.completed))}
-            // click={(e) =>
-            //   // items.each((row) =>
-            //   //   row.prop("completed").update(e.currentTarget.checked)
-            //   // )
-            // }
+            click={(e) =>
+              items.update((l) =>
+                l.map((item) => ({
+                  ...item,
+                  completed: e.currentTarget.checked,
+                }))
+              )
+            }
           />
           <label for="toggle-all"></label>
         </header>
 
         <TodoList items={items} />
 
-        <If condition={items.map((l) => l.length > 0)}>
-          <TodoFooter items={items} mode={mode} />
-        </If>
+        <TodoFooter items={items} mode={mode} />
+        {/* <If condition={items.map((l) => l.length > 0)}>-</If> */}
       </section>
     </Page>
   );
@@ -125,37 +120,22 @@ function TodoFooter(props: TodoFooterProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a
-            href={"/todo/"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "all" ? classes["selected"] : null)),
-            ]}
-          >
+          <a class="selected">
+            <Link to={"all"} active={classes["selected"]} />
             All
           </a>
         </li>
         <span> </span>
         <li>
-          <a
-            href={"/todo/active"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "active" ? classes["selected"] : null)),
-            ]}
-          >
+          <a>
+            <Link to={"active"} active={classes["selected"]} />
             Active
           </a>
         </li>
         <span> </span>
         <li>
-          <a
-            href={"/todo/completed"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "completed" ? classes["selected"] : null)),
-            ]}
-          >
+          <a>
+            <Link to={"completed"} active={classes["selected"]} />
             Completed
           </a>
         </li>

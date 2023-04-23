@@ -86,5 +86,3 @@ export class Effect<T = any> {
   public readonly type = OperatorType.Effect;
   constructor(public state: State, public effect: (value: T) => void) {}
 }
-
-export class Model<T> extends State<T> {}

@@ -6,19 +6,24 @@ import {
 import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { Component } from '../../component';
-import { Effect, Model, State } from '../../reactivity/state';
+import { Effect, State } from '../../reactivity/state';
 import { OperatorType } from '../../reactivity/operator';
 import { cpush } from '../../reactivity/collection';
 import { isAttachable, isViewable } from '../../render';
 import { isSubscribable } from '../../reactive/observable';
 import { isDisposable } from '../../render/disposable';
 import { isSubscription } from '../../render/subscibable';
-import { ListExpression, ListMutationState, diff } from '../../reactivity/list';
+import {
+  ListExpression,
+  ListItemState,
+  ListMutationState,
+  diff,
+} from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
 import { AnchorElement } from './anchor-element';
 import { isCommand } from '../../reactivity';
-import { tmap } from '../../seq';
+import { tapply, tmap } from '../../seq';
 
 export function renderStack(
   stack: [
@@ -77,7 +82,7 @@ export function renderStack(
 
       if (source instanceof Array) {
         for (let i = source.length - 1; i >= 0; i--) {
-          const template = itemTemplate(tpl.children, new State(source[i]));
+          const template = tapply(tpl.children, [new State(source[i])]);
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
@@ -87,13 +92,20 @@ export function renderStack(
           sandbox.nodes = cpush(sandbox.nodes, listAnchorNode);
         }
 
-        const template = itemTemplate(tpl.children, new Model());
+        const rowIndexKey = Symbol();
+
+        const mutations =
+          source instanceof ListMutationState ? source : source.pipe(diff);
+
+        const listItem = new ListItemState(mutations, sandbox, rowIndexKey);
+        const template = tapply(tpl.children, [listItem]);
+        const anchorElement = AnchorElement.create(
+          sandbox.container,
+          listAnchorNode
+        )!;
         sandbox.connect(
-          source instanceof ListMutationState ? source : source.pipe(diff),
-          new MutationOperator(
-            template,
-            AnchorElement.create(sandbox.container, listAnchorNode)!
-          )
+          mutations,
+          new MutationOperator(template, anchorElement, listItem)
         );
       }
     } else if (tpl instanceof Effect) {
@@ -176,14 +188,4 @@ export function renderStack(
       console.log('unknown', tpl);
     }
   }
-}
-
-function itemTemplate(children: JSX.Children, model: State) {
-  return tmap(children, (child) => {
-    if (child instanceof Function) {
-      return child(model);
-    } else {
-      return child;
-    }
-  });
 }

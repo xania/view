@@ -15,8 +15,10 @@ interface PageProps {
 }
 export function Page(props: PageProps) {
   return (
-    <div class="border-box h-full box-content border-solid border-2 border-blue-500  bg-slate-300 p-4">
-      {props.children}
+    <div class="h-full p-3">
+      <div class="shadow-lg block p-4 h-full box-border bg-white overflow-auto border-solid border-2 border-gray-200">
+        {props.children}
+      </div>
     </div>
   );
 }

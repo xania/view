@@ -2,9 +2,9 @@
 
 export function tmap<T = any, U = any>(
   template: JSX.Sequence<T>,
-  map: (x: T) => U
+  map: (x: T, ...args: any[]) => U
 ): JSX.MaybePromise<JSX.Sequence<U>> {
-  const retval: JSX.Sequence<U>[] = [];
+  const retval: JSX.Sequence<U | Function>[] = [];
   const stack: any[] = [template];
   while (stack.length) {
     const curr = stack.pop()!;
