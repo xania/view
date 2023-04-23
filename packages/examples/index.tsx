@@ -4,6 +4,7 @@ import "./dist/output.css";
 import { state } from "@xania/view/reactivity";
 import { Page } from "./components/page";
 import { Attrs } from "@xania/view/headless";
+import { Title } from "./components/heading";
 
 export function ExamplesApp() {
   return (
@@ -12,7 +13,9 @@ export function ExamplesApp() {
       <WebApp>
         <Navigation />
         <AppContainer>
-          <Page>main menu</Page>
+          <Page>
+            <Title>main menu</Title>
+          </Page>
           <Route path="clock">
             {() => import("./clock").then((e) => e.App())}
           </Route>

@@ -11,12 +11,13 @@
 // }
 
 interface PageProps {
+  class?: string;
   children: JSX.Children;
 }
 export function Page(props: PageProps) {
   return (
-    <div class="h-full p-3">
-      <div class="shadow-lg block p-4 h-full box-border bg-white overflow-auto border-solid border-2 border-gray-200">
+    <div class={["h-full py-3 pl-3 last:pr-3 box-border", props.class]}>
+      <div class="shadow-lg p-4 box-border h-full bg-white overflow-y-auto overflow-x-hidden border-solid border-2 border-gray-200 max-h-[99%]">
         {props.children}
       </div>
     </div>

@@ -22,7 +22,7 @@ export function App({}: RouteContext) {
   );
 
   return (
-    <Page>
+    <Page class="flex-auto">
       {/* {remaining.map((path) => {
         const newMode = path[0] ?? "all";
         switch (newMode) {
@@ -120,19 +120,17 @@ function TodoFooter(props: TodoFooterProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a class="selected">
+          <a class="border-solid border-2 border-black">
             <Link to={"all"} active={classes["selected"]} />
             All
           </a>
         </li>
-        <span> </span>
         <li>
           <a>
             <Link to={"active"} active={classes["selected"]} />
             Active
           </a>
         </li>
-        <span> </span>
         <li>
           <a>
             <Link to={"completed"} active={classes["selected"]} />

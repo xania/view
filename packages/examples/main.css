@@ -8,3 +8,7 @@ body {
   border: 0 solid white;
   display: block;
 }
+
+.small-caps {
+  font-variant: small-caps;
+}

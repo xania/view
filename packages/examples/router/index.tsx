@@ -2,12 +2,14 @@
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
 import { state } from "@xania/view/reactivity";
+import { Attrs } from "@xania/view/headless";
 
 export function App() {
   const current = state<string>();
   return (
     <>
       <Page>
+        <Attrs class="max-w-md" />
         <Title>Router</Title>
 
         <p>
@@ -43,10 +45,12 @@ export function App() {
       </Page>
 
       <Page>
-        <div class="border-solid border-2 border-indigo-600 p-4">
-          <Route path="button">page 1</Route>
-          <Route path="anchor">page 2</Route>
-        </div>
+        <Route path="button">
+          <Title>page 1</Title>
+        </Route>
+        <Route path="anchor">
+          <Title>page 2</Title>
+        </Route>
       </Page>
     </>
   );

@@ -1,12 +1,12 @@
 ﻿import { Link, Route } from "@xania/router";
-import { Attrs } from "@xania/view/headless";
 import { Page } from "../components/page";
+import { Title } from "../components/heading";
 
 export function App() {
   return (
     <>
       <Page>
-        <PageHeader>Employees</PageHeader>
+        <Title>Employees</Title>
         <ul>
           <li>
             <a>
@@ -23,10 +23,14 @@ export function App() {
         </ul>
       </Page>
       <Route path="ibrahim">
-        <Page>Ibrahim</Page>
+        <Page>
+          <Title>Ibrahim</Title>
+        </Page>
       </Route>
       <Route path="ramy">
-        <Page>Ramy</Page>
+        <Page>
+          <Title>Ramy</Title>
+        </Page>
       </Route>
     </>
   );

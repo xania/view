@@ -2,17 +2,20 @@
 import { delay } from "../utils";
 import { Title } from "../components/heading";
 import { state, update } from "@xania/view/reactivity";
+import { Page } from "../components/page";
+import { Attrs } from "@xania/view/headless";
 
 export function App() {
   return (
-    <div class={classes["Clock"]}>
+    <Page class="flex-auto">
+      <Attrs class={classes["Clock"]} />
       <Title>Reactive Clock</Title>
       <br></br>
       <Clock />
       <span class={classes["credits"]}>
         design by <a href="https://codepen.io/rassadin">Nick Rassadin</a>
       </span>
-    </div>
+    </Page>
   );
 }
 

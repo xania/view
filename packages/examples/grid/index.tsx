@@ -3,7 +3,7 @@ import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
 
-const dataLength = 500000;
+const dataLength = 50000;
 
 function load(offset: number, size: number): DataSource<Person> {
   const data: Person[] = [];
@@ -27,17 +27,24 @@ function load(offset: number, size: number): DataSource<Person> {
 }
 
 export function App() {
-  const grid = new Grid<Person>(load, [
-    new Column({
-      field: "firstName",
-    }),
-    new Column({
-      field: "lastName",
-    }),
-    new Column({
-      field: "age",
-    }),
-  ]);
+  const grid = new Grid<Person>(
+    load,
+    [
+      new Column({
+        field: "firstName",
+      }),
+      new Column({
+        field: "lastName",
+      }),
+      new Column({
+        field: "age",
+      }),
+      new Column({
+        field: "status",
+      }),
+    ],
+    20
+  );
 
   const rowHeight = 40;
   const headerHeight = 48;
@@ -46,7 +53,7 @@ export function App() {
     <Page>
       <Title>Grid</Title>
       <div
-        class="border-0 p-0 overflow-auto h-[30rem]"
+        class="border-0 p-0 h-full overflow-auto"
         scroll={(e) => grid.updateWindow(e.currentTarget.scrollTop, rowHeight)}
       >
         <table
@@ -59,7 +66,7 @@ export function App() {
             <tr>
               <td></td>
               <grid.Header>
-                {(column) => <td class="p-3">{column.title}</td>}
+                {(column) => <td class="px-2">{column.title}</td>}
               </grid.Header>
               <td></td>
             </tr>
@@ -83,7 +90,8 @@ export function App() {
                   </grid.Cell>
                   <td>
                     <button
-                    // click={dispose}
+                      class="px-2"
+                      // click={dispose}
                     >
                       &times;
                     </button>
