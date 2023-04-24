@@ -65,7 +65,7 @@ interface RouteInput {
 //   return state;
 // }
 
-function startsWith(route: Path, base: Path) {
+export function startsWith(route: Path, base: Path) {
   if (base.length === 0) return true;
 
   if (base.length > route.length) return false;

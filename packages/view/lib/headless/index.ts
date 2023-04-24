@@ -1,7 +1,7 @@
 ﻿import { AttrDescriptor, DomDescriptorType } from '../intrinsic';
 
-export function Attrs(
-  props: JSX.Tag<Element> & JSX.ElementCustomAttributes
+export function Attrs<TElement = Element>(
+  props: JSX.Tag<TElement> & JSX.ElementCustomAttributes
 ): AttrDescriptor[] {
   const attrs: AttrDescriptor[] = [];
   for (const attrName in props) {

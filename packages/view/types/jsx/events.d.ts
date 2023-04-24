@@ -10,7 +10,7 @@
     key: 'key' extends keyof T ? T['key'] : never;
   }>;
 
-  type EventContext<TEvent = Event, TElement = HTMLElement> = EventContextProps<
+  type EventContext<TEvent = Event, TElement = Element> = EventContextProps<
     TElement,
     TEvent
   > &
@@ -18,10 +18,10 @@
 
   type EventContextProps<TElement, TEvent> = {
     currentTarget: TElement;
-    target: EventTarget & HTMLElement;
+    target: EventTarget & Element;
     type: Event['type'];
     event: TEvent & {
-      target: EventTarget & HTMLElement;
+      target: EventTarget & Element;
     };
   };
 
@@ -42,5 +42,5 @@
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (
     e: EventContext<HTMLElementEventMap[E], TElement>
-  ) => Sequence<Command>;
+  ) => Sequence<Command | void>;
 }

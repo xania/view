@@ -29,11 +29,11 @@ export class State<T = any> {
   }
 
   true<U>(trueValue: Value<Unwrap<U>>) {
-    return this.map((x) => (x ? trueValue : undefined));
+    return this.map<U | null>((x) => (x ? trueValue : null));
   }
 
   false<U>(trueValue: Value<Unwrap<U>>) {
-    return this.map((x) => (!x ? trueValue : undefined));
+    return this.map<U | null>((x) => (!x ? trueValue : null));
   }
 
   toggle<U>(tru: Value<Unwrap<U>>, fals: Value<Unwrap<U>>) {

@@ -20,6 +20,8 @@ import {
   RouteResolution,
 } from '../core';
 import { State } from '@xania/view/reactivity';
+import { Attrs } from '@xania/view/headless';
+import { startsWith } from '../webapp/browser-routes';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -34,32 +36,35 @@ export function Router(props: RouterProps<any>) {
     if (child instanceof Component) {
       if (child.func === Link) {
         const props: LinkProps = child.props;
-        const href =
-          context.fullpath.length > 0
-            ? `/${context.fullpath.join('/')}/${props.to}`
-            : `/${props.to}`;
-        const state = new State('');
-        return [
-          {
-            type: DomDescriptorType.Attribute,
-            name: 'click',
-            value(e: JSX.EventContext) {
+        const linkPath = props.to.split('/');
+
+        const href = `/${[...context.fullpath, ...linkPath].join('/')}`;
+
+        const activeClass = props.class;
+        if (activeClass === undefined) {
+          return Attrs({
+            href,
+            click(e: JSX.EventContext) {
               e.event.preventDefault();
               pushPath(href);
             },
-          },
-          {
-            type: DomDescriptorType.Attribute,
-            name: 'href',
-            value: href,
-          },
-          {
-            type: DomDescriptorType.Attribute,
-            name: 'class',
-            value: state,
-          },
+          });
+        }
+
+        const activeState = new State('');
+        return [
+          Attrs({
+            href,
+            class: activeState,
+            click(e: JSX.EventContext) {
+              e.event.preventDefault();
+              pushPath(href);
+            },
+          }),
           context.events.map((e) => {
-            return state.update(e.path[0] === props.to ? props.active : '');
+            return activeState.update(
+              startsWith(e.path, linkPath) ? activeClass : ''
+            );
           }),
         ];
       }

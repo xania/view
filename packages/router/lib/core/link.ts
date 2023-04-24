@@ -1,6 +1,6 @@
 ﻿export interface LinkProps {
   to: string;
-  active?: string;
+  class?: string;
 }
 
 export function Link(props: LinkProps) {

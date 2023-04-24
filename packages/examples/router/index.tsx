@@ -22,26 +22,28 @@ export function App() {
           Link apply to parent element. when declared a click event is attached
           handle navigation.
         </p>
-        <button
-          class={[
-            current.map((x) => (x === "page1" ? "bg-gray-300" : null)),
-            "m-2 p-2 border-2 border-solid",
-          ]}
-          click={current.update("page1")}
-        >
-          page 1
-          <Link to="button" />
-        </button>
-        <a
-          class={[
-            current.map((x) => (x === "page2" ? "bg-gray-300" : null)),
-            "m-2 p-2 border-2 border-solid",
-          ]}
-          click={current.update("page2")}
-        >
-          page 2
-          <Link to="anchor" />
-        </a>
+        <div>
+          <button
+            class={[
+              current.map((x) => (x === "page1" ? "bg-gray-300" : null)),
+              "m-2 p-2 border-2",
+            ]}
+            click={current.update("page1")}
+          >
+            page 1
+            <Link to="button" class="text-blue-100 bg-slate-800" />
+          </button>
+          <a
+            class={[
+              current.map((x) => (x === "page2" ? "bg-gray-300" : null)),
+              "m-2 p-2 border-2",
+            ]}
+            click={current.update("page2")}
+          >
+            page 2
+            <Link to="anchor" class="text-blue-100 bg-slate-800" />
+          </a>
+        </div>
       </Page>
 
       <Page>

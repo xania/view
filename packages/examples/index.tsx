@@ -117,7 +117,7 @@ function Navigation() {
             <div class="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
               <div class="flex flex-shrink-0 items-center">
                 <a>
-                  <Link to="" active="" />
+                  <Link to="" />
                   <img
                     class="block h-8 w-auto lg:hidden"
                     src="/favicon.svg"
@@ -245,10 +245,10 @@ function Navigation() {
             {/* Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" */}
             {navlinks.map((link) => (
               <a
-                href={link.href}
                 class="router-link text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
                 click={open.update(false)}
               >
+                <Link to={link.href} class="bg-gray-900" />
                 {link.title}
               </a>
             ))}
@@ -265,7 +265,7 @@ function MenuItem(props: { title: string; current?: boolean; href: string }) {
       class="hover:bg-gray-700 hover:text-white text-white block rounded-md px-3 py-2 text-base font-medium"
       aria-current={props.current && "page"}
     >
-      <Link to={props.href} active="bg-gray-900" />
+      <Link to={props.href} class="bg-gray-900" />
       {props.title}
     </a>
   );
