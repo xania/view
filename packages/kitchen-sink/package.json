@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "lint": "tsc"
+    "lint": "tsc",
+    "tailwind": "npx tailwindcss -i ./main.css -o ./dist/output.css --watch"
   },
   "keywords": [
     "ssr",

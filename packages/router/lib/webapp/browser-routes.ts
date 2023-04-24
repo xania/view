@@ -8,10 +8,10 @@ const locations$ = interval(() => location.pathname, 200).map((pathname) => ({
 }));
 
 export function browserRoutes(virtualPath: Path) {
-  const clicks$ = clicks();
+  // const clicks$ = clicks();
 
   return {
-    events: merge(locations$, clicks$, popStates$)
+    events: merge(locations$, popStates$)
       .pipe(distinct('pathname'))
       .map(({ trigger, pathname }) => ({
         trigger,
@@ -29,43 +29,43 @@ interface RouteInput {
   trigger: RouteTrigger;
 }
 
-function clicks() {
-  const state = new State<RouteInput>();
-  document.body.addEventListener('click', onClick);
+// function clicks() {
+//   const state = new State<RouteInput>();
+//   document.body.addEventListener('click', onClick);
 
-  function onClick(event: MouseEvent) {
-    const target: HTMLElement = event.target as HTMLElement;
-    if (target) {
-      let anchor: HTMLAnchorElement | null = target.closest('a');
+//   function onClick(event: MouseEvent) {
+//     const target: HTMLElement = event.target as HTMLElement;
+//     if (target) {
+//       let anchor: HTMLAnchorElement | null = target.closest('a');
 
-      if (anchor && anchor.classList.contains('router-link')) {
-        event.preventDefault();
-        const href = anchor.getAttribute('href');
+//       if (anchor && anchor.classList.contains('router-link')) {
+//         event.preventDefault();
+//         const href = anchor.getAttribute('href');
 
-        if (href && anchor['pathname'] && location.host === anchor['host']) {
-          const pathname = anchor['pathname'];
-          pushPath(pathname);
-          state.next({
-            pathname,
-            trigger: RouteTrigger.Click,
-          });
+//         if (href && anchor['pathname'] && location.host === anchor['host']) {
+//           const pathname = anchor['pathname'];
+//           pushPath(pathname);
+//           state.next({
+//             pathname,
+//             trigger: RouteTrigger.Click,
+//           });
 
-          return false;
-        }
-      }
-    }
-  }
+//           return false;
+//         }
+//       }
+//     }
+//   }
 
-  const sub = {
-    unsubscribe() {
-      document.body.removeEventListener('click', onClick);
-    },
-  };
+//   const sub = {
+//     unsubscribe() {
+//       document.body.removeEventListener('click', onClick);
+//     },
+//   };
 
-  return state;
-}
+//   return state;
+// }
 
-function startsWith(route: Path, base: Path) {
+export function startsWith(route: Path, base: Path) {
   if (base.length === 0) return true;
 
   if (base.length > route.length) return false;

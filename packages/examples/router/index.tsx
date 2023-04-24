@@ -1,13 +1,15 @@
 ﻿import { Route, Link } from "@xania/router";
-import { state } from "@xania/view";
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
+import { state } from "@xania/view/reactivity";
+import { Attrs } from "@xania/view/headless";
 
 export function App() {
   const current = state<string>();
   return (
     <>
       <Page>
+        <Attrs class="max-w-md" />
         <Title>Router</Title>
 
         <p>
@@ -20,33 +22,37 @@ export function App() {
           Link apply to parent element. when declared a click event is attached
           handle navigation.
         </p>
-        <button
-          class={[
-            current.map((x) => (x === "page1" ? "bg-gray-300" : null)),
-            "m-2 p-2 border-2 border-solid",
-          ]}
-          click={current.update("page1")}
-        >
-          page 1
-          <Link to="button" />
-        </button>
-        <a
-          class={[
-            current.map((x) => (x === "page2" ? "bg-gray-300" : null)),
-            "m-2 p-2 border-2 border-solid",
-          ]}
-          click={current.update("page2")}
-        >
-          page 2
-          <Link to="anchor" />
-        </a>
+        <div>
+          <button
+            class={[
+              current.map((x) => (x === "page1" ? "bg-gray-300" : null)),
+              "m-2 p-2 border-2",
+            ]}
+            click={current.update("page1")}
+          >
+            page 1
+            <Link to="button" class="text-blue-100 bg-slate-800" />
+          </button>
+          <a
+            class={[
+              current.map((x) => (x === "page2" ? "bg-gray-300" : null)),
+              "m-2 p-2 border-2",
+            ]}
+            click={current.update("page2")}
+          >
+            page 2
+            <Link to="anchor" class="text-blue-100 bg-slate-800" />
+          </a>
+        </div>
       </Page>
 
       <Page>
-        <div class="border-solid border-2 border-indigo-600 p-4">
-          <Route path="button">page 1</Route>
-          <Route path="anchor">page 2</Route>
-        </div>
+        <Route path="button">
+          <Title>page 1</Title>
+        </Route>
+        <Route path="anchor">
+          <Title>page 2</Title>
+        </Route>
       </Page>
     </>
   );

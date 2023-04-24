@@ -119,8 +119,8 @@
   height: 34px;
   font-size: 0;
   position: absolute;
-  top: 25px;
-  left: 5px;
+  top: 43px;
+  left: -6px;
   -webkit-transform: rotate(90deg);
   transform: rotate(90deg);
 }
@@ -129,7 +129,6 @@
   content: "❯";
   font-size: 22px;
   color: #e6e6e6;
-  padding: 10px 27px 10px 27px;
 }
 
 .toggle-all:checked + label:before {
@@ -256,9 +255,9 @@
 .footer {
   color: #777;
   padding: 10px 15px;
-  height: 20px;
   text-align: center;
   border-top: 1px solid #e6e6e6;
+  height: 45px;
 }
 
 .footer:before {

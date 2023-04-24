@@ -5,12 +5,13 @@ import {
   DomDescriptorType,
   isDomDescriptor,
   render,
-  sequential,
+  tapply,
   tmap,
   unrender,
 } from '@xania/view';
 import {
   Link,
+  LinkProps,
   Path,
   pathMatcher,
   Route,
@@ -18,6 +19,9 @@ import {
   RouteProps,
   RouteResolution,
 } from '../core';
+import { State } from '@xania/view/reactivity';
+import { Attrs } from '@xania/view/headless';
+import { startsWith } from '../webapp/browser-routes';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -28,33 +32,47 @@ interface RouterProps<TView> {
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
-  return tmap(children, function mapRoutes(child): any {
+  return tmap(tapply(children, [context]), function mapRoutes(child): any {
     if (child instanceof Component) {
       if (child.func === Link) {
-        const href = `/${context.fullpath.join('/')}/${child.props.to}`;
-        return [
-          {
-            type: DomDescriptorType.Attribute,
-            name: 'click',
-            value(e: JSX.EventContext) {
+        const props: LinkProps = child.props;
+        const linkPath = props.to.split('/');
+
+        const href = `/${[...context.fullpath, ...linkPath].join('/')}`;
+
+        const activeClass = props.class;
+        if (activeClass === undefined) {
+          return Attrs({
+            href,
+            click(e: JSX.EventContext) {
               e.event.preventDefault();
               pushPath(href);
             },
-          },
-          {
-            type: DomDescriptorType.Attribute,
-            name: 'href',
-            value: href,
-          },
-        ] satisfies DomDescriptor[];
+          });
+        }
+
+        const activeState = new State('');
+        return [
+          Attrs({
+            href,
+            class: activeState,
+            click(e: JSX.EventContext) {
+              e.event.preventDefault();
+              pushPath(href);
+            },
+          }),
+          context.events.map((e) => {
+            return activeState.update(
+              startsWith(e.path, linkPath) ? activeClass : ''
+            );
+          }),
+        ];
       }
-      if (child.func === Route) return new RouteHandler(context, child.props);
-      else if (child.props?.children) {
-        return new Component(child.func, {
-          ...child.props,
-          children: tmap(child.props.children, mapRoutes),
-        });
-      } else return child;
+      if (child.func === Route) {
+        return new RouteHandler(context, child.props);
+      } else {
+        return tmap(child.execute(), mapRoutes);
+      }
     } else if (isDomDescriptor(child)) {
       switch (child.type) {
         case DomDescriptorType.Element:
@@ -189,7 +207,7 @@ class RouteHandler {
         }
 
         const appliedPath = route.path.slice(0, segment.length);
-        console.log(appliedPath);
+        // console.log(appliedPath);
 
         const routeContext: RouteContext = {
           path: appliedPath,

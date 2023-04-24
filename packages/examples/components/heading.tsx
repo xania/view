@@ -1,10 +1,16 @@
-﻿interface TitleProps {
+﻿import { Attrs } from "@xania/view/headless";
+
+interface TitleProps {
   children: string;
 }
 export function Title(props: TitleProps) {
   return (
-    <h1 class="mt-0 mb-2 text-5xl font-medium leading-tight text-primary text-gray-500">
-      {props.children}
-    </h1>
+    <>
+      <Attrs class="flex flex-col" />
+
+      <span class="mt-0 mb-2 font-bold text-m uppercase text-gray-400 leading-tight text-primary justify-center align-middle inline-flex whitespace-nowrap">
+        {props.children}
+      </span>
+    </>
   );
 }

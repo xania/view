@@ -25,6 +25,14 @@
     "./jsx-dev-runtime": {
       "import": "./dist/jsx-dev-runtime.js",
       "require": "./dist/jsx-dev-runtime.cjs"
+    },
+    "./reactivity": {
+      "import": "./dist/reactivity.js",
+      "require": "./dist/reactivity.cjs"
+    },
+    "./headless": {
+      "import": "./dist/headless.js",
+      "require": "./dist/headless.cjs"
     }
   },
   "private": false,
@@ -41,7 +49,8 @@
   "scripts": {
     "dev": "npm run clean && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npx vite --watch build",
     "build": "npm run clean && npx vite build && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
-    "tsup:headless": "tsup headless.ts --format esm --external @xania/view",
+    "tsup:headless": "tsup lib/headless/index.ts --format esm --external @xania/view",
+    "tsup:reactivity": "tsup lib/reactivity/index.ts --format esm --external @xania/view",
     "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
     "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
     "clean": "npx rimraf dist",
@@ -61,10 +70,10 @@
     "rollup-plugin-typescript": "1.0.1",
     "sass": "^1.57.1",
     "tslib": "^2.4.1",
-    "typescript": "^4.9.4",
+    "typescript": "^5.0.4",
     "rollup-plugin-ts": "^3.2.0",
-    "tsup": "^6.6.3",
-    "vitest": "^0.29.3"
+    "tsup": "^6.7.0",
+    "vitest": "^0.30.1"
   },
   "repository": {
     "type": "git",

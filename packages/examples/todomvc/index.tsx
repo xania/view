@@ -1,13 +1,13 @@
-﻿import { If, List, listSource, ListSource, State, state } from "@xania/view";
-import classes from "./index.module.scss";
-import { RouteContext } from "@xania/router";
+﻿import classes from "./index.module.scss";
+import { Link, RouteContext } from "@xania/router";
 import { Page } from "../components/page";
+import { If, List, State, diff, state } from "@xania/view/reactivity";
 
 type Mode = "completed" | "active" | "all";
 
 export function App({}: RouteContext) {
   const mode = state<Mode>();
-  const items = listSource<TodoItem>(
+  const items = state<TodoItem[]>(
     [
       {
         completed: true,
@@ -17,12 +17,12 @@ export function App({}: RouteContext) {
         completed: false,
         label: "Say hi",
       },
-    ],
-    completed
+    ]
+    // completed
   );
 
   return (
-    <Page>
+    <Page class="flex-auto">
       {/* {remaining.map((path) => {
         const newMode = path[0] ?? "all";
         switch (newMode) {
@@ -37,7 +37,9 @@ export function App({}: RouteContext) {
       <section class={classes["todoapp"]}>
         <header class={classes["header"]}>
           <h1>todos</h1>
-          <NewTodo onNew={(item) => items.push(item)} />
+          <NewTodo
+            onNew={(item) => items.update((items) => [...items, item])}
+          />
 
           <input
             id="toggle-all"
@@ -45,8 +47,11 @@ export function App({}: RouteContext) {
             type="checkbox"
             checked={items.map((list) => list.every((todo) => todo.completed))}
             click={(e) =>
-              items.each((row) =>
-                row.prop("completed").update(e.currentTarget.checked)
+              items.update((l) =>
+                l.map((item) => ({
+                  ...item,
+                  completed: e.currentTarget.checked,
+                }))
               )
             }
           />
@@ -55,9 +60,8 @@ export function App({}: RouteContext) {
 
         <TodoList items={items} />
 
-        <If condition={items.map((l) => l.length > 0)}>
-          <TodoFooter items={items} mode={mode} />
-        </If>
+        <TodoFooter items={items} mode={mode} />
+        {/* <If condition={items.map((l) => l.length > 0)}>-</If> */}
       </section>
     </Page>
   );
@@ -92,11 +96,11 @@ function NewTodo(props: NewTodoProps) {
 }
 
 interface TodoListProps {
-  items: ListSource<TodoItem>;
+  items: State<TodoItem[]>;
 }
 
 interface TodoFooterProps {
-  items: ListSource<TodoItem>;
+  items: State<TodoItem[]>;
   mode: State<"completed" | "active" | "all">;
 }
 
@@ -116,37 +120,20 @@ function TodoFooter(props: TodoFooterProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a
-            href={"/todo/"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "all" ? classes["selected"] : null)),
-            ]}
-          >
+          <a class="border-solid border-2 border-black">
+            <Link to={"all"} active={classes["selected"]} />
             All
           </a>
         </li>
-        <span> </span>
         <li>
-          <a
-            href={"/todo/active"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "active" ? classes["selected"] : null)),
-            ]}
-          >
+          <a>
+            <Link to={"active"} active={classes["selected"]} />
             Active
           </a>
         </li>
-        <span> </span>
         <li>
-          <a
-            href={"/todo/completed"}
-            class={[
-              "router-link",
-              mode.map((m) => (m === "completed" ? classes["selected"] : null)),
-            ]}
-          >
+          <a>
+            <Link to={"completed"} active={classes["selected"]} />
             Completed
           </a>
         </li>
@@ -162,7 +149,7 @@ function TodoList(props: TodoListProps) {
   return (
     <ul class={classes["todo-list"]}>
       <List source={items}>
-        {(row, dispose) => (
+        {(row) => (
           <li
             class={[
               editing.map((x) => (x ? classes["editing"] : null)),
@@ -179,7 +166,10 @@ function TodoList(props: TodoListProps) {
                 }
               />
               <label dblclick={editing.update(true)}>{row.get("label")}</label>
-              <button class={classes["destroy"]} click={dispose}></button>
+              <button
+                class={classes["destroy"]}
+                // click={dispose}
+              ></button>
             </div>
             <input
               class={classes["edit"]}

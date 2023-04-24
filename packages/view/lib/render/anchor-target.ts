@@ -1,7 +1,7 @@
 ﻿import { RenderTarget } from './target';
 
 export class AnchorTarget implements RenderTarget {
-  constructor(public anchorNode: Comment) {}
+  constructor(public anchorNode: Element) {}
 
   appendChild(child: Node) {
     const { anchorNode } = this;

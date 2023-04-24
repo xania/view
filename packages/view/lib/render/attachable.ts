@@ -1,8 +1,10 @@
-﻿import { DomFactory } from './dom-factory';
-import { RenderTarget } from './target';
+﻿import { AnchorNode, ElementNode, NodeFactory } from '../factory';
 
 export interface Attachable {
-  attachTo(conatiner: RenderTarget, domFactory: DomFactory): JSX.Sequence<any>;
+  attachTo(
+    conatiner: ElementNode | AnchorNode,
+    domFactory: NodeFactory
+  ): JSX.Sequence<any>;
 }
 
 export function isAttachable(value: any): value is Attachable {
