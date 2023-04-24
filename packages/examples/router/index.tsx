@@ -1,7 +1,7 @@
 ﻿import { Route, Link } from "@xania/router";
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
-import { state } from "@xania/view/reactivity";
+import { state } from "@xania/view";
 import { Attrs } from "@xania/view/headless";
 
 export function App() {

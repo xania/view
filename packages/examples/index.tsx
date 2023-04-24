@@ -1,7 +1,7 @@
 ﻿import { Link, Route, RouteContext, WebApp } from "@xania/router";
 import "./main.css";
 import "./dist/output.css";
-import { state } from "@xania/view/reactivity";
+import { state } from "@xania/view";
 import { Page } from "./components/page";
 import { Attrs } from "@xania/view/headless";
 import { Title } from "./components/heading";

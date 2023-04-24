@@ -19,7 +19,7 @@ import {
   RouteProps,
   RouteResolution,
 } from '../core';
-import { State } from '@xania/view/reactivity';
+import { State } from '@xania/view';
 import { Attrs } from '@xania/view/headless';
 import { startsWith } from '../webapp/browser-routes';
 

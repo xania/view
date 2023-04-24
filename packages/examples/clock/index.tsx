@@ -1,7 +1,7 @@
 ﻿import classes from "./clock.module.scss";
 import { delay } from "../utils";
 import { Title } from "../components/heading";
-import { state, update } from "@xania/view/reactivity";
+import { state, update } from "@xania/view";
 import { Page } from "../components/page";
 import { Attrs } from "@xania/view/headless";
 

@@ -1,7 +1,7 @@
 ﻿import classes from "./index.module.scss";
 import { Link, RouteContext } from "@xania/router";
 import { Page } from "../components/page";
-import { If, List, State, diff, state } from "@xania/view/reactivity";
+import { If, List, State, diff, state } from "@xania/view";
 
 type Mode = "completed" | "active" | "all";
 

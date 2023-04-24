@@ -1,6 +1,6 @@
 {
   "name": "@xania/view",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -26,10 +26,6 @@
       "import": "./dist/jsx-dev-runtime.js",
       "require": "./dist/jsx-dev-runtime.cjs"
     },
-    "./reactivity": {
-      "import": "./dist/reactivity.js",
-      "require": "./dist/reactivity.cjs"
-    },
     "./headless": {
       "import": "./dist/headless.js",
       "require": "./dist/headless.cjs"
@@ -47,12 +43,12 @@
     "node": ">=10"
   },
   "scripts": {
-    "dev": "npm run clean && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npx vite --watch build",
-    "build": "npm run clean && npx vite build && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
-    "tsup:headless": "tsup lib/headless/index.ts --format esm --external @xania/view",
-    "tsup:reactivity": "tsup lib/reactivity/index.ts --format esm --external @xania/view",
-    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm --external @xania/view",
-    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm --external @xania/view",
+    "dev": "npm run clean && npx vite --watch build",
+    "build": "npm run clean && npm run tsup && npx vite build",
+    "tsup": "npm run tsup:headless && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime",
+    "tsup:headless": "tsup headless.ts --format esm,cjs --external @xania/view",
+    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm,cjs --external @xania/view",
+    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm,cjs --external @xania/view",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm version patch && npm run build",
     "lint": "tsc"

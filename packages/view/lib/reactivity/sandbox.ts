@@ -1,4 +1,4 @@
-﻿import { Disposable, sexpand, smap } from '@xania/view';
+﻿// import { Disposable, sexpand, smap } from '';
 import {
   AppendOperator,
   AssignOperator,
@@ -22,6 +22,8 @@ import {
 import { ListItemState, ListMutationState } from './list';
 import { ElementNode, AnchorNode, ViewNode } from '../factory';
 import { Subscription } from '../utils/observable';
+import { Disposable } from '../render/disposable';
+import { sexpand, smap } from '../seq';
 
 export class Sandbox {
   operatorsKey = Symbol();
