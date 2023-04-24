@@ -1,5 +1,5 @@
-﻿import { Disposable, isDisposable } from './disposable';
-import { isSubscription } from './subscibable';
+﻿import { isSubscription } from '../utils/observable';
+import { Disposable, isDisposable } from './disposable';
 
 export function unrender(result: JSX.Sequence<Removable | Disposable>) {
   const stack = [result];

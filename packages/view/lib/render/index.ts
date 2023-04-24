@@ -12,6 +12,5 @@ export function render(rootChildren: JSX.Children, container: HTMLElement) {
 
 export * from './unrender';
 export * from './ready';
-export * from './dom-factory';
 export * from './viewable';
 export * from './attachable';

@@ -1,6 +1,6 @@
 ﻿import { isIterable } from '../utils/iterator';
 
-export function tmap<T = any, U = any>(
+export function smap<T = any, U = any>(
   template: JSX.Sequence<T>,
   map: (x: T, ...args: any[]) => U
 ): JSX.MaybePromise<JSX.Sequence<U>> {
@@ -17,7 +17,7 @@ export function tmap<T = any, U = any>(
       }
     } else if (curr instanceof Promise) {
       retval.push(
-        curr.then((resolved) => tmap(resolved, map)) as JSX.Sequence<U>
+        curr.then((resolved) => smap(resolved, map)) as JSX.Sequence<U>
       );
     } else if (curr instanceof TemplateIterator) {
       console.log(curr);

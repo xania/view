@@ -1,7 +1,7 @@
 ﻿import { SequenceIterator } from '../utils/iterator';
 import { isIterable } from '../utils/iterator';
 
-export function texpand<T = any>(
+export function sexpand<T = any>(
   template: JSX.Sequence<T>,
   map: (x: T, ...args: any[]) => JSX.Sequence<T | void>,
   ...args: any[]

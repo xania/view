@@ -8,11 +8,10 @@ import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { Component } from '../../component';
 import { Effect, State } from '../../reactivity/state';
 import { OperatorType } from '../../reactivity/operator';
-import { cpush } from '../../reactivity/collection';
+import { cpush } from '../../utils/collection';
 import { isAttachable, isViewable } from '../../render';
-import { isSubscribable } from '../../reactive/observable';
+import { isSubscribable, isSubscription } from '../../utils/observable';
 import { isDisposable } from '../../render/disposable';
-import { isSubscription } from '../../render/subscibable';
 import {
   ListExpression,
   ListItemState,
@@ -22,7 +21,7 @@ import {
 
 import { MutationOperator } from './mutation-operator';
 import { isCommand } from '../../reactivity';
-import { tapply } from '../../seq';
+import { sapply } from '../../seq';
 import { AnchorNode, ElementNode, NodeFactory } from '../../factory';
 
 export function renderStack(
@@ -83,7 +82,7 @@ export function renderStack(
 
       if (source instanceof Array) {
         for (let i = source.length - 1; i >= 0; i--) {
-          const template = tapply(tpl.children, [new State(source[i])]);
+          const template = sapply(tpl.children, [new State(source[i])]);
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
@@ -99,7 +98,7 @@ export function renderStack(
           source instanceof ListMutationState ? source : source.pipe(diff);
 
         const listItem = new ListItemState(mutations, sandbox, rowIndexKey);
-        const template = tapply(tpl.children, [listItem]);
+        const template = sapply(tpl.children, [listItem]);
         const anchorElement = AnchorNode.create(
           sandbox.container,
           listAnchorNode
