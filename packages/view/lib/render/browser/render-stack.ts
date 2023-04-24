@@ -21,17 +21,18 @@ import {
 } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
-import { AnchorElement } from './anchor-element';
 import { isCommand } from '../../reactivity';
-import { tapply, tmap } from '../../seq';
+import { tapply } from '../../seq';
+import { AnchorNode, ElementNode, NodeFactory } from '../../factory';
 
 export function renderStack(
   stack: [
     Sandbox,
-    Element | AnchorElement,
+    ElementNode | AnchorNode,
     JSX.Children | SequenceIterator,
     boolean
-  ][]
+  ][],
+  factory: NodeFactory
 ) {
   while (stack.length) {
     const [sandbox, currentTarget, tpl, isRoot] = stack.pop()!;
@@ -52,13 +53,13 @@ export function renderStack(
       }
       stack.push([sandbox, currentTarget, next.value, isRoot]);
     } else if (tpl.constructor === String) {
-      const textNode = document.createTextNode(tpl as string);
+      const textNode = factory.createTextNode(tpl as string);
       currentTarget.appendChild(textNode);
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, textNode);
       }
     } else if (tpl.constructor === Number) {
-      const textNode = document.createTextNode(String(tpl));
+      const textNode = factory.createTextNode(String(tpl));
       currentTarget.appendChild(textNode);
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, textNode);
@@ -66,7 +67,7 @@ export function renderStack(
     } else if (tpl instanceof Component) {
       stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
     } else if (tpl instanceof State) {
-      const stateNode = document.createTextNode('');
+      const stateNode = factory.createTextNode('');
       currentTarget.appendChild(stateNode);
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, stateNode);
@@ -86,7 +87,7 @@ export function renderStack(
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
-        const listAnchorNode = document.createComment('');
+        const listAnchorNode = factory.createComment('');
         currentTarget.appendChild(listAnchorNode);
         if (isRoot) {
           sandbox.nodes = cpush(sandbox.nodes, listAnchorNode);
@@ -99,13 +100,13 @@ export function renderStack(
 
         const listItem = new ListItemState(mutations, sandbox, rowIndexKey);
         const template = tapply(tpl.children, [listItem]);
-        const anchorElement = AnchorElement.create(
+        const anchorElement = AnchorNode.create(
           sandbox.container,
           listAnchorNode
         )!;
         sandbox.connect(
           mutations,
-          new MutationOperator(template, anchorElement, listItem)
+          new MutationOperator(template, anchorElement, listItem, factory)
         );
       }
     } else if (tpl instanceof Effect) {
@@ -117,7 +118,7 @@ export function renderStack(
           if (resolved) {
             stack.push([sandbox, currentTarget, resolved, isRoot]);
           }
-          renderStack(stack);
+          renderStack(stack, factory);
         })
       );
     } else if (isDomDescriptor(tpl)) {
@@ -126,9 +127,9 @@ export function renderStack(
           const namespaceUri =
             tpl.name === 'svg'
               ? 'http://www.w3.org/2000/svg'
-              : (currentTarget as HTMLElement).namespaceURI ??
+              : (currentTarget as ElementNode).namespaceURI ??
                 'http://www.w3.org/1999/xhtml';
-          const element = document.createElementNS(namespaceUri, tpl.name);
+          const element = factory.createElementNS(namespaceUri, tpl.name);
 
           currentTarget.appendChild(element);
           if (isRoot) {
@@ -140,17 +141,20 @@ export function renderStack(
             for (const attrName in attrs) {
               const attrValue = attrs[attrName];
 
-              renderAttr(sandbox, element as Element, attrName, attrValue);
+              renderAttr(sandbox, element as ElementNode, attrName, attrValue);
             }
           }
 
           const { children } = tpl;
           if (children ?? true) {
-            renderStack([[sandbox, element, children, false]]);
+            renderStack([[sandbox, element, children, false]], factory);
           }
           break;
         case DomDescriptorType.Attribute:
-          renderAttr(sandbox, currentTarget as Element, tpl.name, tpl.value);
+          if (currentTarget instanceof AnchorNode) {
+            throw 'cannot set attributes on anchor element';
+          }
+          renderAttr(sandbox, currentTarget, tpl.name, tpl.value);
           break;
         default:
           console.log('dom', tpl);
@@ -162,7 +166,7 @@ export function renderStack(
       stack.push([
         sandbox,
         currentTarget,
-        tpl.attachTo(currentTarget, document),
+        tpl.attachTo(currentTarget, factory),
         isRoot,
       ]);
     } else if (isSubscribable(tpl)) {

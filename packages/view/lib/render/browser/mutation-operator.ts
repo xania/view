@@ -1,9 +1,9 @@
 ﻿import { cfirst, cwalk } from '../../reactivity/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
-import { AnchorElement } from './anchor-element';
 import { renderStack } from './render-stack';
 import { ListItemState, ListMutation } from '../../reactivity';
+import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
 export class MutationOperator<T = any> {
   public readonly type = OperatorType.Effect;
@@ -11,22 +11,23 @@ export class MutationOperator<T = any> {
 
   constructor(
     public template: JSX.Children,
-    public currentTarget: Element | AnchorElement,
-    public listItem: ListItemState<T>
+    public currentTarget: ElementNode | AnchorNode,
+    public listItem: ListItemState<T>,
+    public factory: NodeFactory
   ) {}
 
   anchorAt(index: number) {
     const { sandboxes, currentTarget } = this;
-    let toAnchorNode: ChildNode | undefined = undefined;
+    let toAnchorNode: ViewNode | undefined = undefined;
     for (let i = index; i < sandboxes.length; i++) {
-      toAnchorNode = cfirst(sandboxes[i].nodes) as ChildNode | undefined;
+      toAnchorNode = cfirst(sandboxes[i].nodes);
       if (toAnchorNode) {
         const container =
-          currentTarget instanceof AnchorElement
+          currentTarget instanceof AnchorNode
             ? currentTarget.container
             : currentTarget;
 
-        return new AnchorElement(container, toAnchorNode as Element);
+        return new AnchorNode(container, toAnchorNode);
       }
     }
 
@@ -38,13 +39,16 @@ export class MutationOperator<T = any> {
     const { rowIndexKey } = listItem;
     (item as any)[rowIndexKey] = index;
     const container =
-      currentTarget instanceof AnchorElement
+      currentTarget instanceof AnchorNode
         ? currentTarget.container
         : currentTarget;
 
     const childSandbox = new Sandbox(container, Symbol(index), item);
     const insertAnchor = this.anchorAt(index);
-    renderStack([[childSandbox, insertAnchor, this.template, true]]);
+    renderStack(
+      [[childSandbox, insertAnchor, this.template, true]],
+      this.factory
+    );
 
     for (let i = sandboxes.length; i > index; i--) {
       const preceding = sandboxes[i - 1];
@@ -96,7 +100,7 @@ export class MutationOperator<T = any> {
       row[rowIndexKey] = sandboxes.length;
 
       const container =
-        currentTarget instanceof AnchorElement
+        currentTarget instanceof AnchorNode
           ? currentTarget.container
           : currentTarget;
 
@@ -106,7 +110,10 @@ export class MutationOperator<T = any> {
         row
       );
 
-      renderStack([[childSandbox, currentTarget, template, true]]);
+      renderStack(
+        [[childSandbox, currentTarget, template, true]],
+        this.factory
+      );
       sandboxes.push(childSandbox);
     }
   }

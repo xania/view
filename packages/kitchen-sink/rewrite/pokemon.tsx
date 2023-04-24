@@ -1,4 +1,5 @@
-﻿import { render, state } from "@xania/view";
+﻿import { render } from "@xania/view";
+import { state } from "@xania/view/reactivity";
 
 export async function PokemonApp() {
   const pokemons = await fetchPokemons();

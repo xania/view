@@ -15,6 +15,10 @@ export default defineConfig({
         __dirname,
         "../view/jsx-runtime.ts"
       ),
+      "@xania/view/jsx-dev-runtime": path.resolve(
+        __dirname,
+        "../view/jsx-dev-runtime.ts"
+      ),
       "@xania/view/headless": path.resolve(
         __dirname,
         "../view/lib/headless/index.ts"

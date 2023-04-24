@@ -1,4 +1,4 @@
-﻿import { AnchorElement } from '../render/browser/anchor-element';
+﻿import { ElementNode, AnchorNode } from '../factory';
 import { State, Value } from './state';
 
 export type Command = UpdateCommand | UpdateStateCommand | DomCommand;
@@ -33,5 +33,5 @@ export function update(updateFn: UpdateCommand['updateFn']) {
 }
 
 export class DomCommand {
-  constructor(public handler: (element: Element | AnchorElement) => void) {}
+  constructor(public handler: (element: ElementNode | AnchorNode) => void) {}
 }

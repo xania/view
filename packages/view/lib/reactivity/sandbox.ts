@@ -21,32 +21,27 @@ import {
   isCommand,
 } from './command';
 import { ListItemState, ListMutationState } from './list';
-import { AnchorElement } from '../render/browser/anchor-element';
-import { MutationOperator } from '../render/browser/mutation-operator';
+import { ElementNode, AnchorNode, ViewNode } from '../factory';
 
 export class Sandbox {
   operatorsKey = Symbol();
   accumulatorKey = Symbol();
-  events: Record<string, [HTMLElement, JSX.EventHandler][]> | undefined;
+  events: Record<string, [ElementNode, JSX.EventHandler][]> | undefined;
   disposed: boolean = false;
-  nodes?: Collection<ChildNode>;
+  nodes?: Collection<ViewNode>;
   promises?: Collection<Promise<any>>;
   subscriptions?: Collection<Subscription>;
   disposables?: Collection<Disposable>;
   classList?: JSX.MaybeArray<string>;
 
   constructor(
-    public container: Element,
+    public container: ElementNode,
     public valueKey = Symbol(),
     public model?: any
-  ) {
-    if (container instanceof Text) {
-      console.log(container);
-    }
-  }
+  ) {}
 
   applyEvent(
-    target: HTMLElement,
+    target: ElementNode,
     eventName: string,
     eventHandler: JSX.EventHandler
   ) {
@@ -75,7 +70,7 @@ export class Sandbox {
 
     if (delegates) {
       for (const dlg of delegates) {
-        const target = dlg[0];
+        const target = dlg[0] as any;
         if (target.contains(originalEvent.target as any)) {
           const eventHandler = dlg[1];
           let eventObj: any = null;
@@ -359,13 +354,13 @@ export class Sandbox {
     }
   }
 
-  handleCommands(commands: any, currentTarget: Element | AnchorElement) {
+  handleCommands(commands: any, currentTarget: ElementNode | AnchorNode) {
     return texpand<Command>(commands, this.handleCommand, currentTarget);
   }
 
   handleCommand = (
     command: Command,
-    currentTarget: Element | AnchorElement
+    currentTarget: ElementNode | AnchorNode
   ): Generator<JSX.MaybePromise<Command>> | Command | void => {
     if (this.disposed) {
       return;
@@ -388,7 +383,7 @@ export class Sandbox {
   }
 }
 
-function removeNode(node: ChildNode | undefined) {
+function removeNode(node: ViewNode | undefined) {
   if (node) {
     node.remove();
   }

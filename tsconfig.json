@@ -11,6 +11,7 @@
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
     "noEmit": true,
+
     "paths": {
       "@xania/view": ["./packages/view"],
       "@xania/state": ["./packages/state"],

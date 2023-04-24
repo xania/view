@@ -1,4 +1,5 @@
-﻿import { isEventKey } from '../../intrinsic/event-keys';
+﻿import { ElementNode } from '../../factory';
+import { isEventKey } from '../../intrinsic/event-keys';
 import { cflat } from '../../reactivity/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
@@ -6,7 +7,7 @@ import { State } from '../../reactivity/state';
 
 export function renderAttr(
   sandbox: Sandbox,
-  element: Element,
+  element: ElementNode,
   attrName: string,
   attrValue: any
 ) {
@@ -43,7 +44,7 @@ export function renderAttr(
       }
     }
   } else if (isEventKey(attrName)) {
-    sandbox.applyEvent(element as HTMLElement, attrName, attrValue);
+    sandbox.applyEvent(element, attrName, attrValue);
   } else {
     const name = attrName === 'for' ? 'htmlFor' : attrName;
 
@@ -52,7 +53,7 @@ export function renderAttr(
     } else if (attrValue instanceof State) {
       sandbox.connect(attrValue, {
         type: OperatorType.Assign,
-        target: element as HTMLElement & Record<string, any>,
+        target: element as Record<string, any>,
         property: name,
       });
     } else {
