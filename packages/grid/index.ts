@@ -1,4 +1,4 @@
-﻿import { tapply } from '@xania/view';
+﻿import { sapply } from '@xania/view';
 import { Column } from './column';
 import { DataSource } from './data-source';
 import { List, ListExpression, State } from '@xania/view/reactivity';
@@ -33,7 +33,7 @@ export class Grid<T = any> {
   }
 
   Header = (props: HeaderProps<T>) => {
-    return this.columns.map((column) => tapply(props.children, [column]));
+    return this.columns.map((column) => sapply(props.children, [column]));
   };
 
   Row = (props: RowProps<T>) => {
@@ -41,7 +41,7 @@ export class Grid<T = any> {
   };
 
   Cell = (props: CellProps<T>) => {
-    return this.columns.map((column) => tapply(props.children, [column]));
+    return this.columns.map((column) => sapply(props.children, [column]));
   };
 
   updateWindow = debounce((scrollPosition: number, rowHeight: number) => {

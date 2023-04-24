@@ -13,5 +13,15 @@ export interface Subscription {
 }
 
 export function isSubscribable<T>(value: any): value is Subscribable<T> {
+  if (value === null || value === undefined) return false;
   return value && value.subscribe instanceof Function;
+}
+
+export interface Subscription {
+  unsubscribe(): void;
+}
+
+export function isSubscription(value: any): value is Subscription {
+  if (value === null || value === undefined) return false;
+  return value.unsubscribe instanceof Function;
 }

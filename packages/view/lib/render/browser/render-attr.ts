@@ -1,6 +1,6 @@
 ﻿import { ElementNode } from '../../factory';
 import { isEventKey } from '../../intrinsic/event-keys';
-import { cflat } from '../../reactivity/collection';
+import { cflat } from '../../utils/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { State } from '../../reactivity/state';

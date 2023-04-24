@@ -1,6 +1,6 @@
 ﻿type ListItem<T> = T extends Array<infer E> ? E : T;
 
-export function push<T, K extends keyof T>(
+export function push2<T, K extends keyof T>(
   object: T,
   key: K | symbol,
   item: ListItem<T[K]>

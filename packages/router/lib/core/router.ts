@@ -5,8 +5,8 @@ import {
   DomDescriptorType,
   isDomDescriptor,
   render,
-  tapply,
-  tmap,
+  sapply,
+  smap,
   unrender,
 } from '@xania/view';
 import {
@@ -32,7 +32,7 @@ interface RouterProps<TView> {
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
-  return tmap(tapply(children, [context]), function mapRoutes(child): any {
+  return smap(sapply(children, [context]), function mapRoutes(child): any {
     if (child instanceof Component) {
       if (child.func === Link) {
         const props: LinkProps = child.props;
@@ -71,7 +71,7 @@ export function Router(props: RouterProps<any>) {
       if (child.func === Route) {
         return new RouteHandler(context, child.props);
       } else {
-        return tmap(child.execute(), mapRoutes);
+        return smap(child.execute(), mapRoutes);
       }
     } else if (isDomDescriptor(child)) {
       switch (child.type) {
@@ -79,7 +79,7 @@ export function Router(props: RouterProps<any>) {
           if (child.children) {
             return {
               ...child,
-              children: tmap(child.children, mapRoutes),
+              children: smap(child.children, mapRoutes),
             };
           }
         default:
@@ -151,7 +151,7 @@ class RouteView implements RouteContext {
       const { component } = resolution;
 
       const routeContext: RouteContext = this;
-      const view = tmap(component, (element) => {
+      const view = smap(component, (element) => {
         if (element instanceof Function) {
           return Router({
             context: routeContext,

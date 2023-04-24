@@ -1,4 +1,4 @@
-﻿import { Disposable, texpand, tmap } from '@xania/view';
+﻿import { Disposable, sexpand, smap } from '@xania/view';
 import {
   AppendOperator,
   AssignOperator,
@@ -9,10 +9,9 @@ import {
   ComputeOperator,
 } from './operator';
 import { Computed, Property, State, Value } from './state';
-import { push } from './utils';
-import { Collection, cwalk } from './collection';
-import { Subscription } from '../render/subscibable';
-import { syntheticEvent } from '../render/render-node';
+// import { push } from './utils';
+import { Collection, cpush, cwalk } from '../utils/collection';
+import { syntheticEvent } from '../render/event';
 import {
   Command,
   DomCommand,
@@ -22,6 +21,7 @@ import {
 } from './command';
 import { ListItemState, ListMutationState } from './list';
 import { ElementNode, AnchorNode, ViewNode } from '../factory';
+import { Subscription } from '../utils/observable';
 
 export class Sandbox {
   operatorsKey = Symbol();
@@ -119,7 +119,10 @@ export class Sandbox {
     while (arrows.length) {
       const [source, operator] = arrows.pop()!;
 
-      push(source, operatorsKey, operator);
+      (source as any)[operatorsKey] = cpush(
+        (source as any)[operatorsKey],
+        operator
+      );
 
       if (source instanceof Computed) {
         arrows.push([
@@ -318,9 +321,12 @@ export class Sandbox {
             }
           }
 
-          tmap(newValue, (value) => {
+          smap(newValue, (value) => {
             operator.list.add(value);
-            push(operator, accumulatorKey, value);
+            (operator as any)[accumulatorKey] = cpush(
+              (operator as any)[accumulatorKey],
+              value
+            );
           });
           break;
 
@@ -355,7 +361,7 @@ export class Sandbox {
   }
 
   handleCommands(commands: any, currentTarget: ElementNode | AnchorNode) {
-    return texpand<Command>(commands, this.handleCommand, currentTarget);
+    return sexpand<Command>(commands, this.handleCommand, currentTarget);
   }
 
   handleCommand = (

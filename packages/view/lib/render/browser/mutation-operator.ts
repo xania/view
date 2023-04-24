@@ -1,4 +1,4 @@
-﻿import { cfirst, cwalk } from '../../reactivity/collection';
+﻿import { cfirst, cwalk } from '../../utils/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { renderStack } from './render-stack';

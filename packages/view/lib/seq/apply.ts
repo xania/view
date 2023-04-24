@@ -1,10 +1,10 @@
-﻿import { tmap } from './map';
+﻿import { smap } from './map';
 
-export function tapply<T = any>(
+export function sapply<T = any>(
   template: JSX.Sequence<T | ((this: any, ...args: any[]) => T)>,
   args: any[]
 ): JSX.MaybePromise<JSX.Sequence<T>> {
-  return tmap(template, (child) => {
+  return smap(template, (child) => {
     if (child instanceof Function) {
       return child.apply(null, args);
     } else {
