@@ -15,6 +15,8 @@ checkVersion().then((ok) => {
       // await scaffold(projectPath).then(execute);
 
       await execute([npmInstall(projectPath)]);
+
+      process.exit();
     });
 });
 
