@@ -25,10 +25,19 @@ export interface ElementNode extends BaseNode {
 
 export type ViewNode = TextNode | ElementNode | CommentNode;
 
-export interface NodeFactory {
-  createElementNS(namespaceUri: string, name: string): ElementNode;
-  createTextNode(data: string): TextNode;
-  createComment(data: string): CommentNode;
+export interface NodeFactory<TElement, TNode extends ViewNode> {
+  createElement(
+    parentElement: TElement | AnchorNode<TNode>,
+    name: string
+  ): TElement;
+  createTextNode(
+    parentElement: TElement | AnchorNode<TNode>,
+    data: string
+  ): TextNode;
+  createComment(
+    parentElement: TElement | AnchorNode<TNode>,
+    data: string
+  ): CommentNode;
 }
 
 interface ClassList {
@@ -36,34 +45,33 @@ interface ClassList {
   remove(...values: string[]): any;
 }
 
-export class AnchorNode {
-  constructor(public container: ElementNode, public anchorNode: ViewNode) {}
+export class AnchorNode<TNode extends ViewNode> {
+  constructor(public anchorNode: TNode) {}
 
-  appendChild(node: ViewNode) {
+  appendChild(node: TNode) {
     // const { parentElement } = this.anchorNode;
     this.anchorNode.before(node);
     // parentElement!.insertBefore(node, this.anchorNode);
   }
-  addEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options?: boolean | AddEventListenerOptions | undefined
-  ): void {
-    return this.container.addEventListener(type, listener, options);
-  }
+  // addEventListener(
+  //   type: string,
+  //   listener: EventListenerOrEventListenerObject,
+  //   options?: boolean | AddEventListenerOptions | undefined
+  // ): void {
+  //   return this.container.addEventListener(type, listener, options);
+  // }
 
-  static create(
-    container: ElementNode,
-    anchorNode?: ViewNode | AnchorNode | undefined
+  static create<TNode extends ViewNode>(
+    anchorNode?: ViewNode | AnchorNode<TNode> | undefined
   ) {
     if (!anchorNode) {
       return undefined;
     }
 
     if (anchorNode instanceof AnchorNode) {
-      return new AnchorNode(container, anchorNode.anchorNode);
+      return new AnchorNode(anchorNode.anchorNode);
     } else {
-      return new AnchorNode(container, anchorNode);
+      return new AnchorNode(anchorNode);
     }
   }
 }

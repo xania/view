@@ -2,8 +2,8 @@
 
 export interface Attachable {
   attachTo(
-    conatiner: ElementNode | AnchorNode,
-    domFactory: NodeFactory
+    conatiner: ElementNode | AnchorNode<any>,
+    domFactory: NodeFactory<any, any>
   ): JSX.Sequence<any>;
 }
 

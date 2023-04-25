@@ -1,6 +1,6 @@
 ﻿import { ElementNode } from '../../factory';
 import { isEventKey } from '../../intrinsic/event-keys';
-import { cflat } from '../../utils/collection';
+import { cflat, cpush } from '../../utils/collection';
 import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { State } from '../../reactivity/state';
@@ -9,7 +9,8 @@ export function renderAttr(
   sandbox: Sandbox,
   element: ElementNode,
   attrName: string,
-  attrValue: any
+  attrValue: any,
+  isRoot: boolean
 ) {
   if (attrName === 'class' || attrName === 'className') {
     const stack: any[] = [attrValue];
@@ -29,15 +30,8 @@ export function renderAttr(
           const cl = item.trim();
           if (cl) {
             element.classList.add(cl);
-            if (sandbox.container === element) {
-              const { classList } = sandbox;
-              if (classList === undefined) {
-                sandbox.classList = cl;
-              } else if (classList instanceof Array) {
-                classList.push(cl);
-              } else {
-                sandbox.classList = [classList, cl];
-              }
+            if (isRoot) {
+              sandbox.classList = cpush(sandbox.classList, cl);
             }
           }
         }

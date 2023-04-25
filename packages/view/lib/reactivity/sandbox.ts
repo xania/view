@@ -1,5 +1,4 @@
-﻿// import { Disposable, sexpand, smap } from '';
-import {
+﻿import {
   AppendOperator,
   AssignOperator,
   EffectOperator,
@@ -9,41 +8,40 @@ import {
   ComputeOperator,
 } from './operator';
 import { Computed, Property, State, Value } from './state';
-// import { push } from './utils';
 import { Collection, cpush, cwalk } from '../utils/collection';
-import { syntheticEvent } from '../render/event';
 import {
   Command,
   DomCommand,
   UpdateCommand,
   UpdateStateCommand,
-  isCommand,
 } from './command';
 import { ListItemState, ListMutationState } from './list';
 import { ElementNode, AnchorNode, ViewNode } from '../factory';
 import { Subscription } from '../utils/observable';
 import { Disposable } from '../render/disposable';
 import { sexpand, smap } from '../seq';
+import { EventManager } from '../render/event';
 
-export class Sandbox {
+export class Sandbox<TElement = ElementNode> {
   operatorsKey = Symbol();
   accumulatorKey = Symbol();
-  events: Record<string, [ElementNode, JSX.EventHandler][]> | undefined;
+  events: Record<string, [TElement, JSX.EventHandler][]> | undefined;
   disposed: boolean = false;
   nodes?: Collection<ViewNode>;
   promises?: Collection<Promise<any>>;
   subscriptions?: Collection<Subscription>;
   disposables?: Collection<Disposable>;
-  classList?: JSX.MaybeArray<string>;
+  classList?: Collection<string>;
 
   constructor(
-    public container: ElementNode,
+    public eventManager: EventManager<TElement>,
     public valueKey = Symbol(),
-    public model?: any
+    public model?: any,
+    public parent?: Sandbox
   ) {}
 
   applyEvent(
-    target: ElementNode,
+    target: TElement,
     eventName: string,
     eventHandler: JSX.EventHandler
   ) {
@@ -52,45 +50,12 @@ export class Sandbox {
       this.events = {
         [eventName]: [[target, eventHandler]],
       };
-      this.container.addEventListener(eventName, this, true);
+      this.eventManager.addListener(eventName, this);
     } else if (events[eventName]) {
       events[eventName].push([target, eventHandler]);
     } else {
       events[eventName] = [[target, eventHandler]];
-      this.container.addEventListener(eventName, this, true);
-    }
-  }
-
-  async handleEvent(originalEvent: Event) {
-    const { events } = this;
-    if (!events) {
-      return;
-    }
-
-    const eventName = originalEvent.type;
-    const delegates = events[eventName];
-
-    if (delegates) {
-      for (const dlg of delegates) {
-        const target = dlg[0] as any;
-        if (target.contains(originalEvent.target as any)) {
-          const eventHandler = dlg[1];
-          let eventObj: any = null;
-
-          eventObj ??= syntheticEvent(eventName, originalEvent, target);
-
-          if (eventHandler instanceof Function) {
-            const command = eventHandler(eventObj);
-            if (command) {
-              this.handleCommands(command, target);
-            }
-          } else if (!isCommand(eventHandler)) {
-            this.handleCommands(eventHandler.handleEvent(eventObj), target);
-          } else {
-            this.handleCommands(eventHandler, target);
-          }
-        }
-      }
+      this.eventManager.addListener(eventName, this);
     }
   }
 

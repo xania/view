@@ -1,11 +1,13 @@
 ﻿import { Sandbox } from '../reactivity';
+import { Browser } from './browser';
 import { renderStack } from './browser/render-stack';
 
 export function render(rootChildren: JSX.Children, container: HTMLElement) {
-  const sandbox = new Sandbox(container as any);
-  renderStack(
+  const browser = new Browser(container);
+  const sandbox = new Sandbox(browser);
+  renderStack<any, any>(
     [[sandbox, container as any, rootChildren, true]],
-    document as any
+    browser
   );
   return sandbox;
 }
