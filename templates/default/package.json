@@ -16,8 +16,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@xania/router": "latest",
-    "@xania/view": "latest",
+    "xania": "latest",
     "@xania/state": "latest"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 ﻿import classes from "./index.module.scss";
-import { Link, RouteContext } from "@xania/router";
+import { Link, RouteContext } from "xania/router";
 import { Page } from "../components/page";
-import { If, List, State, diff, state } from "@xania/view";
+import { If, List, State, diff, state } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
@@ -121,19 +121,19 @@ function TodoFooter(props: TodoFooterProps) {
       <ul class={classes["filters"]}>
         <li>
           <a class="border-solid border-2 border-black">
-            <Link to={"all"} active={classes["selected"]} />
+            <Link to={"all"} class={classes["selected"]} />
             All
           </a>
         </li>
         <li>
           <a>
-            <Link to={"active"} active={classes["selected"]} />
+            <Link to={"active"} class={classes["selected"]} />
             Active
           </a>
         </li>
         <li>
           <a>
-            <Link to={"completed"} active={classes["selected"]} />
+            <Link to={"completed"} class={classes["selected"]} />
             Completed
           </a>
         </li>

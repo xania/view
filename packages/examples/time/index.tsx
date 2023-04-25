@@ -1,4 +1,4 @@
-﻿import { state, update } from "@xania/view";
+﻿import { state, update } from "xania";
 import { Page } from "../components/page";
 import { delay } from "../utils";
 

@@ -10,20 +10,20 @@ const { select } = enquirer;
 
 async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
   const response = await select({
-    name: "@xania",
-    message: "Select how to pull @xania",
+    name: "xania",
+    message: "Select how to pull Xania",
     choices: [{ name: "install from npm" }, { name: "with source code" }],
   });
 
   switch (response) {
     case "with source code":
       actions.push(
-        npmUninstall(targetPath, "@xania/view", "@xania/state"),
+        npmUninstall(targetPath, "xania", "@xania/state"),
         tsconfig(resolve(targetPath, "./tsconfig.xania.json"), {
           compilerOptions: {
             composite: true,
             paths: {
-              "@xania/view": ["./xania/view/index.ts"],
+              xania: ["./xania/view/index.ts"],
               "@xania/state": ["./xania/state/index.ts"],
             },
           },
@@ -32,9 +32,9 @@ async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
           resolve: {
             alias: {
               "~": process.cwd(),
-              "@xania/view/jsx-runtime": "~/xania/view/jsx-runtime.ts",
-              "@xania/view/jsx-dev-runtime": "~/xania/view/jsx-runtime.ts",
-              "@xania/view": "~/xania/view/index.ts",
+              "xania/jsx-runtime": "~/xania/view/jsx-runtime.ts",
+              "xania/jsx-dev-runtime": "~/xania/view/jsx-runtime.ts",
+              xania: "~/xania/view/index.ts",
               "@xania/state": "~/xania/state/index.ts",
             },
           },
@@ -47,7 +47,7 @@ async function installXaniaPackage(targetPath: string, actions: Action[] = []) {
       );
       break;
     case "install from npm":
-      actions.push(npmInstall(targetPath, "@xania/view"), vite(targetPath, {}));
+      actions.push(npmInstall(targetPath, "xania"), vite(targetPath, {}));
       break;
   }
 

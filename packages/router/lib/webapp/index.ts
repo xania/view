@@ -1,6 +1,6 @@
 ﻿import { browserRoutes } from './browser-routes';
 import { Router } from '../core/router';
-import { smap } from '@xania/view';
+import { smap } from 'xania';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;

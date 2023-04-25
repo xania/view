@@ -1,9 +1,9 @@
 ﻿import classes from "./clock.module.scss";
 import { delay } from "../utils";
 import { Title } from "../components/heading";
-import { state, update } from "@xania/view";
+import { state, update } from "xania";
 import { Page } from "../components/page";
-import { Attrs } from "@xania/view/headless";
+import { Attrs } from "xania/headless";
 
 export function App() {
   return (

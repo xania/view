@@ -1,7 +1,7 @@
-﻿import { sapply } from '@xania/view';
+﻿import { sapply } from 'xania';
 import { Column } from './column';
 import { DataSource } from './data-source';
-import { List, ListExpression, State } from '@xania/view';
+import { List, ListExpression, State } from 'xania';
 
 interface HeaderProps<T> {
   children: (column: Column<keyof T>) => JSX.Children;

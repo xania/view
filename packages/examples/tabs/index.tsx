@@ -1,4 +1,4 @@
-﻿import { Route } from "@xania/router";
+﻿import { Route } from "xania/router";
 import { Page } from "../components/page";
 import classes from "./tabs.module.scss";
 import { delay } from "../utils";

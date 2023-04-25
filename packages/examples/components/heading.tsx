@@ -1,4 +1,4 @@
-﻿import { Attrs } from "@xania/view/headless";
+﻿import { Attrs } from "xania/headless";
 
 interface TitleProps {
   children: string;

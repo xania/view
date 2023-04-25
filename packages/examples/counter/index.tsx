@@ -1,6 +1,6 @@
 ﻿import { Page } from "../components/page";
 import { Title } from "../components/heading";
-import { State } from "@xania/view";
+import { State } from "xania";
 
 export function App() {
   const count = new State(0);

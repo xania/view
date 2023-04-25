@@ -8,7 +8,7 @@ import {
   sapply,
   smap,
   unrender,
-} from '@xania/view';
+} from 'xania';
 import {
   Link,
   LinkProps,
@@ -19,8 +19,8 @@ import {
   RouteProps,
   RouteResolution,
 } from '../core';
-import { State } from '@xania/view';
-import { Attrs } from '@xania/view/headless';
+import { State } from 'xania';
+import { Attrs } from 'xania/headless';
 import { startsWith } from '../webapp/browser-routes';
 
 interface RouterProps<TView> {

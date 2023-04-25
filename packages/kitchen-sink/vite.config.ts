@@ -11,19 +11,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "~": path.resolve(__dirname),
-      "@xania/view/jsx-runtime": path.resolve(
-        __dirname,
-        "../view/jsx-runtime.ts"
-      ),
-      "@xania/view/jsx-dev-runtime": path.resolve(
+      "xania/jsx-runtime": path.resolve(__dirname, "../view/jsx-runtime.ts"),
+      "xania/jsx-dev-runtime": path.resolve(
         __dirname,
         "../view/jsx-dev-runtime.ts"
       ),
-      "@xania/view/headless": path.resolve(
+      "xania/headless": path.resolve(
         __dirname,
         "../view/lib/headless/index.ts"
       ),
-      "@xania/view": path.resolve(__dirname, "../view/index.ts"),
+      "xania/router": path.resolve(__dirname, "../router/index.ts"),
+      xania: path.resolve(__dirname, "../view/index.ts"),
       "@xania/state": path.resolve(__dirname, "../state/index.ts"),
       "@xania/router": path.resolve(__dirname, "../router/index.ts"),
       "@xania/grid": path.resolve(__dirname, "../grid/index.ts"),

@@ -1,8 +1,8 @@
 ﻿import { Route, Link } from "@xania/router";
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
-import { state } from "@xania/view";
-import { Attrs } from "@xania/view/headless";
+import { state } from "xania";
+import { Attrs } from "xania/headless";
 
 export function App() {
   const current = state<string>();

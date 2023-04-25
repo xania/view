@@ -12,24 +12,24 @@ export default defineConfig({
     alias: {
       "~": path.resolve(__dirname),
 
-      "@xania/view/jsx-runtime": path.resolve(
+      "xania/jsx-runtime": path.resolve(
         __dirname,
         "./packages/view/jsx-runtime.ts"
       ),
-      "@xania/view/jsx-dev-runtime": path.resolve(
+      "xania/jsx-dev-runtime": path.resolve(
         __dirname,
         "./packages/view/jsx-dev-runtime.ts"
       ),
-      "@xania/view/headless": path.resolve(
+      "xania/headless": path.resolve(
         __dirname,
         "./packages/view/lib/headless/index.ts"
       ),
-      "@xania/view/reactivity": path.resolve(
+      "xania/reactivity": path.resolve(
         __dirname,
         "./packages/view/lib/reactivity/index.ts"
       ),
 
-      "@xania/view": path.resolve(__dirname, "./packages/view"),
+      xania: path.resolve(__dirname, "./packages/view"),
     },
   },
 });

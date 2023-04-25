@@ -22,7 +22,7 @@ export default defineConfig({
     },
     sourcemap: true,
     rollupOptions: {
-      external: ['@xania/view', '@xania/state'],
+      external: ['xania', '@xania/state'],
     },
   },
 });

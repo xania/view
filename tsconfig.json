@@ -13,9 +13,8 @@
     "noEmit": true,
 
     "paths": {
-      "@xania/view": ["./packages/view"],
-      "@xania/state": ["./packages/state"],
-      "@xania/router": ["./packages/router"]
+      "xania": ["./packages/view"],
+      "@xania/state": ["./packages/state"]
     },
     "allowSyntheticDefaultImports": true
   }

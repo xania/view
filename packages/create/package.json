@@ -1,6 +1,6 @@
 {
   "name": "create-xania",
-  "version": "0.1.83",
+  "version": "0.1.88",
   "private": false,
   "author": "Ibrahim ben Salah",
   "main": "./dist/cli.cjs",
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^17.0.29",
     "prettier": "^2.8.1",
+    "replace-in-file": "^6.3.5",
     "tsup": "^5.12.1",
     "typescript": "^4.6.3"
   },
