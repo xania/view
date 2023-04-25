@@ -1,4 +1,4 @@
-﻿import { Route, Link } from "@xania/router";
+﻿import { Route, Link } from "xania/router";
 import { Title } from "../components/heading";
 import { Page } from "../components/page";
 import { state } from "xania";
