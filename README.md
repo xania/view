@@ -14,6 +14,10 @@ Main goal of xania is to provide a highly performant components that can interop
 - 😎 Fine-grained reactivity: No vdom / rerender of the components. Supports observables (e.g. rxjs ) as input from outside world to listen to changes and pinpoint the DOM that needs to update without recreating the DOM.
 - ⏰ Async everywhere: First class support for async components or any part of it, async update commands, async derived state, async everything, etc…
 
+#### Live demo:
+
+https://kitchen-sink-mvmdec2gm-xania.vercel.app/clock
+
 #### Playground
 
 https://stackblitz.com/edit/vitejs-vite-njpme2?file=src/App.tsx
@@ -22,9 +26,6 @@ https://stackblitz.com/edit/vitejs-vite-njpme2?file=src/App.tsx
 
 - Documentation site:
   https://xania.github.io
-
-- Examples project:
-  https://github.com/xania/examples
 
 - benchmark code:
   https://github.com/xania/krausest-js-benchmark
