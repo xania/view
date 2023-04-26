@@ -3,7 +3,7 @@
   "scripts": {
     "start": "npm start --workspace packages/kitchen-sink",
     "preview": "npm run preview --workspace packages/kitchen-sink",
-    "vercel-build": "npm run build --workspace packages/kitchen-sink"
+    "build": "npm run build --workspace packages/kitchen-sink"
   },
   "workspaces": [
     "packages/*"
