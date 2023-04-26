@@ -16,7 +16,7 @@ Main goal of xania is to provide a highly performant components that can interop
 
 #### Live demo:
 
-https://kitchen-sink-mvmdec2gm-xania.vercel.app/clock
+https://kitchen-sink-xania.vercel.app
 
 #### Playground
 
