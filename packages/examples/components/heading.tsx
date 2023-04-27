@@ -1,4 +1,4 @@
-﻿import { Attrs } from "xania/headless";
+﻿import { Attrs } from "xania";
 
 interface TitleProps {
   children: string;

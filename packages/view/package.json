@@ -1,6 +1,6 @@
 {
   "name": "xania",
-  "version": "0.5.24",
+  "version": "0.5.32",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -26,13 +26,10 @@
       "import": "./dist/jsx-dev-runtime.js",
       "require": "./dist/jsx-dev-runtime.cjs"
     },
-    "./headless": {
-      "import": "./dist/headless.js",
-      "require": "./dist/headless.cjs"
-    },
     "./router": {
       "import": "./dist/router.js",
-      "require": "./dist/router.cjs"
+      "require": "./dist/router.cjs",
+      "types": "./router/index.ts"
     }
   },
   "private": false,
@@ -41,7 +38,8 @@
     "dist",
     "lib",
     "jsx-runtime.d.ts",
-    "jsx-dev-runtime.d.ts"
+    "jsx-dev-runtime.d.ts",
+    "router.d.ts"
   ],
   "engines": {
     "node": ">=10"
@@ -49,11 +47,7 @@
   "scripts": {
     "dev": "npm run clean && npx vite --watch build",
     "build": "npm run clean && npx vite build && npm run tsup",
-    "tsup": "npm run tsup:headless && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npm run  tsup:router",
-    "tsup:headless": "tsup headless.ts --format esm,cjs --external xania --dts",
-    "tsup:router": "tsup router.ts --format esm,cjs --external xania,xania/header --dts",
-    "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm,cjs --external xania",
-    "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm,cjs --external xania",
+    "tsup": "tsup",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm version patch && npm run build",
     "lint": "tsc"

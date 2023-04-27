@@ -1,1 +1,1 @@
-﻿export * from './dist/router.d.ts';
+﻿export * from './dist/router';

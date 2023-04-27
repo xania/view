@@ -16,10 +16,6 @@ export default defineConfig({
         __dirname,
         "../view/jsx-dev-runtime.ts"
       ),
-      "xania/headless": path.resolve(
-        __dirname,
-        "../view/lib/headless/index.ts"
-      ),
       "xania/router": path.resolve(__dirname, "../router/index.ts"),
       xania: path.resolve(__dirname, "../view/index.ts"),
       "@xania/state": path.resolve(__dirname, "../state/index.ts"),

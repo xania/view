@@ -1,9 +1,8 @@
 ﻿import { Link, Route, RouteContext, WebApp } from "xania/router";
 import "./main.css";
 import "./dist/output.css";
-import { state } from "xania";
+import { state, Attrs } from "xania";
 import { Page } from "./components/page";
-import { Attrs } from "xania/headless";
 import { Title } from "./components/heading";
 
 export function ExamplesApp() {

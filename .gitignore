@@ -7,3 +7,4 @@ packages/router/dist/
 packages/view/dist/
 # Local Netlify folder
 .netlify
+packages/view/router/

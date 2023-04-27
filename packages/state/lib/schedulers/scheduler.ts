@@ -42,7 +42,7 @@ export class BatchScheduler implements TaskScheduler {
 
   scheduleState(state: Rx.Stateful) {
     const { states } = this;
-    const root = state.root ?? state;
+    const root = state;
 
     for (let i = 0, len = states.length; i < len; i++) {
       if (states[i] === root) {

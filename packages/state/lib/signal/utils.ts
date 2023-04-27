@@ -31,9 +31,9 @@ export function nodeToString(
   //   retval += ' ]';
   // }
 
-  if (this.right) {
-    retval += ' --> ' + nodeToString.apply(this.right as any, [visited]);
-  }
+  // if (this.right) {
+  //   retval += ' --> ' + nodeToString.apply(this.right as any, [visited]);
+  // }
 
   return retval;
 }
