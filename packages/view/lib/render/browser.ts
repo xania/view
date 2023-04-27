@@ -85,6 +85,8 @@ export class Browser implements NodeFactory<Element, any> {
             if (command) {
               sandbox.handleCommands(command, target);
             }
+          } else if (isCallable(eventHandler)) {
+            eventHandler.call(eventObj);
           } else if (!isCommand(eventHandler)) {
             sandbox.handleCommands(eventHandler.handleEvent(eventObj), target);
           } else {
@@ -94,4 +96,13 @@ export class Browser implements NodeFactory<Element, any> {
       }
     }
   }
+}
+
+function isCallable(value: any): value is { call: Function } {
+  return (
+    value !== null &&
+    value !== undefined &&
+    'call' in value &&
+    value.call instanceof Function
+  );
 }

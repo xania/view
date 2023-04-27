@@ -20,7 +20,10 @@ import { ElementNode, AnchorNode, ViewNode } from '../factory';
 import { Subscription } from '../utils/observable';
 import { Disposable } from '../render/disposable';
 import { sexpand, smap } from '../seq';
-import { EventManager } from '../render/event';
+
+interface EventManager<TElement> {
+  addListener(eventName: string, sandbox: Sandbox<TElement>): any;
+}
 
 export class Sandbox<TElement = ElementNode> {
   operatorsKey = Symbol();
@@ -327,13 +330,16 @@ export class Sandbox<TElement = ElementNode> {
     }
   }
 
-  handleCommands(commands: any, currentTarget: ElementNode | AnchorNode) {
+  handleCommands(
+    commands: any,
+    currentTarget: ElementNode | AnchorNode<ElementNode>
+  ) {
     return sexpand<Command>(commands, this.handleCommand, currentTarget);
   }
 
   handleCommand = (
     command: Command,
-    currentTarget: ElementNode | AnchorNode
+    currentTarget: ElementNode | AnchorNode<ElementNode>
   ): Generator<JSX.MaybePromise<Command>> | Command | void => {
     if (this.disposed) {
       return;

@@ -1,6 +1,4 @@
-﻿import { Sandbox } from '../reactivity';
-
-export function syntheticEvent(
+﻿export function syntheticEvent(
   eventName: string,
   domEvent: Event,
   currentTarget = domEvent.currentTarget

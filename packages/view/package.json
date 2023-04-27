@@ -1,6 +1,6 @@
 {
   "name": "xania",
-  "version": "0.5.22",
+  "version": "0.5.23",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -51,7 +51,7 @@
     "build": "npm run clean && npx vite build && npm run tsup",
     "tsup": "npm run tsup:headless && npm run tsup:jsx-runtime && npm run tsup:jsx-dev-runtime && npm run  tsup:router",
     "tsup:headless": "tsup headless.ts --format esm,cjs --external xania",
-    "tsup:router": "tsup router.ts --format esm,cjs --external xania",
+    "tsup:router": "tsup router.ts --format esm,cjs --external xania,xania/header",
     "tsup:jsx-runtime": "tsup jsx-runtime.ts --format esm,cjs --external xania",
     "tsup:jsx-dev-runtime": "tsup jsx-dev-runtime.ts --format esm,cjs --external xania",
     "clean": "npx rimraf dist",

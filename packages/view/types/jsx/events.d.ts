@@ -34,10 +34,18 @@
   type EventHandler<
     E extends keyof HTMLElementEventMap = any,
     TElement = any
-  > = EventHandlerFn<E, TElement> | EventHandlerObj<E, TElement> | Command;
+  > =
+    | EventHandlerFn<E, TElement>
+    | EventHandlerObj<E, TElement>
+    | Command
+    | CallableObj<E, TElement>;
 
   type EventHandlerObj<E extends keyof HTMLElementEventMap, TElement> = {
     handleEvent: EventHandlerFn<E, TElement>;
+  };
+
+  type CallableObj<E extends keyof HTMLElementEventMap, TElement> = {
+    call: EventHandlerFn<E, TElement>;
   };
 
   type EventHandlerFn<E extends keyof HTMLElementEventMap, TElement> = (

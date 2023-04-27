@@ -13,7 +13,6 @@ export default defineConfig({
     ],
   },
   build: {
-    minify: true,
     reportCompressedSize: true,
     lib: {
       entry: path.resolve(__dirname, 'lib/index.ts'),

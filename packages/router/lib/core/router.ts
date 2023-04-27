@@ -1,13 +1,13 @@
 ﻿import { Value } from '@xania/state';
 import {
   Component,
-  DomDescriptor,
   DomDescriptorType,
   isDomDescriptor,
   render,
   sapply,
   smap,
   unrender,
+  State,
 } from 'xania';
 import {
   Link,
@@ -19,7 +19,6 @@ import {
   RouteProps,
   RouteResolution,
 } from '../core';
-import { State } from 'xania';
 import { Attrs } from 'xania/headless';
 import { startsWith } from '../webapp/browser-routes';
 
@@ -27,6 +26,11 @@ interface RouterProps<TView> {
   context: RouteContext;
   children: JSX.Sequence<TView>;
   loader?: any;
+}
+
+function onClick(href: string, e: JSX.EventContext) {
+  e.event.preventDefault();
+  pushPath(href);
 }
 
 export function Router(props: RouterProps<any>) {
@@ -39,15 +43,13 @@ export function Router(props: RouterProps<any>) {
         const linkPath = props.to.split('/');
 
         const href = `/${[...context.fullpath, ...linkPath].join('/')}`;
+        const click = new Closure(onClick, href);
 
         const activeClass = props.class;
         if (activeClass === undefined) {
           return Attrs({
             href,
-            click(e: JSX.EventContext) {
-              e.event.preventDefault();
-              pushPath(href);
-            },
+            click,
           });
         }
 
@@ -56,10 +58,7 @@ export function Router(props: RouterProps<any>) {
           Attrs({
             href,
             class: activeState,
-            click(e: JSX.EventContext) {
-              e.event.preventDefault();
-              pushPath(href);
-            },
+            click,
           }),
           context.events.map((e) => {
             return activeState.update(
@@ -270,5 +269,19 @@ function pushPath(pathname: string) {
     window.history.pushState(pathname, '', pathname);
   } else {
     // console.error("same as ", pathname);
+  }
+}
+
+/**
+ * using this class can help reduce memory garbage compared to adhoc closures to handle events
+ */
+class Closure<T1, T2, R> {
+  constructor(
+    public readonly f: (x1: T1, x2: T2) => R,
+    public readonly x1: T1
+  ) {}
+
+  call(x2: T2) {
+    return this.f(this.x1, x2);
   }
 }

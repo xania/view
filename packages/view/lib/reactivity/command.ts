@@ -33,5 +33,7 @@ export function update(updateFn: UpdateCommand['updateFn']) {
 }
 
 export class DomCommand {
-  constructor(public handler: (element: ElementNode | AnchorNode) => void) {}
+  constructor(
+    public handler: (element: ElementNode | AnchorNode<ElementNode>) => void
+  ) {}
 }
