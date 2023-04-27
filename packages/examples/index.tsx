@@ -15,7 +15,18 @@ export function ExamplesApp() {
         <AppContainer>
           <Page>
             <Title>main menu</Title>
+            <ul>
+              <li>
+                <a>
+                  <Link to="charts" />
+                  Charts
+                </a>
+              </li>
+            </ul>
           </Page>
+          <Route path="charts">
+            {() => import("./charts").then((e) => e.App())}
+          </Route>
           <Route path="clock">
             {() => import("./clock").then((e) => e.App())}
           </Route>

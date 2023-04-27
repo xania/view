@@ -42,17 +42,28 @@ export function renderAttr(
   } else {
     const name = attrName === 'for' ? 'htmlFor' : attrName;
 
+    const isSvg = element.namespaceURI === 'http://www.w3.org/2000/svg';
+
     if (attrValue === null || attrValue === undefined) {
       // ignore
     } else if (attrValue instanceof State) {
-      sandbox.connect(attrValue, {
-        type: OperatorType.Assign,
-        target: element as Record<string, any>,
-        property: name,
-      });
+      if (isSvg) {
+        sandbox.connect(attrValue, {
+          type: OperatorType.Effect,
+          object: element as any,
+          effect(this: SVGElement, newValue: string) {
+            this.setAttribute(name, newValue);
+          },
+        });
+      } else {
+        sandbox.connect(attrValue, {
+          type: OperatorType.Assign,
+          target: element as Record<string, any>,
+          property: name,
+        });
+      }
     } else {
-      if (element.namespaceURI === 'http://www.w3.org/2000/svg')
-        element.setAttribute(name, attrValue);
+      if (isSvg) element.setAttribute(name, attrValue);
       else {
         (element as any)[name] = attrValue;
       }

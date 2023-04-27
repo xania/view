@@ -268,7 +268,11 @@ export class Sandbox<TElement = ElementNode> {
 
       switch (operator.type) {
         case OperatorType.Effect:
-          operator.effect(newValue);
+          if (operator.object) {
+            operator.effect.apply(operator.object, [newValue]);
+          } else {
+            operator.effect(newValue);
+          }
           break;
         case OperatorType.Assign:
           // console.log(OperatorType[operator.type], operator.property);

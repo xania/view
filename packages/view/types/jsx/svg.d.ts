@@ -17,5 +17,10 @@
       fill?: string;
       'fill-rule'?: string;
     };
+    rect: {
+      width?: AttrValue<number>;
+      height?: AttrValue<number>;
+      rx?: AttrValue<number>;
+    };
   }
 }

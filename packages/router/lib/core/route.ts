@@ -1,10 +1,11 @@
-﻿import { Path } from './path';
+﻿import { Component } from 'xania';
+import { Path } from './path';
 import { RouteMap } from './route-resolver';
 
 export function Route(
   props: RouteProps<JSX.Children | ((...arg: any[]) => JSX.Children)>
 ): JSX.Element {
-  throw `error route [${props.path}]`;
+  return new Component(Route, props);
 }
 
 export interface RouteProps<TView> {

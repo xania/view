@@ -1,7 +1,9 @@
 ﻿declare module JSX {
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
-  } & SVGTagNameMap;
+  } & {
+    [P in keyof SVGTagNameMap]: Tag<SVGTagNameMap[P]>;
+  };
 
   type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X
     ? 1

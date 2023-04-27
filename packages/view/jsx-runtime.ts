@@ -8,7 +8,16 @@ export function jsx(name: nameOrFunction, props?: any) {
   if (name === Fragment) {
     return Fragment(props);
   } else if (name instanceof Function) {
-    return new Component(name, props);
+    try {
+      return name(props);
+    } catch (err) {
+      // if is class then try with `new` operator
+      if (name.toString().startsWith('class')) {
+        return Reflect.construct(name, props);
+      } else {
+        throw err;
+      }
+    }
   }
 
   return intrinsic(name, props);

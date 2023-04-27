@@ -169,7 +169,7 @@ export function renderStack<
         sandbox.subscriptions,
         tpl.subscribe({
           next(command) {
-            sandbox.handleCommands(command, currentTarget);
+            sandbox.handleCommands(command, currentTarget as any);
           },
         })
       );
@@ -182,7 +182,7 @@ export function renderStack<
     } else if (isIterable(tpl)) {
       stack.push([sandbox, currentTarget, new SequenceIterator(tpl), isRoot]);
     } else if (isCommand(tpl)) {
-      sandbox.handleCommands(tpl, currentTarget);
+      sandbox.handleCommands(tpl, currentTarget as any);
     } else {
       console.log('unknown', tpl);
     }
