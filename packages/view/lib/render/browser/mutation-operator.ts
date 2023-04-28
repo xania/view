@@ -104,7 +104,7 @@ export class MutationOperator<T = any> {
     }
   }
 
-  effect(mutations: ListMutation<any>[]) {
+  effect(mutations: ListMutation<any>[]): any {
     const { sandboxes, listItem } = this;
     const { items } = listItem;
 

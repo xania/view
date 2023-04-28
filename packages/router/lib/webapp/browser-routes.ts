@@ -1,27 +1,35 @@
-﻿import { distinct, filter, interval, merge, State } from '@xania/state';
+﻿// import { distinct, filter, interval, merge, State } from '@xania/state';
+import { State } from 'xania';
 import { Path } from '../core/path';
-import { RouteTrigger } from '../core/router';
+import { RouteEvent, RouteTrigger } from '../core/router';
 
-const locations$ = interval(() => location.pathname, 200).map((pathname) => ({
-  pathname: pathname,
-  trigger: RouteTrigger.Location,
-}));
+// const locations$ = interval(() => location.pathname, 200).map((pathname) => ({
+//   pathname: pathname,
+//   trigger: RouteTrigger.Location,
+// }));
 
-export function browserRoutes(virtualPath: Path) {
+function browserRoutes(virtualPath: Path) {
   // const clicks$ = clicks();
 
-  return {
-    events: merge(locations$, popStates$)
-      .pipe(distinct('pathname'))
-      .map(({ trigger, pathname }) => ({
-        trigger,
-        path: pathname.split('/').filter((x) => !!x),
-      }))
-      .pipe(filter((route) => startsWith(route.path, virtualPath))),
-    // execute(path: string[]) {
-    //   pushPath(path.join('/'));
-    // },
-  };
+  const locations$ = new State<RouteEvent>({
+    path: location.pathname.split('/').filter((x) => !!x),
+    trigger: RouteTrigger.Location,
+  });
+
+  return { events: locations$ };
+
+  // return {
+  //   events: merge(locations$, popStates$)
+  //     .pipe(distinct('pathname'))
+  //     .map(({ trigger, pathname }) => ({
+  //       trigger,
+  //       path: pathname.split('/').filter((x) => !!x),
+  //     }))
+  //     .pipe(filter((route) => startsWith(route.path, virtualPath))),
+  //   // execute(path: string[]) {
+  //   //   pushPath(path.join('/'));
+  //   // },
+  // };
 }
 
 interface RouteInput {
@@ -99,20 +107,20 @@ function pushPath(pathname: string) {
   }
 }
 
-const popStates$ = new State<RouteInput>(undefined, (subscriber) => {
-  window.addEventListener('popstate', onPopState);
-  function onPopState(event: PopStateEvent) {
-    subscriber.next({
-      pathname: location.pathname,
-      trigger: RouteTrigger.PopState,
-    });
-  }
-  return {
-    unsubscribe() {
-      window.removeEventListener('popstate', onPopState);
-    },
-  };
-});
+// const popStates$ = new State<RouteInput>(undefined, (subscriber) => {
+//   window.addEventListener('popstate', onPopState);
+//   function onPopState(event: PopStateEvent) {
+//     subscriber.next({
+//       pathname: location.pathname,
+//       trigger: RouteTrigger.PopState,
+//     });
+//   }
+//   return {
+//     unsubscribe() {
+//       window.removeEventListener('popstate', onPopState);
+//     },
+//   };
+// });
 
 if ('scrollRestoration' in history) {
   // Back off, browser, I got this...
