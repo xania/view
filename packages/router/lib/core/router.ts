@@ -10,6 +10,11 @@ import {
   render,
   Sandbox,
   unrender,
+  cpush,
+  cremove,
+  Disposable,
+  Collection,
+  cwalk,
 } from 'xania';
 import {
   Link,
@@ -123,22 +128,23 @@ function relativeTo(prefix: Path) {
   };
 }
 
-class RouteView implements RouteContext {
+class ChildRouteContext implements RouteContext {
   public path: Path;
   public fullpath: Path;
   public events: State<RouteEvent>;
+  public disposables?: Collection<Disposable>;
   // public remaining: Value<Path>;
 
-  constructor(public appliedPath: Path, public parent: RouteContext) {
-    this.path = appliedPath;
-    this.fullpath = [...parent.fullpath, ...appliedPath];
-    this.events = parent.events.map(relativeTo(appliedPath));
+  constructor(public parent: RouteContext, public childPath: Path) {
+    this.path = childPath;
+    this.fullpath = [...parent.fullpath, ...childPath];
+    this.events = parent.events.map(relativeTo(childPath));
     // this.remaining = parent.events.map(remainingTo(resolution.appliedPath));
   }
 
-  // dispose() {
-  //   // this.events.dispose();
-  // }
+  dispose() {
+    cwalk(this.disposables, (d) => d.dispose());
+  }
 
   // view() {
   //   const { resolution } = this;
@@ -227,6 +233,7 @@ class RouteHandler {
         }
 
         unrender(prevResult.sandbox);
+        context.disposables = cremove(context.disposables, prevResult.sandbox);
       }
 
       const segment = await matchFn(route.path);
@@ -237,22 +244,18 @@ class RouteHandler {
       const appliedPath = route.path.slice(0, segment.length);
       // console.log(appliedPath);
 
-      const routeContext: RouteContext = {
-        path: appliedPath,
-        fullpath: [...context.fullpath, ...appliedPath],
-        // remaining: this.context.events.map(remainingTo(appliedPath)),
-        events: context.events.map(relativeTo(appliedPath)),
-      };
-
+      const childRouteContext = new ChildRouteContext(context, appliedPath);
       const view = routeView(
         Router({
-          context: routeContext,
+          context: childRouteContext,
           children: props.children,
         }),
-        new RouteView(appliedPath, context)
+        childRouteContext
       );
 
       const sandbox = render(view, target);
+      context.disposables = cpush(context.disposables, sandbox);
+      sandbox.disposables = cpush(sandbox.disposables, childRouteContext);
 
       return {
         sandbox,

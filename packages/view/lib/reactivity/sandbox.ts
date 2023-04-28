@@ -368,9 +368,13 @@ export class Sandbox<TElement = ElementNode> {
   dispose() {
     this.disposed = true;
     cwalk(this.nodes, removeNode);
-
+    cwalk(this.disposables, dispose);
     cwalk(this.subscriptions, unsubscribe);
   }
+}
+
+function dispose(d: Disposable) {
+  d.dispose();
 }
 
 function removeNode(node: ViewNode | undefined) {
