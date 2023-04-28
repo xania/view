@@ -28,7 +28,7 @@ interface RouterProps<TView> {
   loader?: any;
 }
 
-function onClick(href: string, e: JSX.EventContext) {
+function onClick(href: string, e: JSX.EventContext<Event, Element>) {
   e.event.preventDefault();
   pushPath(href);
 }
@@ -47,7 +47,7 @@ export function Router(props: RouterProps<any>) {
 
         const activeClass = props.class;
         if (activeClass === undefined) {
-          return Attrs({
+          return Attrs<HTMLAnchorElement>({
             href,
             click,
           });
@@ -55,7 +55,7 @@ export function Router(props: RouterProps<any>) {
 
         const activeState = new State('');
         return [
-          Attrs({
+          Attrs<HTMLAnchorElement>({
             href,
             class: activeState,
             click,

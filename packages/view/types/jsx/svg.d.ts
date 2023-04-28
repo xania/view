@@ -4,7 +4,7 @@
       xmlns?: string;
       width?: number;
       height?: number;
-      fill?: string;
+      fill: string;
       viewBox?: string;
       stroke?: string;
     };
@@ -18,9 +18,9 @@
       'fill-rule'?: string;
     };
     rect: {
-      width?: AttrValue<number>;
-      height?: AttrValue<number>;
-      rx?: AttrValue<number>;
+      width?: number;
+      height?: number;
+      rx?: number;
     };
   }
 }

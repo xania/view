@@ -12,7 +12,7 @@ declare module JSX {
   type Viewable = import('../../lib/render/viewable').Viewable;
   type Attachable = import('../../lib/render/attachable').Attachable;
   type Program = import('../../lib/compile/program').Program;
-  // type IfExpression = import('../../lib').IfExpression;
+  type IfExpression = import('../../lib/reactivity').IfExpression;
   type ListExpression = import('../../lib/reactivity').ListExpression;
   type Command = import('../../lib/reactivity').Command;
   type State<T> = import('../../lib/reactivity').State;
@@ -25,7 +25,6 @@ declare module JSX {
   type Value =
     | Primitive
     | State<Primitive>
-    //  | StateEffect<T>
     | DomDescriptor
     | Viewable
     | Attachable

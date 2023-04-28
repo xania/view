@@ -27,18 +27,6 @@ export class ListMutationState<T> extends Computed<T[], ListMutation<T>[]> {
   }
 }
 
-interface IfProps {
-  condition: State<boolean>;
-  children: JSX.Children;
-}
-
-export function If(props: IfProps) {
-  return new ListExpression(
-    new ListMutationState(props.condition.map((b) => (b ? [{}] : []))),
-    props.children
-  );
-}
-
 export class ListItemState<T> extends State<T> {
   public items: T[] = [];
 

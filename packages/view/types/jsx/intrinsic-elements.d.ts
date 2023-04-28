@@ -11,7 +11,7 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T> | Stateful<T>;
+  type AttrValue<T> = T | Promise<T> | State<T>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;
@@ -30,7 +30,7 @@
   }[keyof T];
 
   type OfType<T, U> = {
-    [P in keyof T]: T[P] extends U ? P : never;
+    [P in keyof T]: T[P] extends U | undefined ? P : never;
   }[keyof T];
 
   type IntrinsicElements = {
