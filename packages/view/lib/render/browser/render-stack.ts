@@ -82,7 +82,9 @@ export function renderStack<
 
       if (source instanceof Array) {
         for (let i = source.length - 1; i >= 0; i--) {
-          const template = sapply(tpl.children, [new State(source[i])]);
+          const template = sapply(tpl.children, [
+            new State(source[i]),
+          ]) as JSX.Element;
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
@@ -97,7 +99,7 @@ export function renderStack<
           source instanceof ListMutationState ? source : source.pipe(diff);
 
         const listItem = new ListItemState(mutations, sandbox, rowIndexKey);
-        const template = sapply(tpl.children, [listItem]);
+        const template = sapply(tpl.children, [listItem]) as JSX.Element;
         const anchorElement = AnchorNode.create(listAnchorNode)!;
         sandbox.connect(
           mutations,

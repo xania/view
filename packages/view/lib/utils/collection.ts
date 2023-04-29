@@ -18,6 +18,28 @@ export function cpush<T>(
   }
 }
 
+export function cremove<T>(
+  collection: Collection<T> | undefined,
+  item: T
+): Collection<T> | undefined {
+  if (
+    item === null ||
+    item === undefined ||
+    collection === null ||
+    collection === undefined
+  ) {
+    return collection;
+  }
+
+  if (collection instanceof Array) {
+    const idx = collection.indexOf(item);
+    if (idx >= 0) collection.splice(idx, 1);
+    return collection;
+  } else if (collection === item) {
+    return undefined;
+  }
+}
+
 export function cflat<T>(collection: Collection<T>): T[] {
   const flat: T[] = [];
   const stack = [collection];

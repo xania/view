@@ -15,7 +15,7 @@ export enum OperatorType {
 export interface EffectOperator<TObject, T> {
   type: OperatorType.Effect;
   object?: TObject;
-  effect: (this: TObject, value: T) => void;
+  effect: <R>(this: TObject, value: T, acc?: R) => R;
 }
 
 export interface PropertyOperator<T = any, P extends keyof T = any> {

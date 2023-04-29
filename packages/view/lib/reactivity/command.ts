@@ -1,5 +1,5 @@
 ﻿import { ElementNode, AnchorNode } from '../factory';
-import { State, Value } from './state';
+import { State } from './state';
 
 export type Command = UpdateCommand | UpdateStateCommand | DomCommand;
 

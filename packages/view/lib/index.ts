@@ -6,3 +6,4 @@ export * from './render/disposable';
 export * from './component';
 export * from './reactivity';
 export * from './headless';
+export * from './utils';

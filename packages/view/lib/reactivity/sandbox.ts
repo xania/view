@@ -37,7 +37,7 @@ export class Sandbox<TElement = ElementNode> {
   classList?: Collection<string>;
 
   constructor(
-    public eventManager: EventManager<TElement>,
+    public eventManager: any,
     public valueKey = Symbol(),
     public model?: any,
     public parent?: Sandbox
@@ -268,10 +268,17 @@ export class Sandbox<TElement = ElementNode> {
 
       switch (operator.type) {
         case OperatorType.Effect:
+          const previousEffect = (operator as any)[accumulatorKey];
           if (operator.object) {
-            operator.effect.apply(operator.object, [newValue]);
+            (operator as any)[accumulatorKey] = operator.effect.apply(
+              operator.object,
+              [newValue, previousEffect]
+            );
           } else {
-            operator.effect(newValue);
+            (operator as any)[accumulatorKey] = operator.effect(
+              newValue,
+              previousEffect
+            );
           }
           break;
         case OperatorType.Assign:
@@ -361,9 +368,13 @@ export class Sandbox<TElement = ElementNode> {
   dispose() {
     this.disposed = true;
     cwalk(this.nodes, removeNode);
-
+    cwalk(this.disposables, dispose);
     cwalk(this.subscriptions, unsubscribe);
   }
+}
+
+function dispose(d: Disposable) {
+  d.dispose();
 }
 
 function removeNode(node: ViewNode | undefined) {

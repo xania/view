@@ -20,8 +20,10 @@ export class State<T = any> {
     return new Computed(this, fn);
   }
 
-  effect(fn: (value: T) => void): Effect {
-    return new Effect(this, fn);
+  effect<R>(
+    fn: (value: T, acc?: R | undefined) => JSX.MaybePromise<R | undefined>
+  ): Effect {
+    return new Effect<T, R>(this, fn);
   }
 
   update(valueOrCompute: UpdateStateCommand<T>['valueOrCompute']) {
@@ -82,7 +84,13 @@ export class Computed<T, U> extends State<Unwrap<U>> {
   }
 }
 
-export class Effect<T = any> {
+export class Effect<T = any, R = any> {
   public readonly type = OperatorType.Effect;
-  constructor(public state: State, public effect: (value: T) => void) {}
+  constructor(
+    public state: State,
+    public effect: (
+      value: T,
+      acc?: R | undefined
+    ) => JSX.MaybePromise<R | undefined>
+  ) {}
 }
