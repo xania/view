@@ -604,6 +604,21 @@
     rx?: number | string;
     ry?: number | string;
   }
+
+  interface PolygonSVGAttributes<T>
+    extends GraphicsElementSVGAttributes<T>,
+      ShapeElementSVGAttributes<T>,
+      ConditionalProcessingSVGAttributes,
+      ExternalResourceSVGAttributes,
+      // StylableSVGAttributes,
+      TransformableSVGAttributes,
+      Pick<
+        PresentationSVGAttributes,
+        'marker-start' | 'marker-mid' | 'marker-end'
+      > {
+    points?: string;
+  }
+
   interface SVGElementTagNameMap {
     // animate: AnimateSVGAttributes<SVGAnimateElement>;
     // animateMotion: AnimateMotionSVGAttributes<SVGAnimateMotionElement>;
@@ -650,7 +665,7 @@
     // mpath: Partial<SVGMPathElement>;
     path: PathSVGAttributes<SVGPathElement>;
     // pattern: PatternSVGAttributes<SVGPatternElement>;
-    // polygon: PolygonSVGAttributes<SVGPolygonElement>;
+    polygon: PolygonSVGAttributes<SVGPolygonElement>;
     // polyline: PolylineSVGAttributes<SVGPolylineElement>;
     // radialGradient: RadialGradientSVGAttributes<SVGRadialGradientElement>;
     rect: RectSVGAttributes<SVGRectElement>;

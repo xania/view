@@ -1,8 +1,9 @@
-﻿import { RouteTrigger, Router } from '../core/router';
+﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
 import { Command, UpdateCommand, state } from 'xania';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
+  navigate?: (route: RouteEvent) => JSX.Sequence<Command>;
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
@@ -27,10 +28,15 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
     current: string = location.pathname
   ): Generator<JSX.Sequence<Command>> {
     if (current !== location.pathname) {
-      yield events.update({
+      const newRoute: RouteEvent = {
         trigger: RouteTrigger.Location,
         path: location.pathname.split('/').filter((x) => !!x),
-      });
+      };
+
+      if (props.navigate) {
+        yield props.navigate(newRoute);
+      }
+      yield events.update(newRoute);
     }
 
     yield delay(observeLocations(location.pathname), 50);

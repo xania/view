@@ -1,18 +1,20 @@
 ﻿import { Link, Route, RouteContext, WebApp } from "xania/router";
 import "./main.css";
-import { state, Attrs } from "xania";
+import { Attrs, state } from "xania";
 import { Page } from "./components/page";
 import { Title } from "./components/heading";
 
 export function ExamplesApp() {
+  const selected = state(false);
   return (
     <>
       <Attrs class="flex flex-col" />
-      <WebApp>
+      <WebApp navigate={(route) => selected.update(false)}>
         <Navigation />
         <AppContainer>
           <Page>
-            <Title>main menu</Title>
+            <button click={selected.update(true)}>select: {selected}</button>
+            <Title>main menu </Title>
             <ul>
               <li>
                 <a>

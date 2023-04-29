@@ -16,10 +16,10 @@ export function App() {
 
   return (
     <>
-      {update(function* (scope) {
+      {update(function* () {
         yield time.update(timeToString);
-        const ms = scope.get(count);
-        yield delay(this, ms);
+        // const ms = scope.get(count);
+        // yield delay(this, ms);
       })}
       <Page>
         <h1>Time</h1>
