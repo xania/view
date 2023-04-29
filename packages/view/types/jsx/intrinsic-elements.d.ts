@@ -2,8 +2,10 @@
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
   } & {
-    [P in keyof SVGTagNameMap]: Tag<SVGTagNameMap[P]>;
+    [P in keyof SVGElementTagNameMap]: Tag<SVGElementTagNameMap[P]>;
   };
+
+  type svg = SVGElementTagNameMap['svg'];
 
   type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X
     ? 1
