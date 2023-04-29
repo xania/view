@@ -186,7 +186,6 @@ class RouteHandler {
 
       const appliedPath = route.path.slice(0, segment.length);
       const remainingPath = route.path.slice(segment.length);
-      console.log(remainingPath);
 
       const childEvents = new State<RouteEvent>({
         trigger: route.trigger,

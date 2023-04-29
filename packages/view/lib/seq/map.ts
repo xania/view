@@ -20,7 +20,7 @@ export function smap<T = any, U = any>(
         curr.then((resolved) => smap(resolved, map)) as JSX.Sequence<U>
       );
     } else if (curr instanceof TemplateIterator) {
-      console.log(curr);
+      // console.log(curr);
     } else if (isIterable(curr)) {
       // console.log('async iter', curr);
       const iter = curr[Symbol.iterator]();

@@ -201,7 +201,7 @@ export class Sandbox<TElement = ElementNode> {
         }
       }
     } else if (state instanceof ListItemState) {
-      console.log(state);
+      // console.log(state);
     }
 
     return stack;
