@@ -91,84 +91,23 @@ export function Router(props: RouterProps<any>) {
   });
 }
 
-function remainingTo(prefix: Path) {
-  return (route: RouteEvent) => {
-    if (route.path.length < prefix.length) {
-      return undefined;
-    }
-
-    for (let i = 0; i < prefix.length; i++) {
-      if (route.path[i] !== prefix[i]) {
-        return undefined;
-      }
-    }
-
-    return route.path.slice(prefix.length);
-  };
-}
-
-function relativeTo(prefix: Path) {
-  return (route: RouteEvent) => {
-    if (route.path.length < prefix.length) {
-      return undefined;
-    }
-
-    for (let i = 0; i < prefix.length; i++) {
-      if (route.path[i] !== prefix[i]) {
-        return undefined;
-      }
-    }
-
-    const relative: RouteEvent = {
-      ...route,
-      path: route.path.slice(prefix.length),
-    }; //
-
-    return relative;
-  };
-}
-
 class ChildRouteContext implements RouteContext {
   public path: Path;
   public fullpath: Path;
-  public events: State<RouteEvent>;
   public disposables?: Collection<Disposable>;
-  // public remaining: Value<Path>;
 
-  constructor(public parent: RouteContext, public childPath: Path) {
+  constructor(
+    parent: RouteContext,
+    public childPath: Path,
+    public events: State<RouteEvent>
+  ) {
     this.path = childPath;
     this.fullpath = [...parent.fullpath, ...childPath];
-    this.events = parent.events.map(relativeTo(childPath));
-    // this.remaining = parent.events.map(remainingTo(resolution.appliedPath));
   }
 
   dispose() {
     cwalk(this.disposables, (d) => d.dispose());
   }
-
-  // view() {
-  //   const { resolution } = this;
-  //   if (resolution && resolution.component) {
-  //     const { component } = resolution;
-
-  //     const routeContext: RouteContext = this;
-  //     const view = smap(component, (element) => {
-  //       if (element instanceof Function) {
-  //         return Router({
-  //           context: routeContext,
-  //           children: element(routeContext),
-  //         });
-  //       } else {
-  //         return Router({
-  //           context: routeContext,
-  //           children: element,
-  //         });
-  //       }
-  //     });
-
-  //     return view;
-  //   }
-  // }
 }
 
 function routeView(
@@ -204,6 +143,7 @@ export enum RouteTrigger {
 type RouteResult = {
   sandbox: Sandbox<any>;
   appliedPath: Path;
+  events: State<RouteEvent>;
 };
 
 class RouteHandler {
@@ -227,7 +167,10 @@ class RouteHandler {
             ? pathStartsWith(route.path, prevResult.appliedPath)
             : route.path.length === 0
         ) {
-          prevResult.sandbox.update(context.events, route);
+          prevResult.sandbox.update(prevResult.events, {
+            trigger: route.trigger,
+            path: route.path.slice(prevResult.appliedPath.length),
+          });
 
           return prevResult;
         }
@@ -242,9 +185,18 @@ class RouteHandler {
       }
 
       const appliedPath = route.path.slice(0, segment.length);
-      // console.log(appliedPath);
+      const remainingPath = route.path.slice(segment.length);
+      console.log(remainingPath);
 
-      const childRouteContext = new ChildRouteContext(context, appliedPath);
+      const childEvents = new State<RouteEvent>({
+        trigger: route.trigger,
+        path: remainingPath,
+      });
+      const childRouteContext = new ChildRouteContext(
+        context,
+        appliedPath,
+        childEvents
+      );
       const view = routeView(
         Router({
           context: childRouteContext,
@@ -260,55 +212,9 @@ class RouteHandler {
       return {
         sandbox,
         appliedPath,
+        events: childEvents,
       };
-
-      // const resolution = {
-      //   appliedPath,
-      //   component: Router({
-      //     context: routeContext,
-      //     children: props.children,
-      //   }),
-      //   params: segment.params,
-      // } satisfies RouteResolution<any>;
-
-      // return new RouteView(resolution, context);
     });
-
-    // const effect = views.effect((nextValue, previous?: any) => {
-    //   const view = nextValue;
-
-    //   if (previous) {
-    //     unrender(previous);
-    //   }
-
-    //   if (view) {
-    //     return render(view, target);
-    //   }
-
-    //   return previous;
-    // });
-
-    // return effect;
-
-    // return views.subscribe({
-    //   prev: undefined as any,
-    //   async next(nextValue) {
-    //     const view = await nextValue;
-    //     const { prev } = this;
-    //     if (prev) {
-    //       unrender(prev);
-    //     }
-    //     if (view) {
-    //       this.prev = render(view, target);
-    //     }
-    //   },
-    //   complete() {
-    //     const { prev } = this;
-    //     if (prev) {
-    //       unrender(prev);
-    //     }
-    //   },
-    // });
   }
 }
 
@@ -330,7 +236,6 @@ function pushPath(pathname: string) {
   } else if (old !== pathname) {
     window.history.pushState(pathname, '', pathname);
   } else {
-    // console.error("same as ", pathname);
   }
 }
 
