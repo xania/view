@@ -12,3 +12,11 @@ export interface RouteContext {
   disposables?: Collection<Disposable>;
   trigger: RouteTrigger;
 }
+
+export const routeEvents = new State<RouteEvent>();
+
+export function useRouteContext() {
+  return {
+    trigger: routeEvents.prop('trigger'),
+  };
+}

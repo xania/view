@@ -1,7 +1,7 @@
 ﻿import { Grid, Column, DataSource } from "@xania/grid";
 import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 
 const dataLength = 50000;
 

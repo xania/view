@@ -2,7 +2,7 @@
 import { delay } from "../utils";
 import { Title } from "../components/heading";
 import { state, update } from "xania";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 import { Attrs } from "xania";
 
 export function App() {

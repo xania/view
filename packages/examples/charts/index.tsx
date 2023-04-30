@@ -1,6 +1,6 @@
 ﻿import { state } from "xania";
 import { Title } from "../components/heading";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 
 export function App() {
   return (

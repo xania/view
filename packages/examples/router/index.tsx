@@ -1,13 +1,13 @@
-﻿import { Route, Link } from "xania/router";
+﻿import { Route, Link, RouteContext } from "xania/router";
 import { Title } from "../components/heading";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 import { state, Attrs } from "xania";
 
-export function App() {
+export function App(context: RouteContext) {
   const current = state<string>();
   return (
     <>
-      <Page>
+      <Page trigger={context.trigger}>
         <Attrs class="max-w-md" />
         <Title>Router</Title>
 
@@ -45,7 +45,7 @@ export function App() {
         </div>
       </Page>
 
-      <Page>
+      <Page trigger={context.trigger}>
         <Route path="button">
           <Title>page 1</Title>
         </Route>

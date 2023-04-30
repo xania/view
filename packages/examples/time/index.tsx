@@ -1,5 +1,5 @@
 ﻿import { state, update } from "xania";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 import { delay } from "../utils";
 
 /**

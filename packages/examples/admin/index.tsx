@@ -1,5 +1,5 @@
 ﻿import { Link, Route } from "xania/router";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 import { Title } from "../components/heading";
 
 export function App() {

@@ -16,17 +16,12 @@ import {
   Collection,
   cwalk,
 } from 'xania';
-import {
-  Link,
-  LinkProps,
-  Path,
-  pathMatcher,
-  Route,
-  RouteContext,
-  RouteProps,
-  RouteResolution,
-} from '../core';
 import { startsWith } from '../webapp/browser-routes';
+import { RouteContext, routeEvents, useRouteContext } from './router-context';
+import { Link, LinkProps } from './link';
+import { Route, RouteProps } from './route';
+import { Path } from './path';
+import { RouteResolution, pathMatcher } from './route-resolver';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -34,9 +29,16 @@ interface RouterProps<TView> {
   loader?: any;
 }
 
-function onClick(href: string, e: JSX.EventContext<Event, Element>) {
+function onClick(
+  [linkPath, context]: [Path, RouteContext],
+  e: JSX.EventContext<Event, Element>
+) {
   e.event.preventDefault();
-  pushPath(href);
+  pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
+  return context.events.update({
+    trigger: RouteTrigger.Click,
+    path: linkPath,
+  });
 }
 
 export function Router(props: RouterProps<any>) {
@@ -49,7 +51,7 @@ export function Router(props: RouterProps<any>) {
         const linkPath = props.to.split('/');
 
         const href = `/${[...context.fullpath, ...linkPath].join('/')}`;
-        const click = new Closure(onClick, href);
+        const click = new Closure(onClick, [linkPath, context]);
 
         const activeClass = props.class;
         if (activeClass === undefined) {
@@ -207,6 +209,7 @@ class RouteHandler {
       );
 
       const sandbox = render(view, target);
+      sandbox.update(routeEvents, route);
       context.disposables = cpush(context.disposables, sandbox);
       sandbox.disposables = cpush(sandbox.disposables, childRouteContext);
 
@@ -253,3 +256,6 @@ class Closure<T1, T2, R> {
     return this.f(this.x1, x2);
   }
 }
+// function pushPath(href: string) {
+//   throw new Error('Function not implemented.');
+// }

@@ -1,31 +1,20 @@
-﻿import { Link, Route, RouteContext, WebApp } from "xania/router";
+﻿import { Link, Route, RouteContext } from "xania/router";
 import "./main.css";
 import { Attrs, state } from "xania";
-import { Page } from "./components/page";
-import { Title } from "./components/heading";
+import { Layout } from "./layout";
 
 export function ExamplesApp() {
-  const selected = state(false);
   return (
     <>
       <Attrs class="flex flex-col" />
-      <WebApp navigate={(route) => selected.update(false)}>
-        <Navigation />
-        <AppContainer>
-          <Page>
-            <button click={selected.update(true)}>select: {selected}</button>
-            <Title>main menu </Title>
-            <ul>
-              <li>
-                <a>
-                  <Link to="charts" />
-                  Charts
-                </a>
-              </li>
-            </ul>
-          </Page>
+      <Layout>
+        {/* <Navigation /> */}
+        <div class="border-box relative m-0 flex flex-auto flex-row overflow-auto bg-gray-100 p-0 align-middle dark:bg-gray-600">
           <Route path="charts">
             {() => import("./charts").then((e) => e.App())}
+          </Route>
+          <Route path="admin">
+            {() => import("./admin").then((e) => e.App())}
           </Route>
           <Route path="clock">
             {() => import("./clock").then((e) => e.App())}
@@ -46,25 +35,16 @@ export function ExamplesApp() {
             {(ctx: RouteContext) => import("./todomvc").then((e) => e.App(ctx))}
           </Route>
           <Route path="router">
-            {() => import("./router").then((e) => e.App())}
+            {(context: RouteContext) =>
+              import("./router").then((e) => e.App(context))
+            }
           </Route>
           <Route path="grid">
             {() => import("./grid").then((e) => e.App())}
           </Route>
-          <Route path="admin">
-            {() => import("./admin").then((e) => e.App())}
-          </Route>
-        </AppContainer>
-      </WebApp>
+        </div>
+      </Layout>
     </>
-  );
-}
-
-function AppContainer(props: { children: JSX.Children }) {
-  return (
-    <div class="relative flex-auto border-box flex align-middle p-0 m-0 flex-row bg-gray-100 overflow-auto">
-      {props.children}
-    </div>
   );
 }
 

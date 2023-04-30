@@ -1,14 +1,12 @@
 ﻿import { Component } from 'xania';
-import { Path } from './path';
-import { RouteMap } from './route-resolver';
+import { Path } from '../core/path';
+import { RouteMap } from '../core/route-resolver';
 
-export function Route(
-  props: RouteProps<JSX.Children | ((...arg: any[]) => JSX.Children)>
-): JSX.Element {
+export function Route(props: RouteProps<JSX.Element>): JSX.Element {
   return new Component(Route, props);
 }
 
 export interface RouteProps<TView> {
   path?: RouteMap<TView>['match'] | Path | string;
-  children: RouteMap<TView>['component'];
+  children: JSX.Sequence<TView | ((...arg: any[]) => TView)>;
 }

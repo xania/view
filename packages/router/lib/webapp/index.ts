@@ -1,9 +1,9 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
-import { Command, UpdateCommand, state } from 'xania';
+import { Command, Subscribable, Subscription, state } from 'xania';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
-  navigate?: (route: RouteEvent) => JSX.Sequence<Command>;
+  navigate?: () => JSX.Sequence<Command>;
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
@@ -12,8 +12,21 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
     trigger: RouteTrigger.Location,
   });
 
+  // window.addEventListener('popstate', onPopState);
+
   return [
     observeLocations(),
+    WindowEvent({
+      type: 'popstate',
+      handler(e) {
+        const newRoute: RouteEvent = {
+          trigger: RouteTrigger.PopState,
+          path: location.pathname.split('/').filter((x) => !!x),
+        };
+
+        return events.update(newRoute);
+      },
+    }),
     Router({
       context: {
         trigger: RouteTrigger.Location,
@@ -29,15 +42,9 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
     current: string = location.pathname
   ): Generator<JSX.Sequence<Command>> {
     if (current !== location.pathname) {
-      const newRoute: RouteEvent = {
-        trigger: RouteTrigger.Location,
-        path: location.pathname.split('/').filter((x) => !!x),
-      };
-
       if (props.navigate) {
-        yield props.navigate(newRoute);
+        yield props.navigate();
       }
-      yield events.update(newRoute);
     }
 
     yield delay(observeLocations(location.pathname), 50);
@@ -48,4 +55,31 @@ function delay<T>(value: T, millis: number = 400) {
   return new Promise<T>((resolve) => {
     setTimeout(() => resolve(value), millis);
   });
+}
+
+interface WindowEventProps<K extends keyof WindowEventMap> {
+  type: K;
+  handler: (e: WindowEventMap[K]) => any;
+}
+function WindowEvent<K extends keyof WindowEventMap>(
+  props: WindowEventProps<K>
+) {
+  return {
+    subscribe(observer) {
+      window.addEventListener(props.type, callback, true);
+
+      return {
+        unsubscribe() {
+          window.removeEventListener(props.type, callback, true);
+        },
+      } satisfies Subscription;
+
+      function callback(e: WindowEventMap[K]) {
+        const command = props.handler(e);
+        if (command) {
+          observer.next(command);
+        }
+      }
+    },
+  } satisfies Subscribable<Command>;
 }

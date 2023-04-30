@@ -2,7 +2,17 @@
 export default {
   content: ["**/*.tsx"],
   theme: {
-    extend: {},
+    extend: {
+      animation: {
+        "page-in": "page .3s ease-out",
+      },
+      keyframes: {
+        page: {
+          "0%": { transform: "translateX(100%)" },
+        },
+      },
+    },
   },
   plugins: [],
+  darkMode: "class",
 };

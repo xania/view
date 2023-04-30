@@ -102,7 +102,7 @@ export class Browser implements NodeFactory<Element, any> {
               sandbox.handleCommands(command, target);
             }
           } else if (isCallable(eventHandler)) {
-            eventHandler.call(eventObj);
+            sandbox.handleCommands(eventHandler.call(eventObj), target);
           } else if (!isCommand(eventHandler)) {
             sandbox.handleCommands(eventHandler.handleEvent(eventObj), target);
           } else {

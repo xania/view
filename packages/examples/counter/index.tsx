@@ -1,4 +1,4 @@
-﻿import { Page } from "../components/page";
+﻿import { Page } from "../layout/page";
 import { Title } from "../components/heading";
 import { State } from "xania";
 

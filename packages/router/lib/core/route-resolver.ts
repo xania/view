@@ -36,15 +36,13 @@ interface RouteSegment {
 export interface RouteResolution<TView = any> {
   appliedPath: string[];
   params?: RouteParams;
-  component: RouteComponentInput<TView> | null;
+  component: TView | null;
 }
 
 export interface RouteMap<TView> {
   match(path: Path): RouteSegment | Promise<RouteSegment> | false;
-  component: RouteComponentInput<TView>;
+  component: TView;
 }
-
-export type RouteComponentInput<TView = any> = TView;
 
 const emptySegment: RouteSegment = { length: 0 };
 function emptyMatcher(path: Path) {
