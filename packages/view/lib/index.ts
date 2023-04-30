@@ -7,3 +7,4 @@ export * from './component';
 export * from './reactivity';
 export * from './headless';
 export * from './utils';
+export * from './factory';
