@@ -4,11 +4,15 @@ export default {
   theme: {
     extend: {
       animation: {
-        "page-in": "page .3s ease-out",
+        "page-in": "page-in .3s ease-out",
+        "page-out": "page-out .3s ease-out",
       },
       keyframes: {
-        page: {
+        'page-in': {
           "0%": { transform: "translateX(100%)" },
+        },
+        'page-out': {
+          "100%": { transform: "translateX(-50%)", 'background-color': 'black', opacity: '20%' },
         },
       },
     },

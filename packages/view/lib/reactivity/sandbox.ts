@@ -113,7 +113,7 @@ export class Sandbox<TElement = ElementNode> {
       }
     }
 
-    const initial = this.initialValue(source);
+    const initial = this.currentValue(source);
 
     if (initial !== undefined) {
       const stack: [Value, JSX.MaybeArray<Operator>][] = [[initial, operator]];
@@ -121,7 +121,7 @@ export class Sandbox<TElement = ElementNode> {
     }
   }
 
-  initialValue(leaf: State) {
+  currentValue(leaf: State) {
     const { valueKey } = this;
 
     const stack = [leaf];
@@ -154,7 +154,7 @@ export class Sandbox<TElement = ElementNode> {
         }
       } else if (state instanceof Computed) {
         const source = state.source;
-        const scopeValue = (parent as any)[valueKey];
+        const scopeValue = (source as any)[valueKey];
         if (scopeValue !== undefined && scopeValue !== source.initial) {
           (state as any)[valueKey] = state.compute(scopeValue);
         }
@@ -260,7 +260,7 @@ export class Sandbox<TElement = ElementNode> {
   ) {
     const { valueKey, operatorsKey } = this;
 
-    const currentValue: Value<T> = state[valueKey] ?? state.initial;
+    const currentValue: Value<T> = this.currentValue(state);
 
     const newValue =
       newValueOrReduce === undefined
