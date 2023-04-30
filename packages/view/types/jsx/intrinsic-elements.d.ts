@@ -51,7 +51,7 @@
   }
 
   interface ElementChildrenAttribute {
-    children?: Sequence<Value | (() => Sequence<Value>)>;
+    children?: Sequence<Value>;
   }
 
   type Children = ElementChildrenAttribute['children'];

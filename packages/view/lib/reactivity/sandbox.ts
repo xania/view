@@ -76,13 +76,6 @@ export class Sandbox<TElement = ElementNode> {
   connect<T, U>(source: State<T>, operator: EffectOperator<T, U>): void;
 
   connect(source: State<any>, operator: Operator): void {
-    const initial = (source as any)[this.valueKey] ?? source.initial;
-
-    if (initial !== undefined) {
-      const stack: [Value, JSX.MaybeArray<Operator>][] = [[initial, operator]];
-      this.reconcile(stack);
-    }
-
     const arrows: [State, Operator][] = [[source, operator]];
 
     const { operatorsKey } = this;
@@ -119,6 +112,56 @@ export class Sandbox<TElement = ElementNode> {
         this.reconcile(stack);
       }
     }
+
+    const initial = this.initialValue(source);
+
+    if (initial !== undefined) {
+      const stack: [Value, JSX.MaybeArray<Operator>][] = [[initial, operator]];
+      this.reconcile(stack);
+    }
+  }
+
+  initialValue(leaf: State) {
+    const { valueKey } = this;
+
+    const stack = [leaf];
+
+    let state = leaf;
+    while (state) {
+      const source =
+        state instanceof Property
+          ? state.parent
+          : state instanceof Computed
+          ? state.source
+          : undefined;
+
+      if (source === undefined) {
+        break;
+      }
+      stack.push(source);
+      state = source;
+    }
+
+    while (stack.length) {
+      const state = stack.pop()!;
+
+      if (state instanceof Property) {
+        const parent = state.parent;
+
+        const scopeValue = (parent as any)[valueKey];
+        if (scopeValue !== undefined && scopeValue !== parent.initial) {
+          (state as any)[valueKey] = scopeValue[state.name];
+        }
+      } else if (state instanceof Computed) {
+        const source = state.source;
+        const scopeValue = (parent as any)[valueKey];
+        if (scopeValue !== undefined && scopeValue !== source.initial) {
+          (state as any)[valueKey] = state.compute(scopeValue);
+        }
+      }
+    }
+
+    return (leaf as any)[valueKey] ?? leaf.initial;
   }
 
   refresh(state: State) {
@@ -220,11 +263,13 @@ export class Sandbox<TElement = ElementNode> {
     const currentValue: Value<T> = state[valueKey] ?? state.initial;
 
     const newValue =
-      currentValue === undefined
+      newValueOrReduce === undefined
         ? undefined
         : newValueOrReduce instanceof Function
         ? currentValue instanceof Promise
           ? currentValue.then(safeCallback(newValueOrReduce))
+          : currentValue === undefined
+          ? undefined
           : newValueOrReduce(currentValue)
         : newValueOrReduce;
 

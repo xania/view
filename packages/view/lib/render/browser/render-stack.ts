@@ -163,7 +163,7 @@ export function renderStack<
       stack.push([
         sandbox,
         currentTarget,
-        tpl.attachTo(currentTarget, factory),
+        tpl.attachTo(currentTarget as any, factory),
         isRoot,
       ]);
     } else if (isSubscribable(tpl)) {

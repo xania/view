@@ -57,7 +57,7 @@ export class MutationOperator<T = any> {
     if (toAnchorNode) {
       cwalk(subject.nodes, (node) => {
         if (node) {
-          toAnchorNode.appendChild(node);
+          // toAnchorNode.appendChild(node);
         }
       });
     }
