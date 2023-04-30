@@ -1,7 +1,7 @@
 ﻿// import { Value } from '@xania/state';
 import { Disposable, State } from 'xania';
 import { Path } from './path';
-import { RouteEvent } from './router';
+import { RouteEvent, RouteTrigger } from './router';
 import { Collection } from 'xania/lib/utils/collection';
 
 export interface RouteContext {
@@ -10,4 +10,5 @@ export interface RouteContext {
   path: Path;
   events: State<RouteEvent>;
   disposables?: Collection<Disposable>;
+  trigger: RouteTrigger;
 }

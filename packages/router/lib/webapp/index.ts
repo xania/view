@@ -16,6 +16,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
     observeLocations(),
     Router({
       context: {
+        trigger: RouteTrigger.Location,
         path: [],
         fullpath: [],
         events,
