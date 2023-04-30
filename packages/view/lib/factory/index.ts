@@ -45,25 +45,10 @@ interface ClassList {
   remove(...values: string[]): any;
 }
 
-export class AnchorNode<TNode extends ViewNode> {
+export class AnchorNode<TNode> {
   constructor(public anchorNode: TNode) {}
 
-  appendChild(node: TNode) {
-    // const { parentElement } = this.anchorNode;
-    this.anchorNode.before(node);
-    // parentElement!.insertBefore(node, this.anchorNode);
-  }
-  // addEventListener(
-  //   type: string,
-  //   listener: EventListenerOrEventListenerObject,
-  //   options?: boolean | AddEventListenerOptions | undefined
-  // ): void {
-  //   return this.container.addEventListener(type, listener, options);
-  // }
-
-  static create<TNode extends ViewNode>(
-    anchorNode?: ViewNode | AnchorNode<TNode> | undefined
-  ) {
+  static create<TNode>(anchorNode?: TNode | AnchorNode<TNode> | undefined) {
     if (!anchorNode) {
       return undefined;
     }

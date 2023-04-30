@@ -1,22 +1,38 @@
-﻿import { CommentNode, NodeFactory, TextNode } from '../factory';
+﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
 import { Sandbox, isCommand } from '../reactivity';
 import { syntheticEvent } from './event';
+
+function namespaceUri(name: string, defaultUri: string | null) {
+  return name === 'svg'
+    ? 'http://www.w3.org/2000/svg'
+    : defaultUri ?? 'http://www.w3.org/1999/xhtml';
+}
 
 export class Browser implements NodeFactory<Element, any> {
   listeners: Record<string, Sandbox<Element>[]> | undefined;
 
   constructor(public container: Element) {}
 
-  createElement(parentElement: Element, name: string): Element {
-    const namespaceUri =
-      name === 'svg'
-        ? 'http://www.w3.org/2000/svg'
-        : parentElement.namespaceURI ?? 'http://www.w3.org/1999/xhtml';
-    const element = document.createElementNS(namespaceUri, name);
-
-    parentElement.appendChild(element);
-
-    return element;
+  createElement(
+    parentElement: Element | AnchorNode<Element>,
+    name: string
+  ): Element {
+    if (parentElement instanceof AnchorNode) {
+      const anchorNode = parentElement.anchorNode;
+      const element = document.createElementNS(
+        namespaceUri(name, anchorNode.namespaceURI),
+        name
+      );
+      anchorNode.before(element);
+      return element;
+    } else {
+      const element = document.createElementNS(
+        namespaceUri(name, parentElement.namespaceURI),
+        name
+      );
+      parentElement.appendChild(element);
+      return element;
+    }
   }
 
   createTextNode(parentElement: Element, data: string): TextNode {
