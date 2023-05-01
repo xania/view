@@ -8,3 +8,4 @@ packages/view/dist/
 # Local Netlify folder
 .netlify
 packages/view/router/
+packages/kitchen-sink/dist/
