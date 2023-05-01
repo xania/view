@@ -1,5 +1,5 @@
 ﻿import { Route } from "xania/router";
-import { Page } from "../components/page";
+import { Page } from "../layout/page";
 import classes from "./tabs.module.scss";
 import { delay } from "../utils";
 
