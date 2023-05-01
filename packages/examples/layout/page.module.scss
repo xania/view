@@ -1,0 +1,49 @@
+﻿$duration: 0.3s;
+
+.page {
+  color: red;
+
+  &--initialize {
+    animation: page-initialize $duration ease-out forwards;
+  }
+  &--activate {
+    animation: page-activate $duration ease-out forwards;
+  }
+  &--deactivate {
+    animation: page-deactivate $duration ease-out forwards;
+  }
+  &--destroy {
+    animation: page-destroy $duration ease-out forwards;
+  }
+}
+
+@media only screen and (min-width: 640px) {
+  .page--destroy {
+    display: none;
+  }
+}
+
+@media only screen and (max-width: 640px) {
+  @keyframes page-initialize {
+    0% {
+      transform: translateX(100%);
+    }
+  }
+  @keyframes page-activate {
+    0% {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes page-deactivate {
+    100% {
+      transform: translateX(-50%);
+      opacity: 20;
+    }
+  }
+  @keyframes page-destroy {
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+}

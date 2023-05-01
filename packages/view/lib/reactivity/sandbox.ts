@@ -224,6 +224,8 @@ export class Sandbox<TElement = ElementNode> {
           });
           owner.reconcile(changes);
           break;
+        } else {
+          break;
         }
       }
     } else if (state instanceof ListMutationState) {
@@ -452,7 +454,7 @@ function setValue<T>(object: Value<T>, name: string, value: any) {
      * TODO concurrent set
      */
     return object.then((resolved: any) => (resolved[name] = value));
-  } else {
+  } else if (object) {
     (object as any)[name] = value;
   }
 }

@@ -8,8 +8,8 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Chrome against localhost",
-      "url": "http://localhost:1981/hello-world",
-      "webRoot": "${workspaceFolder}/packages/kitchen-sink"
+      "url": "http://localhost:1981",
+      "webRoot": "${workspaceFolder}"
     }
   ]
 }

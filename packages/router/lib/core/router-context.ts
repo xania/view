@@ -14,9 +14,13 @@ export interface RouteContext {
 }
 
 export const routeEvents = new State<RouteEvent>();
+export const transition = new State<
+  'activate' | 'deactivate' | 'initialize' | 'destroy'
+>();
 
 export function useRouteContext() {
   return {
     trigger: routeEvents.prop('trigger'),
+    transition,
   };
 }

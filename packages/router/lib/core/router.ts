@@ -29,16 +29,21 @@ interface RouterProps<TView> {
   loader?: any;
 }
 
-function onClick(
+function* onClick(
   [linkPath, context]: [Path, RouteContext],
   e: JSX.EventContext<Event, Element>
 ) {
   e.event.preventDefault();
   pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
-  return context.events.update({
+
+  const routeContext = useRouteContext();
+
+  yield context.events.update({
     trigger: RouteTrigger.Click,
     path: linkPath,
   });
+  yield routeContext.trigger.update(RouteTrigger.Unchanged);
+  yield routeContext.transition.update('deactivate');
 }
 
 export function Router(props: RouterProps<any>) {
@@ -141,6 +146,7 @@ export enum RouteTrigger {
   Click,
   Location,
   PopState,
+  Unchanged,
 }
 
 type RouteResult = {
@@ -171,14 +177,24 @@ class RouteHandler {
             : route.path.length === 0
         ) {
           prevResult.sandbox.update(prevResult.events, {
-            trigger: route.trigger,
+            trigger: RouteTrigger.Unchanged,
             path: route.path.slice(prevResult.appliedPath.length),
           });
+
+          prevResult.sandbox.update(
+            useRouteContext().transition,
+            prevResult.appliedPath.length === route.path.length
+              ? 'activate'
+              : 'deactivate'
+          );
 
           return prevResult;
         }
 
-        unrender(prevResult.sandbox);
+        prevResult.sandbox.update(useRouteContext().transition, 'destroy');
+        setTimeout(() => {
+          unrender(prevResult.sandbox);
+        }, 300);
         context.disposables = cremove(context.disposables, prevResult.sandbox);
       }
 
@@ -210,6 +226,11 @@ class RouteHandler {
 
       const sandbox = render(view, target);
       sandbox.update(routeEvents, route);
+      sandbox.update(
+        useRouteContext().transition,
+        remainingPath.length === 0 ? 'initialize' : 'deactivate'
+      );
+
       context.disposables = cpush(context.disposables, sandbox);
       sandbox.disposables = cpush(sandbox.disposables, childRouteContext);
 
