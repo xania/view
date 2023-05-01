@@ -42,7 +42,6 @@ function* onClick(
     trigger: RouteTrigger.Click,
     path: linkPath,
   });
-  yield routeContext.trigger.update(RouteTrigger.Unchanged);
   yield routeContext.transition.update('deactivate');
 }
 
@@ -146,7 +145,7 @@ export enum RouteTrigger {
   Click,
   Location,
   PopState,
-  Unchanged,
+  EdgeDrag,
 }
 
 type RouteResult = {
@@ -177,13 +176,15 @@ class RouteHandler {
             : route.path.length === 0
         ) {
           prevResult.sandbox.update(prevResult.events, {
-            trigger: RouteTrigger.Unchanged,
+            trigger: route.trigger,
             path: route.path.slice(prevResult.appliedPath.length),
           });
 
           prevResult.sandbox.update(
             useRouteContext().transition,
-            prevResult.appliedPath.length === route.path.length
+            route.trigger === RouteTrigger.EdgeDrag
+              ? 'none'
+              : prevResult.appliedPath.length === route.path.length
               ? 'activate'
               : 'deactivate'
           );
@@ -191,10 +192,15 @@ class RouteHandler {
           return prevResult;
         }
 
-        prevResult.sandbox.update(useRouteContext().transition, 'destroy');
-        setTimeout(() => {
+        if (route.trigger !== RouteTrigger.EdgeDrag) {
+          prevResult.sandbox.update(useRouteContext().transition, 'destroy');
+
+          setTimeout(() => {
+            unrender(prevResult.sandbox);
+          }, 300);
+        } else {
           unrender(prevResult.sandbox);
-        }, 300);
+        }
         context.disposables = cremove(context.disposables, prevResult.sandbox);
       }
 
@@ -226,9 +232,14 @@ class RouteHandler {
 
       const sandbox = render(view, target);
       sandbox.update(routeEvents, route);
+
       sandbox.update(
         useRouteContext().transition,
-        remainingPath.length === 0 ? 'initialize' : 'deactivate'
+        route.trigger === RouteTrigger.EdgeDrag
+          ? 'none'
+          : remainingPath.length === 0
+          ? 'initialize'
+          : 'deactivate'
       );
 
       context.disposables = cpush(context.disposables, sandbox);

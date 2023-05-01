@@ -1,5 +1,6 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
 import { Command, Subscribable, Subscription, state } from 'xania';
+import { isEdgeDrag } from './edge-drag';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
@@ -20,7 +21,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
       type: 'popstate',
       handler(e) {
         const newRoute: RouteEvent = {
-          trigger: RouteTrigger.PopState,
+          trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
           path: location.pathname.split('/').filter((x) => !!x),
         };
 

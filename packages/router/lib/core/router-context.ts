@@ -15,7 +15,7 @@ export interface RouteContext {
 
 export const routeEvents = new State<RouteEvent>();
 export const transition = new State<
-  'activate' | 'deactivate' | 'initialize' | 'destroy'
+  'activate' | 'deactivate' | 'initialize' | 'destroy' | 'none'
 >();
 
 export function useRouteContext() {
