@@ -9,7 +9,7 @@ export class Column<T> {
   constructor(public props: ColumnProps<T>) {}
 
   get title() {
-    return this.props.title ?? this.props.field;
+    return this.props.title ?? String(this.props.field);
   }
 
   get field() {

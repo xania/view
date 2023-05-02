@@ -1,4 +1,4 @@
-﻿import { Grid, Column, DataSource } from "@xania/grid";
+﻿import { Grid, Column, DataSource } from "./grid";
 import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";

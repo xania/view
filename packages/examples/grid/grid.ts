@@ -33,7 +33,9 @@ export class Grid<T = any> {
   }
 
   Header = (props: HeaderProps<T>) => {
-    return this.columns.map((column) => sapply(props.children, [column]));
+    return this.columns.map((column) =>
+      sapply(props.children, [column])
+    ) as JSX.Children;
   };
 
   Row = (props: RowProps<T>) => {
@@ -41,7 +43,9 @@ export class Grid<T = any> {
   };
 
   Cell = (props: CellProps<T>) => {
-    return this.columns.map((column) => sapply(props.children, [column]));
+    return this.columns.map((column) =>
+      sapply(props.children, [column])
+    ) as JSX.Children;
   };
 
   updateWindow = debounce((scrollPosition: number, rowHeight: number) => {
