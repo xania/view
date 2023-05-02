@@ -16,8 +16,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "xania": "latest",
-    "@xania/state": "latest"
+    "xania": "latest"
   },
   "devDependencies": {
     "vite": "latest",
