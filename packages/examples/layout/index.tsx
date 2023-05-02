@@ -2,6 +2,7 @@
 import { Navigation } from "./nav";
 import { MainMenu } from "./mainmenu";
 import { WebApp } from "xania/router";
+import classes from "./layout.module.scss";
 
 export function Layout(props: { children: JSX.Children }) {
   const drawerOpen = state(false);
@@ -18,8 +19,11 @@ export function Layout(props: { children: JSX.Children }) {
       <aside
         id="logo-sidebar"
         class={[
-          "fixed left-0 top-0 z-40 h-screen w-64 bg-white pt-20 dark:bg-gray-800",
-          drawerOpen.toggle("transform-none", "max-sm:-translate-x-full"),
+          "fixed left-0 top-0 z-40 h-screen w-64 bg-white pt-20 dark:bg-gray-800 ",
+          drawerOpen.toggle(
+            classes["drawer--activate"],
+            classes["drawer--deactivate"]
+          ),
         ]}
         aria-label="Sidebar"
       >
@@ -32,7 +36,7 @@ export function Layout(props: { children: JSX.Children }) {
         click={drawerOpen.update(false)}
         drawer-backdrop=""
         class={[
-          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80",
+          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 ease-linear antialiased",
           drawerOpen.false("hidden"),
         ]}
       ></div>

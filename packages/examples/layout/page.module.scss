@@ -11,6 +11,18 @@
   }
   &--deactivate {
     animation: page-deactivate $duration ease-out forwards;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #000;
+      animation: page-overlay $duration ease-out forwards;
+      opacity: 50%;
+    }
   }
   &--destroy {
     animation: page-destroy $duration ease-out forwards;
@@ -31,18 +43,26 @@
   }
   @keyframes page-activate {
     0% {
-      transform: translateX(-50%);
+      transform: translateX(-30%);
     }
   }
   @keyframes page-deactivate {
     100% {
-      transform: translateX(-50%);
+      transform: translateX(-30%);
       opacity: 20;
     }
   }
   @keyframes page-destroy {
+    0% {
+      opacity: 80;
+    }
     100% {
-      transform: translateX(100%);
+      // transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+  @keyframes page-overlay {
+    0% {
       opacity: 0;
     }
   }

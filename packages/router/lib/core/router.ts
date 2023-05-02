@@ -9,7 +9,6 @@ import {
   Attrs,
   render,
   Sandbox,
-  unrender,
   cpush,
   cremove,
   Disposable,
@@ -180,12 +179,13 @@ class RouteHandler {
             path: route.path.slice(prevResult.appliedPath.length),
           });
 
-          prevResult.sandbox.update(
-            useRouteContext().transition,
+          prevResult.sandbox.update(useRouteContext().transition, (previous) =>
             route.trigger === RouteTrigger.EdgeDrag
               ? 'none'
               : prevResult.appliedPath.length === route.path.length
-              ? 'activate'
+              ? previous === 'deactivate'
+                ? 'activate'
+                : 'none'
               : 'deactivate'
           );
 
@@ -193,13 +193,13 @@ class RouteHandler {
         }
 
         if (route.trigger !== RouteTrigger.EdgeDrag) {
-          prevResult.sandbox.update(useRouteContext().transition, 'destroy');
+          destroy(prevResult.sandbox);
 
           setTimeout(() => {
-            unrender(prevResult.sandbox);
-          }, 300);
+            prevResult.sandbox.dispose();
+          }, 3000);
         } else {
-          unrender(prevResult.sandbox);
+          prevResult.sandbox.dispose();
         }
         context.disposables = cremove(context.disposables, prevResult.sandbox);
       }
@@ -291,3 +291,15 @@ class Closure<T1, T2, R> {
 // function pushPath(href: string) {
 //   throw new Error('Function not implemented.');
 // }
+
+function destroy(sandbox: Sandbox) {
+  sandbox.update(useRouteContext().transition, 'destroy');
+
+  cwalk(sandbox.disposables, (c) => {
+    if (c instanceof ChildRouteContext) {
+      cwalk(c.disposables, (d) => {
+        if (d instanceof Sandbox) destroy(d);
+      });
+    }
+  });
+}

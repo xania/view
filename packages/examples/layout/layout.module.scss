@@ -1,0 +1,22 @@
+﻿$duration: 0.3s;
+
+.drawer--activate {
+  animation: drawer-activate $duration ease-out forwards;
+}
+
+.drawer--deactivate {
+  animation: drawer-deactivate $duration ease-out forwards;
+}
+
+@media only screen and (max-width: 640px) {
+  @keyframes drawer-activate {
+    0% {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes drawer-deactivate {
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+}
