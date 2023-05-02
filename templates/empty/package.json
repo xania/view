@@ -1,0 +1,26 @@
+{
+  "name": "{{ name }}",
+  "description": "{{ description }}",
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "xania": "latest",
+    "@xania/state": "latest"
+  },
+  "devDependencies": {
+    "vite": "latest",
+    "@types/node": "latest"
+  }
+}
