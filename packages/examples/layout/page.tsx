@@ -20,11 +20,6 @@ export function Page(props: PageProps) {
       />
       <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 dark:text-white">
         {props.children}
-
-        <div>
-          [{routeContext.trigger.map((t) => RouteTrigger[t])}]
-          {routeContext.transition.map((b) => `page--${b}`)}
-        </div>
       </div>
 
       {scrollIntoView()}
