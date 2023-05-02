@@ -20,6 +20,7 @@ export const transition = new State<
 
 export function useRouteContext() {
   return {
+    events: routeEvents,
     trigger: routeEvents.prop('trigger'),
     transition,
   };

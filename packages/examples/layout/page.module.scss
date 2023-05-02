@@ -4,28 +4,16 @@
   color: red;
 
   &--initialize {
-    animation: page-initialize $duration ease-out forwards;
+    animation: page-initialize $duration ease-out;
   }
   &--activate {
-    animation: page-activate $duration ease-out forwards;
+    animation: page-activate $duration ease-out;
   }
   &--deactivate {
-    animation: page-deactivate $duration ease-out forwards;
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #000;
-      animation: page-overlay $duration ease-out forwards;
-      opacity: 50%;
-    }
+    animation: page-deactivate $duration ease-out;
   }
   &--destroy {
-    animation: page-destroy $duration ease-out forwards;
+    animation: page-destroy $duration ease-out;
   }
 }
 
@@ -36,6 +24,20 @@
 }
 
 @media only screen and (max-width: 640px) {
+  .page--deactivate {
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #000;
+      animation: page-overlay $duration ease-out;
+      opacity: 50%;
+    }
+  }
+
   @keyframes page-initialize {
     0% {
       transform: translateX(100%);

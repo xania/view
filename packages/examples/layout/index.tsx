@@ -28,7 +28,7 @@ export function Layout(props: { children: JSX.Children }) {
         aria-label="Sidebar"
       >
         <div class="h-full overflow-y-auto px-3 pb-4">
-          <MainMenu />
+          <MainMenu drawerOpen={drawerOpen} />
         </div>
       </aside>
 
@@ -36,7 +36,7 @@ export function Layout(props: { children: JSX.Children }) {
         click={drawerOpen.update(false)}
         drawer-backdrop=""
         class={[
-          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 ease-linear antialiased",
+          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 ease-linear",
           drawerOpen.false("hidden"),
         ]}
       ></div>

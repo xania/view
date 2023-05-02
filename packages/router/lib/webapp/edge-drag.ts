@@ -1,15 +1,8 @@
 ﻿let isEdgeDragNavigating = false;
 
-const IOS_EDGE_DRAG_NAVIGATION_THRESHOLD = 25;
+// const IOS_EDGE_DRAG_NAVIGATION_THRESHOLD = 500;
 
 const handleTouchStart = (e: any) => {
-  if (
-    e.touches[0].pageX > IOS_EDGE_DRAG_NAVIGATION_THRESHOLD &&
-    e.touches[0].pageX < window.innerWidth - IOS_EDGE_DRAG_NAVIGATION_THRESHOLD
-  ) {
-    return;
-  }
-
   isEdgeDragNavigating = true;
 };
 
@@ -23,8 +16,7 @@ export function isEdgeDrag() {
 let currentLocation = location.pathname;
 setInterval(function () {
   if (currentLocation !== location.pathname) {
-    setTimeout(() => (isEdgeDragNavigating = false), 200);
-    isEdgeDragNavigating = false;
+    setTimeout(() => (isEdgeDragNavigating = false), 100);
     currentLocation = location.pathname;
   }
 }, 100);

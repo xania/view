@@ -1,6 +1,7 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
 import { Command, Subscribable, Subscription, state } from 'xania';
 import { isEdgeDrag } from './edge-drag';
+import { delay } from '../utils';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
@@ -50,12 +51,6 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
 
     yield delay(observeLocations(location.pathname), 50);
   }
-}
-
-function delay<T>(value: T, millis: number = 400) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), millis);
-  });
 }
 
 interface WindowEventProps<K extends keyof WindowEventMap> {

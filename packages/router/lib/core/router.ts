@@ -21,6 +21,7 @@ import { Link, LinkProps } from './link';
 import { Route, RouteProps } from './route';
 import { Path } from './path';
 import { RouteResolution, pathMatcher } from './route-resolver';
+import { delay } from '../utils';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -28,20 +29,28 @@ interface RouterProps<TView> {
   loader?: any;
 }
 
-function* onClick(
+function onClick(
   [linkPath, context]: [Path, RouteContext],
   e: JSX.EventContext<Event, Element>
 ) {
   e.event.preventDefault();
-  pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
+
+  setTimeout(() => {
+    pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
+  }, 20);
 
   const routeContext = useRouteContext();
 
-  yield context.events.update({
-    trigger: RouteTrigger.Click,
-    path: linkPath,
-  });
-  yield routeContext.transition.update('deactivate');
+  return delay(
+    [
+      context.events.update({
+        trigger: RouteTrigger.Click,
+        path: linkPath,
+      }),
+      routeContext.transition.update('deactivate'),
+    ],
+    0
+  );
 }
 
 export function Router(props: RouterProps<any>) {
@@ -197,7 +206,7 @@ class RouteHandler {
 
           setTimeout(() => {
             prevResult.sandbox.dispose();
-          }, 3000);
+          }, 200);
         } else {
           prevResult.sandbox.dispose();
         }
@@ -212,15 +221,11 @@ class RouteHandler {
       const appliedPath = route.path.slice(0, segment.length);
       const remainingPath = route.path.slice(segment.length);
 
-      const childEvents = new State<RouteEvent>({
-        trigger: route.trigger,
-        path: remainingPath,
-      });
       const childRouteContext = new ChildRouteContext(
         context,
         route.trigger,
         appliedPath,
-        childEvents
+        routeEvents
       );
       const view = routeView(
         Router({
@@ -239,7 +244,7 @@ class RouteHandler {
           ? 'none'
           : remainingPath.length === 0
           ? 'initialize'
-          : 'deactivate'
+          : 'none'
       );
 
       context.disposables = cpush(context.disposables, sandbox);
@@ -248,7 +253,7 @@ class RouteHandler {
       return {
         sandbox,
         appliedPath,
-        events: childEvents,
+        events: routeEvents,
       };
     });
   }

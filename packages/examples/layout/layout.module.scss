@@ -1,4 +1,4 @@
-﻿$duration: 0.3s;
+﻿$duration: 0.1s;
 
 .drawer--activate {
   animation: drawer-activate $duration ease-out forwards;
@@ -12,6 +12,9 @@
   @keyframes drawer-activate {
     0% {
       transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0%);
     }
   }
   @keyframes drawer-deactivate {

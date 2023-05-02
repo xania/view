@@ -1,12 +1,14 @@
 ﻿import { Link } from "xania/router";
+import { LayoutProps } from "./props";
 
-export function MainMenu() {
+export function MainMenu(props: LayoutProps) {
   return (
     <ul class="space-y-2 font-medium">
       <li>
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <Link to="clock" />
           <svg
@@ -26,6 +28,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <Link to="counter" />
           <svg
@@ -47,6 +50,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <Link to="todo" />
           <svg
@@ -69,6 +73,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <Link to="grid" />
           <svg
@@ -91,6 +96,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <svg
             aria-hidden="true"
@@ -113,6 +119,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <svg
             aria-hidden="true"
@@ -134,6 +141,7 @@ export function MainMenu() {
         <a
           href="#"
           class="flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+          click={props.drawerOpen.update(false)}
         >
           <svg
             aria-hidden="true"
