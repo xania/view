@@ -1,6 +1,0 @@
-{
-  "files.associations": {
-    "**/templates/**/*.tsx": "plaintext",
-    "**/templates/**/*.ts": "plaintext"
-  }
-}

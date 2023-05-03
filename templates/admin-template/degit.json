@@ -1,7 +1,0 @@
-﻿[
-  {
-    "action": "clone",
-    "src": "xania/view/packages/examples",
-    "dest": "packages/examples"
-  }
-]
