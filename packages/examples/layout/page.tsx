@@ -13,12 +13,12 @@ export function Page(props: PageProps) {
   const routeContext = useRouteContext();
 
   return (
-    <div class="box-border h-full max-sm:fixed max-sm:left-0 max-sm:top-16 max-sm:w-full shadow-lg sm:py-4 sm:pl-4 sm:pr-4 bg-white dark:bg-gray-700">
+    <div class="box-border h-full max-sm:fixed max-sm:left-0 max-sm:top-16 max-sm:w-full sm:py-4 sm:pl-4 sm:pr-4">
       <Attrs class={props.class} />
       <Attrs
         class={routeContext.transition.map((b) => classes[`page--${b}`])}
       />
-      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 dark:text-white">
+      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 dark:text-white bg-white dark:bg-gray-700">
         {props.children}
       </div>
 
