@@ -236,7 +236,6 @@ class RouteHandler {
       );
 
       const sandbox = render(view, target);
-      sandbox.update(routeEvents, route);
 
       sandbox.update(
         useRouteContext().transition,

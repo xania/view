@@ -1,12 +1,13 @@
 ﻿import classes from "./index.module.scss";
-import { Link, RouteContext } from "xania/router";
+import { Link, RouteContext, useRouteContext } from "xania/router";
 import { Page } from "../layout/page";
 import { If, List, State, diff, state } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
 export function App({}: RouteContext) {
-  const mode = state<Mode>();
+  const routeContext = useRouteContext();
+
   const items = state<TodoItem[]>(
     [
       {
@@ -21,10 +22,11 @@ export function App({}: RouteContext) {
     // completed
   );
 
+  const mode = routeContext.events.map((e) => (e.path[0] as Mode) ?? "all");
+
   return (
     <Page class="flex-auto">
-      {/* {remaining.map((path) => {
-        const newMode = path[0] ?? "all";
+      {/* {mode.map(newMode => {
         switch (newMode) {
           case "completed":
             return [mode.update("completed"), items.filter(completed)];

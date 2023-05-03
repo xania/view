@@ -12,10 +12,15 @@
     "skipLibCheck": true,
     "noEmit": true,
 
-    "paths": {
-      "xania": ["./packages/view"],
-      "@xania/state": ["./packages/state"]
-    },
-    "allowSyntheticDefaultImports": true
+    "outDir": "esm",
+    "declaration": true,
+    "sourceMap": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": true,
+    "allowUnusedLabels": true,
+
+    "jsx": "react-jsx",
+    "jsxImportSource": "xania",
+
   }
 }

@@ -20,6 +20,11 @@ export default defineConfig({
     alias: {
       "~": path.resolve(__dirname),
 
+      "vite-plugin-resumable": path.resolve(
+        __dirname,
+        "./packages/vite-plugin-resumable/lib/index.ts"
+      ),
+
       "xania/jsx-runtime": path.resolve(
         __dirname,
         "./packages/view/jsx-runtime.ts"
@@ -37,7 +42,8 @@ export default defineConfig({
         "./packages/view/lib/reactivity/index.ts"
       ),
 
-      xania: path.resolve(__dirname, "./packages/view"),
+      'xania/router': path.resolve(__dirname, "./packages/view/router.ts"),
+      xania: path.resolve(__dirname, "./packages/view/index.ts"),
     },
   },
 });

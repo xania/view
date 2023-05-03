@@ -3,7 +3,7 @@
 const pageDuration = '.3s';
 
 export default {
-  content: ["../**/*.html", "../**/*.tsx"],
+  content: ["./packages/**/*.html", "./packages/**/*.tsx"],
   theme: {
     extend: {},
   },
