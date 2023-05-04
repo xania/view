@@ -1,11 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
-describe('hibernate objects', () => {
-
-  it('bla', ()  => {
+test('hibernate objects', () => {
 
     expect(1).toBe(1);
-  
-  })
   
 });

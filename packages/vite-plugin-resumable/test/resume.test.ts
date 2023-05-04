@@ -1,11 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { sum } from "./module";
 
-describe('hibernate objects', () => {
+test('hibernate objects', () => {
 
-  it('bla', ()  => {
+  console.log('hello world')
+  expect(sum(1, 2)).toBe(3);
 
-    expect(1).toBe(1);
-  
-  })
-  
 });

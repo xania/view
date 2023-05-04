@@ -1,3 +1,0 @@
-[submodule "packages/degit"]
-	path = packages/degit
-	url = https://github.com/xania/degit.git
