@@ -1,6 +1,7 @@
 ﻿import { AddRowMutation, ListMutation } from './mutation';
+import { Computed } from './reactive';
 import { Sandbox } from './sandbox';
-import { Computed, State } from './state';
+import { State } from './state';
 
 export function List<T>(props: ListExpression<T>) {
   return new ListExpression<T>(props.source, props.children);

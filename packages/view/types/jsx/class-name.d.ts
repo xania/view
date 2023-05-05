@@ -4,7 +4,7 @@
     | undefined
     | string
     | string[]
-    | State<string | string[] | null>;
+    | Reactive<string | string[] | null>;
 
   export type ClassInput = ClassInput[] | ClassValue | Promise<ClassValue>;
 }

@@ -1,6 +1,6 @@
 ﻿import { Link, Route, RouteContext } from "xania/router";
 import "./main.css";
-import { Attrs, state } from "xania";
+import { Attrs, useState as state } from "xania";
 import { Layout } from "./layout";
 
 export function ExamplesApp() {
@@ -186,7 +186,7 @@ function Navigation() {
                   class={[
                     "absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
                     ,
-                    profile.toggle(
+                    profile.when(true,
                       "transition ease-out duration-100 transform opacity-100 scale-100",
                       "transition ease-in duration-75 transform opacity-0 scale-95"
                     ),
@@ -230,7 +230,7 @@ function Navigation() {
         </div>
 
         {/* Mobile menu, show/hide based on menu state */}
-        <div class={["sm:hidden", open.false("hidden")]} id="mobile-menu">
+        <div class={["sm:hidden", open.when(false, "hidden", null)]} id="mobile-menu">
           <div class="space-y-1 px-2 pb-3 pt-2">
             {/* Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" */}
             {navlinks.map((link) => (

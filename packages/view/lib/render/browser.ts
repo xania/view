@@ -1,5 +1,6 @@
 ﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
 import { Sandbox, isCommand } from '../reactivity';
+import { EventManager } from '../reactivity/event-manager';
 import { syntheticEvent } from './event';
 
 function namespaceUri(name: string, defaultUri: string | null) {
@@ -9,7 +10,8 @@ function namespaceUri(name: string, defaultUri: string | null) {
 }
 
 export class Browser implements NodeFactory<Element, any> {
-  listeners: Record<string, Sandbox<Element>[]> | undefined;
+  listeners: Record<string, Sandbox[]> | undefined;
+  events: Record<string, [Element, JSX.EventHandler][]> | undefined;
 
   constructor(public container: Element) {}
 
@@ -47,7 +49,29 @@ export class Browser implements NodeFactory<Element, any> {
     return commentNode as any;
   }
 
-  addListener(eventName: string, sandbox: Sandbox<Element>) {
+
+  
+  applyEvent(
+    sandbox: Sandbox,
+    target: Element,
+    eventName: string,
+    eventHandler: JSX.EventHandler
+  ) {
+    const { events } = this;
+    if (events === undefined) {
+      this.events = {
+        [eventName]: [[target, eventHandler]],
+      };
+      this.addListener(eventName, sandbox);
+    } else if (events[eventName]) {
+      events[eventName].push([target, eventHandler]);
+    } else {
+      events[eventName] = [[target, eventHandler]];
+      this.addListener(eventName, sandbox);
+    }
+  }
+
+  addListener(eventName: string, sandbox: Sandbox) {
     const { listeners } = this;
     if (listeners === undefined) {
       this.listeners = {
@@ -80,7 +104,7 @@ export class Browser implements NodeFactory<Element, any> {
         continue;
       }
 
-      const events = sandbox.events;
+      const events = this.events;
       if (!events) {
         continue;
       }

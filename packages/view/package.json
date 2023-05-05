@@ -68,8 +68,10 @@
     "typescript": "^5.0.4",
     "rollup-plugin-ts": "^3.2.0",
     "tsup": "^6.7.0",
-    "vitest": "0.31.0",
     "rollup": "^3.21.4"
+  },
+  "peerDependencies": {
+    "vitest": "0.31.0"
   },
   "repository": {
     "type": "git",

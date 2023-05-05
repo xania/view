@@ -1,11 +1,13 @@
 ﻿import { ElementNode } from '../../factory';
 import { isEventKey } from '../../intrinsic/event-keys';
-import { cflat, cpush } from '../../utils/collection';
-import { OperatorType } from '../../reactivity/operator';
+import { cpush } from '../../utils/collection';
 import { Sandbox } from '../../reactivity/sandbox';
 import { State } from '../../reactivity/state';
+import { EventManager } from '../../reactivity/event-manager';
+import { Append, Reactive } from '../../reactivity';
 
 export function renderAttr(
+  eventManager: EventManager<ElementNode>,
   sandbox: Sandbox,
   element: ElementNode,
   attrName: string,
@@ -21,10 +23,7 @@ export function renderAttr(
       } else if (curr instanceof Array) {
         stack.push(...curr);
       } else if (curr instanceof State) {
-        sandbox.connect(curr.map(split), {
-          type: OperatorType.Append,
-          list: element.classList,
-        });
+        sandbox.track(new Append(curr.map(split), element.classList));
       } else if (curr.constructor === String) {
         for (const item of curr.split(' ')) {
           const cl = item.trim();
@@ -38,7 +37,7 @@ export function renderAttr(
       }
     }
   } else if (isEventKey(attrName)) {
-    sandbox.applyEvent(element, attrName, attrValue);
+    eventManager.applyEvent(sandbox, element as any, attrName, attrValue);
   } else {
     const name = attrName === 'for' ? 'htmlFor' : attrName;
 
@@ -46,21 +45,15 @@ export function renderAttr(
 
     if (attrValue === null || attrValue === undefined) {
       // ignore
-    } else if (attrValue instanceof State) {
+    } else if (attrValue instanceof Reactive) {
       if (isSvg) {
-        sandbox.connect(attrValue, {
-          type: OperatorType.Effect,
-          object: element as any,
-          effect(this: SVGElement, newValue: string) {
-            this.setAttribute(name, newValue);
-          },
-        });
+        sandbox.track(
+          attrValue.effect((newValue: string) => {
+            (element as any as SVGElement).setAttribute(name, newValue);
+          })
+        );
       } else {
-        sandbox.connect(attrValue, {
-          type: OperatorType.Assign,
-          target: element as Record<string, any>,
-          property: name,
-        });
+        sandbox.track(attrValue.assign(element, name as any));
       }
     } else {
       if (isSvg) element.setAttribute(name, attrValue);

@@ -1,5 +1,5 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
-import { Command, Subscribable, Subscription, state } from 'xania';
+import { Command, Subscribable, Subscription, useState } from 'xania';
 import { isEdgeDrag } from './edge-drag';
 import { delay } from '../utils';
 
@@ -9,7 +9,7 @@ export interface WebAppProps<TView = any> {
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
-  const events = state({
+  const events = useState({
     path: location.pathname.split('/').filter((x) => !!x),
     trigger: RouteTrigger.Location,
   });

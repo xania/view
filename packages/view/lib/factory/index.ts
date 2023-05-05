@@ -1,4 +1,6 @@
-﻿interface BaseNode {
+﻿import { EventManager } from "../reactivity/event-manager";
+
+interface BaseNode {
   before(...nodes: ViewNode[]): void;
   remove(): void;
 }
@@ -25,7 +27,7 @@ export interface ElementNode extends BaseNode {
 
 export type ViewNode = TextNode | ElementNode | CommentNode;
 
-export interface NodeFactory<TElement, TNode extends ViewNode> {
+export interface NodeFactory<TElement, TNode extends ViewNode> extends EventManager<TElement> {
   createElement(
     parentElement: TElement | AnchorNode<TNode>,
     name: string

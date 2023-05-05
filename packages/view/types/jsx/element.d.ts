@@ -15,7 +15,7 @@ declare module JSX {
   type IfExpression = import('../../lib/reactivity').IfExpression;
   type ListExpression = import('../../lib/reactivity').ListExpression;
   type Command = import('../../lib/reactivity').Command;
-  type State<T> = import('../../lib/reactivity').State;
+  type Reactive<T> = import('../../lib/reactivity').Reactive;
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Component = import('../../lib').Component;
   type Disposable = { dispose(): any };
@@ -24,7 +24,7 @@ declare module JSX {
 
   type Value =
     | Primitive
-    | State<Primitive>
+    | Reactive<Primitive>
     | DomDescriptor
     | Viewable
     | Attachable

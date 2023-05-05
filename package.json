@@ -2,10 +2,11 @@
   "name": "@xania/workspaces",
   "type": "module",
   "scripts": {
-    "start": "npm start --workspace packages/kitchen-sink",
-    "dev": "npm start --workspace packages/kitchen-sink",
-    "preview": "npm run preview --workspace packages/kitchen-sink",
-    "build": "npm run build --workspace packages/kitchen-sink"
+    "start": "vite",
+    "dev": "vite",
+    "preview": "npm run preview",
+    "build": "npm run build",
+    "lint": "tsc"
   },
   "workspaces": [
     "packages/*"
@@ -19,6 +20,7 @@
     "@types/connect": "^3.4.35",
     "@types/prettier": "^2.7.2",
     "connect": "^3.7.0",
+    "prettier": "^2.8.1",
     "typescript": "^5.0.4",
     "vite": "^4.3.4",
     "vitest": "^0.31.0"

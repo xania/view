@@ -157,7 +157,7 @@ export enum RouteTrigger {
 }
 
 type RouteResult = {
-  sandbox: Sandbox<any>;
+  sandbox: Sandbox;
   appliedPath: Path;
   events: State<RouteEvent>;
 };

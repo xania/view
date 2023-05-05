@@ -1,4 +1,4 @@
-﻿import { state } from "xania";
+﻿import { useState as state } from "xania";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";
 

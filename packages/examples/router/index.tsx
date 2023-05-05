@@ -1,10 +1,10 @@
 ﻿import { Route, Link, RouteContext } from "xania/router";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";
-import { state, Attrs } from "xania";
+import { Attrs, useState } from "xania";
 
 export function App(context: RouteContext) {
-  const current = state<string>();
+  const current = useState<string>();
   return (
     <>
       <Page trigger={context.trigger}>

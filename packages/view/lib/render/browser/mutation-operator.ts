@@ -1,5 +1,4 @@
 ﻿import { cfirst, cwalk } from '../../utils/collection';
-import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { renderStack } from './render-stack';
 import { ListItemState, ListMutation } from '../../reactivity';

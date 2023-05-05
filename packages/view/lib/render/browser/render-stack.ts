@@ -6,8 +6,7 @@ import {
 import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { Component } from '../../component';
-import { Effect, State } from '../../reactivity/state';
-import { OperatorType } from '../../reactivity/operator';
+import { State } from '../../reactivity/state';
 import { cpush } from '../../utils/collection';
 import { isAttachable, isViewable } from '../../render';
 import { isSubscribable, isSubscription } from '../../utils/observable';
@@ -20,7 +19,7 @@ import {
 } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
-import { isCommand } from '../../reactivity';
+import { Effect, Reactive, isCommand } from '../../reactivity';
 import { sapply } from '../../seq';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
@@ -29,7 +28,7 @@ export function renderStack<
   TNode extends ViewNode
 >(
   stack: [
-    Sandbox<TElement>,
+    Sandbox,
     TElement | AnchorNode<TNode>,
     JSX.Children | SequenceIterator,
     boolean
@@ -66,17 +65,13 @@ export function renderStack<
       }
     } else if (tpl instanceof Component) {
       stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
-    } else if (tpl instanceof State) {
+    } else if (tpl instanceof Reactive) {
       const stateNode = factory.createTextNode(currentTarget, '');
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, stateNode);
       }
 
-      sandbox.connect(tpl, {
-        type: OperatorType.Assign,
-        target: stateNode,
-        property: 'data',
-      });
+      sandbox.track(tpl.assign(stateNode, 'data'));
     } else if (tpl instanceof ListExpression) {
       const source = tpl.source;
 
@@ -107,7 +102,7 @@ export function renderStack<
         );
       }
     } else if (tpl instanceof Effect) {
-      sandbox.connect(tpl.state, tpl);
+      sandbox.track(tpl);
     } else if (tpl instanceof Promise) {
       sandbox.promises = cpush(
         sandbox.promises,
@@ -133,6 +128,7 @@ export function renderStack<
               const attrValue = attrs[attrName];
 
               renderAttr(
+                factory,
                 sandbox,
                 element as ElementNode,
                 attrName,
@@ -151,7 +147,14 @@ export function renderStack<
           if (currentTarget instanceof AnchorNode) {
             throw 'cannot set attributes on anchor element';
           }
-          renderAttr(sandbox, currentTarget, tpl.name, tpl.value, isRoot);
+          renderAttr(
+            factory,
+            sandbox,
+            currentTarget,
+            tpl.name,
+            tpl.value,
+            isRoot
+          );
           break;
         default:
           console.log('dom', tpl);

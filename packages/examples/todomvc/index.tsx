@@ -1,14 +1,14 @@
 ﻿import classes from "./index.module.scss";
 import { Link, RouteContext, useRouteContext } from "xania/router";
 import { Page } from "../layout/page";
-import { If, List, State, diff, state } from "xania";
+import { If, List, State, diff, useState } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
 export function App({}: RouteContext) {
   const routeContext = useRouteContext();
 
-  const items = state<TodoItem[]>(
+  const items = useState<TodoItem[]>(
     [
       {
         completed: true,
@@ -203,7 +203,7 @@ interface TodoItem {
 function focusWhen(editing: State<boolean>) {
   return {
     attachTo(node: HTMLInputElement) {
-      return editing.effect((e) => {
+      return editing.effect((editing) => {
         if (editing && node instanceof HTMLInputElement)
           setTimeout(() => {
             node.focus();
