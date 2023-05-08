@@ -1,4 +1,4 @@
-﻿import { AnchorNode, ElementNode, ViewNode } from '../factory';
+﻿import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../factory';
 import { Disposable } from '../render/disposable';
 import { sexpand } from '../seq/expand';
 import { Collection, Subscription, cwalk } from '../utils';
@@ -15,9 +15,9 @@ import {
   Property,
   When,
   Join,
-  Model,
   Append,
   Reactive,
+  Value,
 } from './reactive';
 import { State } from './state';
 
@@ -33,8 +33,7 @@ type Node =
   | Reactive<any>;
 
 // const dirty = Symbol('dirty');
-export class Sandbox<T = any> {
-  private scope: unknown[] = [];
+export class Sandbox implements Record<number | symbol, any> {
   private graph: Node[] = [];
   private indexKey = Symbol('gidx');
   disposed: boolean = false;
@@ -43,15 +42,16 @@ export class Sandbox<T = any> {
   subscriptions?: Collection<Subscription>;
   disposables?: Collection<Disposable>;
   classList?: Collection<string>;
+  [p: number | symbol]: any;
 
-  constructor(model?: T) {
-    this.scope.push(model);
-  }
+  constructor() {}
 
   track(...nodes: Node[]) {
     const { graph, indexKey } = this;
 
     const stack = [];
+
+    const promises: Promise<any>[] = [];
 
     for (const node of nodes as any) {
       if (node[indexKey] !== undefined) {
@@ -77,14 +77,30 @@ export class Sandbox<T = any> {
         stack.push(node);
         nodes.push(node.state);
       } else if (node instanceof State) {
-        stack.push(node);
+        // State is implicitly included in the list of nodes of the graph
+        // and always maps with provided node.key
+
+        const { initial } = node;
+        const scope = this as any;
+
+        (node as any)[indexKey] = node.key;
+        if ((scope as any)[node.key] === undefined) {
+          (scope as any)[node.key] = initial;
+        }
+
+        if (initial instanceof Promise) {
+          promises.push(
+            initial.then((resolved) => {
+              if (initial === scope[node.key]) {
+                scope[node.key] = resolved;
+                return this.reconcile(0);
+              }
+            })
+          );
+        }
       } else if (node instanceof Append) {
         stack.push(node);
         nodes.push(node.state);
-      } else if (node instanceof Model) {
-        (node as any)[indexKey] = 0;
-        // Model is implicitly included in the list of nodes of the graph
-        // and always maps to first element in scope
       } else {
         throw Error('Cannot track unknown node type', {
           cause: node,
@@ -102,34 +118,16 @@ export class Sandbox<T = any> {
       }
     }
 
-    return this.reconcile(startIndex);
+    return this.reconcile(startIndex, promises);
   }
 
-  reconcile(startIndex: number) {
-    const { graph, scope, indexKey } = this;
-    let promises: Promise<any>[] = [];
+  reconcile(startIndex: number, promises: Promise<any>[] = []) {
+    const { graph, indexKey } = this;
+    const scope = this as Record<number | symbol, any>;
     for (let index = startIndex, len = graph.length; index < len; index++) {
       const node = graph[index];
 
-      if (node instanceof State) {
-        const nodeIndex = (node as any)[indexKey];
-        const scopeValue = scope[nodeIndex];
-        if (scopeValue === undefined) {
-          const { initial } = node;
-          scope[nodeIndex] = initial;
-
-          if (initial instanceof Promise) {
-            promises.push(
-              initial.then((resolved) => {
-                if (initial === scope[nodeIndex]) {
-                  scope[nodeIndex] = resolved;
-                  return this.reconcile(nodeIndex + 1);
-                }
-              })
-            );
-          }
-        }
-      } else if (node instanceof Append) {
+      if (node instanceof Append) {
         const { state } = node as any;
         const stateIndex = state[indexKey];
         const scopeValue = scope[stateIndex];
@@ -193,14 +191,14 @@ export class Sandbox<T = any> {
         const inputIndex = inputNode[indexKey];
         const inputValue = scope[inputIndex];
 
-        const computedIndex = index;
-        const scopeValue = scope[computedIndex];
-
         if (inputValue instanceof Promise) {
           promises.push(inputValue);
           // skip pending
         } else if (inputValue !== undefined) {
           const result = node.compute(inputValue);
+
+          const computedIndex = index;
+          const scopeValue = scope[computedIndex];
 
           if (result === scopeValue) {
             // skip no change
@@ -253,15 +251,12 @@ export class Sandbox<T = any> {
       }
     }
 
-    if (promises.length === 1) {
-      return promises[0];
-    } else if (promises.length > 1) {
-      return Promise.all(promises);
-    }
+    return promises;
   }
 
   get(node: Node) {
-    const { scope, indexKey } = this;
+    const { indexKey } = this;
+    const scope = this as Record<number, any>;
     const index = (node as any)[indexKey];
     const scopeValue = scope[index];
 
@@ -274,18 +269,33 @@ export class Sandbox<T = any> {
     }
   }
 
-  update<T>(state: Reactive<T>, value: T) {
-    const { scope, indexKey } = this;
+  update<T>(
+    state: Reactive<T>,
+    newValueOrReduce: Value<T> | ((value?: T) => Value<T>)
+  ): JSX.MaybeArray<Promise<any>> | void {
+    const { indexKey } = this;
+    const scope = this as Record<number | symbol, any>;
 
     const stateIndex = (state as any)[this.indexKey];
-    const currentValue = scope[stateIndex];
-    if (currentValue === value) {
-      // ignore
+    const currentValue = scope[stateIndex] as T | undefined;
+
+    const newValue =
+      newValueOrReduce instanceof Function
+        ? currentValue instanceof Promise
+          ? currentValue.then(newValueOrReduce)
+          : newValueOrReduce(currentValue)
+        : newValueOrReduce;
+
+    if (newValue instanceof Promise) {
+      return newValue.then((resolved) => this.update(state, resolved));
+    }
+
+    if (currentValue === newValue) {
       return;
     }
 
     let node = state;
-    let nodeValue: unknown = value;
+    let nodeValue: unknown = newValue;
     let nodeIndex: number = stateIndex;
     while (node instanceof Property) {
       const parentNode = node.parent as any;
@@ -302,6 +312,11 @@ export class Sandbox<T = any> {
       nodeIndex = parentIndex;
     }
 
+    if (node instanceof State) {
+      scope[node.key] = nodeValue;
+      return this.reconcile(0);
+    }
+
     scope[nodeIndex] = nodeValue;
     return this.reconcile(nodeIndex + 1);
   }
@@ -316,15 +331,15 @@ export class Sandbox<T = any> {
   handleCommand = (
     command: Command,
     currentTarget: ElementNode | AnchorNode<ElementNode>
-  ): Generator<JSX.MaybePromise<Command>> | Command | void => {
+  ): CommandResult => {
     if (this.disposed) {
       return;
     }
 
     if (command instanceof UpdateStateCommand) {
-      this.update(command.state, command.valueOrCompute);
+      return this.update(command.state, command.valueOrCompute);
     } else if (command instanceof DomCommand) {
-      command.handler(currentTarget);
+      return command.handler(currentTarget);
     } else if (command instanceof UpdateCommand) {
       return command.updateFn();
     }
@@ -347,6 +362,13 @@ function removeNode(node: ViewNode | undefined) {
     node.remove();
   }
 }
+
 function unsubscribe(subscription: Subscription) {
   subscription.unsubscribe();
 }
+
+type CommandResult =
+  | Generator<CommandResult>
+  | JSX.MaybeArray<Promise<CommandResult>>
+  | Command
+  | void;

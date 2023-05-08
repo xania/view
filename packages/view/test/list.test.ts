@@ -1,5 +1,6 @@
 ﻿import { describe, expect, it, vi } from 'vitest';
-import { Append, Sandbox, useState } from '../reactivity';
+import { Append, Sandbox, diff, useState } from '../reactivity';
+import { MutationOperator } from '../lib/render/browser/mutation-operator';
 
 describe('list reactivity', () => {
   it('append', () => {
@@ -13,6 +14,41 @@ describe('list reactivity', () => {
     sandbox.update(numbers, [5, 6, 7]);
 
     expect([...target.set]).toEqual([1, 2, 5, 6, 7]);
+  });
+
+  it('list mutations', () => {
+    const state = useState<number[]>([]);
+    const mutations = state.pipe(diff);
+
+    const target: number[] = [];
+
+    const sandbox = new Sandbox();
+    sandbox.track(
+      mutations.effect((mutations) => {
+        for (const m of mutations) {
+          switch (m.type) {
+            case 'reset':
+              target.length = 0;
+              target.push(...m.items);
+              break;
+            case 'add':
+              if (m.itemOrGetter instanceof Function) {
+                target.push(m.itemOrGetter(target));
+              } else {
+                target.push(m.itemOrGetter);
+              }
+              break;
+            default:
+              throw Error('unsupported mutation: ' + m.type);
+          }
+        }
+      })
+    );
+    sandbox.update(state, [1, 2]);
+    sandbox.update(state, [3, 4]);
+    sandbox.update(mutations, [{ type: 'add', itemOrGetter: 5 }]);
+
+    expect(target).toEqual([3, 4, 5]);
   });
 });
 

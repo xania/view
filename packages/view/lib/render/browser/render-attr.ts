@@ -2,7 +2,6 @@
 import { isEventKey } from '../../intrinsic/event-keys';
 import { cpush } from '../../utils/collection';
 import { Sandbox } from '../../reactivity/sandbox';
-import { State } from '../../reactivity/state';
 import { EventManager } from '../../reactivity/event-manager';
 import { Append, Reactive } from '../../reactivity';
 
@@ -22,7 +21,7 @@ export function renderAttr(
         // ignore
       } else if (curr instanceof Array) {
         stack.push(...curr);
-      } else if (curr instanceof State) {
+      } else if (curr instanceof Reactive) {
         sandbox.track(new Append(curr.map(split), element.classList));
       } else if (curr.constructor === String) {
         for (const item of curr.split(' ')) {

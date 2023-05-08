@@ -1,5 +1,5 @@
 ﻿import { AddRowMutation, ListMutation } from './mutation';
-import { Computed } from './reactive';
+import { Computed, Reactive } from './reactive';
 import { Sandbox } from './sandbox';
 import { State } from './state';
 
@@ -9,17 +9,17 @@ export function List<T>(props: ListExpression<T>) {
 
 export class ListExpression<T = any> {
   constructor(
-    public source: ListMutationState<T> | State<T[]> | T[],
-    public children: JSX.Sequence<(item: State<T>) => JSX.Element>
+    public source: ListMutations<T> | Reactive<T[]> | T[],
+    public children: JSX.Sequence<(item: Reactive<T>) => JSX.Element>
   ) {}
 }
 
-export function diff<T>(source: State<T[]>) {
-  return new ListMutationState(source);
+export function diff<T>(source: Reactive<T[]>) {
+  return new ListMutations(source);
 }
 
-export class ListMutationState<T> extends Computed<T[], ListMutation<T>[]> {
-  constructor(public source: State<T[]>) {
+export class ListMutations<T> extends Computed<T[], ListMutation<T>[]> {
+  constructor(public source: Reactive<T[]>) {
     super(source, (items) => [{ type: 'reset', items }]);
   }
 
@@ -28,14 +28,10 @@ export class ListMutationState<T> extends Computed<T[], ListMutation<T>[]> {
   }
 }
 
-export class ListItemState<T> extends State<T> {
+export class ListItem<T> extends Reactive<T> {
   public items: T[] = [];
 
-  constructor(
-    public listState: ListMutationState<T>,
-    public owner: Sandbox,
-    public readonly rowIndexKey: symbol
-  ) {
+  constructor(public listState: ListMutations<T>, public readonly key: symbol) {
     super();
   }
 }

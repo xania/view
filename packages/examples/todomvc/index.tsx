@@ -1,7 +1,7 @@
 ﻿import classes from "./index.module.scss";
 import { Link, RouteContext, useRouteContext } from "xania/router";
 import { Page } from "../layout/page";
-import { If, List, State, diff, useState } from "xania";
+import { If, List, Reactive, State, diff, useState } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
@@ -103,7 +103,7 @@ interface TodoListProps {
 
 interface TodoFooterProps {
   items: State<TodoItem[]>;
-  mode: State<"completed" | "active" | "all">;
+  mode: Reactive<"completed" | "active" | "all">;
 }
 
 function TodoFooter(props: TodoFooterProps) {
@@ -146,7 +146,7 @@ function TodoFooter(props: TodoFooterProps) {
 
 function TodoList(props: TodoListProps) {
   const { items } = props;
-  const editing = state(false);
+  const editing = useState(false);
 
   return (
     <ul class={classes["todo-list"]}>
@@ -176,17 +176,15 @@ function TodoList(props: TodoListProps) {
             <input
               class={classes["edit"]}
               value={row.get("label")}
-              focusout={editing.update(false)}
-              keyup={(evnt) => {
-                if (evnt.key === "Enter") {
+              blur={(evnt) => {
+                  // batch two update commands
                   return [
                     editing.update(false),
                     row.get("label").update(evnt.currentTarget.value),
                   ];
-                }
               }}
             >
-              {focusWhen(editing)}
+               {focusWhen(editing)} 
             </input>
           </li>
         )}

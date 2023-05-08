@@ -1,6 +1,6 @@
 ﻿import { describe, expect, it, vi } from 'vitest';
-import { Model } from '../reactivity';
 import { Sandbox, useState } from '../reactivity';
+import { ready } from '../lib';
 
 describe('reactivity', () => {
   it('assign', () => {
@@ -48,7 +48,7 @@ describe('reactivity', () => {
 
     const state = useState(Promise.resolve(1));
     const addOne = state.map((x) => Promise.resolve(x + 1));
-    await sandbox.track(addOne);
+    await ready(sandbox.track(addOne));
     expect(sandbox.get(addOne)).toBe(2);
   });
 
@@ -120,7 +120,7 @@ describe('reactivity', () => {
     sandbox.update(source, 3);
     // sandbox.update(source, 4);
     // sandbox.update(source, 5);
-    await sandbox.update(source, 2);
+    await ready(sandbox.update(source, 2));
     expect(callCount).toBe(4);
   });
 
@@ -142,52 +142,43 @@ describe('reactivity', () => {
 
     const target: { value?: [number, number] } = {};
 
-    sandbox.track(x.join(y).assign(target, 'value'));
+    sandbox.track(x.join([y]).assign(target, 'value'));
     sandbox.update(y, 2);
 
     expect(target.value).toEqual([1, 2]);
   });
 
   it('join map', () => {
-    const x = useState(1);
-    const y = useState<number>();
+    const x = useState<1>(1);
+    const y = useState<2>(2);
+    const z = useState<3>(3);
     const sandbox = new Sandbox();
 
     const target: { value?: number } = {};
 
-    sandbox.track(x.join(y, (x, y) => x + y).assign(target, 'value'));
+    sandbox.track(
+      x.join([y, z], (x, y, z) => x + y + z).assign(target, 'value')
+    );
     sandbox.update(y, 2);
 
-    expect(target.value).toEqual(3);
+    expect(target.value).toEqual(6);
   });
 
   it('cascade join', () => {
     const x = useState(1);
     const y = useState(2);
-    const z = useState(3);
+    const z = useState(3.0);
     const sandbox = new Sandbox();
 
     const target: { value?: number } = {};
 
     sandbox.track(
       x
-        .join(y)
-        .join(z)
+        .join([y, z])
         .map(([x, y, z]) => x + y + z)
         .assign(target, 'value')
     );
 
     expect(target.value).toEqual(6);
-  });
-
-  it('model', () => {
-    const oneLess = new Model<number>().map((x) => x - 1);
-    const sandbox = new Sandbox(132);
-
-    const target: { value?: number } = {};
-
-    sandbox.track(oneLess.assign(target, 'value'));
-
-    expect(target.value).toEqual(131);
   });
 });

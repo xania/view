@@ -1,4 +1,6 @@
-﻿export type Value<T = any> = T | Promise<T>;
+﻿import { UpdateStateCommand } from './command';
+
+export type Value<T = any> = T | Promise<T>;
 export type Unwrap<T> = T extends Promise<infer U> ? U : T;
 
 export class Reactive<T = any> {
@@ -30,27 +32,30 @@ export class Reactive<T = any> {
     return new When(this, value, tru, fals);
   }
 
-  join<U>(other: Reactive<U>): Join<[T, U]>;
-  join<U, R>(
-    other: Reactive<U>,
-    project: (...args: [T, U]) => R
-  ): Join<[T, U], R>;
-  join(other: Reactive<any>, project?: any): Join<any, any> {
-    const sources: Reactive[] = [];
-    if (this instanceof Join) {
-      sources.push(...this.sources);
-    } else {
-      sources.push(this);
-    }
+  join<U extends [...Reactive<any>[]]>(
+    sources: [...U]
+  ): Join<[T, ...UnwrapSources<U>]>;
+  join<U extends [...Reactive<any>[]], R>(
+    sources: [...U],
+    project: (t: T, ...args: [...UnwrapSources<U>]) => R
+  ): Join<[T, ...[...UnwrapSources<U>]], R>;
+  join(sources: Reactive<any>[], project?: any): Join<any, any> {
+    return new Join([this, ...sources], project);
+  }
 
-    if (other instanceof Join) {
-      sources.push(...other.sources);
-    } else {
-      sources.push(other);
-    }
-    return new Join(sources, project);
+  update(
+    valueOrCompute: UpdateStateCommand<T>['valueOrCompute']
+  ): UpdateStateCommand {
+    return new UpdateStateCommand(this, valueOrCompute);
   }
 }
+
+type UnwrapSources<T extends [...any[]]> = T extends []
+  ? []
+  : T extends [infer H, ...infer Tail]
+  ? [UnwrapSource<H>, ...UnwrapSources<Tail>]
+  : [3, T];
+type UnwrapSource<T> = T extends Reactive<infer U> ? U : never;
 
 type KeyOfType<O, T> = {
   [P in keyof O]: T extends O[P] ? P : never;
@@ -83,8 +88,6 @@ export class Assign<T = any, U = any, P extends KeyOfType<U, T> = any> {
     public property: P
   ) {}
 }
-
-export class Model<T> extends Reactive<T> {}
 
 export class Effect<T = any, R = any> {
   constructor(

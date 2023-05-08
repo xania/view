@@ -1,9 +1,9 @@
 ﻿import { Page } from "../layout/page";
 import { Title } from "../components/heading";
-import { State } from "xania";
+import { useState } from "xania";
 
 export function App() {
-  const count = new State(0);
+  const count = useState(0);
 
   return (
     <>

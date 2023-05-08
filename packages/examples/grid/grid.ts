@@ -1,4 +1,4 @@
-﻿import { sapply } from 'xania';
+﻿import { sapply, useState } from 'xania';
 import { Column } from './column';
 import { DataSource } from './data-source';
 import { List, ListExpression, State } from 'xania';
@@ -23,7 +23,7 @@ export class Grid<T = any> {
     public readonly columns: Column<T>[],
     public windowSize = 10
   ) {
-    this.ds = new State(load(0, windowSize * 2));
+    this.ds = useState(load(0, windowSize * 2));
   }
 
   view() {

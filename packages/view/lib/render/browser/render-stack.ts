@@ -13,8 +13,8 @@ import { isSubscribable, isSubscription } from '../../utils/observable';
 import { isDisposable } from '../../render/disposable';
 import {
   ListExpression,
-  ListItemState,
-  ListMutationState,
+  ListItem,
+  ListMutations,
   diff,
 } from '../../reactivity/list';
 
@@ -91,15 +91,19 @@ export function renderStack<
         const rowIndexKey = Symbol();
 
         const mutations =
-          source instanceof ListMutationState ? source : source.pipe(diff);
+          source instanceof ListMutations ? source : source.pipe(diff);
 
-        const listItem = new ListItemState(mutations, sandbox, rowIndexKey);
+        const listItem = new State();
         const template = sapply(tpl.children, [listItem]) as JSX.Element;
         const anchorElement = AnchorNode.create(listAnchorNode)!;
-        sandbox.connect(
-          mutations,
-          new MutationOperator(template, anchorElement, listItem, factory)
+
+        const operator = new MutationOperator(
+          template,
+          anchorElement,
+          listItem,
+          factory
         );
+        sandbox.track(mutations.effect(operator.effect));
       }
     } else if (tpl instanceof Effect) {
       sandbox.track(tpl);
