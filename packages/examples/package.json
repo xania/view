@@ -8,14 +8,5 @@
   "exports": {
     "import": "./index.tsx"
   },
-  "scripts": {
-    "dev": "npx tailwindcss -i ./main.css -o ./dist/output.css --watch"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.21",
-    "sass": "latest",
-    "tailwindcss": "^3.3.1"
-  },
   "main": "index.tsx"
 }

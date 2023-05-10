@@ -122,7 +122,7 @@ function TodoFooter(props: TodoFooterProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a class="border-solid border-2 border-black">
+          <a class="border-2 border-solid border-black">
             <Link to={"all"} class={classes["selected"]} />
             All
           </a>
@@ -177,14 +177,21 @@ function TodoList(props: TodoListProps) {
               class={classes["edit"]}
               value={row.get("label")}
               blur={(evnt) => {
-                  // batch two update commands
+                return [
+                  editing.update(false),
+                  row.get("label").update(evnt.currentTarget.value),
+                ];
+              }}
+              keyup={(evnt) => {
+                if (evnt.key === "Enter") {
                   return [
                     editing.update(false),
                     row.get("label").update(evnt.currentTarget.value),
                   ];
+                }
               }}
             >
-               {focusWhen(editing)} 
+              {focusWhen(editing)}
             </input>
           </li>
         )}

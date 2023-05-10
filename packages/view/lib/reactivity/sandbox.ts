@@ -44,7 +44,7 @@ export class Sandbox implements Record<number | symbol, any> {
   classList?: Collection<string>;
   [p: number | symbol]: any;
 
-  constructor() {}
+  constructor(public parent?: Sandbox) {}
 
   track(...nodes: Node[]) {
     const { graph, indexKey } = this;
@@ -312,13 +312,22 @@ export class Sandbox implements Record<number | symbol, any> {
       nodeIndex = parentIndex;
     }
 
+    const promises: Promise<any>[] = [];
+    if (this.parent) {
+      this.parent.reconcile(0, promises);
+    }
+
     if (node instanceof State) {
       scope[node.key] = nodeValue;
-      return this.reconcile(0);
+      this.reconcile(0, promises);
+      return promises;
     }
 
     scope[nodeIndex] = nodeValue;
-    return this.reconcile(nodeIndex + 1);
+
+    this.reconcile(nodeIndex + 1, promises);
+
+    return promises;
   }
 
   handleCommands(

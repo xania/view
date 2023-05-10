@@ -98,6 +98,7 @@ export function renderStack<
         const anchorElement = AnchorNode.create(listAnchorNode)!;
 
         const operator = new MutationOperator(
+          sandbox,
           template,
           anchorElement,
           listItem,

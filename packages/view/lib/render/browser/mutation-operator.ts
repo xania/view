@@ -8,6 +8,7 @@ export class MutationOperator<T = any> {
   public readonly sandboxes: Sandbox[] = [];
 
   constructor(
+    public sandbox: Sandbox,
     public template: JSX.Children,
     public currentTarget: ElementNode | AnchorNode<ViewNode>,
     public listItem: State<T[]>,
@@ -32,7 +33,7 @@ export class MutationOperator<T = any> {
     const { key: key } = listItem;
     (item as any)[key] = index;
 
-    const childSandbox = new Sandbox();
+    const childSandbox = new Sandbox(this.sandbox);
     childSandbox[key] = item;
 
     const insertAnchor = this.anchorAt(index);
@@ -90,7 +91,7 @@ export class MutationOperator<T = any> {
       }
       row[key] = sandboxes.length;
 
-      const childSandbox = new Sandbox();
+      const childSandbox = new Sandbox(this.sandbox);
       childSandbox[key] = row;
 
       renderStack(

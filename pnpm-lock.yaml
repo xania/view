@@ -6,9 +6,14 @@ importers:
     specifiers:
       '@types/connect': ^3.4.35
       '@types/prettier': ^2.7.2
+      autoprefixer: ^10.4.14
       connect: ^3.7.0
       examples: workspace:*
+      postcss: ^8.4.21
       prettier: ^2.8.1
+      prettier-plugin-tailwindcss: ^0.2.8
+      sass: latest
+      tailwindcss: ^3.3.2
       typescript: ^5.0.4
       vite: ^4.3.4
       vite-plugin-resumable: workspace:*
@@ -21,11 +26,16 @@ importers:
     devDependencies:
       '@types/connect': 3.4.35
       '@types/prettier': 2.7.2
+      autoprefixer: 10.4.14_postcss@8.4.23
       connect: 3.7.0
+      postcss: 8.4.23
       prettier: 2.8.8
+      prettier-plugin-tailwindcss: 0.2.8_prettier@2.8.8
+      sass: 1.62.1
+      tailwindcss: 3.3.2
       typescript: 5.0.4
-      vite: 4.3.4
-      vitest: 0.31.0
+      vite: 4.3.4_sass@1.62.1
+      vitest: 0.31.0_sass@1.62.1
 
   packages/create:
     specifiers:
@@ -49,16 +59,7 @@ importers:
       typescript: 4.9.5
 
   packages/examples:
-    specifiers:
-      autoprefixer: ^10.4.14
-      postcss: ^8.4.21
-      sass: latest
-      tailwindcss: ^3.3.1
-    devDependencies:
-      autoprefixer: 10.4.14_postcss@8.4.23
-      postcss: 8.4.23
-      sass: 1.62.1
-      tailwindcss: 3.3.2
+    specifiers: {}
 
   packages/headlessui:
     specifiers: {}
@@ -1303,7 +1304,7 @@ packages:
       fs.realpath: 1.0.0
       inflight: 1.0.6
       inherits: 2.0.4
-      minimatch: 3.0.4
+      minimatch: 3.1.2
       once: 1.4.0
       path-is-absolute: 1.0.1
     dev: true
@@ -1556,12 +1557,6 @@ packages:
     resolution: {integrity: sha512-vqiC06CuhBTUdZH+RYl8sFrL096vA45Ok5ISO6sE/Mr1jRbGH4Csnhi8f3wKVl7x8mO4Au7Ir9D3Oyv1VYMFJw==}
     engines: {node: '>=12'}
     dev: false
-
-  /minimatch/3.0.4:
-    resolution: {integrity: sha512-yJHVQEhyqPLUTgt9B83PXu6W3rx4MvvHvSUvToogpwoGDOUQ+yDrR0HRot+yOCdCO7u4hX3pWft6kWBBcqh0UA==}
-    dependencies:
-      brace-expansion: 1.1.11
-    dev: true
 
   /minimatch/3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
@@ -1821,6 +1816,58 @@ packages:
       nanoid: 3.3.6
       picocolors: 1.0.0
       source-map-js: 1.0.2
+    dev: true
+
+  /prettier-plugin-tailwindcss/0.2.8_prettier@2.8.8:
+    resolution: {integrity: sha512-KgPcEnJeIijlMjsA6WwYgRs5rh3/q76oInqtMXBA/EMcamrcYJpyhtRhyX1ayT9hnHlHTuO8sIifHF10WuSDKg==}
+    engines: {node: '>=12.17.0'}
+    peerDependencies:
+      '@ianvs/prettier-plugin-sort-imports': '*'
+      '@prettier/plugin-pug': '*'
+      '@shopify/prettier-plugin-liquid': '*'
+      '@shufo/prettier-plugin-blade': '*'
+      '@trivago/prettier-plugin-sort-imports': '*'
+      prettier: '>=2.2.0'
+      prettier-plugin-astro: '*'
+      prettier-plugin-css-order: '*'
+      prettier-plugin-import-sort: '*'
+      prettier-plugin-jsdoc: '*'
+      prettier-plugin-organize-attributes: '*'
+      prettier-plugin-organize-imports: '*'
+      prettier-plugin-style-order: '*'
+      prettier-plugin-svelte: '*'
+      prettier-plugin-twig-melody: '*'
+    peerDependenciesMeta:
+      '@ianvs/prettier-plugin-sort-imports':
+        optional: true
+      '@prettier/plugin-pug':
+        optional: true
+      '@shopify/prettier-plugin-liquid':
+        optional: true
+      '@shufo/prettier-plugin-blade':
+        optional: true
+      '@trivago/prettier-plugin-sort-imports':
+        optional: true
+      prettier-plugin-astro:
+        optional: true
+      prettier-plugin-css-order:
+        optional: true
+      prettier-plugin-import-sort:
+        optional: true
+      prettier-plugin-jsdoc:
+        optional: true
+      prettier-plugin-organize-attributes:
+        optional: true
+      prettier-plugin-organize-imports:
+        optional: true
+      prettier-plugin-style-order:
+        optional: true
+      prettier-plugin-svelte:
+        optional: true
+      prettier-plugin-twig-melody:
+        optional: true
+    dependencies:
+      prettier: 2.8.8
     dev: true
 
   /prettier/2.8.8:
@@ -2390,7 +2437,7 @@ packages:
     engines: {node: '>= 0.4.0'}
     dev: true
 
-  /vite-node/0.31.0_@types+node@18.16.3:
+  /vite-node/0.31.0_7zguiaeifckn4fzkszc6bvg2km:
     resolution: {integrity: sha512-8x1x1LNuPvE2vIvkSB7c1mApX5oqlgsxzHQesYF7l5n1gKrEmrClIiZuOFbFDQcjLsmcWSwwmrWrcGWm9Fxc/g==}
     engines: {node: '>=v14.18.0'}
     hasBin: true
@@ -2400,7 +2447,7 @@ packages:
       mlly: 1.2.0
       pathe: 1.1.0
       picocolors: 1.0.0
-      vite: 4.3.4_@types+node@18.16.3
+      vite: 4.3.4_7zguiaeifckn4fzkszc6bvg2km
     transitivePeerDependencies:
       - '@types/node'
       - less
@@ -2411,39 +2458,7 @@ packages:
       - terser
     dev: true
 
-  /vite/4.3.4:
-    resolution: {integrity: sha512-f90aqGBoxSFxWph2b39ae2uHAxm5jFBBdnfueNxZAT1FTpM13ccFQExCaKbR2xFW5atowjleRniQ7onjJ22QEg==}
-    engines: {node: ^14.18.0 || >=16.0.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': '>= 14'
-      less: '*'
-      sass: '*'
-      stylus: '*'
-      sugarss: '*'
-      terser: ^5.4.0
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      less:
-        optional: true
-      sass:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-    dependencies:
-      esbuild: 0.17.18
-      postcss: 8.4.23
-      rollup: 3.21.4
-    optionalDependencies:
-      fsevents: 2.3.2
-    dev: true
-
-  /vite/4.3.4_@types+node@18.16.3:
+  /vite/4.3.4_7zguiaeifckn4fzkszc6bvg2km:
     resolution: {integrity: sha512-f90aqGBoxSFxWph2b39ae2uHAxm5jFBBdnfueNxZAT1FTpM13ccFQExCaKbR2xFW5atowjleRniQ7onjJ22QEg==}
     engines: {node: ^14.18.0 || >=16.0.0}
     hasBin: true
@@ -2472,11 +2487,45 @@ packages:
       esbuild: 0.17.18
       postcss: 8.4.23
       rollup: 3.21.4
+      sass: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
 
-  /vitest/0.31.0:
+  /vite/4.3.4_sass@1.62.1:
+    resolution: {integrity: sha512-f90aqGBoxSFxWph2b39ae2uHAxm5jFBBdnfueNxZAT1FTpM13ccFQExCaKbR2xFW5atowjleRniQ7onjJ22QEg==}
+    engines: {node: ^14.18.0 || >=16.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': '>= 14'
+      less: '*'
+      sass: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.4.0
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      less:
+        optional: true
+      sass:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+    dependencies:
+      esbuild: 0.17.18
+      postcss: 8.4.23
+      rollup: 3.21.4
+      sass: 1.62.1
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
+
+  /vitest/0.31.0_sass@1.62.1:
     resolution: {integrity: sha512-JwWJS9p3GU9GxkG7eBSmr4Q4x4bvVBSswaCFf1PBNHiPx00obfhHRJfgHcnI0ffn+NMlIh9QGvG75FlaIBdKGA==}
     engines: {node: '>=v14.18.0'}
     hasBin: true
@@ -2529,8 +2578,8 @@ packages:
       strip-literal: 1.0.1
       tinybench: 2.5.0
       tinypool: 0.5.0
-      vite: 4.3.4_@types+node@18.16.3
-      vite-node: 0.31.0_@types+node@18.16.3
+      vite: 4.3.4_7zguiaeifckn4fzkszc6bvg2km
+      vite-node: 0.31.0_7zguiaeifckn4fzkszc6bvg2km
       why-is-node-running: 2.2.2
     transitivePeerDependencies:
       - less
