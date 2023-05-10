@@ -42,7 +42,7 @@ export default defineConfig({
         "./packages/view/lib/reactivity/index.ts"
       ),
 
-      'xania/router': path.resolve(__dirname, "./packages/view/router.ts"),
+      "xania/router": path.resolve(__dirname, "./packages/view/router.ts"),
       xania: path.resolve(__dirname, "./packages/view/index.ts"),
     },
   },
