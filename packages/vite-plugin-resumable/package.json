@@ -5,7 +5,7 @@
   "typings": "./lib/index.ts",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./lib/index.ts",  
+  "types": "./lib/index.ts",
   "type": "module",
   "exports": {
     ".": {
@@ -41,14 +41,14 @@
     "url": "git+https://github.com/xania/ssr.git"
   },
   "devDependencies": {
-    "@ampproject/remapping": "^2.2.0",
-    "@types/estree": "^1.0.0",
-    "@types/node": "^18.11.18",
+    "@ampproject/remapping": "^2.2.1",
+    "@types/estree": "^1.0.1",
+    "@types/node": "^18.16.6",
     "acorn": "^8.8.2",
     "estree-walker": "^3.0.3",
     "kleur": "^4.1.5",
     "magic-string": "^0.29.0",
-    "tsup": "^6.6.3"
+    "tsup": "^6.7.0"
   },
   "peepDependencies": {
     "tslib": "^2.4.1",

@@ -1,9 +1,9 @@
 ﻿import { Action } from "./action";
 import { ActionContext } from "./action-context";
-import degit from "degit";
 import { resolve } from "path";
 import fs from "fs";
 import rif from "replace-in-file";
+import degit from "../degit";
 
 export function subgit(
   source: string,

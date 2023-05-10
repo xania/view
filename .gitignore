@@ -9,3 +9,4 @@ packages/view/dist/
 .netlify
 packages/view/router/
 packages/kitchen-sink/dist/
+dist
