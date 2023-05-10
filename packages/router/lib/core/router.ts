@@ -112,6 +112,7 @@ class ChildRouteContext implements RouteContext {
 
   constructor(
     parent: RouteContext,
+    public params: RouteContext['params'],
     public trigger: RouteTrigger,
     public childPath: Path,
     public events: State<RouteEvent>
@@ -223,6 +224,7 @@ class RouteHandler {
 
       const childRouteContext = new ChildRouteContext(
         context,
+        segment.params,
         route.trigger,
         appliedPath,
         routeEvents
