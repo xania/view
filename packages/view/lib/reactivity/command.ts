@@ -1,5 +1,5 @@
 ﻿import { ElementNode, AnchorNode } from '../factory';
-import { State } from './state';
+import { Reactive } from './reactive';
 
 export type Command = UpdateCommand | UpdateStateCommand | DomCommand;
 
@@ -12,7 +12,7 @@ export function isCommand(value: any): value is Command {
 
 export class UpdateStateCommand<T = any> {
   constructor(
-    public state: State<T>,
+    public state: Reactive<T>,
     public valueOrCompute: JSX.MaybePromise<T> | ((x: T) => JSX.MaybePromise<T>)
   ) {}
 }

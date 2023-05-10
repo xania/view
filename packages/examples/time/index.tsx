@@ -1,4 +1,4 @@
-﻿import { state, update } from "xania";
+﻿import { update, useState } from "xania";
 import { Page } from "../layout/page";
 import { delay } from "../utils";
 
@@ -11,8 +11,8 @@ function timeToString() {
 }
 
 export function App() {
-  const time = state(timeToString());
-  const count = state(100);
+  const time = useState(timeToString());
+  const count = useState(100);
 
   return (
     <>

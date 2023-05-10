@@ -29,6 +29,8 @@ interface RouterProps<TView> {
   loader?: any;
 }
 
+const routeContext = useRouteContext();
+
 function onClick(
   [linkPath, context]: [Path, RouteContext],
   e: JSX.EventContext<Event, Element>
@@ -38,8 +40,6 @@ function onClick(
   setTimeout(() => {
     pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
   }, 20);
-
-  const routeContext = useRouteContext();
 
   return delay(
     [
@@ -157,7 +157,7 @@ export enum RouteTrigger {
 }
 
 type RouteResult = {
-  sandbox: Sandbox<any>;
+  sandbox: Sandbox;
   appliedPath: Path;
   events: State<RouteEvent>;
 };
@@ -188,7 +188,7 @@ class RouteHandler {
             path: route.path.slice(prevResult.appliedPath.length),
           });
 
-          prevResult.sandbox.update(useRouteContext().transition, (previous) =>
+          prevResult.sandbox.update(routeContext.transition, (previous) =>
             route.trigger === RouteTrigger.EdgeDrag
               ? 'none'
               : prevResult.appliedPath.length === route.path.length
@@ -236,16 +236,20 @@ class RouteHandler {
       );
 
       const sandbox = render(view, target);
-      sandbox.update(routeEvents, route);
 
       sandbox.update(
-        useRouteContext().transition,
+        routeContext.transition,
         route.trigger === RouteTrigger.EdgeDrag
           ? 'none'
           : remainingPath.length === 0
           ? 'initialize'
           : 'none'
       );
+
+      sandbox.update(routeEvents, {
+        trigger: route.trigger,
+        path: remainingPath,
+      });
 
       context.disposables = cpush(context.disposables, sandbox);
       sandbox.disposables = cpush(sandbox.disposables, childRouteContext);

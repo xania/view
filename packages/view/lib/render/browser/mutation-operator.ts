@@ -1,18 +1,17 @@
 ﻿import { cfirst, cwalk } from '../../utils/collection';
-import { OperatorType } from '../../reactivity/operator';
 import { Sandbox } from '../../reactivity/sandbox';
 import { renderStack } from './render-stack';
-import { ListItemState, ListMutation } from '../../reactivity';
+import { ListMutation, State } from '../../reactivity';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
 export class MutationOperator<T = any> {
-  public readonly type = OperatorType.Effect;
   public readonly sandboxes: Sandbox[] = [];
 
   constructor(
+    public sandbox: Sandbox,
     public template: JSX.Children,
     public currentTarget: ElementNode | AnchorNode<ViewNode>,
-    public listItem: ListItemState<T>,
+    public listItem: State<T[]>,
     public factory: NodeFactory<ElementNode, ViewNode>
   ) {}
 
@@ -31,10 +30,12 @@ export class MutationOperator<T = any> {
 
   insert(item: T, index: number) {
     const { sandboxes, listItem } = this;
-    const { rowIndexKey } = listItem;
-    (item as any)[rowIndexKey] = index;
+    const { key: key } = listItem;
+    (item as any)[key] = index;
 
-    const childSandbox = new Sandbox(this.factory, Symbol(index), item);
+    const childSandbox = new Sandbox(this.sandbox);
+    childSandbox[key] = item;
+
     const insertAnchor = this.anchorAt(index);
     renderStack(
       [[childSandbox, insertAnchor, this.template, true]],
@@ -44,14 +45,14 @@ export class MutationOperator<T = any> {
     for (let i = sandboxes.length; i > index; i--) {
       const preceding = sandboxes[i - 1];
       sandboxes[i] = preceding;
-      preceding.model![rowIndexKey] = i;
+      preceding[key]![key] = i;
     }
     sandboxes[index] = childSandbox;
   }
 
   move(from: number, to: number) {
     const { sandboxes, listItem } = this;
-    const { rowIndexKey } = listItem;
+    const { key: key } = listItem;
     const subject = sandboxes[from];
     const toAnchorNode = this.anchorAt(to);
     if (toAnchorNode) {
@@ -65,36 +66,33 @@ export class MutationOperator<T = any> {
     if (to > from) {
       for (let i = from; i < to; i++) {
         const succeeding = sandboxes[i + 1];
-        succeeding.model![rowIndexKey] = i;
+        succeeding[key]![key] = i;
         sandboxes[i] = succeeding;
       }
     } else {
       for (let i = from; i > to; i--) {
         const preceding = sandboxes[i - 1];
-        preceding.model![rowIndexKey] = i;
+        preceding[key]![key] = i;
         sandboxes[i] = preceding;
       }
     }
-    subject.model![rowIndexKey] = to;
+    subject[key]![key] = to;
     sandboxes[to] = subject;
   }
 
   append(items: T[]) {
     const { sandboxes, currentTarget, template, listItem } = this;
-    const { rowIndexKey } = listItem;
+    const { key: key } = listItem;
 
     for (let i = 0; i < items.length; i++) {
       const row = items[i] as any;
       if (row === null || row === undefined) {
         continue;
       }
-      row[rowIndexKey] = sandboxes.length;
+      row[key] = sandboxes.length;
 
-      const childSandbox = new Sandbox(
-        this.factory,
-        Symbol(sandboxes.length.toString()),
-        row
-      );
+      const childSandbox = new Sandbox(this.sandbox);
+      childSandbox[key] = row;
 
       renderStack(
         [[childSandbox, currentTarget, template, true]],
@@ -104,9 +102,9 @@ export class MutationOperator<T = any> {
     }
   }
 
-  effect(mutations: ListMutation<any>[]): any {
+  effect = (mutations: ListMutation<any>[]): any => {
     const { sandboxes, listItem } = this;
-    const { items } = listItem;
+    // const { items } = listItem;
 
     for (let i = 0; i < mutations.length; i++) {
       const mut = mutations[i];
@@ -114,15 +112,15 @@ export class MutationOperator<T = any> {
         case 'remove':
           sandboxes[mut.index].dispose();
           sandboxes.splice(mut.index, 1);
-          items.splice(mut.index, 1);
+          // items.splice(mut.index, 1);
           break;
         case 'insert':
           this.insert(mut.item, mut.index);
-          items.splice(mut.index, 0, mut.item);
+          // items.splice(mut.index, 0, mut.item);
           break;
         case 'append':
           this.append(mut.items);
-          items.push(...mut.items);
+          // items.push(...mut.items);
           break;
         case 'move':
           const { from, to } = mut;
@@ -131,21 +129,21 @@ export class MutationOperator<T = any> {
           }
           this.move(from, to);
 
-          const subject = items[from];
-          if (to > from) {
-            for (let i = from; i < to; i++) {
-              items[i] = items![i + 1];
-            }
-          } else {
-            for (let i = from; i > to; i--) {
-              items[i] = items[i - 1];
-            }
-          }
-          items[to] = subject;
+          // const subject = items[from];
+          // if (to > from) {
+          //   for (let i = from; i < to; i++) {
+          //     items[i] = items![i + 1];
+          //   }
+          // } else {
+          //   for (let i = from; i > to; i--) {
+          //     items[i] = items[i - 1];
+          //   }
+          // }
+          // items[to] = subject;
 
           break;
         case 'reset':
-          listItem.items = mut.items;
+          // listItem.items = mut.items;
           this.reset(mut.items);
           break;
         default:
@@ -153,25 +151,25 @@ export class MutationOperator<T = any> {
           break;
       }
     }
-  }
+  };
 
   reset(items: T[]) {
     const { sandboxes, listItem } = this;
-    const { rowIndexKey } = listItem;
+    const { key: key } = listItem;
     if (sandboxes.length === 0) {
       this.append(items);
     } else {
       for (let j = 0; j < items.length; j++) {
         const newRow = items[j] as any;
         if (newRow !== null && newRow !== undefined) {
-          const currentRowIndex = newRow[rowIndexKey];
+          const currentRowIndex = newRow[key];
           if (currentRowIndex !== undefined) {
-            if (sandboxes[currentRowIndex].model !== newRow) {
-              sandboxes[currentRowIndex].model = newRow;
-              listItem.items[currentRowIndex] = newRow;
-              sandboxes[currentRowIndex].refresh(listItem);
+            if (sandboxes[currentRowIndex][key] !== newRow) {
+              sandboxes[currentRowIndex][key] = newRow;
+              // listItem.items[currentRowIndex] = newRow;
+              sandboxes[currentRowIndex].reconcile(0);
             }
-            newRow[rowIndexKey] = -currentRowIndex - 1; // inverse flag
+            newRow[key] = -currentRowIndex - 1; // inverse flag
           }
         }
       }
@@ -180,14 +178,14 @@ export class MutationOperator<T = any> {
       const mutations: ListMutation<any>[] = [];
       for (let i = 0, len = sandboxes.length; i < len; i++) {
         const sandbox = sandboxes[i];
-        const previousRow = sandbox.model!;
-        const currentRowIndex = previousRow[rowIndexKey];
+        const previousRow = sandbox[key]!;
+        const currentRowIndex = previousRow[key];
         if (currentRowIndex >= 0) {
           // if positive means row is not contained in new rows.
           sandbox.dispose();
           deleteShift++;
         } else {
-          previousRow[rowIndexKey] = i - deleteShift;
+          previousRow[key] = i - deleteShift;
           if (deleteShift > 0) sandboxes[i - deleteShift] = sandbox;
         }
       }
@@ -207,7 +205,7 @@ export class MutationOperator<T = any> {
           skipShift++;
           continue;
         }
-        const prevRowIndex = row[rowIndexKey];
+        const prevRowIndex = row[key];
         if (prevRowIndex === undefined) {
           // insert at (${rowIndex});
           this.insert(row, rowIndex);

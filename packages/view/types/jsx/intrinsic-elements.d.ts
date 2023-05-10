@@ -13,7 +13,7 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T> | State<T>;
+  type AttrValue<T> = T | Promise<T> | Reactive<T>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;

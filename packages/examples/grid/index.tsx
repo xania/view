@@ -2,6 +2,7 @@
 import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";
+import { Attrs } from "xania";
 
 const dataLength = 50000;
 
@@ -53,7 +54,7 @@ export function App() {
     <Page>
       <Title>Grid</Title>
       <div
-        class="border-0 p-0 h-full overflow-auto"
+        class="border-0 m-5 h-full overflow-auto dark:bg-gray-300"
         scroll={(e) => grid.updateWindow(e.currentTarget.scrollTop, rowHeight)}
       >
         <table
@@ -71,7 +72,7 @@ export function App() {
               <td></td>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="dark:bg-white">
             <tr>
               <td
                 class="p-0"

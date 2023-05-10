@@ -1,4 +1,4 @@
 ﻿import { render } from "xania";
 import { ExamplesApp } from "examples";
 
-render(<ExamplesApp />, document.getElementById("app"));
+render(<ExamplesApp />, document.getElementById("app")!);

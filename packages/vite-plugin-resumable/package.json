@@ -3,10 +3,10 @@
   "version": "0.1.9",
   "license": "MIT",
   "typings": "./lib/index.ts",
-  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./lib/index.ts",
+  "types": "./lib/index.ts",  
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -45,10 +45,10 @@
     "@types/estree": "^1.0.0",
     "@types/node": "^18.11.18",
     "acorn": "^8.8.2",
+    "estree-walker": "^3.0.3",
     "kleur": "^4.1.5",
     "magic-string": "^0.29.0",
-    "tsup": "^6.6.3",
-    "vitest": "^0.28.5"
+    "tsup": "^6.6.3"
   },
   "peepDependencies": {
     "tslib": "^2.4.1",

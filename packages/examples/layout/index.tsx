@@ -1,4 +1,4 @@
-﻿import { Attrs, state } from "xania";
+﻿import { Attrs, useState  as state } from "xania";
 import { Navigation } from "./nav";
 import { MainMenu } from "./mainmenu";
 import { WebApp } from "xania/router";
@@ -20,7 +20,7 @@ export function Layout(props: { children: JSX.Children }) {
         id="logo-sidebar"
         class={[
           "fixed left-0 top-0 z-40 h-screen w-64 bg-white pt-20 dark:bg-gray-800 ",
-          drawerOpen.toggle(
+          drawerOpen.when(true, 
             classes["drawer--activate"],
             classes["drawer--deactivate"]
           ),
@@ -37,7 +37,7 @@ export function Layout(props: { children: JSX.Children }) {
         drawer-backdrop=""
         class={[
           "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 ease-linear",
-          drawerOpen.false("hidden"),
+          drawerOpen.when(false, "hidden", null),
         ]}
       ></div>
 

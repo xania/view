@@ -1,13 +1,14 @@
 ﻿import classes from "./index.module.scss";
-import { Link, RouteContext } from "xania/router";
+import { Link, RouteContext, useRouteContext } from "xania/router";
 import { Page } from "../layout/page";
-import { If, List, State, diff, state } from "xania";
+import { If, List, Reactive, State, diff, useState } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
 export function App({}: RouteContext) {
-  const mode = state<Mode>();
-  const items = state<TodoItem[]>(
+  const routeContext = useRouteContext();
+
+  const items = useState<TodoItem[]>(
     [
       {
         completed: true,
@@ -21,10 +22,11 @@ export function App({}: RouteContext) {
     // completed
   );
 
+  const mode = routeContext.events.map((e) => (e.path[0] as Mode) ?? "all");
+
   return (
     <Page class="flex-auto">
-      {/* {remaining.map((path) => {
-        const newMode = path[0] ?? "all";
+      {/* {mode.map(newMode => {
         switch (newMode) {
           case "completed":
             return [mode.update("completed"), items.filter(completed)];
@@ -101,7 +103,7 @@ interface TodoListProps {
 
 interface TodoFooterProps {
   items: State<TodoItem[]>;
-  mode: State<"completed" | "active" | "all">;
+  mode: Reactive<"completed" | "active" | "all">;
 }
 
 function TodoFooter(props: TodoFooterProps) {
@@ -120,7 +122,7 @@ function TodoFooter(props: TodoFooterProps) {
       </span>
       <ul class={classes["filters"]}>
         <li>
-          <a class="border-solid border-2 border-black">
+          <a class="border-2 border-solid border-black">
             <Link to={"all"} class={classes["selected"]} />
             All
           </a>
@@ -144,7 +146,7 @@ function TodoFooter(props: TodoFooterProps) {
 
 function TodoList(props: TodoListProps) {
   const { items } = props;
-  const editing = state(false);
+  const editing = useState(false);
 
   return (
     <ul class={classes["todo-list"]}>
@@ -174,7 +176,12 @@ function TodoList(props: TodoListProps) {
             <input
               class={classes["edit"]}
               value={row.get("label")}
-              focusout={editing.update(false)}
+              blur={(evnt) => {
+                return [
+                  editing.update(false),
+                  row.get("label").update(evnt.currentTarget.value),
+                ];
+              }}
               keyup={(evnt) => {
                 if (evnt.key === "Enter") {
                   return [
@@ -201,7 +208,7 @@ interface TodoItem {
 function focusWhen(editing: State<boolean>) {
   return {
     attachTo(node: HTMLInputElement) {
-      return editing.effect((e) => {
+      return editing.effect((editing) => {
         if (editing && node instanceof HTMLInputElement)
           setTimeout(() => {
             node.focus();

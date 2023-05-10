@@ -1,4 +1,4 @@
-﻿{
+{
   "compilerOptions": {
     "target": "ESNext",
     "useDefineForClassFields": true,
@@ -17,10 +17,6 @@
     "sourceMap": true,
     "noUnusedLocals": false,
     "noUnusedParameters": true,
-    "allowUnusedLabels": true,
-
-    "jsx": "react-jsx",
-    "jsxImportSource": "xania",
-
+    "allowUnusedLabels": true
   }
 }

@@ -42,7 +42,10 @@ export class TestElementNode implements ElementNode {
   }
 }
 
-export class FactoryStub implements NodeFactory {
+export class FactoryStub implements NodeFactory<any, any> {
+  createElement(parentElement: any, name: string) {
+    throw new Error('Method not implemented.');
+  }
   createElementNS(namespaceUri: string, name: string): ElementNode {
     return new TestElementNode(namespaceUri, name);
   }

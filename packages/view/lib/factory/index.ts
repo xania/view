@@ -1,4 +1,6 @@
-﻿interface BaseNode {
+﻿import { Sandbox } from '../reactivity';
+
+interface BaseNode {
   before(...nodes: ViewNode[]): void;
   remove(): void;
 }
@@ -38,6 +40,13 @@ export interface NodeFactory<TElement, TNode extends ViewNode> {
     parentElement: TElement | AnchorNode<TNode>,
     data: string
   ): CommentNode;
+
+  applyEvent(
+    sandbox: Sandbox,
+    target: TElement,
+    eventName: string,
+    eventHandler: JSX.EventHandler
+  ): void;
 }
 
 interface ClassList {

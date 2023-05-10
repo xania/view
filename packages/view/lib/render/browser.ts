@@ -1,5 +1,6 @@
 ﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
 import { Sandbox, isCommand } from '../reactivity';
+import { EventManager } from '../reactivity/event-manager';
 import { syntheticEvent } from './event';
 
 function namespaceUri(name: string, defaultUri: string | null) {
@@ -9,7 +10,7 @@ function namespaceUri(name: string, defaultUri: string | null) {
 }
 
 export class Browser implements NodeFactory<Element, any> {
-  listeners: Record<string, Sandbox<Element>[]> | undefined;
+  events: Record<string, [Element, JSX.EventHandler, Sandbox][]> | undefined;
 
   constructor(public container: Element) {}
 
@@ -47,50 +48,47 @@ export class Browser implements NodeFactory<Element, any> {
     return commentNode as any;
   }
 
-  addListener(eventName: string, sandbox: Sandbox<Element>) {
-    const { listeners } = this;
-    if (listeners === undefined) {
-      this.listeners = {
-        [eventName]: [sandbox],
+  applyEvent(
+    sandbox: Sandbox,
+    target: Element,
+    eventName: string,
+    eventHandler: JSX.EventHandler
+  ) {
+    const { events } = this;
+    if (events === undefined) {
+      this.events = {
+        [eventName]: [[target, eventHandler, sandbox]],
       };
       this.container.addEventListener(eventName, this, true);
-    } else if (listeners[eventName]) {
-      listeners[eventName].push(sandbox);
+    } else if (events[eventName]) {
+      events[eventName].push([target, eventHandler, sandbox]);
     } else {
-      listeners[eventName] = [sandbox];
+      events[eventName] = [[target, eventHandler, sandbox]];
       this.container.addEventListener(eventName, this, true);
     }
   }
 
   async handleEvent(originalEvent: Event) {
-    const { listeners } = this;
-    if (!listeners) {
-      return;
-    }
-
     const eventName = originalEvent.type;
-    const sandboxes = listeners[eventName];
 
-    if (!sandboxes) {
-      return;
-    }
-    for (const sandbox of sandboxes) {
-      if (sandbox.disposed) {
-        // TODO remove disposed from list
-        continue;
-      }
-
-      const events = sandbox.events;
+    {
+      const events = this.events;
       if (!events) {
-        continue;
+        return;
       }
       const delegates = events[eventName];
       if (!delegates) {
-        continue;
+        return;
       }
 
       for (const dlg of delegates) {
-        const [target, eventHandler] = dlg as any;
+        const [target, eventHandler, sandbox] = dlg as any;
+
+        if (sandbox.disposed) {
+          // TODO remove disposed from list
+          continue;
+        }
+
         if (target.contains(originalEvent.target as any)) {
           let eventObj: any = null;
 

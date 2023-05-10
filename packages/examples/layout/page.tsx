@@ -1,7 +1,7 @@
 ﻿import classes from "./page.module.scss";
 
-import { AnchorNode, Attachable, Attrs, state } from "xania";
-import { RouteTrigger, useRouteContext, routeEvents } from "xania/router";
+import { AnchorNode, Attachable, Attrs } from "xania";
+import { RouteTrigger, useRouteContext } from "xania/router";
 
 interface PageProps {
   class?: string;
@@ -18,7 +18,7 @@ export function Page(props: PageProps) {
       <Attrs
         class={routeContext.transition.map((b) => classes[`page--${b}`])}
       />
-      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 dark:text-white bg-white dark:bg-gray-700">
+      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 bg-white dark:bg-gray-700">
         {props.children}
       </div>
 

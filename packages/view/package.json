@@ -61,14 +61,17 @@
   },
   "author": "Ibrahim ben Salah",
   "devDependencies": {
-    "rollup-plugin-dts": "5.2.0",
-    "rollup-plugin-typescript": "1.0.1",
+    "rollup-plugin-dts": "^5.3.0",
+    "rollup-plugin-typescript": "^1.0.1",
     "sass": "^1.57.1",
     "tslib": "^2.4.1",
     "typescript": "^5.0.4",
     "rollup-plugin-ts": "^3.2.0",
     "tsup": "^6.7.0",
-    "vitest": "^0.30.1"
+    "rollup": "^3.21.4"
+  },
+  "peerDependencies": {
+    "vitest": "0.31.0"
   },
   "repository": {
     "type": "git",
