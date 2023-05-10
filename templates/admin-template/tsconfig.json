@@ -12,7 +12,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "allowSyntheticDefaultImports": true,
-    "composite": true
-  },
-  "references": [{ "path": "./tsconfig.xania.json" }]
+
+    "jsx": "react-jsx",
+    "jsxImportSource": "xania"
+  }
 }

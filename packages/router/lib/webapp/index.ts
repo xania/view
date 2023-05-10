@@ -20,7 +20,7 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
     observeLocations(),
     WindowEvent({
       type: 'popstate',
-      handler(e) {
+      handler() {
         const newRoute: RouteEvent = {
           trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
           path: location.pathname.split('/').filter((x) => !!x),

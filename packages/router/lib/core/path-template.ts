@@ -51,18 +51,18 @@ function fromString(segment: string): SegmentMatcher {
   }
 }
 
-function fromRegex(segment: string): SegmentMatcher {
-  return () => ({ length: 0 });
-  // if (segment.startsWith(':')) {
-  //   const propName = segment.substring(1);
-  //   return function (s: string) {
-  //     return {
-  //       [propName]: s,
-  //     };
-  //   };
-  // } else {
-  //   return function (s: string) {
-  //     return s == segment;
-  //   };
-  // }
-}
+// function fromRegex(segment: string): SegmentMatcher {
+//   return () => ({ length: 0 });
+//   // if (segment.startsWith(':')) {
+//   //   const propName = segment.substring(1);
+//   //   return function (s: string) {
+//   //     return {
+//   //       [propName]: s,
+//   //     };
+//   //   };
+//   // } else {
+//   //   return function (s: string) {
+//   //     return s == segment;
+//   //   };
+//   // }
+// }

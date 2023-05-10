@@ -16,7 +16,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "xania": "latest"
+    "xania": "latest",
+    "examples": "workspace:*"
   },
   "devDependencies": {
     "vite": "latest",
