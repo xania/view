@@ -1,12 +1,11 @@
-﻿import { ElementNode } from '../../factory';
+﻿import { ElementNode, NodeFactory } from '../../factory';
 import { isEventKey } from '../../intrinsic/event-keys';
 import { cpush } from '../../utils/collection';
 import { Sandbox } from '../../reactivity/sandbox';
-import { EventManager } from '../../reactivity/event-manager';
 import { Append, Reactive } from '../../reactivity';
 
 export function renderAttr(
-  eventManager: EventManager<ElementNode>,
+  eventManager: NodeFactory<any, any>,
   sandbox: Sandbox,
   element: ElementNode,
   attrName: string,

@@ -4,8 +4,8 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "preview": "npm run preview",
-    "build": "npm run build",
+    "preview": "vite preview",
+    "build": "vite build",
     "lint": "tsc"
   },
   "workspaces": [

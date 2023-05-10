@@ -221,8 +221,6 @@ class RouteHandler {
       const appliedPath = route.path.slice(0, segment.length);
       const remainingPath = route.path.slice(segment.length);
 
-      console.log(appliedPath, remainingPath);
-
       const childRouteContext = new ChildRouteContext(
         context,
         route.trigger,

@@ -1,4 +1,4 @@
-﻿import { EventManager } from "../reactivity/event-manager";
+﻿import { Sandbox } from '../reactivity';
 
 interface BaseNode {
   before(...nodes: ViewNode[]): void;
@@ -27,7 +27,7 @@ export interface ElementNode extends BaseNode {
 
 export type ViewNode = TextNode | ElementNode | CommentNode;
 
-export interface NodeFactory<TElement, TNode extends ViewNode> extends EventManager<TElement> {
+export interface NodeFactory<TElement, TNode extends ViewNode> {
   createElement(
     parentElement: TElement | AnchorNode<TNode>,
     name: string
@@ -40,6 +40,13 @@ export interface NodeFactory<TElement, TNode extends ViewNode> extends EventMana
     parentElement: TElement | AnchorNode<TNode>,
     data: string
   ): CommentNode;
+
+  applyEvent(
+    sandbox: Sandbox,
+    target: TElement,
+    eventName: string,
+    eventHandler: JSX.EventHandler
+  ): void;
 }
 
 interface ClassList {
