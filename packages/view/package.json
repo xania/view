@@ -1,6 +1,6 @@
 {
   "name": "xania",
-  "version": "0.5.39",
+  "version": "0.5.40",
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
@@ -49,7 +49,7 @@
     "build": "npx vite build && npm run tsup",
     "tsup": "tsup",
     "clean": "npx rimraf dist",
-    "prepublish": "npm version patch && npm run build",
+    "prepublishOnly": "npm run clean && npm run build",
     "lint": "tsc"
   },
   "prettier": {
@@ -68,9 +68,7 @@
     "sass": "^1.62.1",
     "tslib": "^2.5.0",
     "tsup": "^6.7.0",
-    "typescript": "^5.0.4"
-  },
-  "peerDependencies": {
+    "typescript": "^5.0.4",
     "vitest": "0.31.0"
   },
   "repository": {
