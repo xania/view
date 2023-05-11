@@ -2,6 +2,9 @@
 import { Action } from "./actions/action";
 import { npmInstall } from "./actions/npm";
 import { subgit } from "./actions/subgit";
+import { fetchJson } from "./utils/fetch-json";
+import { Agent } from "http";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 export async function input() {
   const name = await enquirer.input({
@@ -30,9 +33,15 @@ export async function initProject(
   type GithubContents = [
     { name: string; path: string; git_url: string; type: "dir" | "file" }
   ];
-  const templates: GithubContents = await fetch(
-    "https://api.github.com/repos/xania/view/contents/templates"
-  ).then((e) => e.json());
+
+  const templates: GithubContents = await fetchJson({
+    hostname: "api.github.com",
+    path: `/repos/xania/view/contents/templates`,
+    method: "GET",
+    headers: {
+      "User-Agent": "xania-cli",
+    },
+  });
 
   const choices = templates
     .filter((tpl) => tpl.type === "dir")
