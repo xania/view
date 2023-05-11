@@ -6,6 +6,7 @@ import { Action } from "./actions/action";
 import { npmInstall } from "./actions/npm";
 import { select } from "enquirer";
 import { run } from "./run";
+import https from "https";
 
 checkVersion().then((ok) => {
   if (ok)
@@ -37,9 +38,7 @@ async function checkVersion() {
     const packageDir = __filename.slice(0, idx + packageName.length);
 
     const current = require(packageDir + "/package.json");
-    const latest = await fetch(
-      "https://registry.npmjs.org/create-xania/latest"
-    ).then((e) => e.json());
+    const latest = await fetchJson("create-xania/latest");
 
     if (latest.version !== current.version) {
       const updateToLatest = await select({
@@ -58,4 +57,40 @@ async function checkVersion() {
     }
   }
   return true;
+}
+
+function fetchJson(path: string) {
+  return new Promise<any>((resolve, reject) => {
+    const requestOptions = {
+      hostname: "registry.npmjs.org",
+      path: `/${path}`,
+      method: "GET",
+    };
+
+    // Collect response data
+    const req = https.request(requestOptions, (res) => {
+      let data = "";
+
+      // Collect response data
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      // Process response data
+      res.on("end", () => {
+        try {
+          const jsonData = JSON.parse(data);
+          resolve(jsonData);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
+    // Handle any errors
+    req.on("error", reject);
+
+    // Send the request
+    req.end();
+  });
 }
