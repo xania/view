@@ -23,7 +23,7 @@ export class UpdateCommand {
     public updateFn: (
       this: UpdateCommand,
       scope: { get<T>(node: Reactive<T>): Value<T> }
-    ) => Generator<JSX.MaybePromise<Command>> | Command
+    ) => Generator<JSX.MaybePromise<Command>> | JSX.MaybePromise<Command | void>
   ) {}
 }
 
