@@ -1,5 +1,6 @@
 ﻿import { ElementNode, AnchorNode } from '../factory';
-import { Reactive } from './reactive';
+import { Reactive, Value } from './reactive';
+import { Sandbox } from './sandbox';
 
 export type Command = UpdateCommand | UpdateStateCommand | DomCommand;
 
@@ -20,10 +21,8 @@ export class UpdateStateCommand<T = any> {
 export class UpdateCommand {
   constructor(
     public updateFn: (
-      this: UpdateCommand
-      // scope: {
-      //   get<T>(s: State<T>): T | undefined;
-      // }
+      this: UpdateCommand,
+      scope: { get<T>(node: Reactive<T>): Value<T> }
     ) => Generator<JSX.MaybePromise<Command>> | Command
   ) {}
 }

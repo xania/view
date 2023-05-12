@@ -350,7 +350,7 @@ export class Sandbox implements Record<number | symbol, any> {
     } else if (command instanceof DomCommand) {
       return command.handler(currentTarget);
     } else if (command instanceof UpdateCommand) {
-      return command.updateFn();
+      return command.updateFn(this);
     }
   };
 
