@@ -53,6 +53,31 @@ function onClick(
   );
 }
 
+function getLinkAttrs(context: RouteContext, props: LinkProps) {
+  const to = props.to;
+  const linkPath = to.split('/').filter((e) => e);
+  if (to.startsWith('/')) {
+    let root = context;
+    while (root.parent) {
+      root = root.parent;
+    }
+
+    return {
+      href: to,
+      click: new Closure(onClick, [linkPath, root]),
+      linkPath,
+      context: root,
+    };
+  } else {
+    return {
+      href: `/${[...context.fullpath, ...linkPath].join('/')}`,
+      click: new Closure(onClick, [linkPath, context]),
+      linkPath,
+      context,
+    };
+  }
+}
+
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
@@ -60,26 +85,24 @@ export function Router(props: RouterProps<any>) {
     if (child instanceof Component) {
       if (child.func === Link) {
         const props: LinkProps = child.props;
-        const linkPath = props.to.split('/');
 
-        const href = `/${[...context.fullpath, ...linkPath].join('/')}`;
-        const click = new Closure(onClick, [linkPath, context]);
+        const linkAttrs = getLinkAttrs(context, props);
 
         const activeClass = props.class;
         if (activeClass === undefined) {
           return Attrs<HTMLAnchorElement>({
-            href,
-            click,
+            href: linkAttrs.href,
+            click: linkAttrs.click,
           });
         }
 
-        const activeState = context.events.map((e) => {
-          startsWith(e.path, linkPath) ? activeClass : '';
+        const activeState = linkAttrs.context.events.map((e) => {
+          startsWith(e.path, linkAttrs.linkPath) ? activeClass : '';
         });
         return Attrs<HTMLAnchorElement>({
-          href,
+          href: linkAttrs.href,
+          click: linkAttrs.click,
           class: activeState,
-          click,
         });
       }
       if (child.func === Route) {
@@ -111,7 +134,7 @@ class ChildRouteContext implements RouteContext {
   public disposables?: Collection<Disposable>;
 
   constructor(
-    parent: RouteContext,
+    public parent: RouteContext,
     public params: RouteContext['params'],
     public trigger: RouteTrigger,
     public childPath: Path,
@@ -247,6 +270,10 @@ class RouteHandler {
           ? 'initialize'
           : 'none'
       );
+
+      if (segment.params) {
+        sandbox.update(routeContext.params, segment.params);
+      }
 
       sandbox.update(routeEvents, {
         trigger: route.trigger,

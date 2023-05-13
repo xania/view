@@ -11,7 +11,7 @@ export function App() {
           <li>
             <a>
               Ibrahim
-              <Link to="ibrahim" />
+              <Link to="/clock" />
             </a>
           </li>
           <li>

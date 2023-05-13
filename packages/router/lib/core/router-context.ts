@@ -1,10 +1,11 @@
 ﻿// import { Value } from '@xania/state';
-import { Disposable, State } from 'xania';
+import { Disposable, Sandbox, State } from 'xania';
 import { Path } from './path';
 import { RouteEvent, RouteTrigger } from './router';
 import { Collection } from 'xania/lib/utils/collection';
 
 export interface RouteContext {
+  parent?: RouteContext;
   params?: { [k: string]: any };
   fullpath: Path;
   path: Path;
@@ -14,6 +15,7 @@ export interface RouteContext {
 }
 
 export const routeEvents = new State<RouteEvent>();
+export const routeParams = new State<Record<string, any>>();
 export const routeTransition = new State<
   'activate' | 'deactivate' | 'initialize' | 'destroy' | 'none'
 >();
@@ -21,6 +23,7 @@ export const routeTransition = new State<
 export function useRouteContext() {
   return {
     events: routeEvents,
+    params: routeParams,
     trigger: routeEvents.prop('trigger'),
     transition: routeTransition,
   };

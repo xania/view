@@ -47,6 +47,13 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
       if (props.navigate) {
         yield props.navigate();
       }
+
+      const newRoute: RouteEvent = {
+        trigger: RouteTrigger.Location,
+        path: location.pathname.split('/').filter((x) => !!x),
+      };
+
+      yield events.update(newRoute);
     }
 
     yield delay(observeLocations(location.pathname), 50);
