@@ -186,9 +186,10 @@ function Navigation() {
                   class={[
                     "absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
                     ,
-                    profile.when(true,
-                      "transition ease-out duration-100 transform opacity-100 scale-100",
-                      "transition ease-in duration-75 transform opacity-0 scale-95"
+                    profile.when(
+                      true,
+                      "scale-100 transform opacity-100 transition duration-100 ease-out",
+                      "scale-95 transform opacity-0 transition duration-75 ease-in"
                     ),
                   ]}
                   role="menu"
@@ -230,12 +231,15 @@ function Navigation() {
         </div>
 
         {/* Mobile menu, show/hide based on menu state */}
-        <div class={["sm:hidden", open.when(false, "hidden", null)]} id="mobile-menu">
+        <div
+          class={["sm:hidden", open.when(false, "hidden", null)]}
+          id="mobile-menu"
+        >
           <div class="space-y-1 px-2 pb-3 pt-2">
             {/* Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" */}
             {navlinks.map((link) => (
               <a
-                class="router-link text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+                class="router-link block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
                 click={open.update(false)}
               >
                 <Link to={link.href} class="bg-gray-900" />
@@ -252,7 +256,7 @@ function Navigation() {
 function MenuItem(props: { title: string; current?: boolean; href: string }) {
   return (
     <a
-      class="hover:bg-gray-700 hover:text-white text-white block rounded-md px-3 py-2 text-base font-medium"
+      class="block rounded-md px-3 py-2 text-base font-medium text-white hover:bg-gray-700 hover:text-white"
       aria-current={props.current && "page"}
     >
       <Link to={props.href} class="bg-gray-900" />
@@ -269,7 +273,7 @@ function MobileMenuItem(props: {
   return (
     <a
       href={props.href}
-      class="router-link text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+      class="router-link block rounded-md px-3 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
       aria-current={props.current && "page"}
     >
       {props.title}

@@ -20,7 +20,6 @@
     "allowUnusedLabels": true,
 
     "jsx": "react-jsx",
-    "jsxImportSource": "xania",
-
+    "jsxImportSource": "xania"
   }
 }

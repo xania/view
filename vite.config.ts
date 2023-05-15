@@ -1,5 +1,6 @@
 ﻿import { defineConfig } from "vite";
 import path from "node:path";
+import { resumable } from "./packages/vite-plugin-resumable/lib/index";
 
 // Configure Vitest (https://vitest.dev/config/)
 
@@ -12,6 +13,7 @@ export default defineConfig({
       "./playground-temp/**/*.*",
     ],
   },
+  plugins: [resumable()],
   server: {
     port: 1981,
     host: "0.0.0.0",
