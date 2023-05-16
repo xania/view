@@ -11,17 +11,12 @@ import { cpush } from '../../utils/collection';
 import { isAttachable, isViewable } from '../../render';
 import { isSubscribable, isSubscription } from '../../utils/observable';
 import { isDisposable } from '../../render/disposable';
-import {
-  ListExpression,
-  ListItem,
-  ListMutations,
-  diff,
-} from '../../reactivity/list';
+import { ListExpression, ListMutations, diff } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
 import { Effect, Reactive, isCommand } from '../../reactivity';
-import { sapply } from '../../seq';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
+import { smap } from '../../seq';
 
 export function renderStack<
   TElement extends ElementNode,
@@ -40,6 +35,8 @@ export function renderStack<
 
     if (sandbox.disposed || tpl === null || tpl === undefined) {
       continue;
+    } else if (tpl instanceof Function) {
+      stack.push([sandbox, currentTarget, tpl(), isRoot]);
     } else if (tpl instanceof Array) {
       for (let i = tpl.length - 1; i >= 0; i--) {
         const item = tpl[i];
@@ -77,9 +74,11 @@ export function renderStack<
 
       if (source instanceof Array) {
         for (let i = source.length - 1; i >= 0; i--) {
-          const template = sapply(tpl.children, [
-            new State(source[i]),
-          ]) as JSX.Element;
+          const template = smap(
+            tpl.children,
+            (e) => e,
+            new State(source[i])
+          ) as JSX.Element;
           stack.push([sandbox, currentTarget, template, isRoot]);
         }
       } else {
@@ -88,13 +87,11 @@ export function renderStack<
           sandbox.nodes = cpush(sandbox.nodes, listAnchorNode);
         }
 
-        const rowIndexKey = Symbol();
-
         const mutations =
           source instanceof ListMutations ? source : source.pipe(diff);
 
         const listItem = new State();
-        const template = sapply(tpl.children, [listItem]) as JSX.Element;
+        const template = smap(tpl.children, (e) => e, listItem) as JSX.Element;
         const anchorElement = AnchorNode.create(listAnchorNode)!;
 
         const operator = new MutationOperator(
@@ -171,7 +168,7 @@ export function renderStack<
       stack.push([
         sandbox,
         currentTarget,
-        tpl.attachTo(currentTarget as any, factory),
+        tpl.attachTo(currentTarget as any, factory, sandbox),
         isRoot,
       ]);
     } else if (isSubscribable(tpl)) {

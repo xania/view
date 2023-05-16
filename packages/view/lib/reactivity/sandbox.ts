@@ -4,6 +4,7 @@ import { sexpand } from '../seq/expand';
 import { Collection, Subscription, cwalk } from '../utils';
 import {
   Command,
+  DispatchCommand,
   DomCommand,
   UpdateCommand,
   UpdateStateCommand,
@@ -313,9 +314,6 @@ export class Sandbox implements Record<number | symbol, any> {
     }
 
     const promises: Promise<any>[] = [];
-    if (this.parent) {
-      this.parent.reconcile(0, promises);
-    }
 
     if (node instanceof State) {
       scope[node.key] = nodeValue;
@@ -351,6 +349,11 @@ export class Sandbox implements Record<number | symbol, any> {
       return command.handler(currentTarget);
     } else if (command instanceof UpdateCommand) {
       return command.updateFn(this);
+    } else if (command instanceof DispatchCommand) {
+      const { parent } = this;
+      if (parent) {
+        return parent.handleCommand(command.command, currentTarget);
+      }
     }
   };
 

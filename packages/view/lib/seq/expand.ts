@@ -33,6 +33,8 @@ export function sexpand<T = any>(
         stack.push(next.value);
       } else if (isIterable(curr)) {
         stack.push(new SequenceIterator<T>(curr as any));
+      } else if (curr instanceof Function) {
+        stack.push(curr());
       } else {
         const result = map(curr, ...args);
         if (result !== null && result !== undefined) {

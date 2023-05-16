@@ -2,6 +2,7 @@
 import { Command, Subscribable, Subscription, useState } from 'xania';
 import { isEdgeDrag } from './edge-drag';
 import { delay } from '../utils';
+import { useRouteContext } from '../core';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
@@ -9,15 +10,12 @@ export interface WebAppProps<TView = any> {
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
-  const events = useState({
-    path: location.pathname.split('/').filter((x) => !!x),
-    trigger: RouteTrigger.Location,
-  });
+  const routeContext = useRouteContext();
 
   // window.addEventListener('popstate', onPopState);
 
   return [
-    observeLocations(),
+    // observeLocations(),
     WindowEvent({
       type: 'popstate',
       handler() {
@@ -26,38 +24,45 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
           path: location.pathname.split('/').filter((x) => !!x),
         };
 
-        return events.update(newRoute);
+        return routeContext.events.update(newRoute);
       },
+    }),
+    routeContext.events.update({
+      path: location.pathname.split('/').filter((x) => !!x),
+      trigger: RouteTrigger.Location,
     }),
     Router({
       context: {
         trigger: RouteTrigger.Location,
         path: [],
         fullpath: [],
-        events,
       },
       children: props.children,
     }),
   ];
 
-  function* observeLocations(
-    current: string = location.pathname
-  ): Generator<JSX.Sequence<Command>> {
-    if (current !== location.pathname) {
-      if (props.navigate) {
-        yield props.navigate();
-      }
+  // function* observeLocations(
+  //   current: string = location.pathname
+  // ): Generator<JSX.Sequence<Command>> {
+  //   if (current !== location.pathname) {
+  //     if (props.navigate) {
+  //       yield props.navigate();
+  //     }
 
-      const newRoute: RouteEvent = {
-        trigger: RouteTrigger.Location,
-        path: location.pathname.split('/').filter((x) => !!x),
-      };
+  //     const newPath = location.pathname.split('/').filter((x) => !!x);
+  //     console.log(newPath);
 
-      yield events.update(newRoute);
-    }
+  //     const newRoute: RouteEvent = {
+  //       trigger: RouteTrigger.Location,
+  //       path: newPath,
+  //     };
 
-    yield delay(observeLocations(location.pathname), 50);
-  }
+  //     yield events.update(newRoute);
+  //     yield delay(observeLocations(location.pathname), 1000);
+  //   } else {
+  //     yield delay(observeLocations(current), 1000);
+  //   }
+  // }
 }
 
 interface WindowEventProps<K extends keyof WindowEventMap> {

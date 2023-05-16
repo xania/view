@@ -1,9 +1,11 @@
 ﻿import { AnchorNode, ElementNode, NodeFactory } from '../factory';
+import { Sandbox } from '../reactivity';
 
 export interface Attachable {
   attachTo(
     conatiner: HTMLElement | AnchorNode<HTMLElement>,
-    domFactory: NodeFactory<any, any>
+    domFactory: NodeFactory<any, any>,
+    sandbox: Sandbox
   ): JSX.Sequence<any>;
 }
 

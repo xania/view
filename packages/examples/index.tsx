@@ -10,11 +10,11 @@ export function ExamplesApp() {
       <Layout>
         {/* <Navigation /> */}
         <div class="border-box relative m-0 flex flex-auto flex-row overflow-auto bg-gray-100 p-0 align-middle dark:bg-gray-600">
-          <Route path="charts">
-            {() => import("./charts").then((e) => e.App())}
-          </Route>
           <Route path="admin">
             {() => import("./admin").then((e) => e.App())}
+          </Route>
+          <Route path="charts">
+            {() => import("./charts").then((e) => e.App())}
           </Route>
           <Route path="clock">
             {() => import("./clock").then((e) => e.App())}

@@ -1,14 +1,14 @@
-﻿import { sapply, useState } from 'xania';
-import { Column } from './column';
-import { DataSource } from './data-source';
-import { List, ListExpression, State } from 'xania';
+﻿import { smap, useState } from "xania";
+import { Column } from "./column";
+import { DataSource } from "./data-source";
+import { List, ListExpression, State } from "xania";
 
 interface HeaderProps<T> {
-  children: (column: Column<keyof T>) => JSX.Children;
+  children: (column: Column<T>) => JSX.Children;
 }
 
 interface RowProps<T> {
-  children: ListExpression<T>['children'];
+  children: ListExpression<T>["children"];
 }
 
 interface CellProps<T> {
@@ -33,19 +33,15 @@ export class Grid<T = any> {
   }
 
   Header = (props: HeaderProps<T>) => {
-    return this.columns.map((column) =>
-      sapply(props.children, [column])
-    ) as JSX.Children;
+    return this.columns.map(props.children);
   };
 
   Row = (props: RowProps<T>) => {
-    return List({ source: this.ds.prop('data'), children: props.children });
+    return List({ source: this.ds.prop("data"), children: props.children });
   };
 
   Cell = (props: CellProps<T>) => {
-    return this.columns.map((column) =>
-      sapply(props.children, [column])
-    ) as JSX.Children;
+    return this.columns.map(props.children) as JSX.Children;
   };
 
   updateWindow = debounce((scrollPosition: number, rowHeight: number) => {
@@ -67,8 +63,8 @@ export class Grid<T = any> {
   });
 }
 
-export * from './column';
-export * from './data-source';
+export * from "./column";
+export * from "./data-source";
 
 function debounce<T>(fn: (...args: any[]) => T, ts: number = 10) {
   let current = 0;

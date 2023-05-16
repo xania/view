@@ -1,4 +1,4 @@
-﻿import { UpdateStateCommand } from './command';
+﻿import { Command, UpdateStateCommand } from './command';
 
 export type Value<T = any> = T | Promise<T>;
 export type Unwrap<T> = T extends Promise<infer U> ? U : T;

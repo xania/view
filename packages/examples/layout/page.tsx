@@ -18,26 +18,24 @@ export function Page(props: PageProps) {
       <Attrs
         class={routeContext.transition.map((b) => classes[`page--${b}`])}
       />
-      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 shadow-lg dark:border-gray-700 bg-white dark:bg-gray-700">
+      <div class="box-border h-full max-h-[99.9%]  overflow-y-auto overflow-x-hidden border-2 border-solid border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-700">
         {props.children}
       </div>
-
-      {scrollIntoView()}
     </div>
   );
 }
 
-function scrollIntoView() {
-  return {
-    attachTo(element) {
-      if (element instanceof AnchorNode) {
-        element.anchorNode.scrollIntoView();
-      } else {
-        element.scrollIntoView({ block: "end" });
-      }
-    },
-  } satisfies Attachable;
-}
+// function ScrollIntoView() {
+//   return {
+//     attachTo(element) {
+//       if (element instanceof AnchorNode) {
+//         element.anchorNode.scrollIntoView();
+//       } else {
+//         element.scrollIntoView({ block: "end" });
+//       }
+//     },
+//   } satisfies Attachable;
+// }
 
 // function iOS() {
 //   return (

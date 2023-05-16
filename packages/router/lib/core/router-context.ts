@@ -9,11 +9,11 @@ export interface RouteContext {
   params?: { [k: string]: any };
   fullpath: Path;
   path: Path;
-  events: State<RouteEvent>;
   disposables?: Collection<Disposable>;
   trigger: RouteTrigger;
 }
 
+export const message = new State<string>();
 export const routeEvents = new State<RouteEvent>();
 export const routeParams = new State<Record<string, any>>();
 export const routeTransition = new State<
@@ -22,6 +22,7 @@ export const routeTransition = new State<
 
 export function useRouteContext() {
   return {
+    message,
     events: routeEvents,
     params: routeParams,
     trigger: routeEvents.prop('trigger'),
