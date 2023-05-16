@@ -1,11 +1,11 @@
 ﻿import classes from "./index.module.scss";
-import { Link, RouteContext, useRouteContext } from "xania/router";
+import { Link, useRouteContext } from "xania/router";
 import { Page } from "../layout/page";
 import { If, List, Reactive, State, diff, useState } from "xania";
 
 type Mode = "completed" | "active" | "all";
 
-export function App({}: RouteContext) {
+export function App() {
   const routeContext = useRouteContext();
 
   const items = useState<TodoItem[]>(

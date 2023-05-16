@@ -2,7 +2,6 @@
 import gridcss from "./grid.module.scss";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";
-import { Attrs } from "xania";
 
 const dataLength = 50000;
 
@@ -66,9 +65,9 @@ export function App() {
           <thead class="sticky top-0 bg-white">
             <tr>
               <td></td>
-              {/* <grid.Header>
+              <grid.Header>
                 {(column) => <td class="px-2">{column.title}</td>}
-              </grid.Header> */}
+              </grid.Header>
               <td></td>
             </tr>
           </thead>
@@ -86,9 +85,9 @@ export function App() {
               {(row) => (
                 <tr class={gridcss["grid-row"]}>
                   <td class="bg-white px-3">&gt;</td>
-                  {/* <grid.Cell>
+                  <grid.Cell>
                     {(column) => <td class="px-2">{row.prop(column.field)}</td>}
-                  </grid.Cell> */}
+                  </grid.Cell>
                   <td>
                     <button
                       class="px-2"

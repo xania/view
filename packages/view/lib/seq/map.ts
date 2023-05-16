@@ -2,7 +2,8 @@
 
 export function smap<T = any, U = any>(
   template: JSX.Sequence<T>,
-  map: (x: T, ...args: any[]) => U
+  map: (x: T, ...args: any[]) => U,
+  ...args: any[]
 ): JSX.Sequence<U> {
   const retval: JSX.Sequence<U | Function>[] = [];
   const stack: any[] = [template];
@@ -20,7 +21,7 @@ export function smap<T = any, U = any>(
         curr.then((resolved) => smap(resolved, map)) as JSX.Sequence<U>
       );
     } else if (curr instanceof Function) {
-      stack.push(curr());
+      stack.push(curr(...args));
     } else if (curr instanceof TemplateIterator) {
       // console.log(curr);
     } else if (isIterable(curr)) {
