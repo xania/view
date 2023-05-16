@@ -14,6 +14,7 @@ import {
   cwalk,
   NodeFactory,
   renderStack,
+  dispatch,
 } from 'xania';
 import { startsWith } from '../webapp/browser-routes';
 import { RouteContext, useRouteContext } from './router-context';
@@ -40,6 +41,15 @@ function onClick(
   setTimeout(() => {
     pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
   }, 20);
+
+  if (linkPath[0] === '..') {
+    return dispatch(
+      routeContext.events.update({
+        trigger: RouteTrigger.Click,
+        path: [],
+      })
+    );
+  }
 
   return delay(
     [
@@ -82,14 +92,14 @@ export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
   return [
-    routeContext.events.dispatch((e) => {
-      if (e.path[0] === '..') {
-        return routeContext.events.update({
-          trigger: e.trigger,
-          path: e.path.slice(1),
-        });
-      }
-    }),
+    // routeContext.events.dispatch((e) => {
+    //   if (e.path[0] === '..') {
+    //     return routeContext.events.update({
+    //       trigger: e.trigger,
+    //       path: e.path.slice(1),
+    //     });
+    //   }
+    // }),
     smap(children, function mapRoutes(child): any {
       if (child instanceof Component) {
         if (child.func === Link) {

@@ -19,7 +19,7 @@ import {
 } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
-import { Dispatch, Effect, Reactive, isCommand } from '../../reactivity';
+import { Effect, Reactive, isCommand } from '../../reactivity';
 import { sapply } from '../../seq';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
@@ -108,7 +108,7 @@ export function renderStack<
         );
         sandbox.track(mutations.effect(operator.effect));
       }
-    } else if (tpl instanceof Effect || tpl instanceof Dispatch) {
+    } else if (tpl instanceof Effect) {
       sandbox.track(tpl);
     } else if (tpl instanceof Promise) {
       sandbox.promises = cpush(

@@ -4,6 +4,7 @@ import { sexpand } from '../seq/expand';
 import { Collection, Subscription, cwalk } from '../utils';
 import {
   Command,
+  DispatchCommand,
   DomCommand,
   UpdateCommand,
   UpdateStateCommand,
@@ -18,7 +19,6 @@ import {
   Append,
   Reactive,
   Value,
-  Dispatch,
 } from './reactive';
 import { State } from './state';
 
@@ -31,7 +31,6 @@ type Node =
   | When
   | Join
   | Append
-  | Dispatch
   | Reactive<any>;
 
 // const dirty = Symbol('dirty');
@@ -72,9 +71,6 @@ export class Sandbox implements Record<number | symbol, any> {
       } else if (node instanceof Property) {
         stack.push(node);
         nodes.push(node.parent);
-      } else if (node instanceof Dispatch) {
-        stack.push(node);
-        nodes.push(node.state);
       } else if (node instanceof Effect) {
         stack.push(node);
         nodes.push(node.state);
@@ -166,23 +162,6 @@ export class Sandbox implements Record<number | symbol, any> {
             scope[index] = node.tru;
           } else {
             scope[index] = node.fals;
-          }
-        }
-      } else if (node instanceof Dispatch) {
-        const { parent } = this;
-        if (parent) {
-          const state = node.state as any;
-          const stateIndex = state[this.indexKey];
-          const scopeValue = scope[stateIndex];
-
-          if (scopeValue !== undefined) {
-            const command = node.provide(scopeValue);
-            if (command) {
-              const previous = scope[index];
-              if (previous !== scopeValue) {
-                parent.handleCommand(command, null as any);
-              }
-            }
           }
         }
       } else if (node instanceof Effect) {
@@ -370,6 +349,11 @@ export class Sandbox implements Record<number | symbol, any> {
       return command.handler(currentTarget);
     } else if (command instanceof UpdateCommand) {
       return command.updateFn(this);
+    } else if (command instanceof DispatchCommand) {
+      const { parent } = this;
+      if (parent) {
+        return parent.handleCommand(command.command, currentTarget);
+      }
     }
   };
 
