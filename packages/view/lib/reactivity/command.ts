@@ -1,14 +1,12 @@
 ﻿import { ElementNode, AnchorNode } from '../factory';
 import { Reactive, Value } from './reactive';
-import { Sandbox } from './sandbox';
 
 export type Command = UpdateCommand | UpdateStateCommand | DomCommand;
 
 export function isCommand(value: any): value is Command {
-  return (
-    value instanceof UpdateCommand || value instanceof UpdateStateCommand
-    // value instanceof ListMutationCommand
-  );
+  if (value === null || value === undefined) return false;
+  const ctor = value.constructor;
+  return ctor === UpdateCommand || ctor === UpdateStateCommand;
 }
 
 export class UpdateStateCommand<T = any> {

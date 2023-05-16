@@ -52,5 +52,6 @@ declare module JSX {
     | Sequence<T>[]
     | Generator<Sequence<T>>
     | Promise<Sequence<T>>
-    | Iterable<T>;
+    | Iterable<T>
+    | (() => Sequence<T>);
 }

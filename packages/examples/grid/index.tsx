@@ -54,7 +54,7 @@ export function App() {
     <Page>
       <Title>Grid</Title>
       <div
-        class="border-0 m-5 h-full overflow-auto dark:bg-gray-300"
+        class="m-5 h-full overflow-auto border-0 dark:bg-gray-300"
         scroll={(e) => grid.updateWindow(e.currentTarget.scrollTop, rowHeight)}
       >
         <table
@@ -66,9 +66,9 @@ export function App() {
           <thead class="sticky top-0 bg-white">
             <tr>
               <td></td>
-              <grid.Header>
+              {/* <grid.Header>
                 {(column) => <td class="px-2">{column.title}</td>}
-              </grid.Header>
+              </grid.Header> */}
               <td></td>
             </tr>
           </thead>
@@ -85,10 +85,10 @@ export function App() {
             <grid.Row>
               {(row) => (
                 <tr class={gridcss["grid-row"]}>
-                  <td class="px-3 bg-white">&gt;</td>
-                  <grid.Cell>
+                  <td class="bg-white px-3">&gt;</td>
+                  {/* <grid.Cell>
                     {(column) => <td class="px-2">{row.prop(column.field)}</td>}
-                  </grid.Cell>
+                  </grid.Cell> */}
                   <td>
                     <button
                       class="px-2"

@@ -1,6 +1,5 @@
 ﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
 import { Sandbox, isCommand } from '../reactivity';
-import { EventManager } from '../reactivity/event-manager';
 import { syntheticEvent } from './event';
 
 function namespaceUri(name: string, defaultUri: string | null) {

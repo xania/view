@@ -11,7 +11,7 @@ export function App() {
           <li>
             <a>
               Ibrahim
-              <Link to="/clock" />
+              <Link to="ibrahim" />
             </a>
           </li>
           <li>
@@ -25,6 +25,10 @@ export function App() {
       <Route path="ibrahim">
         <Page>
           <Title>Ibrahim</Title>
+          <a>
+            Go up
+            <Link to={".."} />
+          </a>
         </Page>
       </Route>
       <Route path="ramy">

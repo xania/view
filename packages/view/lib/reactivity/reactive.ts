@@ -1,4 +1,4 @@
-﻿import { UpdateStateCommand } from './command';
+﻿import { Command, UpdateStateCommand } from './command';
 
 export type Value<T = any> = T | Promise<T>;
 export type Unwrap<T> = T extends Promise<infer U> ? U : T;
@@ -48,6 +48,17 @@ export class Reactive<T = any> {
   ): UpdateStateCommand {
     return new UpdateStateCommand(this, valueOrCompute);
   }
+
+  dispatch(provide: Dispatch<T>['provide']): Dispatch<T> {
+    return new Dispatch(this, provide);
+  }
+}
+
+export class Dispatch<T = any> {
+  constructor(
+    public state: Reactive<T>,
+    public provide: (e: T) => Command | void
+  ) {}
 }
 
 type UnwrapSources<T extends [...any[]]> = T extends []

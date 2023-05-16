@@ -19,7 +19,7 @@ import {
 } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
-import { Effect, Reactive, isCommand } from '../../reactivity';
+import { Dispatch, Effect, Reactive, isCommand } from '../../reactivity';
 import { sapply } from '../../seq';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
@@ -40,6 +40,8 @@ export function renderStack<
 
     if (sandbox.disposed || tpl === null || tpl === undefined) {
       continue;
+    } else if (tpl instanceof Function) {
+      stack.push([sandbox, currentTarget, tpl(), isRoot]);
     } else if (tpl instanceof Array) {
       for (let i = tpl.length - 1; i >= 0; i--) {
         const item = tpl[i];
@@ -106,7 +108,7 @@ export function renderStack<
         );
         sandbox.track(mutations.effect(operator.effect));
       }
-    } else if (tpl instanceof Effect) {
+    } else if (tpl instanceof Effect || tpl instanceof Dispatch) {
       sandbox.track(tpl);
     } else if (tpl instanceof Promise) {
       sandbox.promises = cpush(
@@ -171,7 +173,7 @@ export function renderStack<
       stack.push([
         sandbox,
         currentTarget,
-        tpl.attachTo(currentTarget as any, factory),
+        tpl.attachTo(currentTarget as any, factory, sandbox),
         isRoot,
       ]);
     } else if (isSubscribable(tpl)) {

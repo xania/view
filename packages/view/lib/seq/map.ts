@@ -3,7 +3,7 @@
 export function smap<T = any, U = any>(
   template: JSX.Sequence<T>,
   map: (x: T, ...args: any[]) => U
-): JSX.MaybePromise<JSX.Sequence<U>> {
+): JSX.Sequence<U> {
   const retval: JSX.Sequence<U | Function>[] = [];
   const stack: any[] = [template];
   while (stack.length) {
@@ -19,6 +19,8 @@ export function smap<T = any, U = any>(
       retval.push(
         curr.then((resolved) => smap(resolved, map)) as JSX.Sequence<U>
       );
+    } else if (curr instanceof Function) {
+      stack.push(curr());
     } else if (curr instanceof TemplateIterator) {
       // console.log(curr);
     } else if (isIterable(curr)) {
