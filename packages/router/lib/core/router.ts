@@ -115,9 +115,9 @@ export function Router(props: RouterProps<any>) {
             });
           }
 
-          const activeState = routeContext.events.map((e) => {
-            startsWith(e.path, linkAttrs.linkPath) ? activeClass : '';
-          });
+          const activeState = routeContext.events.map((e) =>
+            startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
+          );
           return Attrs<HTMLAnchorElement>({
             href: linkAttrs.href,
             click: linkAttrs.click,

@@ -1,10 +1,11 @@
 ﻿import { Command, UpdateStateCommand } from './command';
 
-export type Value<T = any> = T | Promise<T>;
-export type Unwrap<T> = T extends Promise<infer U> ? U : T;
+export type Value<T = any> = JSX.MaybePromise<T | undefined | void>;
+type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
+export type Unwrap<T> = Exclude<UnwrapPromise<T>, undefined | void>;
 
 export class Reactive<T = any> {
-  map<U>(fn: (x: T) => Value<Unwrap<U>>, defaultValue?: U): Computed<T, U> {
+  map<U>(fn: (x: T) => Value<U>, defaultValue?: U): Computed<T, U> {
     return new Computed(this, fn, defaultValue);
   }
 
@@ -107,7 +108,7 @@ export class Property<T = any, P extends keyof T = any> extends Reactive<
 export class Computed<T = any, U = any> extends Reactive<Unwrap<U>> {
   constructor(
     public input: Reactive<T>,
-    public compute: (x: T) => Value<Unwrap<U>>,
+    public compute: (x: T) => Value<U>,
     public defaultValue?: U
   ) {
     super();

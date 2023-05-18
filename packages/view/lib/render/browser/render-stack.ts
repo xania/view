@@ -5,7 +5,6 @@ import {
 } from '../../intrinsic/descriptors';
 import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
-import { Component } from '../../component';
 import { State } from '../../reactivity/state';
 import { cpush } from '../../utils/collection';
 import { isAttachable, isViewable } from '../../render';
@@ -60,8 +59,8 @@ export function renderStack<
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, textNode);
       }
-    } else if (tpl instanceof Component) {
-      stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
+      // } else if (tpl instanceof Component) {
+      //   stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
     } else if (tpl instanceof Reactive) {
       const stateNode = factory.createTextNode(currentTarget, '');
       if (isRoot) {
