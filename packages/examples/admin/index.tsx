@@ -1,6 +1,7 @@
 ﻿import { Link, Route } from "xania/router";
 import { Page } from "../layout/page";
 import { Title } from "../components/heading";
+import { List } from "xania";
 
 export function App() {
   return (
@@ -21,6 +22,17 @@ export function App() {
             </a>
           </li>
         </ul>
+        <div>
+          <List source={[{ name: 1 }, { name: 2 }]}>
+            {(row) => (
+              <a class="m-1 block border-2 border-red-400 text-center hover:bg-red-950 hover:text-white">
+                {row.prop("name")}
+
+                <Link to="asdf" />
+              </a>
+            )}
+          </List>
+        </div>
       </Page>
       <Route path="ibrahim">
         <Page>

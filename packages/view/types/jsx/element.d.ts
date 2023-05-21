@@ -18,6 +18,7 @@ declare module JSX {
   type Reactive<T> = import('../../lib/reactivity').Reactive;
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Component = import('../../lib').Component;
+  type Transformer<T> = import('../../lib').Transformer<T>;
   type Disposable = { dispose(): any };
 
   type Primitive = string | number;
@@ -53,5 +54,6 @@ declare module JSX {
     | Generator<Sequence<T>>
     | Promise<Sequence<T>>
     | Iterable<T>
-    | (() => Sequence<T>);
+    | (() => Sequence<T>)
+    | Transformer<T>;
 }

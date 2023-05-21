@@ -32,10 +32,10 @@ describe('list reactivity', () => {
               target.push(...m.items);
               break;
             case 'add':
-              if (m.itemOrGetter instanceof Function) {
-                target.push(m.itemOrGetter(target));
+              if ('func' in m) {
+                target.push(m.func(target));
               } else {
-                target.push(m.itemOrGetter);
+                target.push(m.value);
               }
               break;
             default:
@@ -46,7 +46,7 @@ describe('list reactivity', () => {
     );
     sandbox.update(state, [1, 2]);
     sandbox.update(state, [3, 4]);
-    sandbox.update(mutations, [{ type: 'add', itemOrGetter: 5 }]);
+    sandbox.update(mutations, [{ type: 'add', value: 5 }]);
 
     expect(target).toEqual([3, 4, 5]);
   });

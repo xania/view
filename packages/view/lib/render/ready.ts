@@ -3,6 +3,6 @@
     return Promise.all(result);
   }
   if (result instanceof Promise) {
-    return result;
+    return result.then(ready);
   }
 }

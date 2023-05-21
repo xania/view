@@ -5,6 +5,7 @@ type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 export type Unwrap<T> = Exclude<UnwrapPromise<T>, undefined | void>;
 
 export class Reactive<T = any> {
+  constructor(public initial?: Value<T>, public key: symbol = Symbol()) {}
   map<U>(fn: (x: T) => Value<U>, defaultValue?: U): Computed<T, U> {
     return new Computed(this, fn, defaultValue);
   }
@@ -91,6 +92,7 @@ export class Assign<T = any, U = any, P extends KeyOfType<U, T> = any> {
 }
 
 export class Effect<T = any, R = any> {
+  public key: symbol = Symbol();
   constructor(
     public state: Reactive<T>,
     public effect: (value: T, acc?: R | undefined) => Value<R>
@@ -111,7 +113,7 @@ export class Computed<T = any, U = any> extends Reactive<Unwrap<U>> {
     public compute: (x: T) => Value<U>,
     public defaultValue?: U
   ) {
-    super();
+    super(map<T, U>(input.initial, compute));
   }
 }
 
@@ -120,5 +122,14 @@ interface List<T> {
   remove(...values: T[]): unknown;
 }
 export class Append<T = any> {
+  public key: symbol = Symbol('append');
   constructor(public state: Reactive<T[]>, public list: List<T>) {}
+}
+
+function map<T, U>(input: Value<T>, f: (x: T) => Value<U>): Value<Unwrap<U>> {
+  if (input instanceof Promise) {
+    return input.then((resolved) => map(resolved, f));
+  } else if (input !== undefined) {
+    return f(input) as Unwrap<U>;
+  }
 }

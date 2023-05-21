@@ -22,10 +22,15 @@ interface MoveRowMutation {
   to: number;
 }
 
-export interface AddRowMutation<T> {
-  type: 'add';
-  itemOrGetter: T | ((arr: T[]) => T);
-}
+export type AddRowMutation<T> =
+  | {
+      type: 'add';
+      func: (arr: T[]) => T;
+    }
+  | {
+      type: 'add';
+      value: T;
+    };
 
 interface InsertRowMutation<T> {
   type: 'insert';

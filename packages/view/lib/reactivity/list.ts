@@ -1,7 +1,5 @@
-﻿import { AddRowMutation, ListMutation } from './mutation';
+﻿import { ListMutation } from './mutation';
 import { Computed, Reactive } from './reactive';
-import { Sandbox } from './sandbox';
-import { State } from './state';
 
 export function List<T>(props: ListExpression<T>) {
   return new ListExpression<T>(props.source, props.children);
@@ -23,8 +21,12 @@ export class ListMutations<T> extends Computed<T[], ListMutation<T>[]> {
     super(source, (items) => [{ type: 'reset', items }]);
   }
 
-  add(itemOrGetter: AddRowMutation<T>['itemOrGetter']) {
-    return [{ type: 'add', itemOrGetter } satisfies ListMutation<T>];
+  add(itemOrGetter: T | ((x: T[]) => T)) {
+    if (itemOrGetter instanceof Function) {
+      return [{ type: 'add', func: itemOrGetter } satisfies ListMutation<T>];
+    } else {
+      return [{ type: 'add', value: itemOrGetter } satisfies ListMutation<T>];
+    }
   }
 }
 

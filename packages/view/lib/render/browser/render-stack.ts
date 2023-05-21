@@ -7,7 +7,7 @@ import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { State } from '../../reactivity/state';
 import { cpush } from '../../utils/collection';
-import { isAttachable, isViewable } from '../../render';
+import { Transformer, isAttachable, isViewable } from '../../render';
 import { isSubscribable, isSubscription } from '../../utils/observable';
 import { isDisposable } from '../../render/disposable';
 import { ListExpression, ListMutations, diff } from '../../reactivity/list';
@@ -17,20 +17,31 @@ import { Effect, Reactive, isCommand } from '../../reactivity';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 import { smap } from '../../seq';
 
+const PopTransformer = Symbol('pop-transformer');
+
 export function renderStack<
   TElement extends ElementNode,
   TNode extends ViewNode
 >(
-  stack: [
-    Sandbox,
-    TElement | AnchorNode<TNode>,
-    JSX.Children | SequenceIterator,
-    boolean
-  ][],
-  factory: NodeFactory<TElement, TNode>
+  stack: (
+    | typeof PopTransformer
+    | [
+        Sandbox,
+        TElement | AnchorNode<TNode>,
+        JSX.Children | SequenceIterator,
+        boolean
+      ]
+  )[],
+  factory: NodeFactory<TElement, TNode>,
+  transformers: Transformer<any>['transform'][] = []
 ) {
   while (stack.length) {
-    const [sandbox, currentTarget, tpl, isRoot] = stack.pop()!;
+    const curr = stack.pop()!;
+    if (curr === PopTransformer) {
+      transformers.pop();
+      continue;
+    }
+    const [sandbox, currentTarget, tpl, isRoot] = curr;
 
     if (sandbox.disposed || tpl === null || tpl === undefined) {
       continue;
@@ -49,6 +60,19 @@ export function renderStack<
         stack.push([sandbox, currentTarget, tpl, isRoot]);
       }
       stack.push([sandbox, currentTarget, next.value, isRoot]);
+    } else if (tpl instanceof Promise) {
+      const promiseTransformers = transformers.slice(0);
+      sandbox.promises = cpush(
+        sandbox.promises,
+        tpl.then((resolved): any => {
+          if (resolved) {
+            stack.push([sandbox, currentTarget, resolved, isRoot]);
+          }
+          renderStack(stack, factory, promiseTransformers);
+        })
+      );
+    } else if (isIterable(tpl)) {
+      stack.push([sandbox, currentTarget, new SequenceIterator(tpl), isRoot]);
     } else if (tpl.constructor === String) {
       const textNode = factory.createTextNode(currentTarget, tpl as string);
       if (isRoot) {
@@ -104,16 +128,10 @@ export function renderStack<
       }
     } else if (tpl instanceof Effect) {
       sandbox.track(tpl);
-    } else if (tpl instanceof Promise) {
-      sandbox.promises = cpush(
-        sandbox.promises,
-        tpl.then((resolved): any => {
-          if (resolved) {
-            stack.push([sandbox, currentTarget, resolved, isRoot]);
-          }
-          renderStack(stack, factory);
-        })
-      );
+    } else if (tpl instanceof Transformer) {
+      transformers.push(tpl.transform);
+      stack.push(PopTransformer);
+      stack.push([sandbox, currentTarget, tpl.children, isRoot]);
     } else if (isDomDescriptor(tpl)) {
       switch (tpl.type) {
         case DomDescriptorType.Element:
@@ -141,7 +159,7 @@ export function renderStack<
 
           const { children } = tpl;
           if (children ?? true) {
-            renderStack([[sandbox, element, children, false]], factory);
+            stack.push([sandbox, element, children, false]);
           }
           break;
         case DomDescriptorType.Attribute:
@@ -185,12 +203,19 @@ export function renderStack<
       sandbox.subscriptions = cpush(sandbox.subscriptions, tpl);
       // } else if (isCommand(curr)) {
       //   context.handleCommands(curr);
-    } else if (isIterable(tpl)) {
-      stack.push([sandbox, currentTarget, new SequenceIterator(tpl), isRoot]);
     } else if (isCommand(tpl)) {
       sandbox.handleCommands(tpl, currentTarget as any);
     } else {
-      console.log('unknown', tpl);
+      let value = tpl;
+      for (const transform of transformers) {
+        value = transform(value);
+      }
+
+      if (value === tpl) {
+        console.log('unknown', transformers, tpl);
+      } else {
+        stack.push([sandbox, currentTarget, value, isRoot]);
+      }
     }
   }
 }

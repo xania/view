@@ -22,21 +22,12 @@ import {
 } from './reactive';
 import { State } from './state';
 
-type Node =
-  | State
-  | Computed
-  | Property
-  | Effect
-  | Assign
-  | When
-  | Join
-  | Append
-  | Reactive<any>;
+type EffectNode = Effect | Assign | Append;
+type Node = Reactive | EffectNode;
 
 // const dirty = Symbol('dirty');
 export class Sandbox implements Record<number | symbol, any> {
   private graph: Node[] = [];
-  private indexKey = Symbol('gidx');
   disposed: boolean = false;
   nodes?: Collection<ViewNode>;
   promises?: Collection<Promise<any>>;
@@ -47,17 +38,25 @@ export class Sandbox implements Record<number | symbol, any> {
 
   constructor(public parent?: Sandbox) {}
 
-  track(...nodes: Node[]) {
-    const { graph, indexKey } = this;
+  track(...nodes: (EffectNode | Node)[]) {
+    const { graph } = this;
 
     const stack = [];
 
     const promises: Promise<any>[] = [];
 
     for (const node of nodes as any) {
-      if (node[indexKey] !== undefined) {
+      let tracked = false;
+      for (const existing in graph) {
+        if (node === existing) {
+          tracked = true;
+          break;
+        }
+      }
+      if (tracked) {
         break;
       }
+
       if (node instanceof Join) {
         const { sources } = node;
         stack.push(node);
@@ -78,27 +77,7 @@ export class Sandbox implements Record<number | symbol, any> {
         stack.push(node);
         nodes.push(node.state);
       } else if (node instanceof State) {
-        // State is implicitly included in the list of nodes of the graph
-        // and always maps with provided node.key
-
-        const { initial } = node;
-        const scope = this as any;
-
-        (node as any)[indexKey] = node.key;
-        if ((scope as any)[node.key] === undefined) {
-          (scope as any)[node.key] = initial;
-        }
-
-        if (initial instanceof Promise) {
-          promises.push(
-            initial.then((resolved) => {
-              if (initial === scope[node.key]) {
-                scope[node.key] = resolved;
-                return this.reconcile(0);
-              }
-            })
-          );
-        }
+        stack.push(node);
       } else if (node instanceof Append) {
         stack.push(node);
         nodes.push(node.state);
@@ -112,30 +91,24 @@ export class Sandbox implements Record<number | symbol, any> {
     const startIndex = graph.length;
 
     for (let i = stack.length - 1; i >= 0; i--) {
-      const node = stack[i];
-      if ((node as any)[indexKey] === undefined) {
-        (node as any)[indexKey] = graph.length;
-        graph.push(node);
-      }
+      graph.push(stack[i]);
     }
 
     return this.reconcile(startIndex, promises);
   }
 
-  reconcile(startIndex: number, promises: Promise<any>[] = []) {
-    const { graph, indexKey } = this;
-    const scope = this as Record<number | symbol, any>;
+  reconcile(startIndex: number, promises: Promise<any>[] = []): any {
+    const { graph } = this;
+    const scope = this as Record<symbol, any>;
     for (let index = startIndex, len = graph.length; index < len; index++) {
       const node = graph[index];
 
       if (node instanceof Append) {
-        const { state } = node as any;
-        const stateIndex = state[indexKey];
-        const scopeValue = scope[stateIndex];
+        const { state } = node;
+        const scopeValue = this.get(state);
 
-        const previous = scope[index];
-
-        scope[index] = scopeValue;
+        const previous = scope[node.key];
+        scope[node.key] = scopeValue;
 
         if (previous instanceof Array) {
           node.list.remove(...previous);
@@ -146,35 +119,32 @@ export class Sandbox implements Record<number | symbol, any> {
         }
       } else if (node instanceof Assign) {
         const state = node.state as any;
-        const index = state[indexKey];
-        const scopeValue = scope[index];
+        const scopeValue = this.get(state);
 
         if (scopeValue !== undefined) {
           node.target[node.property] = scopeValue;
         }
       } else if (node instanceof When) {
-        const state = node.state as any;
-        const stateIndex = state[indexKey];
-        const scopeValue = scope[stateIndex];
+        const state = node.state;
+        const scopeValue = this.get(state);
 
         if (scopeValue !== undefined) {
           if (scopeValue === node.value) {
-            scope[index] = node.tru;
+            scope[node.key] = node.tru;
           } else {
-            scope[index] = node.fals;
+            scope[node.key] = node.fals;
           }
         }
       } else if (node instanceof Effect) {
-        const state = node.state as any;
-        const stateIndex = state[this.indexKey];
-        const scopeValue = scope[stateIndex];
+        const state = node.state;
+        const scopeValue = this.get(state);
 
         if (scopeValue !== undefined) {
-          const previous = scope[index];
+          const previous = scope[node.key];
           if (previous instanceof Promise) {
-            const next = (scope[index] = previous.then((resolved) => {
-              if (scope[index] === next) {
-                scope[index] = node.effect(scopeValue, resolved);
+            const next = (scope[node.key] = previous.then((resolved) => {
+              if (scope[node.key] === next) {
+                scope[node.key] = node.effect(scopeValue, resolved);
               } else {
                 // concurrent async effect call is detected. this will chain to this promise
                 // but need to use previous accumulator value.
@@ -184,36 +154,43 @@ export class Sandbox implements Record<number | symbol, any> {
             }));
             promises.push(next);
           } else {
-            scope[index] = node.effect(scopeValue, previous);
+            scope[node.key] = node.effect(scopeValue, previous);
           }
         }
       } else if (node instanceof Computed) {
-        const inputNode = node.input as any;
-        const inputIndex = inputNode[indexKey];
-        const inputValue = scope[inputIndex];
+        const inputNode = node.input;
+        const inputValue = this.get(inputNode);
 
         if (inputValue instanceof Promise) {
-          promises.push(inputValue);
-          // skip pending
+          const nodeIndex = index;
+          return inputValue.then<any>((resolved) => {
+            // check concurrent update
+            if (this[node.key] === inputValue) {
+              if (resolved !== undefined) {
+                this[node.key] = resolved;
+              }
+              return this.reconcile(nodeIndex + 1, promises);
+            }
+          });
         } else if (inputValue !== undefined) {
           const result = node.compute(inputValue);
 
-          const computedIndex = index;
-          const scopeValue = scope[computedIndex];
+          const computedKey = node.key;
+          const scopeValue = this.get(node);
 
           if (result === scopeValue) {
             // skip no change
-          } else {
-            scope[computedIndex] = result;
+          } else if (result !== undefined) {
+            scope[computedKey] = result;
             if (result instanceof Promise) {
               promises.push(
                 result.then((resolved) => {
-                  if (result !== scope[computedIndex]) {
+                  if (result !== scope[computedKey]) {
                     return;
                   }
-                  if (scopeValue !== resolved) {
-                    scope[computedIndex] = resolved;
-                    return this.reconcile(computedIndex + 1);
+                  if (scopeValue !== resolved && resolved !== undefined) {
+                    scope[computedKey] = resolved;
+                    return this.reconcile(0);
                   }
                 })
               );
@@ -226,12 +203,14 @@ export class Sandbox implements Record<number | symbol, any> {
         }
       } else if (node instanceof Property) {
         const parentNode = node.parent as any;
-        const parentIndex = parentNode[indexKey];
-        const parentValue = scope[parentIndex] as any;
+        let parentValue = scope[parentNode.key] as any;
+        if (parentValue === undefined) {
+          parentValue = parentNode.initial;
+        }
 
         if (parentValue !== undefined) {
           const nodeValue = parentValue[node.name];
-          scope[index] = nodeValue;
+          scope[node.key] = nodeValue;
         }
       } else if (node instanceof Join) {
         const { sources, project } = node as any;
@@ -240,14 +219,14 @@ export class Sandbox implements Record<number | symbol, any> {
 
         for (let i = 0, len = sources.length; i < len; i++) {
           const source = sources[i];
-          const sourceIndex = source[indexKey];
-          newValue[i] = scope[sourceIndex];
+          let sourceValue = this.get(source);
+          newValue[i] = sourceValue;
         }
 
         if (project instanceof Function) {
-          scope[index] = project.apply(null, newValue);
+          scope[node.key] = project.apply(null, newValue);
         } else {
-          scope[index] = newValue;
+          scope[node.key] = newValue;
         }
       }
     }
@@ -255,36 +234,38 @@ export class Sandbox implements Record<number | symbol, any> {
     return promises;
   }
 
-  get(node: Node) {
-    const { indexKey } = this;
-    const scope = this as Record<number, any>;
-    const index = (node as any)[indexKey];
-    const scopeValue = scope[index];
+  get<T>(node: Reactive<T>): Value<T> {
+    const scope = this; // as Record<number, any>;
+    const scopeValue = scope[node.key];
 
     if (scopeValue !== undefined) {
       return scopeValue;
     }
 
-    if (node instanceof State) {
-      return node.initial;
+    const parent = this.parent;
+    if (parent) {
+      return parent.get(node);
     }
+
+    return node.initial;
   }
 
   update<T>(
     state: Reactive<T>,
     newValueOrReduce: Value<T> | ((value?: T) => Value<T>)
   ): JSX.MaybeArray<Promise<any>> | void {
-    const { indexKey } = this;
     const scope = this as Record<number | symbol, any>;
+    const currentValue = this.get(state);
 
-    const stateIndex = (state as any)[this.indexKey];
-    const currentValue = scope[stateIndex] as T | undefined;
-
-    const newValue =
+    const newValue: Value<T> =
       newValueOrReduce instanceof Function
         ? currentValue instanceof Promise
-          ? currentValue.then(newValueOrReduce)
-          : newValueOrReduce(currentValue)
+          ? currentValue.then((x) =>
+              x !== undefined ? newValueOrReduce(x) : undefined
+            )
+          : currentValue !== undefined
+          ? newValueOrReduce(currentValue)
+          : undefined
         : newValueOrReduce;
 
     if (newValue instanceof Promise) {
@@ -297,11 +278,11 @@ export class Sandbox implements Record<number | symbol, any> {
 
     let node = state;
     let nodeValue: unknown = newValue;
-    let nodeIndex: number = stateIndex;
+    let nodeKey = node.key;
     while (node instanceof Property) {
-      const parentNode = node.parent as any;
-      const parentIndex = parentNode[indexKey];
-      const parentValue = scope[parentIndex] as Record<string, unknown>;
+      const parentNode = node.parent;
+      const parentKey = parentNode.key;
+      let parentValue = scope[parentKey] as Record<string, unknown>;
 
       if (parentValue === undefined) {
         nodeValue = { [node.name]: nodeValue };
@@ -310,22 +291,21 @@ export class Sandbox implements Record<number | symbol, any> {
         nodeValue = parentValue;
       }
       node = parentNode;
-      nodeIndex = parentIndex;
+      nodeKey = parentKey;
     }
 
     const promises: Promise<any>[] = [];
 
     if (node instanceof State) {
       scope[node.key] = nodeValue;
-      this.reconcile(0, promises);
-      return promises;
+      return this.reconcile(0, promises);
     }
 
-    scope[nodeIndex] = nodeValue;
-
-    this.reconcile(nodeIndex + 1, promises);
-
-    return promises;
+    scope[nodeKey] = nodeValue;
+    const nodeIndex = this.graph.indexOf(node);
+    if (nodeIndex >= 0) {
+      return this.reconcile(nodeIndex + 1, promises);
+    }
   }
 
   handleCommands(

@@ -1,11 +1,5 @@
 ﻿// import { Value } from '@xania/state';
 import {
-  Component,
-  DomDescriptorType,
-  isDomDescriptor,
-  smap,
-  Attrs,
-  render,
   Sandbox,
   cpush,
   cremove,
@@ -15,14 +9,17 @@ import {
   NodeFactory,
   renderStack,
   dispatch,
+  Transformer,
+  Component,
+  Attrs,
 } from 'xania';
-import { startsWith } from '../webapp/browser-routes';
 import { RouteContext, useRouteContext } from './router-context';
 import { Link, LinkProps } from './link';
 import { Route, RouteProps } from './route';
 import { Path } from './path';
 import { pathMatcher } from './route-resolver';
 import { delay } from '../utils';
+import { startsWith } from '../webapp/browser-routes';
 
 interface RouterProps<TView> {
   context: RouteContext;
@@ -91,61 +88,82 @@ function getLinkAttrs(context: RouteContext, props: LinkProps) {
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
-  return [
-    // routeContext.events.dispatch((e) => {
-    //   if (e.path[0] === '..') {
-    //     return routeContext.events.update({
-    //       trigger: e.trigger,
-    //       path: e.path.slice(1),
-    //     });
-    //   }
-    // }),
-    smap(children, function mapRoutes(child): any {
-      if (child instanceof Component) {
-        if (child.func === Link) {
-          const props: LinkProps = child.props;
+  return new Transformer<any>(children, function (child) {
+    if (child instanceof Component) {
+      if (child.func === Link) {
+        const props: LinkProps = child.props;
 
-          const linkAttrs = getLinkAttrs(context, props);
+        const linkAttrs = getLinkAttrs(context, props);
 
-          const activeClass = props.class;
-          if (activeClass === undefined) {
-            return Attrs<HTMLAnchorElement>({
-              href: linkAttrs.href,
-              click: linkAttrs.click,
-            });
-          }
-
-          const activeState = routeContext.events.map((e) =>
-            startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
-          );
+        const activeClass = props.class;
+        if (activeClass === undefined) {
           return Attrs<HTMLAnchorElement>({
             href: linkAttrs.href,
             click: linkAttrs.click,
-            class: activeState,
           });
         }
-        if (child.func === Route) {
-          return new RouteHandler(context, child.props);
-        } else {
-          return smap(child.execute(), mapRoutes);
-        }
-      } else if (isDomDescriptor(child)) {
-        switch (child.type) {
-          case DomDescriptorType.Element:
-            if (child.children) {
-              return {
-                ...child,
-                children: smap(child.children, mapRoutes),
-              };
-            }
-          default:
-            return child;
-        }
-      } else {
-        return child;
+
+        const activeState = routeContext.events.map((e) =>
+          startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
+        );
+        return Attrs<HTMLAnchorElement>({
+          href: linkAttrs.href,
+          click: linkAttrs.click,
+          class: activeState,
+        });
       }
-    }),
-  ];
+      if (child.func === Route) {
+        return new RouteHandler(context, child.props);
+      }
+    }
+    return child;
+  });
+
+  // return smap(children, function mapRoutes(child): any {
+  //   if (child instanceof Component) {
+  //     if (child.func === Link) {
+  //       const props: LinkProps = child.props;
+
+  //       const linkAttrs = getLinkAttrs(context, props);
+
+  //       const activeClass = props.class;
+  //       if (activeClass === undefined) {
+  //         return Attrs<HTMLAnchorElement>({
+  //           href: linkAttrs.href,
+  //           click: linkAttrs.click,
+  //         });
+  //       }
+
+  //       const activeState = routeContext.events.map((e) =>
+  //         startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
+  //       );
+  //       return Attrs<HTMLAnchorElement>({
+  //         href: linkAttrs.href,
+  //         click: linkAttrs.click,
+  //         class: activeState,
+  //       });
+  //     }
+  //     if (child.func === Route) {
+  //       return new RouteHandler(context, child.props);
+  //     } else {
+  //       return smap(child.execute(), mapRoutes);
+  //     }
+  //   } else if (isDomDescriptor(child)) {
+  //     switch (child.type) {
+  //       case DomDescriptorType.Element:
+  //         if (child.children) {
+  //           return {
+  //             ...child,
+  //             children: smap(child.children, mapRoutes),
+  //           };
+  //         }
+  //       default:
+  //         return child;
+  //     }
+  //   } else {
+  //     return child;
+  //   }
+  // });
 }
 
 class ChildRouteContext implements RouteContext {
@@ -263,7 +281,8 @@ class RouteHandler {
       const routeSandbox = new Sandbox(sandbox);
       renderStack<any, any>(
         [[routeSandbox, target as any, view, true]],
-        factory
+        factory,
+        []
       );
 
       routeSandbox.update(

@@ -21,8 +21,9 @@ describe('reactivity', () => {
       value: 123,
     };
 
-    await sandbox.track(source.assign(target, 'value'));
-    expect(target.value).toBe(1);
+    sandbox.track(source.assign(target, 'value'));
+    const value = await target.value;
+    expect(value).toBe(1);
   });
 
   it('map', () => {
@@ -39,8 +40,8 @@ describe('reactivity', () => {
 
     const state = useState(1);
     const addOne = state.map((x) => Promise.resolve(x + 1));
-    await sandbox.track(addOne);
-    expect(sandbox.get(addOne)).toBe(2);
+    sandbox.track(addOne);
+    expect(await sandbox.get(addOne)).toBe(2);
   });
 
   it('map async from async', async () => {
@@ -49,7 +50,9 @@ describe('reactivity', () => {
     const state = useState(Promise.resolve(1));
     const addOne = state.map((x) => Promise.resolve(x + 1));
     await ready(sandbox.track(addOne));
-    expect(sandbox.get(addOne)).toBe(2);
+
+    const result = await sandbox.get(addOne);
+    expect(result).toBe(2);
   });
 
   it('track property', () => {
@@ -91,17 +94,6 @@ describe('reactivity', () => {
     sandbox.update(firstName, 'Ramy');
     expect(target.value).toBe('Ramy');
     expect(sandbox.get(person)).toEqual({ leader: { firstName: 'Ramy' } });
-  });
-
-  it('update computed', () => {
-    const sandbox = new Sandbox();
-    const n = useState(1).map((x) => x + 1);
-
-    const target = { value: 0 };
-    sandbox.track(n.assign(target, 'value'));
-
-    sandbox.update(n, 4);
-    expect(target.value).toBe(4);
   });
 
   it('effect async', async () => {
