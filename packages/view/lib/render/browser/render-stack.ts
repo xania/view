@@ -91,7 +91,7 @@ export function renderStack<
         sandbox.nodes = cpush(sandbox.nodes, stateNode);
       }
 
-      sandbox.track(tpl.assign(stateNode, 'data'));
+      sandbox.track(tpl.export(stateNode, 'data'));
     } else if (tpl instanceof ListExpression) {
       const source = tpl.source;
 
@@ -206,15 +206,12 @@ export function renderStack<
     } else if (isCommand(tpl)) {
       sandbox.handleCommands(tpl, currentTarget as any);
     } else {
-      let value = tpl;
       for (const transform of transformers) {
-        value = transform(value);
-      }
-
-      if (value === tpl) {
-        console.log('unknown', transformers, tpl);
-      } else {
-        stack.push([sandbox, currentTarget, value, isRoot]);
+        const value = transform(tpl);
+        if (value !== tpl) {
+          stack.push([sandbox, currentTarget, value, isRoot]);
+          break;
+        }
       }
     }
   }

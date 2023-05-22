@@ -167,7 +167,7 @@ export class MutationOperator<T = any> {
             if (sandboxes[currentRowIndex][key] !== newRow) {
               sandboxes[currentRowIndex][key] = newRow;
               // listItem.items[currentRowIndex] = newRow;
-              sandboxes[currentRowIndex].reconcile(0);
+              sandboxes[currentRowIndex].reconcile();
             }
             newRow[key] = -currentRowIndex - 1; // inverse flag
           }

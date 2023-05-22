@@ -1,4 +1,4 @@
-﻿import { Command, UpdateStateCommand } from './command';
+﻿import { UpdateStateCommand } from './command';
 
 export type Value<T = any> = JSX.MaybePromise<T | undefined | void>;
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
@@ -18,8 +18,12 @@ export class Reactive<T = any> {
     return this.prop(name);
   }
 
-  assign<U, P extends KeyOfType<U, T>>(target: U, property: P) {
-    return new Assign<T, U, P>(this, target, property);
+  set(objectKey: symbol, property: string): ObjectAssign<T> {
+    return new ObjectAssign(this, objectKey, property);
+  }
+
+  export<U, P extends KeyOfType<U, T>>(target: U, property: P) {
+    return new Export<T, U, P>(this, target, property);
   }
 
   effect<R>(fn: (value: T, acc?: R | undefined) => Value<R>): Effect {
@@ -83,11 +87,19 @@ export class When<T = any, U = any> extends Reactive<U> {
   }
 }
 
-export class Assign<T = any, U = any, P extends KeyOfType<U, T> = any> {
+export class Export<T = any, U = any, P extends KeyOfType<U, T> = any> {
   constructor(
     public state: Reactive<T>,
     public target: U,
     public property: P
+  ) {}
+}
+
+export class ObjectAssign<T = any> {
+  constructor(
+    public source: Reactive<T>,
+    public objectKey: symbol,
+    public property: string
   ) {}
 }
 
@@ -110,11 +122,13 @@ export class Property<T = any, P extends keyof T = any> extends Reactive<
 export class Computed<T = any, U = any> extends Reactive<Unwrap<U>> {
   constructor(
     public input: Reactive<T>,
-    public compute: (x: T) => Value<U>,
+    public func: (x: T) => Value<U>,
     public defaultValue?: U
   ) {
-    super(map<T, U>(input.initial, compute));
+    super(compute<T, U>(input.initial, func));
   }
+
+  static compute = compute;
 }
 
 interface List<T> {
@@ -126,9 +140,12 @@ export class Append<T = any> {
   constructor(public state: Reactive<T[]>, public list: List<T>) {}
 }
 
-function map<T, U>(input: Value<T>, f: (x: T) => Value<U>): Value<Unwrap<U>> {
+function compute<T, U>(
+  input: Value<T>,
+  f: (x: T) => Value<U>
+): Value<Unwrap<U>> {
   if (input instanceof Promise) {
-    return input.then((resolved) => map(resolved, f));
+    return input.then((resolved) => compute(resolved, f));
   } else if (input !== undefined) {
     return f(input) as Unwrap<U>;
   }

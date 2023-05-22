@@ -51,7 +51,7 @@ export function renderAttr(
           })
         );
       } else {
-        sandbox.track(attrValue.assign(element, name as any));
+        sandbox.track(attrValue.export(element, name as any));
       }
     } else {
       if (isSvg) element.setAttribute(name, attrValue);

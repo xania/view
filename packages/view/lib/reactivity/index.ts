@@ -5,3 +5,5 @@ export * from './command';
 export * from './mutation';
 export * from './if';
 export * from './reactive';
+export * from './each';
+export * from './program';
