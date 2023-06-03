@@ -29,7 +29,6 @@ export class Sandbox implements Record<number | symbol, any> {
   program = new Program();
   disposed: boolean = false;
   nodes?: Collection<ViewNode>;
-  promises?: Collection<Promise<any>>;
   subscriptions?: Collection<Subscription>;
   disposables?: Collection<Disposable>;
   classList?: Collection<string>;
