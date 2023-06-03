@@ -23,9 +23,12 @@ import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 import { smap } from '../../seq';
 
 const PopTransformer = Symbol('pop-transformer');
-const SetRoot = Symbol('set-root');
+const ResetRoot = Symbol('set-root');
 
-type Instruction = typeof PopTransformer | typeof SetRoot;
+type Instruction<TElement, TNode> =
+  | typeof PopTransformer
+  | typeof ResetRoot
+  | ResetTarget<TElement, TNode>;
 
 type RenderContext = {
   transformers: Transformer<any>['transform'][];
@@ -36,62 +39,61 @@ export function renderStack<
   TElement extends ElementNode,
   TNode extends ViewNode
 >(
-  stack: (
-    | Instruction
-    | [Sandbox, TElement | AnchorNode<TNode>, JSX.Children | SequenceIterator]
-  )[],
+  sandbox: Sandbox,
+  stack: (Instruction<TElement, TNode> | JSX.Children | SequenceIterator)[],
   factory: NodeFactory<TElement, TNode>,
+  currentTarget: TElement | AnchorNode<TNode>,
   context: RenderContext = { transformers: [], isRoot: true }
 ) {
   const { transformers } = context;
 
-  if (!transformers) {
-    debugger;
-  }
   while (stack.length) {
     const curr = stack.pop()!;
     if (curr === PopTransformer) {
-      context.transformers.pop();
+      transformers.pop();
       continue;
-    } else if (curr === SetRoot) {
+    } else if (curr === ResetRoot) {
       context.isRoot = true;
       continue;
+    } else if (curr instanceof ResetTarget) {
+      currentTarget = curr.target;
+      continue;
     }
-    const [sandbox, currentTarget, tpl] = curr;
+    const tpl = curr;
 
     if (sandbox.disposed || tpl === null || tpl === undefined) {
       continue;
     } else if (tpl instanceof Function) {
-      stack.push([sandbox, currentTarget, tpl()]);
+      stack.push(tpl());
     } else if (tpl instanceof Array) {
       for (let i = tpl.length - 1; i >= 0; i--) {
         const item = tpl[i];
         if (item !== null && item !== undefined) {
-          stack.push([sandbox, currentTarget, item]);
+          stack.push(item);
         }
       }
     } else if (tpl instanceof SequenceIterator) {
       const next = tpl.iter.next();
       if (!next.done) {
-        stack.push([sandbox, currentTarget, tpl]);
+        stack.push(tpl);
       }
-      stack.push([sandbox, currentTarget, next.value]);
+      stack.push(next.value);
     } else if (tpl instanceof Promise) {
       const promiseTransformers = transformers.slice(0);
       sandbox.promises = cpush(
         sandbox.promises,
         tpl.then((resolved): any => {
           if (resolved) {
-            stack.push([sandbox, currentTarget, resolved]);
+            stack.push(resolved);
           }
-          renderStack(stack, factory, {
+          renderStack(sandbox, stack, factory, currentTarget, {
             transformers: promiseTransformers,
             isRoot: context.isRoot,
           });
         })
       );
     } else if (isIterable(tpl)) {
-      stack.push([sandbox, currentTarget, new SequenceIterator(tpl)]);
+      stack.push(new SequenceIterator(tpl));
     } else if (tpl.constructor === String) {
       const textNode = factory.createTextNode(currentTarget, tpl as string);
       if (context.isRoot) {
@@ -103,7 +105,7 @@ export function renderStack<
         sandbox.nodes = cpush(sandbox.nodes, textNode);
       }
       // } else if (tpl instanceof Component) {
-      //   stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
+      //   stack.push(sandbox, currentTarget, tpl.execute(), isRoot]);
     } else if (tpl instanceof Reactive) {
       const stateNode = factory.createTextNode(currentTarget, '');
       if (context.isRoot) {
@@ -123,7 +125,7 @@ export function renderStack<
             (e) => e,
             new State(source[i])
           ) as JSX.Element;
-          stack.push([sandbox, currentTarget, template]);
+          stack.push(template);
         }
       } else {
         const listAnchorNode = factory.createComment(currentTarget, '');
@@ -152,10 +154,13 @@ export function renderStack<
     } else if (tpl instanceof Transformer) {
       transformers.push(tpl.transform);
       stack.push(PopTransformer);
-      stack.push([sandbox, currentTarget, tpl.children]);
+      stack.push(tpl.children);
     } else if (isDomDescriptor(tpl)) {
       switch (tpl.type) {
         case DomDescriptorType.Element:
+          if (!factory.createElement) {
+            debugger;
+          }
           const element = factory.createElement(currentTarget, tpl.name);
 
           if (context.isRoot) {
@@ -180,9 +185,13 @@ export function renderStack<
 
           const { children } = tpl;
           if (children ?? true) {
-            context.isRoot = false;
-            stack.push(SetRoot);
-            stack.push([sandbox, element, children]);
+            if (context.isRoot) {
+              context.isRoot = false;
+              stack.push(ResetRoot);
+            }
+
+            stack.push(new ResetTarget(currentTarget), [children]);
+            currentTarget = element;
           }
           break;
         case DomDescriptorType.Attribute:
@@ -203,13 +212,9 @@ export function renderStack<
           break;
       }
     } else if (isViewable(tpl)) {
-      stack.push([sandbox, currentTarget, tpl.view()]);
+      stack.push(tpl.view());
     } else if (isAttachable(tpl)) {
-      stack.push([
-        sandbox,
-        currentTarget,
-        tpl.attachTo(currentTarget as any, factory, sandbox),
-      ]);
+      stack.push(tpl.attachTo(currentTarget as any, factory, sandbox));
     } else if (isSubscribable(tpl)) {
       sandbox.subscriptions = cpush(
         sandbox.subscriptions,
@@ -231,10 +236,14 @@ export function renderStack<
       for (const transform of transformers) {
         const value = transform(tpl);
         if (value !== tpl) {
-          stack.push([sandbox, currentTarget, value]);
+          stack.push(value);
           break;
         }
       }
     }
   }
+}
+
+class ResetTarget<TElement, TNode> {
+  constructor(public target: TElement | AnchorNode<TNode>) {}
 }

@@ -37,10 +37,7 @@ export class MutationOperator<T = any> {
     childSandbox[key] = item;
 
     const insertAnchor = this.anchorAt(index);
-    renderStack(
-      [[childSandbox, insertAnchor, this.template, true]],
-      this.factory
-    );
+    renderStack(childSandbox, [[this.template]], this.factory, insertAnchor);
 
     for (let i = sandboxes.length; i > index; i--) {
       const preceding = sandboxes[i - 1];
@@ -94,10 +91,7 @@ export class MutationOperator<T = any> {
       const childSandbox = new Sandbox(this.sandbox);
       childSandbox[key] = row;
 
-      renderStack(
-        [[childSandbox, currentTarget, template, true]],
-        this.factory
-      );
+      renderStack(childSandbox, [template], this.factory, currentTarget);
       sandboxes.push(childSandbox);
     }
   }

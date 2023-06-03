@@ -279,7 +279,7 @@ class RouteHandler {
       });
 
       const routeSandbox = new Sandbox(sandbox);
-      renderStack<any, any>([[routeSandbox, target as any, view]], factory);
+      renderStack<any, any>(routeSandbox, [view], factory, target as any);
 
       routeSandbox.update(
         routeContext.transition,
