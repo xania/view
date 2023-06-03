@@ -1,13 +1,13 @@
-﻿import { Route, Link, RouteContext } from "xania/router";
+﻿import { Route, Link } from "xania/router";
 import { Title } from "../components/heading";
 import { Page } from "../layout/page";
 import { Attrs, useState } from "xania";
 
-export function App(context: RouteContext) {
+export function App() {
   const current = useState<string>();
   return (
     <>
-      <Page trigger={context.trigger}>
+      <Page>
         <Attrs class="max-w-md" />
         <Title>Router</Title>
 
@@ -25,27 +25,27 @@ export function App(context: RouteContext) {
           <button
             class={[
               current.map((x) => (x === "page1" ? "bg-gray-300" : null)),
-              "m-2 p-2 border-2",
+              "m-2 border-2 p-2",
             ]}
             click={current.update("page1")}
           >
             page 1
-            <Link to="button" class="text-blue-100 bg-slate-800" />
+            <Link to="button" class="bg-slate-800 text-blue-100" />
           </button>
           <a
             class={[
               current.map((x) => (x === "page2" ? "bg-gray-300" : null)),
-              "m-2 p-2 border-2",
+              "m-2 border-2 p-2",
             ]}
             click={current.update("page2")}
           >
             page 2
-            <Link to="anchor" class="text-blue-100 bg-slate-800" />
+            <Link to="anchor" class="bg-slate-800 text-blue-100" />
           </a>
         </div>
       </Page>
 
-      <Page trigger={context.trigger}>
+      <Page>
         <Route path="button">
           <Title>page 1</Title>
         </Route>

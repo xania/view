@@ -1,4 +1,4 @@
-import { ListDiff, Mutation, MutationType, diff } from './diff';
+import { ListChanges, changes } from './changes';
 import { Each } from './each';
 import {
   Append,
@@ -96,8 +96,8 @@ export class Program {
         const scopeValue = get(scope, source.key) ?? source.initial;
 
         if (scopeValue !== undefined) {
-          const accumulator = (scope[node.key] ??= new ListDiff([], []));
-          diff(node, scopeValue, accumulator);
+          const accumulator = (scope[node.key] ??= new ListChanges([], []));
+          changes(node, scopeValue, accumulator);
         }
       } else if (node instanceof Append) {
         const { state } = node;
@@ -293,8 +293,8 @@ export interface Scope extends Record<symbol | number | string, any> {
   [parentKey]?: Scope;
 }
 
-type EffectNode = Effect | Export | Append | ObjectAssign;
-type Node = Reactive | EffectNode;
+export type EffectNode = Effect | Export | Append | ObjectAssign;
+export type Node = Reactive | EffectNode;
 
 export function get<T>(scope: Scope, state: Reactive<T>): Value<T>;
 export function get(scope: Scope, key: symbol): Value;

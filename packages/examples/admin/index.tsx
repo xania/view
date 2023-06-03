@@ -1,7 +1,8 @@
 ﻿import { Link, Route } from "xania/router";
 import { Page } from "../layout/page";
 import { Title } from "../components/heading";
-import { List } from "xania";
+import { ForEach, List, each, useState } from "xania";
+import { ListApp } from "./list-app";
 
 export function App() {
   return (
@@ -41,6 +42,8 @@ export function App() {
             Go up
             <Link to={".."} />
           </a>
+
+          <ListApp />
         </Page>
       </Route>
       <Route path="ramy">

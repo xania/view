@@ -7,7 +7,12 @@ import { renderAttr } from './render-attr';
 import { SequenceIterator, isIterable } from '../../utils/iterator';
 import { State } from '../../reactivity/state';
 import { cpush } from '../../utils/collection';
-import { Transformer, isAttachable, isViewable } from '../../render';
+import {
+  ForEachExpression,
+  Transformer,
+  isAttachable,
+  isViewable,
+} from '../../render';
 import { isSubscribable, isSubscription } from '../../utils/observable';
 import { isDisposable } from '../../render/disposable';
 import { ListExpression, ListMutations, diff } from '../../reactivity/list';
@@ -18,80 +23,96 @@ import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 import { smap } from '../../seq';
 
 const PopTransformer = Symbol('pop-transformer');
+const SetRoot = Symbol('set-root');
+
+type Instruction = typeof PopTransformer | typeof SetRoot;
+
+type RenderContext = {
+  transformers: Transformer<any>['transform'][];
+  isRoot: boolean;
+};
 
 export function renderStack<
   TElement extends ElementNode,
   TNode extends ViewNode
 >(
   stack: (
-    | typeof PopTransformer
-    | [
-        Sandbox,
-        TElement | AnchorNode<TNode>,
-        JSX.Children | SequenceIterator,
-        boolean
-      ]
+    | Instruction
+    | [Sandbox, TElement | AnchorNode<TNode>, JSX.Children | SequenceIterator]
   )[],
   factory: NodeFactory<TElement, TNode>,
-  transformers: Transformer<any>['transform'][] = []
+  context: RenderContext = { transformers: [], isRoot: true }
 ) {
+  const { transformers } = context;
+
+  if (!transformers) {
+    debugger;
+  }
   while (stack.length) {
     const curr = stack.pop()!;
     if (curr === PopTransformer) {
-      transformers.pop();
+      context.transformers.pop();
+      continue;
+    } else if (curr === SetRoot) {
+      context.isRoot = true;
       continue;
     }
-    const [sandbox, currentTarget, tpl, isRoot] = curr;
+    const [sandbox, currentTarget, tpl] = curr;
 
     if (sandbox.disposed || tpl === null || tpl === undefined) {
       continue;
     } else if (tpl instanceof Function) {
-      stack.push([sandbox, currentTarget, tpl(), isRoot]);
+      stack.push([sandbox, currentTarget, tpl()]);
     } else if (tpl instanceof Array) {
       for (let i = tpl.length - 1; i >= 0; i--) {
         const item = tpl[i];
         if (item !== null && item !== undefined) {
-          stack.push([sandbox, currentTarget, item, isRoot]);
+          stack.push([sandbox, currentTarget, item]);
         }
       }
     } else if (tpl instanceof SequenceIterator) {
       const next = tpl.iter.next();
       if (!next.done) {
-        stack.push([sandbox, currentTarget, tpl, isRoot]);
+        stack.push([sandbox, currentTarget, tpl]);
       }
-      stack.push([sandbox, currentTarget, next.value, isRoot]);
+      stack.push([sandbox, currentTarget, next.value]);
     } else if (tpl instanceof Promise) {
       const promiseTransformers = transformers.slice(0);
       sandbox.promises = cpush(
         sandbox.promises,
         tpl.then((resolved): any => {
           if (resolved) {
-            stack.push([sandbox, currentTarget, resolved, isRoot]);
+            stack.push([sandbox, currentTarget, resolved]);
           }
-          renderStack(stack, factory, promiseTransformers);
+          renderStack(stack, factory, {
+            transformers: promiseTransformers,
+            isRoot: context.isRoot,
+          });
         })
       );
     } else if (isIterable(tpl)) {
-      stack.push([sandbox, currentTarget, new SequenceIterator(tpl), isRoot]);
+      stack.push([sandbox, currentTarget, new SequenceIterator(tpl)]);
     } else if (tpl.constructor === String) {
       const textNode = factory.createTextNode(currentTarget, tpl as string);
-      if (isRoot) {
+      if (context.isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, textNode);
       }
     } else if (tpl.constructor === Number) {
       const textNode = factory.createTextNode(currentTarget, String(tpl));
-      if (isRoot) {
+      if (context.isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, textNode);
       }
       // } else if (tpl instanceof Component) {
       //   stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
     } else if (tpl instanceof Reactive) {
       const stateNode = factory.createTextNode(currentTarget, '');
-      if (isRoot) {
+      if (context.isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, stateNode);
       }
 
       sandbox.track(tpl.export(stateNode, 'data'));
+    } else if (tpl instanceof ForEachExpression) {
+      tpl.render(sandbox);
     } else if (tpl instanceof ListExpression) {
       const source = tpl.source;
 
@@ -102,11 +123,11 @@ export function renderStack<
             (e) => e,
             new State(source[i])
           ) as JSX.Element;
-          stack.push([sandbox, currentTarget, template, isRoot]);
+          stack.push([sandbox, currentTarget, template]);
         }
       } else {
         const listAnchorNode = factory.createComment(currentTarget, '');
-        if (isRoot) {
+        if (context.isRoot) {
           sandbox.nodes = cpush(sandbox.nodes, listAnchorNode);
         }
 
@@ -131,13 +152,13 @@ export function renderStack<
     } else if (tpl instanceof Transformer) {
       transformers.push(tpl.transform);
       stack.push(PopTransformer);
-      stack.push([sandbox, currentTarget, tpl.children, isRoot]);
+      stack.push([sandbox, currentTarget, tpl.children]);
     } else if (isDomDescriptor(tpl)) {
       switch (tpl.type) {
         case DomDescriptorType.Element:
           const element = factory.createElement(currentTarget, tpl.name);
 
-          if (isRoot) {
+          if (context.isRoot) {
             sandbox.nodes = cpush(sandbox.nodes, element);
           }
 
@@ -152,14 +173,16 @@ export function renderStack<
                 element as ElementNode,
                 attrName,
                 attrValue,
-                isRoot
+                context.isRoot
               );
             }
           }
 
           const { children } = tpl;
           if (children ?? true) {
-            stack.push([sandbox, element, children, false]);
+            context.isRoot = false;
+            stack.push(SetRoot);
+            stack.push([sandbox, element, children]);
           }
           break;
         case DomDescriptorType.Attribute:
@@ -172,7 +195,7 @@ export function renderStack<
             currentTarget,
             tpl.name,
             tpl.value,
-            isRoot
+            context.isRoot
           );
           break;
         default:
@@ -180,13 +203,12 @@ export function renderStack<
           break;
       }
     } else if (isViewable(tpl)) {
-      stack.push([sandbox, currentTarget, tpl.view(), isRoot]);
+      stack.push([sandbox, currentTarget, tpl.view()]);
     } else if (isAttachable(tpl)) {
       stack.push([
         sandbox,
         currentTarget,
         tpl.attachTo(currentTarget as any, factory, sandbox),
-        isRoot,
       ]);
     } else if (isSubscribable(tpl)) {
       sandbox.subscriptions = cpush(
@@ -209,7 +231,7 @@ export function renderStack<
       for (const transform of transformers) {
         const value = transform(tpl);
         if (value !== tpl) {
-          stack.push([sandbox, currentTarget, value, isRoot]);
+          stack.push([sandbox, currentTarget, value]);
           break;
         }
       }

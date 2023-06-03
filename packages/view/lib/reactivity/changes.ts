@@ -4,10 +4,10 @@ import { Scope } from './program';
 const itemKey = Symbol();
 const __indexKey = Symbol();
 
-export function diff<T>(
+export function changes<T>(
   node: Each<T>,
   source: T[],
-  listDiff: ListDiff
+  listDiff: ListChanges
 ): Mutation<T>[] | void {
   const { scopes, mutations } = listDiff;
   mutations.length = 0;
@@ -110,11 +110,11 @@ export enum MutationType {
   Remove,
 }
 
-export class ListDiff {
+export class ListChanges {
   constructor(public scopes: Scope[], public mutations: Mutation<any>[]) {}
 }
 
-function adjustIndex(mutations: ListDiff['mutations'], index: number) {
+function adjustIndex(mutations: ListChanges['mutations'], index: number) {
   for (const m of mutations) {
     switch (m.type) {
       case MutationType.Insert:

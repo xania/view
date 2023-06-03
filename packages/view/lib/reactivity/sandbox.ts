@@ -10,7 +10,7 @@ import {
   UpdateStateCommand,
 } from './command';
 import { Each } from './each';
-import { Program } from './program';
+import { EffectNode, Node, Program } from './program';
 import {
   Export,
   Computed,
@@ -23,9 +23,6 @@ import {
   Value,
 } from './reactive';
 import { State } from './state';
-
-type EffectNode = Effect | Export | Append;
-type Node = Reactive | EffectNode;
 
 // const dirty = Symbol('dirty');
 export class Sandbox implements Record<number | symbol, any> {

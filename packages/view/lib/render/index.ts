@@ -33,3 +33,4 @@ export * from './viewable';
 export * from './attachable';
 export * from './browser/render-stack';
 export * from './transformer';
+export * from './each-expression';

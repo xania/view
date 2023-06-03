@@ -32,12 +32,10 @@ export function ExamplesApp() {
             </Route>
           </Route>
           <Route path="todo">
-            {(ctx: RouteContext) => import("./todomvc").then((e) => e.App(ctx))}
+            {() => import("./todomvc").then((e) => e.App())}
           </Route>
           <Route path="router">
-            {(context: RouteContext) =>
-              import("./router").then((e) => e.App(context))
-            }
+            {() => import("./router").then((e) => e.App())}
           </Route>
           <Route path="grid">
             {() => import("./grid").then((e) => e.App())}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Each, Sandbox, each, useState } from '../reactivity';
 import { Program as Program, get } from '../lib/reactivity/program';
-import { ListDiff, AppendMutation } from '../lib/reactivity/diff';
+import { ListChanges, AppendMutation } from '../lib/reactivity/changes';
 
 describe('program', () => {
   it('set', () => {
@@ -38,7 +38,7 @@ describe('each', () => {
   it('initialize', () => {
     const scope = {};
     program.reconcile(scope);
-    const actual = get(scope, node.key) as ListDiff;
+    const actual = get(scope, node.key) as ListChanges;
 
     const { mutations, scopes } = actual;
     expect(mutations.length).toBe(1);
@@ -54,7 +54,7 @@ describe('each', () => {
     const scope = {};
     program.reconcile(scope);
     program.update(scope, values, [2, 3, 4, 1]);
-    const actual = get(scope, node.key) as ListDiff;
+    const actual = get(scope, node.key) as ListChanges;
     const { mutations, scopes } = actual;
 
     expect(mutations).toEqual([
@@ -68,7 +68,7 @@ describe('each', () => {
     const scope = {};
     program.reconcile(scope);
     program.update(scope, values, [4, 1, 2, 3]);
-    const actual = get(scope, node.key) as ListDiff;
+    const actual = get(scope, node.key) as ListChanges;
     const { mutations, scopes } = actual;
 
     expect(mutations).toEqual([{ type: 2, index: 0, item: 4 }]);
@@ -78,7 +78,7 @@ describe('each', () => {
     const scope = {};
     program.reconcile(scope);
     program.update(scope, values, [1, 3]);
-    const actual = get(scope, node.key) as ListDiff;
+    const actual = get(scope, node.key) as ListChanges;
     const { mutations } = actual;
 
     expect(mutations).toEqual([{ type: 3, indices: [1] }]);
@@ -88,7 +88,7 @@ describe('each', () => {
     const scope = {};
     program.reconcile(scope);
     program.update(scope, values, [4, 3, 1]);
-    const actual = get(scope, node.key) as ListDiff;
+    const actual = get(scope, node.key) as ListChanges;
     const { mutations } = actual;
 
     console.log(mutations);

@@ -20,18 +20,18 @@ export type ElementDescriptor = {
   name: string;
 };
 
-export interface StaticElementDescriptor {
+export type StaticElementDescriptor = {
   type: DomDescriptorType.StaticElement;
   name: string;
   attrs?: ElementDescriptor['attrs'];
   children?: JSX.MaybeArray<StaticTemplate>;
-}
+};
 
-export interface AttrDescriptor {
+export type AttrDescriptor = {
   type: DomDescriptorType.Attribute;
   name: string;
   value: any;
-}
+};
 
 export type TextDescriptor = {
   type: DomDescriptorType.Text;
