@@ -1,8 +1,8 @@
 ﻿export class SequenceIterator<T = any> {
-  constructor(
-    iterable: Iterable<T>,
-    public iter = iterable[Symbol.iterator]()
-  ) {}
+  public iter: Iterator<T>;
+  constructor(iterable: Iterable<T>) {
+    this.iter = iterable[Symbol.iterator]();
+  }
 }
 
 export function isIterable<T>(obj: any): obj is Iterable<T> {

@@ -125,7 +125,7 @@ export function renderStack<
 
         sandbox.track(tpl.export(stateNode, 'data'));
       } else if (tpl instanceof ForEachExpression) {
-        tpl.render(sandbox);
+        tpl.render(sandbox, factory);
       } else if (tpl instanceof ListExpression) {
         const source = tpl.source;
 

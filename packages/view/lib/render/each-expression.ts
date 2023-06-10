@@ -21,7 +21,7 @@ export function ForEach<T>(props: ForEachProps<T>) {
 export class ForEachExpression<T> {
   constructor(public source: Reactive<T[]>, public template: JSX.Children) {}
 
-  render(sandbox: Sandbox) {
+  render(sandbox: Sandbox, x: any) {
     // const template = this.compile();
 
     const { source } = this;
@@ -48,7 +48,7 @@ export class ForEachExpression<T> {
         throw Error('');
       },
     };
-    renderStack([[offline, offline as any, this.template, true]], factory);
+    renderStack(offline, this.template, factory, offline as any);
 
     console.log(offline.nodes);
 
