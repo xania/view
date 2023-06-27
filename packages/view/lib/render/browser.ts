@@ -11,7 +11,7 @@ function namespaceUri(name: string, defaultUri: string | null) {
 export class Browser implements NodeFactory<Element, any> {
   events: Record<string, [Element, JSX.EventHandler, Sandbox][]> | undefined;
 
-  constructor(public container: Element) {}
+  constructor(public container: Element) { }
 
   createElement(
     parentElement: Element | AnchorNode<Element>,
@@ -70,40 +70,46 @@ export class Browser implements NodeFactory<Element, any> {
   async handleEvent(originalEvent: Event) {
     const eventName = originalEvent.type;
 
-    {
-      const events = this.events;
-      if (!events) {
-        return;
+    const events = this.events;
+    if (!events) {
+      return;
+    }
+    const delegates = events[eventName];
+    if (!delegates) {
+      return;
+    }
+
+    for (const delegate of delegates) {
+      const [target, handle, sandbox] = delegate as any;
+
+      if (sandbox.disposed) {
+        // TODO remove disposed from list
+        continue;
       }
-      const delegates = events[eventName];
-      if (!delegates) {
-        return;
-      }
 
-      for (const dlg of delegates) {
-        const [target, eventHandler, sandbox] = dlg as any;
+      if (target.contains(originalEvent.target)) {
+        let eventObject: any = null;
 
-        if (sandbox.disposed) {
-          // TODO remove disposed from list
-          continue;
-        }
+        eventObject ??= syntheticEvent(eventName, originalEvent, target);
 
-        if (target.contains(originalEvent.target as any)) {
-          let eventObj: any = null;
+        const handleList = [handle];
 
-          eventObj ??= syntheticEvent(eventName, originalEvent, target);
-
-          if (eventHandler instanceof Function) {
-            const command = eventHandler(eventObj);
+        for (let i = 0; i < handleList.length; i++) {
+          const handle = handleList[i];
+    
+          if (Array.isArray(handle)) {
+            handleList.splice(i + 1, 0, ...handle)
+          } else if (handle instanceof Function) {
+            const command = handle(eventObject);
             if (command) {
               sandbox.handleCommands(command, target);
             }
-          } else if (isCallable(eventHandler)) {
-            sandbox.handleCommands(eventHandler.call(eventObj), target);
-          } else if (!isCommand(eventHandler)) {
-            sandbox.handleCommands(eventHandler.handleEvent(eventObj), target);
+          } else if (isCallable(handle)) {
+            sandbox.handleCommands(handle.call(eventObject), target);
+          } else if (!isCommand(handle)) {
+            sandbox.handleCommands(handle.handleEvent(eventObject), target);
           } else {
-            sandbox.handleCommands(eventHandler, target);
+            sandbox.handleCommands(handle, target);
           }
         }
       }
