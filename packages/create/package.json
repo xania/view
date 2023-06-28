@@ -20,21 +20,21 @@
     "dist"
   ],
   "devDependencies": {
-    "@types/node": "^17.0.45",
-    "prettier": "^2.8.8",
-    "replace-in-file": "^6.3.5",
-    "tsup": "^5.12.9",
-    "typescript": "^4.9.5",
-    "tar": "^6.1.14",
+    "@types/node": "^20.3.2",
     "chalk": "^5.2.0",
-    "sander": "^0.6.0",
     "home-or-tmp": "^4.0.0",
-    "https-proxy-agent": "^6.1.0"
+    "https-proxy-agent": "^7.0.0",
+    "prettier": "^2.8.8",
+    "replace-in-file": "^7.0.1",
+    "sander": "^0.6.0",
+    "tar": "^6.1.15",
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.5"
   },
   "license": "MIT",
   "dependencies": {
     "enquirer": "^2.3.6",
     "execa": "^7.1.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^5.0.1"
   }
 }
