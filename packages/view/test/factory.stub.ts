@@ -1,4 +1,5 @@
 ﻿import { ElementNode, NodeFactory, TextNode, ViewNode } from '../lib/factory';
+import { Sandbox } from '../reactivity';
 
 class TestClassList {
   public list = new Set<string>();
@@ -18,23 +19,23 @@ export class TestElementNode implements ElementNode {
     public namespaceURI: string | null,
     public name: string,
     public parentElement?: TestElementNode | undefined
-  ) {}
+  ) { }
 
   appendChild(node: ViewNode): ViewNode {
     this.childNodes.push(node);
     return node;
   }
   addEventListener(
-    type: string,
-    listener: EventListenerOrEventListenerObject,
-    options: boolean | AddEventListenerOptions | undefined
+    _type: string,
+    _listener: EventListenerOrEventListenerObject,
+    _options: boolean | AddEventListenerOptions | undefined
   ): void {
     throw new Error('Method not implemented.');
   }
-  before(...nodes: ViewNode[]): void {
+  before(..._nodes: ViewNode[]): void {
     throw new Error('Method not implemented.');
   }
-  setAttribute(str: string, value: any): void {
+  setAttribute(_str: string, _value: any): void {
     throw new Error('Method not implemented.');
   }
   remove(): void {
@@ -43,7 +44,10 @@ export class TestElementNode implements ElementNode {
 }
 
 export class FactoryStub implements NodeFactory<any, any> {
-  createElement(parentElement: any, name: string) {
+  applyEvent(_sandbox: Sandbox, _target: any, _eventName: string, _eventHandler: JSX.EventHandler<any, any>): void {
+    throw new Error('Method not implemented.');
+  }
+  createElement(_parentElement: any, _name: string) {
     throw new Error('Method not implemented.');
   }
   createElementNS(namespaceUri: string, name: string): ElementNode {
@@ -58,9 +62,9 @@ export class FactoryStub implements NodeFactory<any, any> {
 }
 
 class TextNodeStub implements TextNode {
-  constructor(public data: string) {}
+  constructor(public data: string) { }
 
-  before(...nodes: ViewNode[]): void {
+  before(..._nodes: ViewNode[]): void {
     throw new Error('Method not implemented.');
   }
   remove(): void {
@@ -69,9 +73,9 @@ class TextNodeStub implements TextNode {
 }
 
 class CommentNodeStub implements TextNode {
-  constructor(public data: string) {}
+  constructor(public data: string) { }
 
-  before(...nodes: ViewNode[]): void {
+  before(..._nodes: ViewNode[]): void {
     throw new Error('Method not implemented.');
   }
   remove(): void {

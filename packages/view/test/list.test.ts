@@ -1,6 +1,5 @@
-﻿import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { Append, Sandbox, diff, useState } from '../reactivity';
-import { MutationOperator } from '../lib/render/browser/mutation-operator';
 
 describe('list reactivity', () => {
   it('append', () => {
