@@ -1,5 +1,5 @@
 ﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
-import { Sandbox, isCommand } from '../reactivity';
+import { Command, Sandbox, isCommand } from '../reactivity';
 import { syntheticEvent } from './event';
 
 function namespaceUri(name: string, defaultUri: string | null) {
@@ -80,37 +80,48 @@ export class Browser implements NodeFactory<Element, any> {
     }
 
     for (const delegate of delegates) {
-      const [target, handle, sandbox] = delegate as any;
+      const [target, handle, sandbox] = delegate;
 
       if (sandbox.disposed) {
         // TODO remove disposed from list
         continue;
       }
 
-      if (target.contains(originalEvent.target)) {
-        let eventObject: any = null;
+      if (!target.contains(originalEvent.target as Node)) {
+        continue;
+      }
 
-        eventObject ??= syntheticEvent(eventName, originalEvent, target);
+      let eventObject: any = null;
 
-        const handleList = [handle];
+      eventObject ??= syntheticEvent(eventName, originalEvent, target);
 
-        for (let i = 0; i < handleList.length; i++) {
-          const handle = handleList[i];
-    
-          if (Array.isArray(handle)) {
-            handleList.splice(i + 1, 0, ...handle)
-          } else if (handle instanceof Function) {
-            const command = handle(eventObject);
-            if (command) {
-              sandbox.handleCommands(command, target);
-            }
-          } else if (isCallable(handle)) {
-            sandbox.handleCommands(handle.call(eventObject), target);
-          } else if (!isCommand(handle)) {
-            sandbox.handleCommands(handle.handleEvent(eventObject), target);
-          } else {
-            sandbox.handleCommands(handle, target);
-          }
+      const handleList = [handle];
+
+      for (const handle of handleList) {
+        if (Array.isArray(handle)) {
+          handleList.push(...handle);
+          continue;
+        }
+
+        let handler: JSX.EventHandlerFn<any, any> | undefined;
+        let command: JSX.Sequence<void | Command> | undefined;
+
+        if (handle instanceof Function) {
+          handler = handle;
+        } else if (isCallable(handle)) {
+          handler = handle.call;
+        } else if (isCommand(handle)) {
+          command = handle;
+        } else {
+          handler = handle.handleEvent;
+        }
+
+        if (handler instanceof Function) {
+          command = handler(eventObject);
+        }
+
+        if (command) {
+          sandbox.handleCommands(command, target as any);
         }
       }
     }
