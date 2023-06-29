@@ -4,7 +4,7 @@
 /// <reference path="./svg.d.ts" />
 /// <reference path="./events.d.ts" />
 
-declare module JSX {
+declare namespace JSX {
   // type EventMap<T> = {
   //   [P in keyof HTMLElementEventMap]?: (
   //     e: EventContext<T, HTMLElementEventMap[P]>

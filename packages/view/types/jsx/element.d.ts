@@ -7,7 +7,7 @@
   then<U>(resolve: (x: T) => U | Promise<U>): Promise<U>;
 }
 
-declare module JSX {
+declare namespace JSX {
   type DomDescriptor = import('../../lib/intrinsic/descriptors').DomDescriptor;
   type Viewable = import('../../lib/render/viewable').Viewable;
   type Attachable = import('../../lib/render/attachable').Attachable;

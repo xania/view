@@ -1,8 +1,8 @@
-﻿declare module JSX {
+﻿declare namespace JSX {
   interface AnimationElementSVGAttributes<T>
     extends CoreSVGAttributes<T>,
-      ExternalResourceSVGAttributes,
-      ConditionalProcessingSVGAttributes {}
+    ExternalResourceSVGAttributes,
+    ConditionalProcessingSVGAttributes { }
 
   interface ExternalResourceSVGAttributes {
     externalResourcesRequired?: 'true' | 'false';
@@ -43,19 +43,19 @@
   }
   interface PresentationSVGAttributes {
     'alignment-baseline'?:
-      | 'auto'
-      | 'baseline'
-      | 'before-edge'
-      | 'text-before-edge'
-      | 'middle'
-      | 'central'
-      | 'after-edge'
-      | 'text-after-edge'
-      | 'ideographic'
-      | 'alphabetic'
-      | 'hanging'
-      | 'mathematical'
-      | 'inherit';
+    | 'auto'
+    | 'baseline'
+    | 'before-edge'
+    | 'text-before-edge'
+    | 'middle'
+    | 'central'
+    | 'after-edge'
+    | 'text-after-edge'
+    | 'ideographic'
+    | 'alphabetic'
+    | 'hanging'
+    | 'mathematical'
+    | 'inherit';
     'baseline-shift'?: number | string;
     clip?: string;
     'clip-path'?: string;
@@ -65,24 +65,24 @@
     'color-interpolation-filters'?: 'auto' | 'sRGB' | 'linearRGB' | 'inherit';
     'color-profile'?: string;
     'color-rendering'?:
-      | 'auto'
-      | 'optimizeSpeed'
-      | 'optimizeQuality'
-      | 'inherit';
+    | 'auto'
+    | 'optimizeSpeed'
+    | 'optimizeQuality'
+    | 'inherit';
     cursor?: string;
     direction?: 'ltr' | 'rtl' | 'inherit';
     display?: string;
     'dominant-baseline'?:
-      | 'auto'
-      | 'text-bottom'
-      | 'alphabetic'
-      | 'ideographic'
-      | 'middle'
-      | 'central'
-      | 'mathematical'
-      | 'hanging'
-      | 'text-top'
-      | 'inherit';
+    | 'auto'
+    | 'text-bottom'
+    | 'alphabetic'
+    | 'ideographic'
+    | 'middle'
+    | 'central'
+    | 'mathematical'
+    | 'hanging'
+    | 'text-top'
+    | 'inherit';
     'enable-background'?: string;
     fill?: string;
     'fill-opacity'?: number | string | 'inherit';
@@ -100,10 +100,10 @@
     'glyph-orientation-horizontal'?: string;
     'glyph-orientation-vertical'?: string;
     'image-rendering'?:
-      | 'auto'
-      | 'optimizeQuality'
-      | 'optimizeSpeed'
-      | 'inherit';
+    | 'auto'
+    | 'optimizeQuality'
+    | 'optimizeSpeed'
+    | 'inherit';
     kerning?: string;
     'letter-spacing'?: number | string;
     'lighting-color'?: string;
@@ -115,24 +115,24 @@
     overflow?: 'visible' | 'hidden' | 'scroll' | 'auto' | 'inherit';
     pathLength?: string | number;
     'pointer-events'?:
-      | 'bounding-box'
-      | 'visiblePainted'
-      | 'visibleFill'
-      | 'visibleStroke'
-      | 'visible'
-      | 'painted'
-      | 'color'
-      | 'fill'
-      | 'stroke'
-      | 'all'
-      | 'none'
-      | 'inherit';
+    | 'bounding-box'
+    | 'visiblePainted'
+    | 'visibleFill'
+    | 'visibleStroke'
+    | 'visible'
+    | 'painted'
+    | 'color'
+    | 'fill'
+    | 'stroke'
+    | 'all'
+    | 'none'
+    | 'inherit';
     'shape-rendering'?:
-      | 'auto'
-      | 'optimizeSpeed'
-      | 'crispEdges'
-      | 'geometricPrecision'
-      | 'inherit';
+    | 'auto'
+    | 'optimizeSpeed'
+    | 'crispEdges'
+    | 'geometricPrecision'
+    | 'inherit';
     'stop-color'?: string;
     'stop-opacity'?: number | string | 'inherit';
     stroke?: string;
@@ -140,40 +140,40 @@
     'stroke-dashoffset'?: number | string;
     'stroke-linecap'?: 'butt' | 'round' | 'square' | 'inherit';
     'stroke-linejoin'?:
-      | 'arcs'
-      | 'bevel'
-      | 'miter'
-      | 'miter-clip'
-      | 'round'
-      | 'inherit';
+    | 'arcs'
+    | 'bevel'
+    | 'miter'
+    | 'miter-clip'
+    | 'round'
+    | 'inherit';
     'stroke-miterlimit'?: number | string | 'inherit';
     'stroke-opacity'?: number | string | 'inherit';
     'stroke-width'?: number | string;
     'text-anchor'?: 'start' | 'middle' | 'end' | 'inherit';
     'text-decoration'?:
-      | 'none'
-      | 'underline'
-      | 'overline'
-      | 'line-through'
-      | 'blink'
-      | 'inherit';
+    | 'none'
+    | 'underline'
+    | 'overline'
+    | 'line-through'
+    | 'blink'
+    | 'inherit';
     'text-rendering'?:
-      | 'auto'
-      | 'optimizeSpeed'
-      | 'optimizeLegibility'
-      | 'geometricPrecision'
-      | 'inherit';
+    | 'auto'
+    | 'optimizeSpeed'
+    | 'optimizeLegibility'
+    | 'geometricPrecision'
+    | 'inherit';
     'unicode-bidi'?: string;
     visibility?: 'visible' | 'hidden' | 'collapse' | 'inherit';
     'word-spacing'?: number | string;
     'writing-mode'?:
-      | 'lr-tb'
-      | 'rl-tb'
-      | 'tb-rl'
-      | 'lr'
-      | 'rl'
-      | 'tb'
-      | 'inherit';
+    | 'lr-tb'
+    | 'rl-tb'
+    | 'tb-rl'
+    | 'lr'
+    | 'rl'
+    | 'tb'
+    | 'inherit';
   }
   // All the WAI-ARIA 1.1 attributes from https://www.w3.org/TR/wai-aria-1.1/
   interface AriaAttributes {
@@ -215,14 +215,14 @@
     'aria-controls'?: string;
     /** Indicates the element that represents the current item within a container or set of related elements. */
     'aria-current'?:
-      | boolean
-      | 'false'
-      | 'true'
-      | 'page'
-      | 'step'
-      | 'location'
-      | 'date'
-      | 'time';
+    | boolean
+    | 'false'
+    | 'true'
+    | 'page'
+    | 'step'
+    | 'location'
+    | 'date'
+    | 'time';
     /**
      * Identifies the element (or elements) that describes the object.
      * @see aria-labelledby
@@ -262,14 +262,14 @@
     'aria-grabbed'?: boolean | 'false' | 'true';
     /** Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. */
     'aria-haspopup'?:
-      | boolean
-      | 'false'
-      | 'true'
-      | 'menu'
-      | 'listbox'
-      | 'tree'
-      | 'grid'
-      | 'dialog';
+    | boolean
+    | 'false'
+    | 'true'
+    | 'menu'
+    | 'listbox'
+    | 'tree'
+    | 'grid'
+    | 'dialog';
     /**
      * Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
@@ -335,16 +335,16 @@
      * @see aria-atomic.
      */
     'aria-relevant'?:
-      | 'additions'
-      | 'additions removals'
-      | 'additions text'
-      | 'all'
-      | 'removals'
-      | 'removals additions'
-      | 'removals text'
-      | 'text'
-      | 'text additions'
-      | 'text removals';
+    | 'additions'
+    | 'additions removals'
+    | 'additions text'
+    | 'all'
+    | 'removals'
+    | 'removals additions'
+    | 'removals text'
+    | 'text'
+    | 'text additions'
+    | 'text removals';
     /** Indicates that user input is required on the element before a form may be submitted. */
     'aria-required'?: boolean | 'false' | 'true';
     /** Defines a human-readable, author-localized description for the role of an element. */
@@ -388,87 +388,87 @@
     /** Defines the human readable text alternative of aria-valuenow for a range widget. */
     'aria-valuetext'?: string;
     role?:
-      | 'alert'
-      | 'alertdialog'
-      | 'application'
-      | 'article'
-      | 'banner'
-      | 'button'
-      | 'cell'
-      | 'checkbox'
-      | 'columnheader'
-      | 'combobox'
-      | 'complementary'
-      | 'contentinfo'
-      | 'definition'
-      | 'dialog'
-      | 'directory'
-      | 'document'
-      | 'feed'
-      | 'figure'
-      | 'form'
-      | 'grid'
-      | 'gridcell'
-      | 'group'
-      | 'heading'
-      | 'img'
-      | 'link'
-      | 'list'
-      | 'listbox'
-      | 'listitem'
-      | 'log'
-      | 'main'
-      | 'marquee'
-      | 'math'
-      | 'menu'
-      | 'menubar'
-      | 'menuitem'
-      | 'menuitemcheckbox'
-      | 'menuitemradio'
-      | 'meter'
-      | 'navigation'
-      | 'none'
-      | 'note'
-      | 'option'
-      | 'presentation'
-      | 'progressbar'
-      | 'radio'
-      | 'radiogroup'
-      | 'region'
-      | 'row'
-      | 'rowgroup'
-      | 'rowheader'
-      | 'scrollbar'
-      | 'search'
-      | 'searchbox'
-      | 'separator'
-      | 'slider'
-      | 'spinbutton'
-      | 'status'
-      | 'switch'
-      | 'tab'
-      | 'table'
-      | 'tablist'
-      | 'tabpanel'
-      | 'term'
-      | 'textbox'
-      | 'timer'
-      | 'toolbar'
-      | 'tooltip'
-      | 'tree'
-      | 'treegrid'
-      | 'treeitem';
+    | 'alert'
+    | 'alertdialog'
+    | 'application'
+    | 'article'
+    | 'banner'
+    | 'button'
+    | 'cell'
+    | 'checkbox'
+    | 'columnheader'
+    | 'combobox'
+    | 'complementary'
+    | 'contentinfo'
+    | 'definition'
+    | 'dialog'
+    | 'directory'
+    | 'document'
+    | 'feed'
+    | 'figure'
+    | 'form'
+    | 'grid'
+    | 'gridcell'
+    | 'group'
+    | 'heading'
+    | 'img'
+    | 'link'
+    | 'list'
+    | 'listbox'
+    | 'listitem'
+    | 'log'
+    | 'main'
+    | 'marquee'
+    | 'math'
+    | 'menu'
+    | 'menubar'
+    | 'menuitem'
+    | 'menuitemcheckbox'
+    | 'menuitemradio'
+    | 'meter'
+    | 'navigation'
+    | 'none'
+    | 'note'
+    | 'option'
+    | 'presentation'
+    | 'progressbar'
+    | 'radio'
+    | 'radiogroup'
+    | 'region'
+    | 'row'
+    | 'rowgroup'
+    | 'rowheader'
+    | 'scrollbar'
+    | 'search'
+    | 'searchbox'
+    | 'separator'
+    | 'slider'
+    | 'spinbutton'
+    | 'status'
+    | 'switch'
+    | 'tab'
+    | 'table'
+    | 'tablist'
+    | 'tabpanel'
+    | 'term'
+    | 'textbox'
+    | 'timer'
+    | 'toolbar'
+    | 'tooltip'
+    | 'tree'
+    | 'treegrid'
+    | 'treeitem';
   }
   interface AnimateSVGAttributes<T>
     extends AnimationElementSVGAttributes<T>,
-      AnimationAttributeTargetSVGAttributes,
-      AnimationTimingSVGAttributes,
-      AnimationValueSVGAttributes,
-      AnimationAdditionSVGAttributes,
-      Pick<
-        PresentationSVGAttributes,
-        'color-interpolation' | 'color-rendering'
-      > {}
+    AnimationAttributeTargetSVGAttributes,
+    AnimationTimingSVGAttributes,
+    AnimationValueSVGAttributes,
+    AnimationAdditionSVGAttributes,
+    Pick<
+      PresentationSVGAttributes,
+      'color-interpolation' | 'color-rendering'
+    > { }
   interface CoreSVGAttributes<T> extends AriaAttributes {
     id?: string;
     lang?: string;
@@ -478,22 +478,22 @@
 
   interface ContainerElementSVGAttributes<T>
     extends CoreSVGAttributes<T>,
-      ShapeElementSVGAttributes<T>,
-      Pick<
-        PresentationSVGAttributes,
-        | 'clip-path'
-        | 'mask'
-        | 'cursor'
-        | 'opacity'
-        | 'filter'
-        | 'enable-background'
-        | 'color-interpolation'
-        | 'color-rendering'
-      > {}
+    ShapeElementSVGAttributes<T>,
+    Pick<
+      PresentationSVGAttributes,
+      | 'clip-path'
+      | 'mask'
+      | 'cursor'
+      | 'opacity'
+      | 'filter'
+      | 'enable-background'
+      | 'color-interpolation'
+      | 'color-rendering'
+    > { }
 
   interface NewViewportSVGAttributes<T>
     extends CoreSVGAttributes<T>,
-      Pick<PresentationSVGAttributes, 'overflow' | 'clip'> {
+    Pick<PresentationSVGAttributes, 'overflow' | 'clip'> {
     viewBox?: string;
   }
   interface ZoomAndPanSVGAttributes {
@@ -501,11 +501,11 @@
   }
   interface SvgSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
-      NewViewportSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      ZoomAndPanSVGAttributes,
-      PresentationSVGAttributes {
+    NewViewportSVGAttributes<T>,
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    ZoomAndPanSVGAttributes,
+    PresentationSVGAttributes {
     version?: string;
     baseProfile?: string;
     x?: number | string;
@@ -519,64 +519,64 @@
 
   interface GraphicsElementSVGAttributes<T>
     extends CoreSVGAttributes<T>,
-      Pick<
-        PresentationSVGAttributes,
-        | 'clip-rule'
-        | 'mask'
-        | 'pointer-events'
-        | 'cursor'
-        | 'opacity'
-        | 'filter'
-        | 'display'
-        | 'visibility'
-        | 'color-interpolation'
-        | 'color-rendering'
-      > {}
+    Pick<
+      PresentationSVGAttributes,
+      | 'clip-rule'
+      | 'mask'
+      | 'pointer-events'
+      | 'cursor'
+      | 'opacity'
+      | 'filter'
+      | 'display'
+      | 'visibility'
+      | 'color-interpolation'
+      | 'color-rendering'
+    > { }
 
   interface ShapeElementSVGAttributes<T>
     extends CoreSVGAttributes<T>,
-      Pick<
-        PresentationSVGAttributes,
-        | 'color'
-        | 'fill'
-        | 'fill-rule'
-        | 'fill-opacity'
-        | 'stroke'
-        | 'stroke-width'
-        | 'stroke-linecap'
-        | 'stroke-linejoin'
-        | 'stroke-miterlimit'
-        | 'stroke-dasharray'
-        | 'stroke-dashoffset'
-        | 'stroke-opacity'
-        | 'shape-rendering'
-        | 'pathLength'
-      > {}
+    Pick<
+      PresentationSVGAttributes,
+      | 'color'
+      | 'fill'
+      | 'fill-rule'
+      | 'fill-opacity'
+      | 'stroke'
+      | 'stroke-width'
+      | 'stroke-linecap'
+      | 'stroke-linejoin'
+      | 'stroke-miterlimit'
+      | 'stroke-dasharray'
+      | 'stroke-dashoffset'
+      | 'stroke-opacity'
+      | 'shape-rendering'
+      | 'pathLength'
+    > { }
   interface TransformableSVGAttributes {
     transform?: string;
   }
   interface PathSVGAttributes<T>
     extends GraphicsElementSVGAttributes<T>,
-      ShapeElementSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      // StylableSVGAttributes,
-      TransformableSVGAttributes,
-      Pick<
-        PresentationSVGAttributes,
-        'marker-start' | 'marker-mid' | 'marker-end'
-      > {
+    ShapeElementSVGAttributes<T>,
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    // StylableSVGAttributes,
+    TransformableSVGAttributes,
+    Pick<
+      PresentationSVGAttributes,
+      'marker-start' | 'marker-mid' | 'marker-end'
+    > {
     d?: string;
     pathLength?: number | string;
   }
 
   interface RectSVGAttributes<T>
     extends GraphicsElementSVGAttributes<T>,
-      ShapeElementSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      // StylableSVGAttributes,
-      TransformableSVGAttributes {
+    ShapeElementSVGAttributes<T>,
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    // StylableSVGAttributes,
+    TransformableSVGAttributes {
     x?: number | string;
     y?: number | string;
     width?: number | string;
@@ -587,18 +587,18 @@
 
   interface DefsSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      // StylableSVGAttributes,
-      TransformableSVGAttributes {}
-  interface DescSVGAttributes<T> extends CoreSVGAttributes<T> {}
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    // StylableSVGAttributes,
+    TransformableSVGAttributes { }
+  interface DescSVGAttributes<T> extends CoreSVGAttributes<T> { }
   interface EllipseSVGAttributes<T>
     extends GraphicsElementSVGAttributes<T>,
-      ShapeElementSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      // StylableSVGAttributes,
-      TransformableSVGAttributes {
+    ShapeElementSVGAttributes<T>,
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    // StylableSVGAttributes,
+    TransformableSVGAttributes {
     cx?: number | string;
     cy?: number | string;
     rx?: number | string;
@@ -607,15 +607,15 @@
 
   interface PolygonSVGAttributes<T>
     extends GraphicsElementSVGAttributes<T>,
-      ShapeElementSVGAttributes<T>,
-      ConditionalProcessingSVGAttributes,
-      ExternalResourceSVGAttributes,
-      // StylableSVGAttributes,
-      TransformableSVGAttributes,
-      Pick<
-        PresentationSVGAttributes,
-        'marker-start' | 'marker-mid' | 'marker-end'
-      > {
+    ShapeElementSVGAttributes<T>,
+    ConditionalProcessingSVGAttributes,
+    ExternalResourceSVGAttributes,
+    // StylableSVGAttributes,
+    TransformableSVGAttributes,
+    Pick<
+      PresentationSVGAttributes,
+      'marker-start' | 'marker-mid' | 'marker-end'
+    > {
     points?: string;
   }
 
@@ -683,14 +683,14 @@
 
   interface AnimateSVGAttributes<T>
     extends AnimationElementSVGAttributes<T>,
-      AnimationAttributeTargetSVGAttributes,
-      AnimationTimingSVGAttributes,
-      AnimationValueSVGAttributes,
-      AnimationAdditionSVGAttributes,
-      Pick<
-        PresentationSVGAttributes,
-        'color-interpolation' | 'color-rendering'
-      > {}
+    AnimationAttributeTargetSVGAttributes,
+    AnimationTimingSVGAttributes,
+    AnimationValueSVGAttributes,
+    AnimationAdditionSVGAttributes,
+    Pick<
+      PresentationSVGAttributes,
+      'color-interpolation' | 'color-rendering'
+    > { }
 }
 
 SVGAnimateElement;
