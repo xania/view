@@ -84,12 +84,12 @@ export class Browser implements NodeFactory<Element, any> {
     for (const delegate of delegates) {
       const [target, handler, sandbox] = delegate;
 
-      if (!target.contains(originalEvent.target as Node)) {
-        continue;
-      }
-
       if (!sandbox.disposed) {
         after.push(delegate);
+      }
+
+      if (!target.contains(originalEvent.target as Node)) {
+        continue;
       }
 
       let eventObject: any = null;
@@ -102,21 +102,16 @@ export class Browser implements NodeFactory<Element, any> {
         if (Array.isArray(item)) {
           list.splice(i, 0, ...item);
         } else {
-          let handler: JSX.EventHandlerFn<any, any> | undefined;
-          let command: JSX.Sequence<void | Command> | undefined;
+          let command: JSX.Sequence<void | Command>;
 
           if (item instanceof Function) {
-            handler = item;
+            command = item(eventObject);
           } else if (isCallable(item)) {
-            handler = item.call;
+            command = item.call(eventObject);
           } else if (isCommand(item)) {
             command = item;
           } else {
-            handler = item.handleEvent;
-          }
-
-          if (handler instanceof Function) {
-            command = handler(eventObject);
+            command = item.handleEvent(eventObject);
           }
 
           if (command) {
