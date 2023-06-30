@@ -9,7 +9,7 @@ function namespaceUri(name: string, defaultUri: string | null) {
 }
 
 export class Browser implements NodeFactory<Element, any> {
-  events: Record<string, [Element, JSX.EventHandler, Sandbox][]> | undefined;
+  events: Record<string, [Element, JSX.MaybeArray<JSX.EventHandler>, Sandbox][]> | undefined;
 
   constructor(public container: Element) { }
 
@@ -70,61 +70,63 @@ export class Browser implements NodeFactory<Element, any> {
   async handleEvent(originalEvent: Event) {
     const eventName = originalEvent.type;
 
-    const events = this.events;
-    if (!events) {
+    if (!this.events) {
       return;
     }
-    const delegates = events[eventName];
+
+    const delegates = this.events[eventName];
     if (!delegates) {
       return;
     }
 
-    for (const delegate of delegates) {
-      const [target, handle, sandbox] = delegate;
+    const after = [];
 
-      if (sandbox.disposed) {
-        // TODO remove disposed from list
-        continue;
-      }
+    for (const delegate of delegates) {
+      const [target, handler, sandbox] = delegate;
 
       if (!target.contains(originalEvent.target as Node)) {
         continue;
+      }
+
+      if (!sandbox.disposed) {
+        after.push(delegate);
       }
 
       let eventObject: any = null;
 
       eventObject ??= syntheticEvent(eventName, originalEvent, target);
 
-      const handleList = [handle];
+      const list = [handler];
 
-      for (const handle of handleList) {
-        if (Array.isArray(handle)) {
-          handleList.push(...handle);
-          continue;
-        }
-
-        let handler: JSX.EventHandlerFn<any, any> | undefined;
-        let command: JSX.Sequence<void | Command> | undefined;
-
-        if (handle instanceof Function) {
-          handler = handle;
-        } else if (isCallable(handle)) {
-          handler = handle.call;
-        } else if (isCommand(handle)) {
-          command = handle;
+      for (const [i, item] of list.entries()) {
+        if (Array.isArray(item)) {
+          list.splice(i, 0, ...item);
         } else {
-          handler = handle.handleEvent;
-        }
+          let handler: JSX.EventHandlerFn<any, any> | undefined;
+          let command: JSX.Sequence<void | Command> | undefined;
 
-        if (handler instanceof Function) {
-          command = handler(eventObject);
-        }
+          if (item instanceof Function) {
+            handler = item;
+          } else if (isCallable(item)) {
+            handler = item.call;
+          } else if (isCommand(item)) {
+            command = item;
+          } else {
+            handler = item.handleEvent;
+          }
 
-        if (command) {
-          sandbox.handleCommands(command, target as any);
+          if (handler instanceof Function) {
+            command = handler(eventObject);
+          }
+
+          if (command) {
+            sandbox.handleCommands(command, target as any);
+          }
         }
       }
     }
+
+    this.events[eventName] = after;
   }
 }
 
