@@ -9,17 +9,20 @@ export function pathMatcher(path: PathTemplate | string | undefined | null) {
   const matchers = compilePathTemplate(
     path instanceof Array ? path : path.split('/')
   );
+
   return (path: Path) => {
     const params = {};
+
     let applied = 0;
-    for (let i = 0, len = matchers.length; i < len; i++) {
-      const matcher = matchers[i];
+
+    for (const matcher of matchers) {
       const match = matcher(path, applied);
       if (match === false) return null;
       const { length, ...rest } = match;
       applied += length;
       Object.assign(params, rest);
     }
+
     return { length: applied, params } as RouteSegment;
   };
 }
@@ -45,9 +48,11 @@ export interface RouteMap<TView> {
 }
 
 const emptySegment: RouteSegment = { length: 0 };
+
 function emptyMatcher(path: Path) {
   if (path.length === 0) {
     return emptySegment;
   }
+  
   return false;
 }

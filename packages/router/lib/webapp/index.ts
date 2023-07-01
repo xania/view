@@ -1,7 +1,6 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
-import { Command, Subscribable, Subscription, useState } from 'xania';
+import { Command, Subscribable, Subscription } from 'xania';
 import { isEdgeDrag } from './edge-drag';
-import { delay } from '../utils';
 import { useRouteContext } from '../core';
 
 export interface WebAppProps<TView = any> {
@@ -12,24 +11,23 @@ export interface WebAppProps<TView = any> {
 export function WebApp<TView>(props: WebAppProps<TView>) {
   const routeContext = useRouteContext();
 
-  // window.addEventListener('popstate', onPopState);
+  const path = location.pathname.split('/').filter((x) => !!x);
 
   return [
-    // observeLocations(),
     WindowEvent({
       type: 'popstate',
-      handler() {
+      handler: () => {
         const newRoute: RouteEvent = {
           trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
-          path: location.pathname.split('/').filter((x) => !!x),
+          path: path,
         };
 
         return routeContext.events.update(newRoute);
       },
     }),
     routeContext.events.update({
-      path: location.pathname.split('/').filter((x) => !!x),
       trigger: RouteTrigger.Location,
+      path: path,
     }),
     Router({
       context: {
@@ -69,6 +67,7 @@ interface WindowEventProps<K extends keyof WindowEventMap> {
   type: K;
   handler: (e: WindowEventMap[K]) => any;
 }
+
 function WindowEvent<K extends keyof WindowEventMap>(
   props: WindowEventProps<K>
 ) {

@@ -1,5 +1,4 @@
-﻿// import { Value } from '@xania/state';
-import {
+﻿import {
   Sandbox,
   cpush,
   cremove,
@@ -18,7 +17,6 @@ import { Link, LinkProps } from './link';
 import { Route, RouteProps } from './route';
 import { Path } from './path';
 import { pathMatcher } from './route-resolver';
-import { delay } from '../utils';
 import { startsWith } from '../webapp/browser-routes';
 
 interface RouterProps<TView> {
@@ -36,9 +34,9 @@ function onClick(
   e.event.preventDefault();
 
   setTimeout(() => {
-    pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
+    pushPath("/" + [...context.fullpath, ...linkPath].join('/'));
   }, 20);
-
+  
   if (linkPath[0] === '..') {
     return dispatch(
       routeContext.events.update({
@@ -48,16 +46,13 @@ function onClick(
     );
   }
 
-  return delay(
-    [
-      routeContext.events.update({
-        trigger: RouteTrigger.Click,
-        path: linkPath,
-      }),
-      routeContext.transition.update('deactivate'),
-    ],
-    0
-  );
+  return Promise.resolve([
+    routeContext.events.update({
+      trigger: RouteTrigger.Click,
+      path: linkPath,
+    }),
+    routeContext.transition.update('deactivate'),
+  ]);
 }
 
 function getLinkAttrs(context: RouteContext, props: LinkProps) {
@@ -88,7 +83,7 @@ function getLinkAttrs(context: RouteContext, props: LinkProps) {
 export function Router(props: RouterProps<any>) {
   const { context, children } = props;
 
-  return new Transformer<any>(children, function (child) {
+  return new Transformer<any>(children, function(child) {
     if (child instanceof Component) {
       if (child.func === Link) {
         const props: LinkProps = child.props;
@@ -204,7 +199,7 @@ type RouteResult = {
 };
 
 class RouteHandler {
-  constructor(public context: RouteContext, public props: RouteProps<any>) {}
+  constructor(public context: RouteContext, public props: RouteProps<any>) { }
   attachTo(
     target: HTMLElement,
     factory: NodeFactory<Element, any>,
@@ -238,10 +233,10 @@ class RouteHandler {
             route.trigger === RouteTrigger.EdgeDrag
               ? 'none'
               : prevResult.appliedPath.length === route.path.length
-              ? previous === 'deactivate'
-                ? 'activate'
-                : 'none'
-              : 'deactivate'
+                ? previous === 'deactivate'
+                  ? 'activate'
+                  : 'none'
+                : 'deactivate'
           );
 
           return prevResult;
@@ -290,8 +285,8 @@ class RouteHandler {
         route.trigger === RouteTrigger.EdgeDrag
           ? 'none'
           : remainingPath.length === 0
-          ? 'initialize'
-          : 'none'
+            ? 'initialize'
+            : 'none'
       );
 
       if (segment.params) {
@@ -330,11 +325,10 @@ function pathStartsWith(p1: Path, prefix: Path) {
 function pushPath(pathname: string) {
   let { pathname: old } = window.location;
 
-  if (old + '/' === pathname) {
+  if (old === pathname) {
     window.history.replaceState(pathname, '', pathname);
-  } else if (old !== pathname) {
-    window.history.pushState(pathname, '', pathname);
   } else {
+    window.history.pushState(pathname, '', pathname);
   }
 }
 
@@ -345,15 +339,12 @@ class Closure<T1, T2, R> {
   constructor(
     public readonly f: (x1: T1, x2: T2) => R,
     public readonly x1: T1
-  ) {}
+  ) { }
 
   call(x2: T2) {
     return this.f(this.x1, x2);
   }
 }
-// function pushPath(href: string) {
-//   throw new Error('Function not implemented.');
-// }
 
 function destroy(sandbox: Sandbox) {
   sandbox.update(useRouteContext().transition, 'destroy');
