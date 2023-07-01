@@ -19,12 +19,6 @@ import { Path } from './path';
 import { pathMatcher } from './route-resolver';
 import { startsWith } from '../webapp/browser-routes';
 
-interface RouterProps<TView> {
-  context: RouteContext;
-  children: JSX.Sequence<TView>;
-  loader?: any;
-}
-
 const routeContext = useRouteContext();
 
 function onClick(
@@ -33,9 +27,9 @@ function onClick(
 ) {
   e.event.preventDefault();
 
-  setTimeout(() => {
+  new Promise(() => {
     pushPath("/" + [...context.fullpath, ...linkPath].join('/'));
-  }, 20);
+  });
   
   if (linkPath[0] === '..') {
     return dispatch(
@@ -56,10 +50,13 @@ function onClick(
 }
 
 function getLinkAttrs(context: RouteContext, props: LinkProps) {
-  const to = props.to;
+  const to = props.to || "/";
+
   const linkPath = to.split('/').filter((e) => e);
+  
   if (to.startsWith('/')) {
     let root = context;
+
     while (root.parent) {
       root = root.parent;
     }
@@ -72,7 +69,7 @@ function getLinkAttrs(context: RouteContext, props: LinkProps) {
     };
   } else {
     return {
-      href: `/${[...context.fullpath, ...linkPath].join('/')}`,
+      href: "/" + [...context.fullpath, ...linkPath].join('/'),
       click: new Closure(onClick, [linkPath, context]),
       linkPath,
       context,
@@ -80,35 +77,43 @@ function getLinkAttrs(context: RouteContext, props: LinkProps) {
   }
 }
 
-export function Router(props: RouterProps<any>) {
+interface RouterProps<TView = any> {
+  context: RouteContext;
+  children: JSX.Sequence<TView>;
+  loader?: any;
+}
+
+export function Router(props: RouterProps) {
   const { context, children } = props;
 
-  return new Transformer<any>(children, function(child) {
+  return new Transformer<any>(children, (child) => {
     if (child instanceof Component) {
-      if (child.func === Link) {
-        const props: LinkProps = child.props;
+      const props = child.props;
 
-        const linkAttrs = getLinkAttrs(context, props);
+      switch (child.func) {
+        case Route:
+          return new RouteHandler(context, props);
+        case Link:
+          const linkAttrs = getLinkAttrs(context, props);
 
-        const activeClass = props.class;
-        if (activeClass === undefined) {
+          const activeClass = props.class;
+
+          if (activeClass === undefined) {
+            return Attrs<HTMLAnchorElement>({
+              href: linkAttrs.href,
+              click: linkAttrs.click,
+            });
+          }
+
+          const activeState = routeContext.events.map((e) =>
+            startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
+          );
+
           return Attrs<HTMLAnchorElement>({
             href: linkAttrs.href,
             click: linkAttrs.click,
+            class: activeState,
           });
-        }
-
-        const activeState = routeContext.events.map((e) =>
-          startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
-        );
-        return Attrs<HTMLAnchorElement>({
-          href: linkAttrs.href,
-          click: linkAttrs.click,
-          class: activeState,
-        });
-      }
-      if (child.func === Route) {
-        return new RouteHandler(context, child.props);
       }
     }
     return child;

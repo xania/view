@@ -1,4 +1,4 @@
-﻿import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../factory';
+﻿import { AnchorNode, ElementNode, ViewNode } from '../factory';
 import { Disposable } from '../render/disposable';
 import { sexpand } from '../seq/expand';
 import { Collection, Subscription, cwalk } from '../utils';

@@ -5,29 +5,28 @@ import { useRouteContext } from '../core';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
-  navigate?: () => JSX.Sequence<Command>;
 }
+
+const path = () => location.pathname.split('/').filter((x) => !!x);
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
   const routeContext = useRouteContext();
 
-  const path = location.pathname.split('/').filter((x) => !!x);
-
   return [
     WindowEvent({
-      type: 'popstate',
+      type: "popstate",
       handler: () => {
-        const newRoute: RouteEvent = {
+        const route: RouteEvent = {
           trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
-          path: path,
+          path: path(),
         };
 
-        return routeContext.events.update(newRoute);
+        return routeContext.events.update(route);
       },
     }),
     routeContext.events.update({
       trigger: RouteTrigger.Location,
-      path: path,
+      path: path(),
     }),
     Router({
       context: {
@@ -72,21 +71,22 @@ function WindowEvent<K extends keyof WindowEventMap>(
   props: WindowEventProps<K>
 ) {
   return {
-    subscribe(observer) {
-      window.addEventListener(props.type, callback, true);
-
-      return {
-        unsubscribe() {
-          window.removeEventListener(props.type, callback, true);
-        },
-      } satisfies Subscription;
-
-      function callback(e: WindowEventMap[K]) {
+    subscribe: (observer) => {
+      const callback = (e: WindowEventMap[K]) => {
         const command = props.handler(e);
+
         if (command) {
           observer.next(command);
         }
       }
+
+      window.addEventListener(props.type, callback, true);
+
+      return {
+        unsubscribe: () => {
+          window.removeEventListener(props.type, callback, true);
+        }
+      } satisfies Subscription;
     },
   } satisfies Subscribable<Command>;
 }

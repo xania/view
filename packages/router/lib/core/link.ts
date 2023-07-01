@@ -1,7 +1,7 @@
 ﻿import { Component } from 'xania';
 
 export interface LinkProps {
-  to: string;
+  to?: string;
   class?: string;
 }
 
