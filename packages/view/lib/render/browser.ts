@@ -100,7 +100,7 @@ export class Browser implements NodeFactory<Element, any> {
 
       for (const [i, item] of list.entries()) {
         if (Array.isArray(item)) {
-          list.splice(i, 0, ...item);
+          list.splice(i + 1, 0, ...item);
         } else {
           let command: JSX.Sequence<void | Command>;
 
