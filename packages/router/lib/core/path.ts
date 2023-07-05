@@ -16,9 +16,9 @@ export const resolve = (before: Path, segments: Path): Path => {
 		}
 
 		return after;
-	} else {
-		return segments;
 	}
+	
+	return segments;
 }
 
 export const toString = (path: Path): string => {

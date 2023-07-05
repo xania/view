@@ -7,10 +7,10 @@
   cwalk,
   NodeFactory,
   renderStack,
-  dispatch,
   Transformer,
   Component,
   Attrs,
+  UpdateStateCommand,
 } from 'xania';
 import { RouteContext, useRouteContext } from './router-context';
 import { Link, LinkProps } from './link';
@@ -42,32 +42,41 @@ function onClick(
   ];
 }
 
-function getLinkAttrs(context: RouteContext, props: LinkProps) {
-  const to = props.to || "/";
+type LinkAttributes = {
+  href: string,
+  click: Closure<[Path, RouteContext], JSX.EventContext<Event, Element>, UpdateStateCommand<any>[]>,
+  linkPath: string[],
+  context: RouteContext
+}
 
-  const linkPath = to.split('/').filter((e) => e);
-  
-  if (to.startsWith('/')) {
-    let root = context;
+function getLinkAttributes(context: RouteContext, props: LinkProps): LinkAttributes {
+  const to = props.to;
 
-    while (root.parent) {
-      root = root.parent;
+  let linkPath: string[] = [];
+
+  if (to && to[0] == "/") {
+    let initial = context;
+
+    while (initial.parent) {
+      initial = initial.parent;
     }
 
     return {
       href: to,
-      click: new Closure(onClick, [linkPath, root]),
-      linkPath,
-      context: root,
-    };
-  } else {
-    return {
-      href: "/" + [...context.fullpath, ...linkPath].join('/'),
-      click: new Closure(onClick, [linkPath, context]),
-      linkPath,
-      context,
+      click: new Closure(onClick, [linkPath, initial]),
+      linkPath: linkPath,
+      context: initial,
     };
   }
+
+  linkPath = resolve(context.fullpath, linkPath);
+
+  return {
+    href: toString(linkPath),
+    click: new Closure(onClick, [linkPath, context]),
+    linkPath: linkPath,
+    context,
+  };
 }
 
 interface RouterProps<TView = any> {
@@ -87,24 +96,24 @@ export function Router(props: RouterProps) {
         case Route:
           return new RouteHandler(context, props);
         case Link:
-          const linkAttrs = getLinkAttrs(context, props);
+          const linkAttributes = getLinkAttributes(context, props);
 
-          const activeClass = props.class;
+          const active = props.class;
 
-          if (activeClass === undefined) {
+          if (active === undefined) {
             return Attrs<HTMLAnchorElement>({
-              href: linkAttrs.href,
-              click: linkAttrs.click,
+              href: linkAttributes.href,
+              click: linkAttributes.click,
             });
           }
 
           const activeState = routeContext.events.map((e) =>
-            startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
+            startsWith(e.path, linkAttributes.linkPath) ? active : ''
           );
 
           return Attrs<HTMLAnchorElement>({
-            href: linkAttrs.href,
-            click: linkAttrs.click,
+            href: linkAttributes.href,
+            click: linkAttributes.click,
             class: activeState,
           });
       }
@@ -198,6 +207,7 @@ type RouteResult = {
 
 class RouteHandler {
   constructor(public context: RouteContext, public props: RouteProps<any>) { }
+
   attachTo(
     target: HTMLElement,
     factory: NodeFactory<Element, any>,
@@ -272,6 +282,7 @@ class RouteHandler {
       });
 
       const routeSandbox = new Sandbox(sandbox);
+
       renderStack<any, any>(
         [[routeSandbox, target as any, view, true]],
         factory,
