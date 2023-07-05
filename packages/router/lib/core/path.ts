@@ -15,6 +15,8 @@ export const resolve = (before: Path, segments: Path): Path => {
 				after.push(segment);
 			}
 		}
+
+		return after;
 	}
 
 	return segments.slice(1);
