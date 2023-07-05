@@ -15,7 +15,7 @@
 import { RouteContext, useRouteContext } from './router-context';
 import { Link, LinkProps } from './link';
 import { Route, RouteProps } from './route';
-import { Path } from './path';
+import { Path, resolve, toString } from './path';
 import { pathMatcher } from './route-resolver';
 import { startsWith } from '../webapp/browser-routes';
 
@@ -27,26 +27,19 @@ function onClick(
 ) {
   e.event.preventDefault();
 
-  new Promise(() => {
-    pushPath("/" + [...context.fullpath, ...linkPath].join('/'));
-  });
-  
-  if (linkPath[0] === '..') {
-    return dispatch(
-      routeContext.events.update({
-        trigger: RouteTrigger.Click,
-        path: [],
-      })
-    );
-  }
+  const path = resolve(context.fullpath, linkPath);
 
-  return Promise.resolve([
+  setTimeout(() => {
+    pushPath(toString(path));
+  }, 20);
+
+  return [
     routeContext.events.update({
       trigger: RouteTrigger.Click,
-      path: linkPath,
+      path: path,
     }),
     routeContext.transition.update('deactivate'),
-  ]);
+  ];
 }
 
 function getLinkAttrs(context: RouteContext, props: LinkProps) {
