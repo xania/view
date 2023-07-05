@@ -7,26 +7,15 @@ export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
 }
 
-const path = () => location.pathname.split('/').filter((x) => !!x);
-
 export function WebApp<TView>(props: WebAppProps<TView>) {
   const routeContext = useRouteContext();
 
-  return [
-    WindowEvent({
-      type: "popstate",
-      handler: () => {
-        const route: RouteEvent = {
-          trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
-          path: path(),
-        };
+  const path = location.pathname.split('/').filter(x => !!x);
 
-        return routeContext.events.update(route);
-      },
-    }),
+  return [
     routeContext.events.update({
       trigger: RouteTrigger.Location,
-      path: path(),
+      path,
     }),
     Router({
       context: {
@@ -36,7 +25,20 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
       },
       children: props.children,
     }),
-  ];
+    WindowEvent({
+      type: "popstate",
+      handler: (event) => {
+        const path = (event.state as string).split("/").filter(x => !!x);
+
+        const route: RouteEvent = {
+          trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
+          path,
+        };
+
+        return routeContext.events.update(route);
+      },
+    })
+  ]
 
   // function* observeLocations(
   //   current: string = location.pathname

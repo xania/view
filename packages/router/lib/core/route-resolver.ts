@@ -6,16 +6,14 @@ export function pathMatcher(path: PathTemplate | string | undefined | null) {
     return emptyMatcher;
   }
 
-  const matchers = compilePathTemplate(
-    path instanceof Array ? path : path.split('/')
-  );
+  const template = compilePathTemplate(Array.isArray(path) ? path : path.split('/'));
 
   return (path: Path) => {
     const params = {};
 
     let applied = 0;
 
-    for (const matcher of matchers) {
+    for (const matcher of template) {
       const match = matcher(path, applied);
       if (match === false) return null;
       const { length, ...rest } = match;
