@@ -263,9 +263,7 @@ function pathStartsWith(p1: Path, prefix: Path) {
 }
 
 function pushPath(pathname: string) {
-  const { pathname: old } = window.location;
-
-  if (old === pathname) {
+  if (window.location.pathname === pathname) {
     window.history.replaceState(pathname, '', pathname);
   } else {
     window.history.pushState(pathname, '', pathname);
