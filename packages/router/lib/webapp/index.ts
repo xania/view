@@ -1,35 +1,21 @@
 ﻿import { RouteEvent, RouteTrigger, Router } from '../core/router';
-import { Command, Subscribable, Subscription, useState } from 'xania';
+import { Command, Subscribable, Subscription } from 'xania';
 import { isEdgeDrag } from './edge-drag';
-import { delay } from '../utils';
 import { useRouteContext } from '../core';
 
 export interface WebAppProps<TView = any> {
   children: JSX.Sequence<TView>;
-  navigate?: () => JSX.Sequence<Command>;
 }
 
 export function WebApp<TView>(props: WebAppProps<TView>) {
   const routeContext = useRouteContext();
 
-  // window.addEventListener('popstate', onPopState);
+  const path = location.pathname.split('/').filter(x => !!x);
 
   return [
-    // observeLocations(),
-    WindowEvent({
-      type: 'popstate',
-      handler() {
-        const newRoute: RouteEvent = {
-          trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
-          path: location.pathname.split('/').filter((x) => !!x),
-        };
-
-        return routeContext.events.update(newRoute);
-      },
-    }),
     routeContext.events.update({
-      path: location.pathname.split('/').filter((x) => !!x),
       trigger: RouteTrigger.Location,
+      path,
     }),
     Router({
       context: {
@@ -39,7 +25,20 @@ export function WebApp<TView>(props: WebAppProps<TView>) {
       },
       children: props.children,
     }),
-  ];
+    WindowEvent({
+      type: "popstate",
+      handler: (event) => {
+        const path = event.state ? (event.state as string).split("/").filter(x => !!x) : [];
+
+        const route: RouteEvent = {
+          trigger: isEdgeDrag() ? RouteTrigger.EdgeDrag : RouteTrigger.PopState,
+          path,
+        };
+
+        return routeContext.events.update(route);
+      },
+    })
+  ]
 
   // function* observeLocations(
   //   current: string = location.pathname
@@ -69,25 +68,27 @@ interface WindowEventProps<K extends keyof WindowEventMap> {
   type: K;
   handler: (e: WindowEventMap[K]) => any;
 }
+
 function WindowEvent<K extends keyof WindowEventMap>(
   props: WindowEventProps<K>
 ) {
   return {
-    subscribe(observer) {
-      window.addEventListener(props.type, callback, true);
-
-      return {
-        unsubscribe() {
-          window.removeEventListener(props.type, callback, true);
-        },
-      } satisfies Subscription;
-
-      function callback(e: WindowEventMap[K]) {
+    subscribe: (observer) => {
+      const callback = (e: WindowEventMap[K]) => {
         const command = props.handler(e);
+
         if (command) {
           observer.next(command);
         }
       }
+
+      window.addEventListener(props.type, callback, true);
+
+      return {
+        unsubscribe: () => {
+          window.removeEventListener(props.type, callback, true);
+        }
+      } satisfies Subscription;
     },
   } satisfies Subscribable<Command>;
 }

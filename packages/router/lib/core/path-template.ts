@@ -14,40 +14,34 @@ export type PathTemplate = Segment[];
 
 export function compilePathTemplate(pathTemplate: PathTemplate) {
   // compile path template
-  var segmentMatchers: SegmentMatcher[] = [];
+  let segmentMatchers: SegmentMatcher[] = [];
+
   for (const segment of pathTemplate) {
-    // if (segment === '*') {
-    //   segmentMatchers.push(star);
-    // } else
     if (typeof segment === 'string') {
       segmentMatchers.push(fromString(segment));
-      // } else if (segment instanceof RegExp) {
-      //   segmentMatchers.push(fromRegex(segment));
     } else {
       segmentMatchers.push(segment);
     }
   }
+
   return segmentMatchers;
 }
 
 function fromString(segment: string): SegmentMatcher {
   if (segment.startsWith(':')) {
     const propName = segment.substring(1);
-    return function (path: Path, from: number) {
-      return {
-        length: 1,
-        [propName]: path[from],
-      };
-    };
+
+    return function(path: Path, from: number) {
+      return { length: 1, [propName]: path[from] }
+    }
   } else {
-    return function (path: Path, from: number) {
+    return function(path: Path, from: number) {
       if (path[from] !== segment) {
         return false;
       }
-      return {
-        length: 1,
-      };
-    };
+
+      return { length: 1 }
+    }
   }
 }
 

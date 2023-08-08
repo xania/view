@@ -1,4 +1,4 @@
-﻿declare module JSX {
+﻿declare namespace JSX {
   type Filter<T> = Pick<
     T,
     {

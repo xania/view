@@ -1,9 +1,9 @@
-﻿declare module JSX {
+﻿declare namespace JSX {
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
   } & {
-    [P in keyof SVGElementTagNameMap]: Tag<SVGElementTagNameMap[P]>;
-  };
+      [P in keyof SVGElementTagNameMap]: Tag<SVGElementTagNameMap[P]>;
+    };
 
   type svg = SVGElementTagNameMap['svg'];
 
@@ -37,8 +37,8 @@
 
   type IntrinsicElements = {
     [P in keyof TagNameMap]: TagNameMap[P] &
-      ElementChildrenAttribute &
-      ElementCustomAttributes;
+    ElementChildrenAttribute &
+    ElementCustomAttributes;
   };
 
   interface ElementCustomAttributes {

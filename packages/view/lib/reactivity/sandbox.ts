@@ -1,4 +1,4 @@
-﻿import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../factory';
+﻿import { AnchorNode, ElementNode, ViewNode } from '../factory';
 import { Disposable } from '../render/disposable';
 import { sexpand } from '../seq/expand';
 import { Collection, Subscription, cwalk } from '../utils';
@@ -36,7 +36,7 @@ export class Sandbox implements Record<number | symbol, any> {
   classList?: Collection<string>;
   [p: number | symbol]: any;
 
-  constructor(public parent?: Sandbox) {}
+  constructor(public parent?: Sandbox) { }
 
   track(...nodes: (EffectNode | Node)[]) {
     const { graph } = this;
@@ -261,11 +261,11 @@ export class Sandbox implements Record<number | symbol, any> {
       newValueOrReduce instanceof Function
         ? currentValue instanceof Promise
           ? currentValue.then((x) =>
-              x !== undefined ? newValueOrReduce(x) : undefined
-            )
+            x !== undefined ? newValueOrReduce(x) : undefined
+          )
           : currentValue !== undefined
-          ? newValueOrReduce(currentValue)
-          : undefined
+            ? newValueOrReduce(currentValue)
+            : undefined
         : newValueOrReduce;
 
     if (newValue instanceof Promise) {
@@ -309,10 +309,10 @@ export class Sandbox implements Record<number | symbol, any> {
   }
 
   handleCommands(
-    commands: any,
+    commands: JSX.Sequence<void | Command>,
     currentTarget: ElementNode | AnchorNode<ElementNode>
   ) {
-    return sexpand<Command>(commands, this.handleCommand, currentTarget);
+    return sexpand<Command>(commands as JSX.Sequence<Command>, this.handleCommand, currentTarget);
   }
 
   handleCommand = (

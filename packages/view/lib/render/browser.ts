@@ -1,5 +1,5 @@
 ﻿import { AnchorNode, CommentNode, NodeFactory, TextNode } from '../factory';
-import { Sandbox, isCommand } from '../reactivity';
+import { Command, Sandbox, isCommand } from '../reactivity';
 import { syntheticEvent } from './event';
 
 function namespaceUri(name: string, defaultUri: string | null) {
@@ -9,9 +9,9 @@ function namespaceUri(name: string, defaultUri: string | null) {
 }
 
 export class Browser implements NodeFactory<Element, any> {
-  events: Record<string, [Element, JSX.EventHandler, Sandbox][]> | undefined;
+  events: Record<string, [Element, JSX.MaybeArray<JSX.EventHandler>, Sandbox][]> | undefined;
 
-  constructor(public container: Element) {}
+  constructor(public container: Element) { }
 
   createElement(
     parentElement: Element | AnchorNode<Element>,
@@ -70,44 +70,58 @@ export class Browser implements NodeFactory<Element, any> {
   async handleEvent(originalEvent: Event) {
     const eventName = originalEvent.type;
 
-    {
-      const events = this.events;
-      if (!events) {
-        return;
+    if (!this.events) {
+      return;
+    }
+
+    const delegates = this.events[eventName];
+    if (!delegates) {
+      return;
+    }
+
+    const after = [];
+
+    for (const delegate of delegates) {
+      const [target, handler, sandbox] = delegate;
+
+      if (!sandbox.disposed) {
+        after.push(delegate);
       }
-      const delegates = events[eventName];
-      if (!delegates) {
-        return;
+
+      if (!target.contains(originalEvent.target as Node)) {
+        continue;
       }
 
-      for (const dlg of delegates) {
-        const [target, eventHandler, sandbox] = dlg as any;
+      let eventObject: any = null;
 
-        if (sandbox.disposed) {
-          // TODO remove disposed from list
-          continue;
-        }
+      eventObject ??= syntheticEvent(eventName, originalEvent, target);
 
-        if (target.contains(originalEvent.target as any)) {
-          let eventObj: any = null;
+      const list = [handler];
 
-          eventObj ??= syntheticEvent(eventName, originalEvent, target);
+      for (const [i, item] of list.entries()) {
+        if (Array.isArray(item)) {
+          list.splice(i + 1, 0, ...item);
+        } else {
+          let command: JSX.Sequence<void | Command>;
 
-          if (eventHandler instanceof Function) {
-            const command = eventHandler(eventObj);
-            if (command) {
-              sandbox.handleCommands(command, target);
-            }
-          } else if (isCallable(eventHandler)) {
-            sandbox.handleCommands(eventHandler.call(eventObj), target);
-          } else if (!isCommand(eventHandler)) {
-            sandbox.handleCommands(eventHandler.handleEvent(eventObj), target);
+          if (item instanceof Function) {
+            command = item(eventObject);
+          } else if (isCallable(item)) {
+            command = item.call(eventObject);
+          } else if (isCommand(item)) {
+            command = item;
           } else {
-            sandbox.handleCommands(eventHandler, target);
+            command = item.handleEvent(eventObject);
+          }
+
+          if (command) {
+            sandbox.handleCommands(command, target as any);
           }
         }
       }
     }
+
+    this.events[eventName] = after;
   }
 }
 

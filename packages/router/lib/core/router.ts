@@ -1,5 +1,4 @@
-﻿// import { Value } from '@xania/state';
-import {
+﻿import {
   Sandbox,
   cpush,
   cremove,
@@ -8,162 +7,101 @@ import {
   cwalk,
   NodeFactory,
   renderStack,
-  dispatch,
   Transformer,
   Component,
   Attrs,
+  dispatch,
 } from 'xania';
 import { RouteContext, useRouteContext } from './router-context';
 import { Link, LinkProps } from './link';
 import { Route, RouteProps } from './route';
-import { Path } from './path';
+import { Path, resolve } from './path';
 import { pathMatcher } from './route-resolver';
-import { delay } from '../utils';
 import { startsWith } from '../webapp/browser-routes';
 
-interface RouterProps<TView> {
+const routeContext = useRouteContext();
+
+function onClick([context, href, path]: [RouteContext, string, Path], eventContext: JSX.EventContext<Event, Element>) {
+  eventContext.event.preventDefault();
+
+  const command = () => pushPath(href);
+
+  for (const [i, value] of context.fullpath.entries()) {
+    if (path[i] != value) {
+      return [
+        dispatch(routeContext.events.update({
+          trigger: RouteTrigger.Click,
+          path,
+        })),
+        routeContext.transition.update('deactivate'),
+        command
+      ]
+    }
+  }
+
+  return [
+    routeContext.events.update({
+      trigger: RouteTrigger.Click,
+      path,
+    }),
+    routeContext.transition.update('deactivate'),
+    command
+  ]
+}
+
+function getLinkAttributes(context: RouteContext, props: LinkProps) {
+  const path = resolve(context.fullpath, props.to.split("/"));
+  const href = "/" + path.join("/");
+
+  return {
+    href,
+    click: new Closure(onClick, [context, href, path]),
+    linkPath: path,
+    context,
+  }
+}
+
+interface RouterProps<TView = any> {
   context: RouteContext;
   children: JSX.Sequence<TView>;
   loader?: any;
 }
 
-const routeContext = useRouteContext();
-
-function onClick(
-  [linkPath, context]: [Path, RouteContext],
-  e: JSX.EventContext<Event, Element>
-) {
-  e.event.preventDefault();
-
-  setTimeout(() => {
-    pushPath(`/${[...context.fullpath, ...linkPath].join('/')}`);
-  }, 20);
-
-  if (linkPath[0] === '..') {
-    return dispatch(
-      routeContext.events.update({
-        trigger: RouteTrigger.Click,
-        path: [],
-      })
-    );
-  }
-
-  return delay(
-    [
-      routeContext.events.update({
-        trigger: RouteTrigger.Click,
-        path: linkPath,
-      }),
-      routeContext.transition.update('deactivate'),
-    ],
-    0
-  );
-}
-
-function getLinkAttrs(context: RouteContext, props: LinkProps) {
-  const to = props.to;
-  const linkPath = to.split('/').filter((e) => e);
-  if (to.startsWith('/')) {
-    let root = context;
-    while (root.parent) {
-      root = root.parent;
-    }
-
-    return {
-      href: to,
-      click: new Closure(onClick, [linkPath, root]),
-      linkPath,
-      context: root,
-    };
-  } else {
-    return {
-      href: `/${[...context.fullpath, ...linkPath].join('/')}`,
-      click: new Closure(onClick, [linkPath, context]),
-      linkPath,
-      context,
-    };
-  }
-}
-
-export function Router(props: RouterProps<any>) {
+export function Router(props: RouterProps) {
   const { context, children } = props;
 
-  return new Transformer<any>(children, function (child) {
-    if (child instanceof Component) {
-      if (child.func === Link) {
-        const props: LinkProps = child.props;
+  return new Transformer<any>(children, (child) => {
+    if (child instanceof Component == false) {
+      return child;
+    }
 
-        const linkAttrs = getLinkAttrs(context, props);
+    const props = child.props;
 
-        const activeClass = props.class;
-        if (activeClass === undefined) {
-          return Attrs<HTMLAnchorElement>({
-            href: linkAttrs.href,
-            click: linkAttrs.click,
-          });
-        }
+    if (child.func == Route) {
+      return new RouteHandler(context, props);
+    } else if (child.func == Link) {
+      const linkAttributes = getLinkAttributes(context, props);
 
-        const activeState = routeContext.events.map((e) =>
-          startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
-        );
+      const active = props.class;
+
+      if (active === undefined) {
         return Attrs<HTMLAnchorElement>({
-          href: linkAttrs.href,
-          click: linkAttrs.click,
-          class: activeState,
+          href: linkAttributes.href,
+          click: linkAttributes.click,
         });
       }
-      if (child.func === Route) {
-        return new RouteHandler(context, child.props);
-      }
+
+      const activeState = routeContext.events.map((e) =>
+        startsWith(e.path, linkAttributes.linkPath) ? active : ''
+      );
+
+      return Attrs<HTMLAnchorElement>({
+        href: linkAttributes.href,
+        click: linkAttributes.click,
+        class: activeState,
+      });
     }
-    return child;
   });
-
-  // return smap(children, function mapRoutes(child): any {
-  //   if (child instanceof Component) {
-  //     if (child.func === Link) {
-  //       const props: LinkProps = child.props;
-
-  //       const linkAttrs = getLinkAttrs(context, props);
-
-  //       const activeClass = props.class;
-  //       if (activeClass === undefined) {
-  //         return Attrs<HTMLAnchorElement>({
-  //           href: linkAttrs.href,
-  //           click: linkAttrs.click,
-  //         });
-  //       }
-
-  //       const activeState = routeContext.events.map((e) =>
-  //         startsWith(e.path, linkAttrs.linkPath) ? activeClass : ''
-  //       );
-  //       return Attrs<HTMLAnchorElement>({
-  //         href: linkAttrs.href,
-  //         click: linkAttrs.click,
-  //         class: activeState,
-  //       });
-  //     }
-  //     if (child.func === Route) {
-  //       return new RouteHandler(context, child.props);
-  //     } else {
-  //       return smap(child.execute(), mapRoutes);
-  //     }
-  //   } else if (isDomDescriptor(child)) {
-  //     switch (child.type) {
-  //       case DomDescriptorType.Element:
-  //         if (child.children) {
-  //           return {
-  //             ...child,
-  //             children: smap(child.children, mapRoutes),
-  //           };
-  //         }
-  //       default:
-  //         return child;
-  //     }
-  //   } else {
-  //     return child;
-  //   }
-  // });
 }
 
 class ChildRouteContext implements RouteContext {
@@ -204,62 +142,57 @@ type RouteResult = {
 };
 
 class RouteHandler {
-  constructor(public context: RouteContext, public props: RouteProps<any>) {}
-  attachTo(
-    target: HTMLElement,
-    factory: NodeFactory<Element, any>,
-    sandbox: Sandbox
-  ) {
+  constructor(public context: RouteContext, public props: RouteProps<any>) { }
+
+  attachTo(target: HTMLElement, factory: NodeFactory<Element, any>, sandbox: Sandbox) {
     const { props, context } = this;
     const { path } = props;
 
-    const matchFn = path instanceof Function ? path : pathMatcher(path);
+    const matcher = path instanceof Function ? path : pathMatcher(path);
 
-    return routeContext.events.effect(async function mapView(
-      route: RouteEvent,
-      prevResult?: RouteResult | null | undefined
-    ): Promise<RouteResult | null> {
-      if (prevResult instanceof Promise) {
-        return prevResult.then((resolved) => mapView(route, resolved));
+    const mapView = async (route: RouteEvent, previous?: RouteResult | null | undefined): Promise<RouteResult | null> => {
+      if (previous instanceof Promise) {
+        return previous.then((resolved) => mapView(route, resolved));
       }
 
-      if (prevResult) {
+      if (previous) {
         if (
           path
-            ? pathStartsWith(route.path, prevResult.appliedPath)
+            ? pathStartsWith(route.path, previous.appliedPath)
             : route.path.length === 0
         ) {
-          prevResult.sandbox.update(routeContext.events, {
+          previous.sandbox.update(routeContext.events, {
             trigger: route.trigger,
-            path: route.path.slice(prevResult.appliedPath.length),
+            path: route.path.slice(previous.appliedPath.length),
           });
 
-          prevResult.sandbox.update(routeContext.transition, (previous) =>
+          previous.sandbox.update(routeContext.transition, (value) =>
             route.trigger === RouteTrigger.EdgeDrag
               ? 'none'
-              : prevResult.appliedPath.length === route.path.length
-              ? previous === 'deactivate'
-                ? 'activate'
-                : 'none'
-              : 'deactivate'
+              : previous.appliedPath.length === route.path.length
+                ? value === 'deactivate'
+                  ? 'activate'
+                  : 'none'
+                : 'deactivate'
           );
 
-          return prevResult;
+          return previous;
         }
 
         if (route.trigger !== RouteTrigger.EdgeDrag) {
-          destroy(prevResult.sandbox);
+          destroy(previous.sandbox);
 
           setTimeout(() => {
-            prevResult.sandbox.dispose();
+            previous.sandbox.dispose();
           }, 200);
         } else {
-          prevResult.sandbox.dispose();
+          previous.sandbox.dispose();
         }
-        context.disposables = cremove(context.disposables, prevResult.sandbox);
+
+        context.disposables = cremove(context.disposables, previous.sandbox);
       }
 
-      const segment = await matchFn(route.path);
+      const segment = await matcher(route.path);
       if (!segment) {
         return null;
       }
@@ -290,8 +223,8 @@ class RouteHandler {
         route.trigger === RouteTrigger.EdgeDrag
           ? 'none'
           : remainingPath.length === 0
-          ? 'initialize'
-          : 'none'
+            ? 'initialize'
+            : 'none'
       );
 
       if (segment.params) {
@@ -312,8 +245,10 @@ class RouteHandler {
       return {
         sandbox: routeSandbox,
         appliedPath,
-      };
-    });
+      }
+    }
+
+    return routeContext.events.effect(mapView);
   }
 }
 
@@ -328,13 +263,10 @@ function pathStartsWith(p1: Path, prefix: Path) {
 }
 
 function pushPath(pathname: string) {
-  let { pathname: old } = window.location;
-
-  if (old + '/' === pathname) {
+  if (window.location.pathname === pathname) {
     window.history.replaceState(pathname, '', pathname);
-  } else if (old !== pathname) {
-    window.history.pushState(pathname, '', pathname);
   } else {
+    window.history.pushState(pathname, '', pathname);
   }
 }
 
@@ -345,15 +277,12 @@ class Closure<T1, T2, R> {
   constructor(
     public readonly f: (x1: T1, x2: T2) => R,
     public readonly x1: T1
-  ) {}
+  ) { }
 
   call(x2: T2) {
     return this.f(this.x1, x2);
   }
 }
-// function pushPath(href: string) {
-//   throw new Error('Function not implemented.');
-// }
 
 function destroy(sandbox: Sandbox) {
   sandbox.update(useRouteContext().transition, 'destroy');
