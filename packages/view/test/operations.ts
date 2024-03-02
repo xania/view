@@ -10,14 +10,14 @@ export enum OperationType {
   Next,
 }
 
-export type Operation =
+export type Operation<TNode> =
   | PushScopeOperation
   | PopScopeOperation
   | JumpOperation
   | DebugOperation
-  | CreateNodeOperation
+  | CreateNodeOperation<TNode>
   | NextOperation
-  | CreateAndPushNodeOperation;
+  | CreateAndPushNodeOperation<TNode>;
 
 interface DebugOperation {
   type: OperationType.Debug;
@@ -36,14 +36,14 @@ interface PopScopeOperation {
   type: OperationType.PopScope;
 }
 
-interface CreateNodeOperation {
+interface CreateNodeOperation<TNode> {
   type: OperationType.CreateNode;
-  create(node: TreeNode, scope: any): TreeNode;
+  create(node: TNode, scope: any): TNode;
 }
 
-interface CreateAndPushNodeOperation {
+interface CreateAndPushNodeOperation<TNode> {
   type: OperationType.CreateAndPushNode;
-  create(node: TreeNode, scope: any): TreeNode;
+  create(node: TNode, scope: any): TNode;
 }
 
 interface NextOperation {
@@ -83,5 +83,31 @@ export function next(
     index,
     values,
     length,
+  };
+}
+
+export function forEach<TNode>(
+  values: any[],
+  operations: Operation<TNode>[]
+): Operation<TNode>[] | null {
+  if (values.length == 0) {
+    return null;
+  }
+
+  const index: symbol = Symbol();
+
+  return [
+    push(values[0]),
+    ...operations,
+    next(index, values, operations.length + 1),
+  ];
+}
+
+export function createNode<TNode>(
+  nodeFactory: (node: TNode, scope: any) => TNode
+): CreateNodeOperation<TNode> {
+  return {
+    type: OperationType.CreateNode,
+    create: nodeFactory,
   };
 }

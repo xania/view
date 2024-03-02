@@ -1,34 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { Operation, OperationType, next, push } from './operations';
+import {
+  Operation,
+  OperationType,
+  createNode,
+  forEach,
+  next,
+  push,
+} from './operations';
 import { execute } from './execute';
 import { TreeNode, NodeType, TextNode, ElementNode } from './tree';
 
-describe('reactive assembly', () => {
-  // it('literal', () => {
-  //   const name = 'Ibrahim';
-  //   var operations = compile(name);
-
-  //   const root = new Node(NodeType.Element);
-  //   execute(operations, root);
-  //   expect(root.children).toHaveLength(1);
-  //   expect(root.children[0].textContent).toBe(name);
-  // });
-
+describe('reactive control operations', () => {
   it('iterates', () => {
     const operations = forEach(
       ['ibrahim', 'ben Salah'],
-      [
-        {
-          type: OperationType.CreateNode,
-          create(node, scope) {
-            console.log(' -', scope);
-            const textNode = new TextNode();
-            textNode.textContent = scope;
-            node.children?.push(textNode);
-            return textNode;
-          },
-        },
-      ]
+      [createNode(testNodeFactory)]
     );
     const root = new ElementNode();
     if (operations != null) {
@@ -37,20 +23,6 @@ describe('reactive assembly', () => {
     console.log(root);
   });
 });
-
-function forEach(values: any[], operations: Operation[]): Operation[] | null {
-  if (values.length == 0) {
-    return null;
-  }
-
-  const index: symbol = Symbol();
-
-  return [
-    push(values[0]),
-    ...operations,
-    next(index, values, operations.length + 1),
-  ];
-}
 
 // function compile(item: any): Operation[] {
 //   return [
@@ -65,3 +37,10 @@ function forEach(values: any[], operations: Operation[]): Operation[] | null {
 //     },
 //   ];
 // }
+
+function testNodeFactory(node: TreeNode, scope: any) {
+  const textNode = new TextNode();
+  textNode.textContent = scope;
+  node.children?.push(textNode);
+  return textNode;
+}

@@ -2,11 +2,14 @@ import { Operation, OperationType, next, push } from './operations';
 import { TreeNode } from './tree';
 
 const REGISTERS: Record<symbol, number> = {};
-export function execute(operations: Operation[], node: TreeNode) {
+export function execute<TNode>(
+  operations: Operation<TNode>[],
+  rootNode: TNode
+) {
   const scopeStack: unknown[] = [];
   const nodeStack: unknown[] = [];
 
-  let currentNode = node;
+  let currentNode = rootNode;
   let currentScope = undefined;
 
   const length = operations.length;
