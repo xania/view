@@ -36,7 +36,7 @@ export class Sandbox implements Record<number | symbol, any> {
   classList?: Collection<string>;
   [p: number | symbol]: any;
 
-  constructor(public parent?: Sandbox) { }
+  constructor(public parent?: Sandbox) {}
 
   track(...nodes: (EffectNode | Node)[]) {
     const { graph } = this;
@@ -63,7 +63,7 @@ export class Sandbox implements Record<number | symbol, any> {
         nodes.push(...sources);
       } else if (node instanceof Computed) {
         stack.push(node);
-        nodes.push(node.input);
+        nodes.push(node.parent);
       } else if (node instanceof Assign) {
         stack.push(node);
         nodes.push(node.state);
@@ -158,7 +158,7 @@ export class Sandbox implements Record<number | symbol, any> {
           }
         }
       } else if (node instanceof Computed) {
-        const inputNode = node.input;
+        const inputNode = node.parent;
         const inputValue = this.get(inputNode);
 
         if (inputValue instanceof Promise) {
@@ -235,8 +235,7 @@ export class Sandbox implements Record<number | symbol, any> {
   }
 
   get<T>(node: Reactive<T>): Value<T> {
-    const scope = this; // as Record<number, any>;
-    const scopeValue = scope[node.key];
+    const scopeValue = this[node.key];
 
     if (scopeValue !== undefined) {
       return scopeValue;
@@ -261,11 +260,11 @@ export class Sandbox implements Record<number | symbol, any> {
       newValueOrReduce instanceof Function
         ? currentValue instanceof Promise
           ? currentValue.then((x) =>
-            x !== undefined ? newValueOrReduce(x) : undefined
-          )
+              x !== undefined ? newValueOrReduce(x) : undefined
+            )
           : currentValue !== undefined
-            ? newValueOrReduce(currentValue)
-            : undefined
+          ? newValueOrReduce(currentValue)
+          : undefined
         : newValueOrReduce;
 
     if (newValue instanceof Promise) {
@@ -312,7 +311,11 @@ export class Sandbox implements Record<number | symbol, any> {
     commands: JSX.Sequence<void | Command>,
     currentTarget: ElementNode | AnchorNode<ElementNode>
   ) {
-    return sexpand<Command>(commands as JSX.Sequence<Command>, this.handleCommand, currentTarget);
+    return sexpand<Command>(
+      commands as JSX.Sequence<Command>,
+      this.handleCommand,
+      currentTarget
+    );
   }
 
   handleCommand = (

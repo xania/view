@@ -2,5 +2,6 @@
   "files.associations": {
     "**/templates/**/*.tsx": "plaintext",
     "**/templates/**/*.ts": "plaintext"
-  }
+  },
+  "editor.tabSize": 2
 }

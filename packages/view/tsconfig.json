@@ -17,6 +17,7 @@
     "sourceMap": true,
     "noUnusedLocals": false,
     "noUnusedParameters": true,
-    "allowUnusedLabels": true
+    "allowUnusedLabels": true,
+    "forceConsistentCasingInFileNames": true
   }
 }

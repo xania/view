@@ -5,7 +5,17 @@ type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 export type Unwrap<T> = Exclude<UnwrapPromise<T>, undefined | void>;
 
 export class Reactive<T = any> {
-  constructor(public initial?: Value<T>, public key: symbol = Symbol()) {}
+  constructor(public initial?: Value<T>, public key: symbol = Symbol()) {
+    if (initial instanceof Promise) {
+      /**
+       * In xania reactivity system, x and Promise of x are the same and interchangable
+       */
+      initial.then((value) => {
+        this.initial = value;
+      });
+    }
+  }
+
   map<U>(fn: (x: T) => Value<U>, defaultValue?: U): Computed<T, U> {
     return new Computed(this, fn, defaultValue);
   }
@@ -50,6 +60,10 @@ export class Reactive<T = any> {
   ): UpdateStateCommand {
     return new UpdateStateCommand(this, valueOrCompute);
   }
+
+  toString() {
+    return this.initial;
+  }
 }
 
 type UnwrapSources<T extends [...any[]]> = T extends []
@@ -68,7 +82,16 @@ export class Join<T extends any[] = any, R = T> extends Reactive<R> {
     public sources: Reactive[],
     public project?: (values: T) => Value<R>
   ) {
-    super();
+    super(
+      mapValues(
+        sources.map((s) => s.initial),
+        project
+      )
+    );
+  }
+
+  get dependencies() {
+    return this.sources;
   }
 }
 
@@ -103,17 +126,17 @@ export class Property<T = any, P extends keyof T = any> extends Reactive<
   Unwrap<T[P]>
 > {
   constructor(public parent: Reactive<T>, public name: P) {
-    super();
+    super(mapValue(parent.initial, (value) => value[name]));
   }
 }
 
 export class Computed<T = any, U = any> extends Reactive<Unwrap<U>> {
   constructor(
-    public input: Reactive<T>,
+    public parent: Reactive<T>,
     public compute: (x: T) => Value<U>,
     public defaultValue?: U
   ) {
-    super(map<T, U>(input.initial, compute));
+    super(mapValue<T, U>(parent.initial, compute));
   }
 }
 
@@ -126,10 +149,38 @@ export class Append<T = any> {
   constructor(public state: Reactive<T[]>, public list: List<T>) {}
 }
 
-function map<T, U>(input: Value<T>, f: (x: T) => Value<U>): Value<Unwrap<U>> {
+export function mapValue<T, U>(
+  input: Value<T>,
+  f: (x: T) => Value<U>
+): Value<Unwrap<U>> {
   if (input instanceof Promise) {
-    return input.then((resolved) => map(resolved, f));
+    return input.then((resolved) => mapValue(resolved, f));
   } else if (input !== undefined) {
     return f(input) as Unwrap<U>;
   }
+}
+
+export function mapValues<T extends any[]>(
+  inputs: Value<any>[],
+  project?: (x: T) => any
+): any {
+  const values: any = inputs.slice(0);
+  const promises = [];
+
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i];
+    if (input instanceof Promise) {
+      promises.push(input.then((x) => (values[i] = x)));
+    }
+  }
+
+  if (!project) {
+    return values;
+  }
+
+  if (promises.length) {
+    return Promise.all(promises).then(() => project.apply(null, values));
+  }
+
+  return project.apply(null, values);
 }

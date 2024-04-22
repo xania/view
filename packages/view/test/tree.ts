@@ -15,5 +15,8 @@ export class ElementNode {
 }
 
 export class TextNode {
-  [prop: string]: any;
+  textContent: string = '';
+  appendChild() {
+    throw 'Not Supported!';
+  }
 }
