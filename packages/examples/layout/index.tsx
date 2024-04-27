@@ -1,18 +1,14 @@
-﻿import { Attrs, useState  as state } from "xania";
+﻿import { Attrs, useState } from "xania";
 import { Navigation } from "./nav";
 import { MainMenu } from "./mainmenu";
 import { WebApp } from "xania/router";
 import classes from "./layout.module.scss";
 
 export function Layout(props: { children: JSX.Children }) {
-  const drawerOpen = state(false);
+  const drawerOpen = useState(false);
 
   return (
-    <WebApp
-      navigate={() =>
-        drawerOpen.update(!location.pathname || location.pathname === "/")
-      }
-    >
+    <WebApp>
       <Attrs class="pt-14" />
       <Navigation drawerOpen={drawerOpen} />
 
@@ -20,7 +16,8 @@ export function Layout(props: { children: JSX.Children }) {
         id="logo-sidebar"
         class={[
           "fixed left-0 top-0 z-40 h-screen w-64 bg-white pt-20 dark:bg-gray-800 ",
-          drawerOpen.when(true, 
+          drawerOpen.when(
+            true,
             classes["drawer--activate"],
             classes["drawer--deactivate"]
           ),
@@ -36,7 +33,7 @@ export function Layout(props: { children: JSX.Children }) {
         click={drawerOpen.update(false)}
         drawer-backdrop=""
         class={[
-          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 ease-linear",
+          "fixed inset-0 z-30 bg-gray-900 bg-opacity-50 ease-linear dark:bg-opacity-80",
           drawerOpen.when(false, "hidden", null),
         ]}
       ></div>
