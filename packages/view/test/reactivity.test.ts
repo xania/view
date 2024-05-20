@@ -149,7 +149,10 @@ describe('reactivity', () => {
     const target: { value?: number } = {};
 
     sandbox.track(
-      x.join([y, z], (x, y, z) => x + y + z).assign(target, 'value')
+      x
+        .join([y, z])
+        .map(([x, y, z]) => x + y + z)
+        .assign(target, 'value')
     );
     sandbox.update(y, 2);
 

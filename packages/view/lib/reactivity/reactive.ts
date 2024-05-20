@@ -47,12 +47,8 @@ export class Reactive<T = any> {
   join<U extends [...Reactive<any>[]]>(
     sources: [...U]
   ): Join<[T, ...UnwrapSources<U>]>;
-  join<U extends [...Reactive<any>[]], R>(
-    sources: [...U],
-    project: (t: T, ...args: [...UnwrapSources<U>]) => R
-  ): Join<[T, ...[...UnwrapSources<U>]], R>;
-  join(sources: Reactive<any>[], project?: any): Join<any, any> {
-    return new Join([this, ...sources], project);
+  join(sources: Reactive<any>[]): Join<any> {
+    return new Join([this, ...sources]);
   }
 
   update(
@@ -77,17 +73,9 @@ type KeyOfType<O, T> = {
   [P in keyof O]: T extends O[P] ? P : never;
 }[keyof O];
 
-export class Join<T extends any[] = any, R = T> extends Reactive<R> {
-  constructor(
-    public sources: Reactive[],
-    public project?: (values: T) => Value<R>
-  ) {
-    super(
-      mapValues(
-        sources.map((s) => s.initial),
-        project
-      )
-    );
+export class Join<T extends any[] = any> extends Reactive<T> {
+  constructor(public sources: Reactive[]) {
+    super(sources.map((s) => s.initial) as T);
   }
 
   get dependencies() {
