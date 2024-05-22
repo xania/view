@@ -44,16 +44,16 @@ describe('graph builder', () => {
     const int = useState(1);
     const double = int.map((x) => x * 2);
     const add3 = int.map((x) => x + 3);
-    const display = int.join([double, add3]).map(([x, y]) => x + y);
+    const display = int.zip(double, add3).map(([x, y]) => x + y);
     const graph = createGraph();
     graph.push(display);
 
-    expect(graph.nodes).toHaveLength(4);
+    expect(graph.nodes).toHaveLength(5);
     expect(graph.nodes[0]).toBe(int);
     /* expect first two elements should be person and ibrahim in any order */
     expect(graph.nodes.slice(1, 3)).toEqual(
       expect.arrayContaining([double, add3])
     );
-    expect(graph.nodes[3]).toBe(display);
+    expect(graph.nodes[4]).toBe(display);
   });
 });

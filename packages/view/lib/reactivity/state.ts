@@ -9,3 +9,9 @@ export function useState<T>(value: T): State<Unwrap<T>>;
 export function useState<T>(value?: T) {
   return new State(value);
 }
+
+export function state<T>(): State<Unwrap<T>>;
+export function state<T>(value: T): State<Unwrap<T>>;
+export function state<T>(value?: T) {
+  return new State(value);
+}

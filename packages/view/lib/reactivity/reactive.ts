@@ -44,11 +44,11 @@ export class Reactive<T = any> {
     return new When(this, value, tru, fals);
   }
 
-  join<U extends [...Reactive<any>[]]>(
-    sources: [...U]
-  ): Join<[T, ...UnwrapSources<U>]>;
-  join(sources: Reactive<any>[]): Join<any> {
-    return new Join([this, ...sources]);
+  zip<U extends [...Reactive<any>[]]>(
+    ...sources: [...U]
+  ): Zip<[T, ...UnwrapSources<U>]>;
+  zip(...sources: Reactive<any>[]): Zip<any> {
+    return new Zip([this, ...sources]);
   }
 
   update(
@@ -73,9 +73,9 @@ type KeyOfType<O, T> = {
   [P in keyof O]: T extends O[P] ? P : never;
 }[keyof O];
 
-export class Join<T extends any[] = any> extends Reactive<T> {
+export class Zip<T extends any[] = any> extends Reactive<T> {
   constructor(public sources: Reactive[]) {
-    super(sources.map((s) => s.initial) as T);
+    super(zipInitial(sources, [], 0) as T);
   }
 
   get dependencies() {
@@ -171,4 +171,23 @@ export function mapValues<T extends any[]>(
   }
 
   return project.apply(null, values);
+}
+
+function zipInitial(
+  sources: Reactive<any>[],
+  result: any[],
+  offset: number
+): any[] | Promise<any[]> {
+  for (let i = offset; i < sources.length; i++) {
+    const sourceValue = sources[i].initial;
+    if (sourceValue instanceof Promise) {
+      return sourceValue.then((x) => {
+        result[i] = x;
+        return zipInitial(sources, result, offset + 1);
+      });
+    }
+    result[i] = sources[i].initial;
+  }
+
+  return result;
 }

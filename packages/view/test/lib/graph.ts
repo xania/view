@@ -4,7 +4,7 @@ export type ReactiveGraph = {
   readonly operators: Operator[];
   push(node: ReactiveNode): void;
   get(node: { key: symbol }): any;
-  update<T>(node: ReactiveNode, newValue: T): void;
+  update<T>(node: ReactiveNode, newValue: T): boolean | Promise<boolean>;
 };
 
 type MaybeArr<T> = T | T[];
@@ -16,22 +16,22 @@ interface ReactiveNode {
 }
 
 export enum OperatorEnum {
-  Get = 1,
+  Prop = 1,
   Computed = 2,
-  Set = 3,
+  Assign = 3,
 }
 
 export type Operator = GetOperator | SetOperator | ComputedOperator;
 
 export interface GetOperator {
-  type: OperatorEnum.Get;
+  type: OperatorEnum.Prop;
   source: symbol;
   target: symbol;
   prop: string;
 }
 
 export interface SetOperator {
-  type: OperatorEnum.Set;
+  type: OperatorEnum.Assign;
   source: symbol;
   target: symbol;
   prop: string | number;
@@ -60,9 +60,14 @@ export function create(operatorProvider: OperatorProvider): ReactiveGraph {
         return false;
       }
       scope[nodeKey] = newValue;
-      reconcile(this, {
+      const p = reconcile(this, 0, {
         [nodeKey]: true,
       });
+
+      if (p instanceof Promise) {
+        return p.then(() => true);
+      }
+
       return true;
     },
 
@@ -135,46 +140,137 @@ function set(g: ReactiveGraph, key: symbol, newValue: any) {
   }
 
   const currentValue = g.scope[key];
-  if (currentValue !== newValue) {
-    g.scope[key] = newValue;
-    return true;
+  if (currentValue === newValue) {
+    return false;
   }
-  return false;
+
+  if (newValue instanceof Promise) {
+    return newValue.then((resolved) => {
+      g.scope[key] = resolved;
+      return true;
+    });
+  }
+  g.scope[key] = newValue;
+  return true;
 }
 
-function reconcile(g: ReactiveGraph, dirty: { [key: symbol]: boolean }) {
-  for (const operator of g.operators) {
+function reconcile(
+  g: ReactiveGraph,
+  offset: number,
+  dirty: { [key: symbol]: boolean }
+): void | Promise<void> {
+  const promises: Promise<void>[] = [];
+
+  for (let i = offset; i < g.operators.length; i++) {
+    const operator = g.operators[i];
     const { source } = operator;
 
     if (dirty[source] === true) {
       const { type, target } = operator;
       const sourceValue = g.scope[source];
-      if (sourceValue !== undefined) {
-        switch (type) {
-          case OperatorEnum.Get:
-            if (set(g, target, sourceValue[operator.prop])) {
+      if (sourceValue === undefined) {
+        continue;
+      }
+
+      if (sourceValue instanceof Promise) {
+        reconcilePromise(promises, sourceValue, g, g.scope, source, i, dirty);
+        continue;
+      }
+
+      switch (type) {
+        case OperatorEnum.Prop:
+          {
+            const targetValue = sourceValue[operator.prop];
+            if (targetValue !== undefined && g.scope[target] !== targetValue) {
+              g.scope[target] = targetValue;
+              if (targetValue instanceof Promise) {
+                reconcilePromise(
+                  promises,
+                  targetValue,
+                  g,
+                  g.scope,
+                  target,
+                  i + 1,
+                  dirty
+                );
+              } else {
+                dirty[target] = true;
+              }
+            }
+          }
+          break;
+        case OperatorEnum.Computed:
+          {
+            const targetValue = operator.compute(sourceValue);
+            if (targetValue !== undefined && targetValue !== g.scope[target]) {
+              g.scope[target] = targetValue;
+              if (targetValue instanceof Promise) {
+                reconcilePromise(
+                  promises,
+                  targetValue,
+                  g,
+                  g.scope,
+                  target,
+                  i + 1,
+                  dirty
+                );
+              } else {
+                dirty[target] = true;
+              }
+            }
+          }
+          break;
+        case OperatorEnum.Assign:
+          const targetScope = g.scope[target];
+          const operatorProp = operator.prop;
+          const currentValue = targetScope[operatorProp];
+          if (currentValue !== sourceValue) {
+            targetScope[operatorProp] = sourceValue;
+
+            if (sourceValue instanceof Promise) {
+              const targetOffset = i;
+              promises.push(
+                sourceValue.then((resolved) => {
+                  if (targetScope[operatorProp] === sourceValue) {
+                    targetScope[operatorProp] = resolved;
+                    dirty[target] = true;
+                    return reconcile(g, targetOffset + 1, dirty);
+                  }
+                })
+              );
+            } else {
               dirty[target] = true;
             }
-            break;
-          case OperatorEnum.Computed:
-            if (set(g, target, operator.compute(sourceValue))) {
-              dirty[target] = true;
-            }
-            break;
-          case OperatorEnum.Set:
-            const targetValue = g.scope[target];
-            const currentValue = targetValue[operator.prop];
-            if (currentValue !== sourceValue) {
-              targetValue[operator.prop] = sourceValue;
-              dirty[target] = true;
-            }
-            break;
-          default:
-            console.error(
-              `operator type '${OperatorEnum[type]}' not supported`
-            );
-        }
+          }
+          break;
+        default:
+          console.error(`operator type '${OperatorEnum[type]}' not supported`);
       }
     }
   }
+
+  if (promises.length) {
+    return Promise.all(promises) as any;
+  }
+}
+
+function reconcilePromise<T>(
+  promises: Promise<void>[],
+  valuePromise: Promise<T>,
+  g: ReactiveGraph,
+  scope: { [key: symbol]: any },
+  key: symbol,
+  offset: number,
+  dirty: { [key: symbol]: boolean }
+) {
+  scope[key] = valuePromise;
+  promises.push(
+    valuePromise.then((value) => {
+      if (scope[key] === valuePromise) {
+        scope[key] = value;
+        dirty[key] = true;
+        return reconcile(g, offset, dirty);
+      }
+    })
+  );
 }

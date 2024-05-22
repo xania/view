@@ -1,4 +1,4 @@
-import { Computed, Join, Property, State } from '../../reactivity';
+import { Computed, Zip, Property, State } from '../../reactivity';
 import {
   ComputedOperator,
   OperatorEnum,
@@ -7,13 +7,13 @@ import {
   SetOperator,
 } from './graph';
 
-type Node = State | Property | Computed | Join;
+type Node = State | Property | Computed | Zip;
 
 export const operationProvider: OperatorProvider = {
   get(node: Node) {
     if (node instanceof Property) {
       return {
-        type: OperatorEnum.Get,
+        type: OperatorEnum.Prop,
         source: node.parent.key,
         target: node.key,
         prop: node.name,
@@ -25,11 +25,11 @@ export const operationProvider: OperatorProvider = {
         target: node.key,
         compute: node.compute,
       } satisfies ComputedOperator;
-    } else if (node instanceof Join) {
+    } else if (node instanceof Zip) {
       return node.sources.map(
         (src, idx) =>
           ({
-            type: OperatorEnum.Set,
+            type: OperatorEnum.Assign,
             source: src.key,
             target: node.key,
             prop: idx,

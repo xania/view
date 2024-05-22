@@ -15,7 +15,7 @@ import {
   Effect,
   Property,
   When,
-  Join,
+  Zip,
   Append,
   Reactive,
   Value,
@@ -57,7 +57,7 @@ export class Sandbox implements Record<number | symbol, any> {
         break;
       }
 
-      if (node instanceof Join) {
+      if (node instanceof Zip) {
         const { sources } = node;
         stack.push(node);
         nodes.push(...sources);
@@ -212,7 +212,7 @@ export class Sandbox implements Record<number | symbol, any> {
           const nodeValue = parentValue[node.name];
           scope[node.key] = nodeValue;
         }
-      } else if (node instanceof Join) {
+      } else if (node instanceof Zip) {
         const { sources, project } = node as any;
 
         const newValue: any[] = [];
