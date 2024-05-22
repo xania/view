@@ -44,11 +44,11 @@ export class Reactive<T = any> {
     return new When(this, value, tru, fals);
   }
 
-  zip<U extends [...Reactive<any>[]]>(
+  combineLatest<U extends [...Reactive<any>[]]>(
     ...sources: [...U]
-  ): Zip<[T, ...UnwrapSources<U>]>;
-  zip(...sources: Reactive<any>[]): Zip<any> {
-    return new Zip([this, ...sources]);
+  ): CombineLatest<[T, ...UnwrapSources<U>]>;
+  combineLatest(...sources: Reactive<any>[]): CombineLatest<any> {
+    return new CombineLatest([this, ...sources]);
   }
 
   update(
@@ -73,7 +73,7 @@ type KeyOfType<O, T> = {
   [P in keyof O]: T extends O[P] ? P : never;
 }[keyof O];
 
-export class Zip<T extends any[] = any> extends Reactive<T> {
+export class CombineLatest<T extends any[] = any> extends Reactive<T> {
   constructor(public sources: Reactive[]) {
     super(zipInitial(sources, [], 0) as T);
   }

@@ -44,7 +44,7 @@ describe('graph builder', () => {
     const int = useState(1);
     const double = int.map((x) => x * 2);
     const add3 = int.map((x) => x + 3);
-    const display = int.zip(double, add3).map(([x, y]) => x + y);
+    const display = int.combineLatest(double, add3).map(([x, y]) => x + y);
     const graph = createGraph();
     graph.push(display);
 

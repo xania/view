@@ -1,4 +1,4 @@
-import { Computed, Zip, Property, State } from '../../reactivity';
+import { Computed, CombineLatest, Property, State } from '../../reactivity';
 import {
   ComputedOperator,
   OperatorEnum,
@@ -7,7 +7,7 @@ import {
   SetOperator,
 } from './graph';
 
-type Node = State | Property | Computed | Zip;
+type Node = State | Property | Computed | CombineLatest;
 
 export const operationProvider: OperatorProvider = {
   get(node: Node) {
@@ -25,7 +25,7 @@ export const operationProvider: OperatorProvider = {
         target: node.key,
         compute: node.compute,
       } satisfies ComputedOperator;
-    } else if (node instanceof Zip) {
+    } else if (node instanceof CombineLatest) {
       return node.sources.map(
         (src, idx) =>
           ({

@@ -15,7 +15,7 @@ import {
   Effect,
   Property,
   When,
-  Zip,
+  CombineLatest,
   Append,
   Reactive,
   Value,
@@ -57,7 +57,7 @@ export class Sandbox implements Record<number | symbol, any> {
         break;
       }
 
-      if (node instanceof Zip) {
+      if (node instanceof CombineLatest) {
         const { sources } = node;
         stack.push(node);
         nodes.push(...sources);
@@ -212,7 +212,7 @@ export class Sandbox implements Record<number | symbol, any> {
           const nodeValue = parentValue[node.name];
           scope[node.key] = nodeValue;
         }
-      } else if (node instanceof Zip) {
+      } else if (node instanceof CombineLatest) {
         const { sources, project } = node as any;
 
         const newValue: any[] = [];

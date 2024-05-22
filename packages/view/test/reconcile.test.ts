@@ -31,7 +31,9 @@ describe('graph reconcilation', () => {
     const person = useState({ firstName: 'Ibrahim', lastName: 'ben Salah' });
     const firstName = person.prop('firstName');
     const lastName = person.prop('lastName');
-    const fullName = firstName.zip(lastName).map(([fn, ln]) => `${fn} ${ln}`);
+    const fullName = firstName
+      .combineLatest(lastName)
+      .map(([fn, ln]) => `${fn} ${ln}`);
     const graph = createGraph();
     graph.push(fullName);
     expect(graph.get(fullName)).toBe(
@@ -86,7 +88,7 @@ describe('graph reconcilation', () => {
     // arrange states
     const x = state('x');
     const y = state(Promise.resolve('y'));
-    const z = x.zip(y);
+    const z = x.combineLatest(y);
 
     // act
     const initial = await z.initial!;

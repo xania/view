@@ -134,7 +134,7 @@ describe('reactivity', () => {
 
     const target: { value?: [number, number] } = {};
 
-    sandbox.track(x.zip(y).assign(target, 'value'));
+    sandbox.track(x.combineLatest(y).assign(target, 'value'));
     sandbox.update(y, 2);
 
     expect(target.value).toEqual([1, 2]);
@@ -150,7 +150,7 @@ describe('reactivity', () => {
 
     sandbox.track(
       x
-        .zip(y, z)
+        .combineLatest(y, z)
         .map(([x, y, z]) => x + y + z)
         .assign(target, 'value')
     );
@@ -169,7 +169,7 @@ describe('reactivity', () => {
 
     sandbox.track(
       x
-        .zip(y, z)
+        .combineLatest(y, z)
         .map(([x, y, z]) => x + y + z)
         .assign(target, 'value')
     );
