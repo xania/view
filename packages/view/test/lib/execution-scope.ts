@@ -1,4 +1,4 @@
-import { Property, Reactive, Value, mapValue } from '../../reactivity';
+import { Property, Signal, Value, mapValue } from '../../reactivity';
 import { Scoped } from './operations';
 
 export class ExecutionScope {
@@ -7,7 +7,7 @@ export class ExecutionScope {
   constructor(public context?: any) {}
 
   emit<T>(
-    state: Reactive<T>,
+    state: Signal<T>,
     newValueOrReduce: Value<T> | ((value?: T) => Value<T>)
   ): JSX.MaybeArray<Promise<any>> | void {
     const currentValue = this[state.key] ?? state.initial;
@@ -24,7 +24,7 @@ export class ExecutionScope {
     this[state.key] = newValue;
   }
 
-  track(state: Reactive) {
+  track(state: Signal) {
     if (this[state.key] !== undefined) {
       return this[state.key];
     } else if (state instanceof Scoped) {
@@ -39,7 +39,7 @@ export class ExecutionScope {
     return state.initial;
   }
 
-  resolve(state: Reactive) {
+  resolve(state: Signal) {
     const scope = this;
     if (scope[state.key] !== undefined) {
       return scope[state.key];

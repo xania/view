@@ -2,8 +2,8 @@
   type TagNameMap = {
     [P in keyof HTMLElementTagNameMap]: Tag<HTMLElementTagNameMap[P]>;
   } & {
-      [P in keyof SVGElementTagNameMap]: Tag<SVGElementTagNameMap[P]>;
-    };
+    [P in keyof SVGElementTagNameMap]: Tag<SVGElementTagNameMap[P]>;
+  };
 
   type svg = SVGElementTagNameMap['svg'];
 
@@ -13,7 +13,7 @@
     ? A
     : B;
 
-  type AttrValue<T> = T | Promise<T> | Reactive<T>;
+  type AttrValue<T> = T | Promise<T> | Signal<T>;
 
   type Tag<TElement, U = string | number | boolean> = {
     [P in OfType<Mutable<TElement>, U>]?: AttrValue<TElement[P]>;
@@ -37,8 +37,8 @@
 
   type IntrinsicElements = {
     [P in keyof TagNameMap]: TagNameMap[P] &
-    ElementChildrenAttribute &
-    ElementCustomAttributes;
+      ElementChildrenAttribute &
+      ElementCustomAttributes;
   };
 
   interface ElementCustomAttributes {

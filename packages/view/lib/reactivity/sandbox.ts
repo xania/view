@@ -17,13 +17,13 @@ import {
   When,
   CombineLatest,
   Append,
-  Reactive,
+  Signal,
   Value,
-} from './reactive';
+} from './signal';
 import { State } from './state';
 
 type EffectNode = Effect | Assign | Append;
-type Node = Reactive | EffectNode;
+type Node = Signal | EffectNode;
 
 // const dirty = Symbol('dirty');
 export class Sandbox implements Record<number | symbol, any> {
@@ -234,7 +234,7 @@ export class Sandbox implements Record<number | symbol, any> {
     return promises;
   }
 
-  get<T>(node: Reactive<T>): Value<T> {
+  get<T>(node: Signal<T>): Value<T> {
     const scopeValue = this[node.key];
 
     if (scopeValue !== undefined) {
@@ -250,7 +250,7 @@ export class Sandbox implements Record<number | symbol, any> {
   }
 
   update<T>(
-    state: Reactive<T>,
+    state: Signal<T>,
     newValueOrReduce: Value<T> | ((value?: T) => Value<T>)
   ): JSX.MaybeArray<Promise<any>> | void {
     const scope = this as Record<number | symbol, any>;

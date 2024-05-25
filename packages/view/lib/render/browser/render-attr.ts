@@ -2,7 +2,7 @@
 import { isEventKey } from '../../intrinsic/event-keys';
 import { cpush } from '../../utils/collection';
 import { Sandbox } from '../../reactivity/sandbox';
-import { Append, Reactive } from '../../reactivity';
+import { Append, Signal } from '../../reactivity';
 
 export function renderAttr(
   eventManager: NodeFactory<any, any>,
@@ -20,7 +20,7 @@ export function renderAttr(
         // ignore
       } else if (curr instanceof Array) {
         stack.push(...curr);
-      } else if (curr instanceof Reactive) {
+      } else if (curr instanceof Signal) {
         sandbox.track(new Append(curr.map(split), element.classList));
       } else if (curr.constructor === String) {
         for (const item of curr.split(' ')) {
@@ -43,7 +43,7 @@ export function renderAttr(
 
     if (attrValue === null || attrValue === undefined) {
       // ignore
-    } else if (attrValue instanceof Reactive) {
+    } else if (attrValue instanceof Signal) {
       if (isSvg) {
         sandbox.track(
           attrValue.effect((newValue: string) => {

@@ -1,5 +1,5 @@
 ﻿import { ListMutation } from './mutation';
-import { Computed, Reactive } from './reactive';
+import { Computed, Signal } from './signal';
 
 export function List<T>(props: ListExpression<T>) {
   return new ListExpression<T>(props.source, props.children);
@@ -7,17 +7,17 @@ export function List<T>(props: ListExpression<T>) {
 
 export class ListExpression<T = any> {
   constructor(
-    public source: ListMutations<T> | Reactive<T[]> | T[],
-    public children: JSX.Sequence<(item: Reactive<T>) => JSX.Element>
+    public source: ListMutations<T> | Signal<T[]> | T[],
+    public children: JSX.Sequence<(item: Signal<T>) => JSX.Element>
   ) {}
 }
 
-export function diff<T>(source: Reactive<T[]>) {
+export function diff<T>(source: Signal<T[]>) {
   return new ListMutations(source);
 }
 
 export class ListMutations<T> extends Computed<T[], ListMutation<T>[]> {
-  constructor(public source: Reactive<T[]>) {
+  constructor(public source: Signal<T[]>) {
     super(source, (items) => [{ type: 'reset', items }]);
   }
 
@@ -30,7 +30,7 @@ export class ListMutations<T> extends Computed<T[], ListMutation<T>[]> {
   }
 }
 
-export class ListItem<T> extends Reactive<T> {
+export class ListItem<T> extends Signal<T> {
   public items: T[] = [];
 
   constructor(public listState: ListMutations<T>, public readonly key: symbol) {

@@ -1,5 +1,5 @@
 ﻿import { ElementNode, AnchorNode } from '../factory';
-import { Reactive, Value } from './reactive';
+import { Signal, Value } from './signal';
 
 export type Command =
   | DispatchCommand
@@ -19,7 +19,7 @@ export function isCommand(value: any): value is Command {
 
 export class UpdateStateCommand<T = any> {
   constructor(
-    public state: Reactive<T>,
+    public state: Signal<T>,
     public valueOrCompute: JSX.MaybePromise<T> | ((x: T) => JSX.MaybePromise<T>)
   ) {}
 }
@@ -36,7 +36,7 @@ export class UpdateCommand {
   constructor(
     public updateFn: (
       this: UpdateCommand,
-      scope: { get<T>(node: Reactive<T>): Value<T> }
+      scope: { get<T>(node: Signal<T>): Value<T> }
     ) => Generator<JSX.MaybePromise<Command>> | JSX.MaybePromise<Command | void>
   ) {}
 }

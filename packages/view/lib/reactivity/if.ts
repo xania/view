@@ -1,4 +1,4 @@
-﻿import { Signal } from './state';
+﻿import { Signal } from './signal';
 
 interface IfProps {
   condition: Signal<boolean>;

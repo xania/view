@@ -14,7 +14,7 @@ interface ReactiveNode {
 
 export enum OperatorEnum {
   Prop = 1,
-  Computed = 2,
+  Call = 2,
   Assign = 3,
   CombineLatest = 4,
 }
@@ -22,7 +22,7 @@ export enum OperatorEnum {
 export type Operator =
   | GetOperator
   | AssignOperator
-  | ComputedOperator
+  | CallOperator
   | CombineLatestOperator;
 
 export interface GetOperator {
@@ -45,11 +45,12 @@ export interface CombineLatestOperator {
   target: symbol;
 }
 
-export interface ComputedOperator {
-  type: OperatorEnum.Computed;
+export interface CallOperator {
+  type: OperatorEnum.Call;
   source: symbol;
   target: symbol;
-  compute: Function;
+  func: Function;
+  context: any;
 }
 
 export function create(operatorProvider: OperatorProvider): ReactiveGraph {
@@ -187,9 +188,12 @@ function reconcile(
             }
           }
           break;
-        case OperatorEnum.Computed:
+        case OperatorEnum.Call:
           {
-            const targetValue = operator.compute(sourceValue);
+            const targetValue = operator.func.call(
+              operator.context,
+              sourceValue
+            );
             if (targetValue !== undefined && targetValue !== g.scope[target]) {
               g.scope[target] = targetValue;
               dirty[target] = true;

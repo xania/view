@@ -1,4 +1,4 @@
-import { Reactive } from '../../reactivity';
+import { Signal } from '../../reactivity';
 import { Operation, OperationType, currentScope } from './operations';
 import { TextNode, TreeNode } from '../tree';
 
@@ -27,7 +27,7 @@ export function compile(root: any): Operation<TreeNode>[] {
           type: OperationType.PopNode,
         }
       );
-    } else if (view instanceof Reactive) {
+    } else if (view instanceof Signal) {
       operations.push(
         {
           type: OperationType.CreateNode,

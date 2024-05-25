@@ -1,6 +1,6 @@
-﻿import { Reactive, Unwrap } from './reactive';
+﻿import { Signal, Unwrap } from './signal';
 
-export class State<T = any> extends Reactive<T> {
+export class State<T = any> extends Signal<T> {
   dependencies?: undefined = undefined;
 }
 

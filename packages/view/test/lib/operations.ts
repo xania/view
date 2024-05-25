@@ -1,4 +1,4 @@
-import { Reactive } from '../../reactivity';
+import { Signal } from '../../reactivity';
 import { TextNode } from '../tree';
 
 export enum OperationType {
@@ -107,7 +107,7 @@ export function next(
   };
 }
 
-export class Scoped<T> extends Reactive<T> {}
+export class Scoped<T> extends Signal<T> {}
 
 export function forEach<T>(values: T[]) {
   if (values.length == 0) {
@@ -135,4 +135,4 @@ export function forEach<T>(values: T[]) {
   };
 }
 
-export const currentScope: Reactive = new Reactive();
+export const currentScope: Signal = new Signal();

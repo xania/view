@@ -13,7 +13,7 @@ import { isDisposable } from '../../render/disposable';
 import { ListExpression, ListMutations, diff } from '../../reactivity/list';
 
 import { MutationOperator } from './mutation-operator';
-import { Effect, Reactive, isCommand } from '../../reactivity';
+import { Effect, Signal, isCommand } from '../../reactivity';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 import { smap } from '../../seq';
 
@@ -85,7 +85,7 @@ export function renderStack<
       }
       // } else if (tpl instanceof Component) {
       //   stack.push([sandbox, currentTarget, tpl.execute(), isRoot]);
-    } else if (tpl instanceof Reactive) {
+    } else if (tpl instanceof Signal) {
       const stateNode = factory.createTextNode(currentTarget, '');
       if (isRoot) {
         sandbox.nodes = cpush(sandbox.nodes, stateNode);

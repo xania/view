@@ -15,7 +15,7 @@ declare namespace JSX {
   type IfExpression = import('../../lib/reactivity').IfExpression;
   type ListExpression = import('../../lib/reactivity').ListExpression;
   type Command = import('../../lib/reactivity').Command;
-  type Reactive<T> = import('../../lib/reactivity').Reactive;
+  type Signal<T> = import('../../lib/reactivity').Signal;
   type UpdateFunction = import('../../lib').UpdateFunction;
   type Component = import('../../lib').Component;
   type Transformer<T> = import('../../lib').Transformer<T>;
@@ -25,7 +25,7 @@ declare namespace JSX {
 
   type Value =
     | Primitive
-    | Reactive<Primitive>
+    | Signal<Primitive>
     | DomDescriptor
     | Viewable
     | Attachable

@@ -1,6 +1,6 @@
 import { Computed, CombineLatest, Property, State } from '../../reactivity';
 import {
-  ComputedOperator,
+  CallOperator,
   OperatorEnum,
   OperatorProvider,
   GetOperator,
@@ -21,11 +21,12 @@ export const operationProvider: OperatorProvider = {
       } satisfies GetOperator;
     } else if (node instanceof Computed) {
       return {
-        type: OperatorEnum.Computed,
+        type: OperatorEnum.Call,
         source: node.parent.key,
         target: node.key,
-        compute: node.compute,
-      } satisfies ComputedOperator;
+        func: node.compute,
+        context: null,
+      } satisfies CallOperator;
     } else if (node instanceof CombineLatest) {
       return [
         ...node.sources.map(
