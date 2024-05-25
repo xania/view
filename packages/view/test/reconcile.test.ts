@@ -40,7 +40,31 @@ describe('graph reconcilation', () => {
       `${firstName.initial} ${lastName.initial}`
     );
 
-    const updateResult = graph.update(person, { firstName: 'Ramy' });
+    const updateResult = graph.update(person, {
+      firstName: 'Ramy',
+      lastName: 'ben Salah',
+    });
+    expect(updateResult).toBe(true);
+    expect(graph.get(fullName)).toBe(`Ramy ${lastName.initial}`);
+  });
+
+  it('updates join async', async () => {
+    const person = useState({ firstName: 'Ibrahim', lastName: 'ben Salah' });
+    const firstName = person.prop('firstName');
+    const lastName = person.prop('lastName');
+    const fullName = firstName
+      .combineLatest(lastName)
+      .map(([fn, ln]) => `${fn} ${ln}`);
+    const graph = createGraph();
+    graph.push(fullName);
+    expect(graph.get(fullName)).toBe(
+      `${firstName.initial} ${lastName.initial}`
+    );
+
+    const updateResult = await graph.update(person, {
+      firstName: Promise.resolve('Ramy'), // async value
+      lastName: 'ben Salah',
+    });
     expect(updateResult).toBe(true);
     expect(graph.get(fullName)).toBe(`Ramy ${lastName.initial}`);
   });
@@ -108,7 +132,18 @@ describe('graph reconcilation', () => {
     await G.update(x, 2);
 
     // assert
-    expect(G.get(y)).toEqual(3);
+    expect(await G.get(y)).toEqual(3);
+  });
+
+  it('update latest async', async () => {
+    const x = state(Promise.resolve(1));
+    const combined = x.combineLatest().map(([x]) => x);
+
+    const G = createGraph();
+    G.push(combined);
+
+    const actual = await G.get(combined);
+    expect(actual).toBe(1);
   });
 });
 

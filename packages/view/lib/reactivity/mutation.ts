@@ -1,4 +1,4 @@
-﻿import { Command, State } from '../../reactivity';
+﻿import { Command, Signal } from '../../reactivity';
 
 export type ListMutation<T> =
   | AddRowMutation<T>
@@ -45,7 +45,7 @@ interface AppendRowsMutation<T> {
 
 interface FilterRowMutation<T> {
   type: 'filter';
-  list: State<T[]>;
+  list: Signal<T[]>;
   filter: (item: T) => boolean;
 }
 
@@ -62,7 +62,7 @@ interface RemoveRowMutation {
 
 interface EachRowMutation<T> {
   type: 'each';
-  list: State<T[]>;
+  list: Signal<T[]>;
   command: Command;
 }
 

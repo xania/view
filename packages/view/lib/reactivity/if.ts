@@ -1,7 +1,7 @@
-﻿import { State } from './state';
+﻿import { Signal } from './state';
 
 interface IfProps {
-  condition: State<boolean>;
+  condition: Signal<boolean>;
   children: JSX.Children;
 }
 

@@ -48,12 +48,12 @@ describe('graph builder', () => {
     const graph = createGraph();
     graph.push(display);
 
-    expect(graph.nodes).toHaveLength(5);
+    expect(graph.nodes).toHaveLength(6);
     expect(graph.nodes[0]).toBe(int);
     /* expect first two elements should be person and ibrahim in any order */
     expect(graph.nodes.slice(1, 3)).toEqual(
       expect.arrayContaining([double, add3])
     );
-    expect(graph.nodes[4]).toBe(display);
+    expect(graph.nodes[5]).toBe(display);
   });
 });

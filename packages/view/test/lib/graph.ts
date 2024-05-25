@@ -7,11 +7,8 @@ export type ReactiveGraph = {
   update<T>(node: ReactiveNode, newValue: T): boolean | Promise<boolean>;
 };
 
-type MaybeArr<T> = T | T[];
 interface ReactiveNode {
   key: symbol;
-  dependencies?: MaybeArr<ReactiveNode>;
-  parent?: ReactiveNode;
   initial?: any;
 }
 
@@ -19,9 +16,14 @@ export enum OperatorEnum {
   Prop = 1,
   Computed = 2,
   Assign = 3,
+  CombineLatest = 4,
 }
 
-export type Operator = GetOperator | SetOperator | ComputedOperator;
+export type Operator =
+  | GetOperator
+  | AssignOperator
+  | ComputedOperator
+  | CombineLatestOperator;
 
 export interface GetOperator {
   type: OperatorEnum.Prop;
@@ -30,11 +32,17 @@ export interface GetOperator {
   prop: string;
 }
 
-export interface SetOperator {
+export interface AssignOperator {
   type: OperatorEnum.Assign;
   source: symbol;
   target: symbol;
   prop: string | number;
+}
+
+export interface CombineLatestOperator {
+  type: OperatorEnum.CombineLatest;
+  source: symbol;
+  target: symbol;
 }
 
 export interface ComputedOperator {
@@ -89,17 +97,15 @@ export function create(operatorProvider: OperatorProvider): ReactiveGraph {
 
         pending.push(curr);
 
-        const { dependencies, parent } = curr;
+        const dependencies = operatorProvider.dependencies(curr);
         if (dependencies instanceof Array) {
           for (const dep of dependencies) {
             if (dep) {
               stack.push(dep);
             }
           }
-        }
-
-        if (parent) {
-          stack.push(parent);
+        } else if (dependencies) {
+          stack.push(dependencies);
         }
       }
 
@@ -130,28 +136,11 @@ export function create(operatorProvider: OperatorProvider): ReactiveGraph {
   };
 }
 
+type MaybeArr<T> = T | T[];
+
 export interface OperatorProvider {
   get(node: ReactiveNode): Operator[] | Operator | null;
-}
-
-function set(g: ReactiveGraph, key: symbol, newValue: any) {
-  if (newValue === undefined) {
-    return false;
-  }
-
-  const currentValue = g.scope[key];
-  if (currentValue === newValue) {
-    return false;
-  }
-
-  if (newValue instanceof Promise) {
-    return newValue.then((resolved) => {
-      g.scope[key] = resolved;
-      return true;
-    });
-  }
-  g.scope[key] = newValue;
-  return true;
+  dependencies(node: ReactiveNode): MaybeArr<ReactiveNode>;
 }
 
 function reconcile(
@@ -160,6 +149,7 @@ function reconcile(
   dirty: { [key: symbol]: boolean }
 ): void | Promise<void> {
   const promises: Promise<void>[] = [];
+  const scope = g.scope;
 
   for (let i = offset; i < g.operators.length; i++) {
     const operator = g.operators[i];
@@ -173,9 +163,19 @@ function reconcile(
       }
 
       if (sourceValue instanceof Promise) {
-        reconcilePromise(promises, sourceValue, g, g.scope, source, i, dirty);
+        scope[source] = sourceValue;
+        promises.push(
+          sourceValue.then((resolved) => {
+            if (g.scope[source] === sourceValue) {
+              scope[source] = resolved;
+              return reconcile(g, i, dirty);
+            }
+          })
+        );
         continue;
       }
+
+      dirty[source] === false;
 
       switch (type) {
         case OperatorEnum.Prop:
@@ -183,19 +183,7 @@ function reconcile(
             const targetValue = sourceValue[operator.prop];
             if (targetValue !== undefined && g.scope[target] !== targetValue) {
               g.scope[target] = targetValue;
-              if (targetValue instanceof Promise) {
-                reconcilePromise(
-                  promises,
-                  targetValue,
-                  g,
-                  g.scope,
-                  target,
-                  i + 1,
-                  dirty
-                );
-              } else {
-                dirty[target] = true;
-              }
+              dirty[target] = true;
             }
           }
           break;
@@ -204,19 +192,7 @@ function reconcile(
             const targetValue = operator.compute(sourceValue);
             if (targetValue !== undefined && targetValue !== g.scope[target]) {
               g.scope[target] = targetValue;
-              if (targetValue instanceof Promise) {
-                reconcilePromise(
-                  promises,
-                  targetValue,
-                  g,
-                  g.scope,
-                  target,
-                  i + 1,
-                  dirty
-                );
-              } else {
-                dirty[target] = true;
-              }
+              dirty[target] = true;
             }
           }
           break;
@@ -226,21 +202,17 @@ function reconcile(
           const currentValue = targetScope[operatorProp];
           if (currentValue !== sourceValue) {
             targetScope[operatorProp] = sourceValue;
-
-            if (sourceValue instanceof Promise) {
-              const targetOffset = i;
-              promises.push(
-                sourceValue.then((resolved) => {
-                  if (targetScope[operatorProp] === sourceValue) {
-                    targetScope[operatorProp] = resolved;
-                    dirty[target] = true;
-                    return reconcile(g, targetOffset + 1, dirty);
-                  }
-                })
-              );
+            dirty[target] = true;
+          }
+          break;
+        case OperatorEnum.CombineLatest:
+          {
+            if (sourceValue.some((x: any) => x instanceof Promise)) {
+              g.scope[target] = Promise.all(sourceValue);
             } else {
-              dirty[target] = true;
+              g.scope[target] = sourceValue;
             }
+            dirty[target] = true;
           }
           break;
         default:
@@ -252,25 +224,4 @@ function reconcile(
   if (promises.length) {
     return Promise.all(promises) as any;
   }
-}
-
-function reconcilePromise<T>(
-  promises: Promise<void>[],
-  valuePromise: Promise<T>,
-  g: ReactiveGraph,
-  scope: { [key: symbol]: any },
-  key: symbol,
-  offset: number,
-  dirty: { [key: symbol]: boolean }
-) {
-  scope[key] = valuePromise;
-  promises.push(
-    valuePromise.then((value) => {
-      if (scope[key] === valuePromise) {
-        scope[key] = value;
-        dirty[key] = true;
-        return reconcile(g, offset, dirty);
-      }
-    })
-  );
 }

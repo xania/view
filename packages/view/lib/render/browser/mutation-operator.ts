@@ -1,7 +1,7 @@
 ﻿import { cfirst, cwalk } from '../../utils/collection';
 import { Sandbox } from '../../reactivity/sandbox';
 import { renderStack } from './render-stack';
-import { ListMutation, State } from '../../reactivity';
+import { ListMutation, Signal } from '../../reactivity';
 import { AnchorNode, ElementNode, NodeFactory, ViewNode } from '../../factory';
 
 export class MutationOperator<T = any> {
@@ -11,7 +11,7 @@ export class MutationOperator<T = any> {
     public sandbox: Sandbox,
     public template: JSX.Children,
     public currentTarget: ElementNode | AnchorNode<ViewNode>,
-    public listItem: State<T[]>,
+    public listItem: Signal<T[]>,
     public factory: NodeFactory<ElementNode, ViewNode>
   ) {}
 

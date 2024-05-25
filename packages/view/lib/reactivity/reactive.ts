@@ -74,12 +74,9 @@ type KeyOfType<O, T> = {
 }[keyof O];
 
 export class CombineLatest<T extends any[] = any> extends Reactive<T> {
+  public joinKey = Symbol(new Date().getTime());
   constructor(public sources: Reactive[]) {
-    super(zipInitial(sources, [], 0) as T);
-  }
-
-  get dependencies() {
-    return this.sources;
+    super(combineInitial(sources, [], 0) as T);
   }
 }
 
@@ -173,7 +170,7 @@ export function mapValues<T extends any[]>(
   return project.apply(null, values);
 }
 
-function zipInitial(
+function combineInitial(
   sources: Reactive<any>[],
   result: any[],
   offset: number
@@ -183,7 +180,7 @@ function zipInitial(
     if (sourceValue instanceof Promise) {
       return sourceValue.then((x) => {
         result[i] = x;
-        return zipInitial(sources, result, offset + 1);
+        return combineInitial(sources, result, offset + 1);
       });
     }
     result[i] = sources[i].initial;
