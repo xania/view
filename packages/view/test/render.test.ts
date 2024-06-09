@@ -41,7 +41,7 @@ describe('renderer', () => {
   });
 });
 
-type Program = Instruction[];
+type Assembly = Instruction[];
 
 interface Renderer {
   render(template: ViewTemplate): void;
@@ -49,7 +49,7 @@ interface Renderer {
 
 function render(view: ViewTemplate) {}
 
-function run(program: Program, renderer: Renderer) {
+function run(program: Assembly, renderer: Renderer) {
   const length = program.length;
   const memory: { [key: symbol]: any } = {};
   for (let i = 0; i < length; i++) {
@@ -68,8 +68,8 @@ function run(program: Program, renderer: Renderer) {
   }
 }
 
-function compile(view: JSX.Children): Program {
-  const program: Program = [];
+function compile(view: JSX.Children): Assembly {
+  const program: Assembly = [];
   const stack = [view];
   while (stack.length) {
     const curr = stack.pop()!;
