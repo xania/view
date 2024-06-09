@@ -2,12 +2,15 @@ import { describe, expect, it, test } from 'vitest';
 import {
   If,
   IfExpression,
+  List,
+  ListExpression,
   Sandbox,
   Signal,
   Value,
   signal,
 } from '../reactivity';
 import { cpush } from '../lib/utils/collection';
+import { smap } from '../lib/seq/map';
 
 const testRenderer = () => ({
   output: [] as string[],
@@ -21,23 +24,30 @@ const testRenderer = () => ({
 });
 
 describe('renderer', () => {
-  test.each([1, 2, 3])('conditional %i', (n: number) => {
+  test.each([1, 2, 3])('if %i', (n: number) => {
     // arrange main graph
     const isEven = (n & 1) === 0;
     const s = signal(isEven);
 
-    const view = If({
-      condition: s,
-      children: [123],
-    });
+    const output = testRender(
+      If({
+        condition: s,
+        children: [123],
+      })
+    );
+    expect(output).toHaveLength(isEven ? 1 : 0);
+  });
 
-    const program = compile(view);
-    expect(program).toHaveLength(2);
+  it('list', () => {
+    // arrange main graph
+    const items = signal([1, 2, 3]);
 
-    const renderer = testRenderer();
-    run(program, renderer);
-
-    expect(renderer.output).toHaveLength(isEven ? 1 : 0);
+    const output = testRender(
+      List({
+        source: items,
+        children: (item) => item,
+      })
+    );
   });
 });
 
@@ -47,7 +57,14 @@ interface Renderer {
   render(template: ViewTemplate): void;
 }
 
-function render(view: ViewTemplate) {}
+function testRender(view: JSX.Children) {
+  const program = compile(view);
+  expect(program).toHaveLength(2);
+
+  const renderer = testRenderer();
+  run(program, renderer);
+  return renderer.output;
+}
 
 function run(program: Assembly, renderer: Renderer) {
   const length = program.length;
@@ -115,6 +132,13 @@ function compile(view: JSX.Children): Assembly {
           text: initial as string,
         },
       });
+    } else if (curr instanceof ListExpression) {
+      const { children } = curr;
+      if (children) {
+        const listItem = signal();
+        const itemTemplate = smap(children, identity, listItem);
+        compile(itemTemplate as any);
+      }
     } else {
       debugger;
     }
@@ -122,6 +146,8 @@ function compile(view: JSX.Children): Assembly {
 
   return program;
 }
+
+const identity = <T extends (...args: any[]) => any>(x: T) => x();
 
 type Instruction = RenderInstruction | BranchInstruction;
 
