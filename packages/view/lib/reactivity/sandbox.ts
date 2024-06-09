@@ -26,10 +26,12 @@ type EffectNode = Effect | Assign | Append;
 type Node = Signal | EffectNode;
 
 // const dirty = Symbol('dirty');
-export class Sandbox implements Record<number | symbol, any> {
+export class Sandbox<TViewNode = ViewNode>
+  implements Record<number | symbol, any>
+{
   private graph: Node[] = [];
   disposed: boolean = false;
-  nodes?: Collection<ViewNode>;
+  nodes?: Collection<TViewNode>;
   promises?: Collection<Promise<any>>;
   subscriptions?: Collection<Subscription>;
   disposables?: Collection<Disposable>;
@@ -75,7 +77,7 @@ export class Sandbox implements Record<number | symbol, any> {
         nodes.push(node.state);
       } else if (node instanceof When) {
         stack.push(node);
-        nodes.push(node.state);
+        nodes.push(node.condition);
       } else if (node instanceof State) {
         stack.push(node);
       } else if (node instanceof Append) {
@@ -125,16 +127,10 @@ export class Sandbox implements Record<number | symbol, any> {
           node.target[node.property] = scopeValue;
         }
       } else if (node instanceof When) {
-        const state = node.state;
+        const state = node.condition;
         const scopeValue = this.get(state);
 
-        if (scopeValue !== undefined) {
-          if (scopeValue === node.value) {
-            scope[node.key] = node.tru;
-          } else {
-            scope[node.key] = node.fals;
-          }
-        }
+        scope[node.key] = scopeValue === scopeValue ? node.tru : node.fals;
       } else if (node instanceof Effect) {
         const state = node.state;
         const scopeValue = this.get(state);
@@ -352,9 +348,9 @@ function dispose(d: Disposable) {
   d.dispose();
 }
 
-function removeNode(node: ViewNode | undefined) {
+function removeNode<TViewNode>(node: TViewNode | undefined) {
   if (node) {
-    node.remove();
+    (node as any).remove();
   }
 }
 

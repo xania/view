@@ -1,29 +1,40 @@
 export type ReactiveGraph = {
   readonly nodes: ReactiveNode[];
   readonly scope: { [key: symbol]: any };
+  readonly output: { [key: symbol | string | number]: any };
   readonly operators: Operator[];
   push(node: ReactiveNode): void;
   get(node: { key: symbol }): any;
-  update<T>(node: ReactiveNode, newValue: T): boolean | Promise<boolean>;
+  update<T>(node: ReactiveNode<T>, newValue: T): boolean | Promise<boolean>;
+  export<T>(node: ReactiveNode<T>, prop: symbol | number | string): void;
 };
 
-interface ReactiveNode {
+interface ReactiveNode<T = any> {
   key: symbol;
-  initial?: any;
+  initial?: T;
 }
 
 export enum OperatorEnum {
   Prop = 1,
-  Call = 2,
-  Assign = 3,
-  CombineLatest = 4,
+  Export = 2,
+  Call = 3,
+  Connect = 4,
+  CombineLatest = 5,
+  When = 6,
 }
 
 export type Operator =
   | GetOperator
-  | AssignOperator
+  | ExportOperator
+  | ConnectOperator
   | CallOperator
-  | CombineLatestOperator;
+  | CombineLatestOperator
+  | WhenOperator;
+
+export interface WhenOperator {
+  type: OperatorEnum.When;
+  source: symbol;
+}
 
 export interface GetOperator {
   type: OperatorEnum.Prop;
@@ -32,8 +43,14 @@ export interface GetOperator {
   prop: string;
 }
 
-export interface AssignOperator {
-  type: OperatorEnum.Assign;
+export interface ExportOperator {
+  type: OperatorEnum.Export;
+  source: symbol;
+  prop: string | number | symbol;
+}
+
+export interface ConnectOperator {
+  type: OperatorEnum.Connect;
   source: symbol;
   target: symbol;
   prop: string | number;
@@ -57,12 +74,22 @@ export function create(operatorProvider: OperatorProvider): ReactiveGraph {
   const nodes: ReactiveNode[] = [];
   const lookups: { [key: symbol]: ReactiveNode } = {};
   const scope: ReactiveGraph['scope'] = {};
+  const output: ReactiveGraph['output'] = {};
   const operators: Operator[] = [];
   return {
     nodes,
     scope,
     operators,
-    update<T>(node: ReactiveNode, newValue: T) {
+    output,
+    export<T, U>(node: ReactiveNode<T>, prop: keyof U) {
+      this.push(node);
+      operators.push({
+        type: OperatorEnum.Export,
+        source: node.key,
+        prop,
+      });
+    },
+    update<T>(node: ReactiveNode<T>, newValue: T) {
       const { key: nodeKey } = node;
       const currentValue = scope[nodeKey];
       if (currentValue === newValue) {
@@ -157,7 +184,7 @@ function reconcile(
     const { source } = operator;
 
     if (dirty[source] === true) {
-      const { type, target } = operator;
+      const { type } = operator;
       const sourceValue = g.scope[source];
       if (sourceValue === undefined) {
         continue;
@@ -176,11 +203,12 @@ function reconcile(
         continue;
       }
 
-      dirty[source] === false;
-
       switch (type) {
+        case OperatorEnum.When:
+          break;
         case OperatorEnum.Prop:
           {
+            const { target } = operator;
             const targetValue = sourceValue[operator.prop];
             if (targetValue !== undefined && g.scope[target] !== targetValue) {
               g.scope[target] = targetValue;
@@ -190,6 +218,7 @@ function reconcile(
           break;
         case OperatorEnum.Call:
           {
+            const { target } = operator;
             const targetValue = operator.func.call(
               operator.context,
               sourceValue
@@ -200,17 +229,24 @@ function reconcile(
             }
           }
           break;
-        case OperatorEnum.Assign:
-          const targetScope = g.scope[target];
-          const operatorProp = operator.prop;
-          const currentValue = targetScope[operatorProp];
-          if (currentValue !== sourceValue) {
-            targetScope[operatorProp] = sourceValue;
-            dirty[target] = true;
+        case OperatorEnum.Export:
+          g.output[operator.prop] = sourceValue;
+          break;
+        case OperatorEnum.Connect:
+          {
+            const { target } = operator;
+            const targetScope = g.scope[target];
+            const operatorProp = operator.prop;
+            const currentValue = targetScope[operatorProp];
+            if (currentValue !== sourceValue) {
+              targetScope[operatorProp] = sourceValue;
+              dirty[target] = true;
+            }
           }
           break;
         case OperatorEnum.CombineLatest:
           {
+            const { target } = operator;
             if (sourceValue.some((x: any) => x instanceof Promise)) {
               g.scope[target] = Promise.all(sourceValue);
             } else {

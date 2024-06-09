@@ -116,17 +116,6 @@ describe('reactivity', () => {
     expect(callCount).toBe(4);
   });
 
-  it('when', () => {
-    const state = useState(1);
-    const sandbox = new Sandbox();
-
-    const target = { value: '' };
-
-    sandbox.track(state.when(1, 'one', 'two').assign(target, 'value'));
-
-    expect(target.value).toBe('one');
-  });
-
   it('join', () => {
     const x = useState(1);
     const y = useState<number>();

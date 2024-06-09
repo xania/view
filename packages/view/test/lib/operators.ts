@@ -4,9 +4,10 @@ import {
   OperatorEnum,
   OperatorProvider,
   GetOperator,
-  AssignOperator,
+  ConnectOperator,
   CombineLatestOperator,
 } from './graph';
+import { Conditional } from './signals/conditional';
 
 type Node = State | Property | Computed | CombineLatest | JoinPoint;
 
@@ -32,17 +33,25 @@ export const operationProvider: OperatorProvider = {
         ...node.sources.map(
           (src, idx) =>
             ({
-              type: OperatorEnum.Assign,
+              type: OperatorEnum.Connect,
               source: src.key,
               target: node.joinKey,
               prop: idx,
-            } satisfies AssignOperator)
+            } satisfies ConnectOperator)
         ),
         {
           type: OperatorEnum.CombineLatest,
           source: node.joinKey,
           target: node.key,
         } as CombineLatestOperator,
+      ];
+    } else if (node instanceof Conditional) {
+      return [
+        {
+          type: OperatorEnum.When,
+          source: node.condition.key,
+        },
+        ...node.graph.operators,
       ];
     } else {
       // return {
@@ -64,6 +73,10 @@ export const operationProvider: OperatorProvider = {
     }
     if (node instanceof JoinPoint) {
       return node.sources;
+    }
+
+    if (node instanceof Conditional) {
+      return node.condition;
     }
 
     return [];

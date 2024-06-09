@@ -193,7 +193,7 @@ export function renderStack<
         sandbox.subscriptions,
         tpl.subscribe({
           next(command) {
-            sandbox.handleCommands(command, currentTarget as any);
+            sandbox.handleCommands(command as any, currentTarget as any);
           },
         })
       );

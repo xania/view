@@ -31,10 +31,6 @@ export class Signal<T = any> {
     return f(this);
   }
 
-  when<U>(value: T, tru: U, fals: U): When<T, U> {
-    return new When(this, value, tru, fals);
-  }
-
   combineLatest<U extends [...Signal<any>[]]>(
     ...sources: [...U]
   ): CombineLatest<[T, ...UnwrapSources<U>]>;
@@ -71,12 +67,11 @@ export class CombineLatest<T extends any[] = any> extends Signal<T> {
   }
 }
 
-export class When<T = any, U = any> extends Signal<U> {
+export class When<U = any> extends Signal<U> {
   constructor(
-    public state: Signal<T>,
-    public value: T,
-    public tru: U,
-    public fals: U
+    public condition: Signal<boolean>,
+    public tru?: U,
+    public fals?: U
   ) {
     super();
   }
