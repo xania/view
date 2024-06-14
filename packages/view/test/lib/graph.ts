@@ -1,3 +1,6 @@
+type UpdateInput<T> = JSX.MaybePromise<{
+  [k in keyof T]?: T[k] | Promise<T[k]>;
+}>;
 export type ReactiveGraph = {
   readonly nodes: ReactiveNode[];
   readonly scope: { [key: symbol]: any };
@@ -5,7 +8,10 @@ export type ReactiveGraph = {
   readonly operators: Operator[];
   push(node: ReactiveNode): void;
   get(node: { key: symbol }): any;
-  update<T>(node: ReactiveNode<T>, newValue: T): boolean | Promise<boolean>;
+  update<T>(
+    node: ReactiveNode<T>,
+    newValue: UpdateInput<T>
+  ): boolean | Promise<boolean>;
   export<T>(node: ReactiveNode<T>, prop: symbol | number | string): void;
 };
 

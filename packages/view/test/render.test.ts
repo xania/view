@@ -87,10 +87,15 @@ function run(program: Assembly, renderer: Renderer) {
 
 function compile(view: JSX.Children): Assembly {
   const program: Assembly = [];
-  const stack = [view];
+  const stack: any[] = [view];
+  let scope: CompileScope = new CompileScope([]); // root
   while (stack.length) {
     const curr = stack.pop()!;
-    if (curr instanceof Array) {
+    if (curr instanceof Function) {
+      stack.push(curr.call(null, scope.args));
+    } else if (curr instanceof CompileScope) {
+      scope = curr;
+    } else if (curr instanceof Array) {
       for (let i = curr.length - 1; i >= 0; i--) {
         const item = curr[i];
         if (item !== null && item !== undefined) {
@@ -136,8 +141,10 @@ function compile(view: JSX.Children): Assembly {
       const { children } = curr;
       if (children) {
         const listItem = signal();
-        const itemTemplate = smap(children, identity, listItem);
-        compile(itemTemplate as any);
+        stack.push(scope);
+        stack.push(children);
+
+        scope = new CompileScope([listItem]);
       }
     } else {
       debugger;
@@ -177,4 +184,8 @@ interface TextNodeTemplate {
 
 enum TemplateEnum {
   TextNode = 0,
+}
+
+class CompileScope {
+  constructor(public args: any[]) {}
 }
