@@ -4,13 +4,12 @@ import {
   IfExpression,
   List,
   ListExpression,
+  ListMutations,
   Sandbox,
   Signal,
   Value,
   signal,
 } from '../reactivity';
-import { cpush } from '../lib/utils/collection';
-import { smap } from '../lib/seq/map';
 
 const testRenderer = () => ({
   output: [] as string[],
@@ -18,6 +17,8 @@ const testRenderer = () => ({
     switch (template.type) {
       case TemplateEnum.TextNode:
         this.output.push(template.text);
+        break;
+      default:
         break;
     }
   },
@@ -51,7 +52,8 @@ describe('renderer', () => {
   });
 });
 
-type Assembly = Instruction[];
+type ReactiveAssembly = Instruction[];
+type ReactiveVar = symbol;
 
 interface Renderer {
   render(template: ViewTemplate): void;
@@ -59,34 +61,65 @@ interface Renderer {
 
 function testRender(view: JSX.Children) {
   const program = compile(view);
-  expect(program).toHaveLength(2);
 
   const renderer = testRenderer();
   run(program, renderer);
   return renderer.output;
 }
 
-function run(program: Assembly, renderer: Renderer) {
-  const length = program.length;
-  const memory: { [key: symbol]: any } = {};
-  for (let i = 0; i < length; i++) {
-    const instruction = program[i];
+function run(asm: ReactiveAssembly, renderer: Renderer) {
+  const length = asm.length;
+  const memory: { [key: ReactiveVar]: any } = {};
+  const scopeStack = [];
+  let scope: any = null;
+  let cursor = 0;
+  while (cursor < length) {
+    const instruction = asm[cursor];
     switch (instruction.type) {
       case InstructionEnum.Render:
         renderer.render(instruction.template);
+        cursor++;
+        break;
+      case InstructionEnum.Jump:
+        cursor = instruction.address;
         break;
       case InstructionEnum.Branch:
-        const condition = memory[instruction.condition] ?? instruction.initial;
+        const condition = memory[instruction.condition];
         if (!condition) {
-          i += instruction.jump;
+          cursor += instruction.jump;
+        } else {
+          cursor++;
         }
+        break;
+      case InstructionEnum.ForEach:
+        const list = memory[instruction.list];
+        if (list instanceof Array) {
+          const iterator = memory[instruction.index] | 0;
+          memory[instruction.index] = iterator + 1;
+          if (iterator < list.length) {
+            cursor = instruction.jump;
+            scope = list[iterator];
+          } else {
+            cursor++;
+          }
+        } else {
+          cursor = instruction.jump;
+        }
+        break;
+      case InstructionEnum.State:
+        const { value, key } = instruction;
+        memory[key] = value;
+        cursor++;
+        break;
+      default:
+        cursor++;
         break;
     }
   }
 }
 
-function compile(view: JSX.Children): Assembly {
-  const program: Assembly = [];
+function compile(view: JSX.Children): ReactiveAssembly {
+  const program: ReactiveAssembly = [];
   const stack: any[] = [view];
   let scope: CompileScope = new CompileScope([]); // root
   while (stack.length) {
@@ -121,11 +154,13 @@ function compile(view: JSX.Children): Assembly {
     } else if (curr instanceof IfExpression) {
       const { condition, children } = curr.props;
       const block = compile(children);
+      if (condition.initial) {
+        program.push(...block);
+      }
       program.push({
         type: InstructionEnum.Branch,
         condition: condition.key,
-        initial: condition.initial,
-        jump: block.length,
+        jump: block.length + 1,
       });
       program.push(...block);
     } else if (curr instanceof Signal) {
@@ -138,14 +173,44 @@ function compile(view: JSX.Children): Assembly {
         },
       });
     } else if (curr instanceof ListExpression) {
-      const { children } = curr;
-      if (children) {
+      const { children, source } = curr;
+      if (source instanceof ListMutations) {
+      } else if (source instanceof Signal) {
         const listItem = signal();
-        stack.push(scope);
+
+        const { initial } = source;
+        if (initial) {
+          program.push({
+            type: InstructionEnum.State,
+            key: source.key,
+            value: initial,
+          });
+        }
+        const startJump = {
+          type: InstructionEnum.Jump,
+          address: -1,
+        } as const;
+        program.push(startJump);
+        stack.push(
+          new ForEachBlock(
+            {
+              type: InstructionEnum.ForEach,
+              jump: program.length,
+              index: Symbol(),
+              item: listItem.key,
+              list: source.key,
+            },
+            startJump
+          )
+        );
         stack.push(children);
 
         scope = new CompileScope([listItem]);
       }
+    } else if (curr instanceof BlockEnd) {
+    } else if (curr instanceof ForEachBlock) {
+      curr.startJump.address = program.length;
+      program.push(curr.forEach);
     } else {
       debugger;
     }
@@ -156,12 +221,34 @@ function compile(view: JSX.Children): Assembly {
 
 const identity = <T extends (...args: any[]) => any>(x: T) => x();
 
-type Instruction = RenderInstruction | BranchInstruction;
+type Instruction =
+  | RenderInstruction
+  | BranchInstruction
+  | ForEachInstruction
+  | StateInstruction
+  | JumpInstruction;
 
+interface JumpInstruction {
+  type: InstructionEnum.Jump;
+  address: number;
+}
+
+interface StateInstruction {
+  type: InstructionEnum.State;
+  key: symbol;
+  value: any;
+}
+
+interface ForEachInstruction {
+  type: InstructionEnum.ForEach;
+  jump: number; //
+  index: ReactiveVar;
+  list: ReactiveVar;
+  item: ReactiveVar;
+}
 interface BranchInstruction {
   type: InstructionEnum.Branch;
-  condition: symbol;
-  initial?: Value<boolean>;
+  condition: ReactiveVar;
   jump: number; // number of instruction to skip when condition is false
 }
 
@@ -172,7 +259,10 @@ interface RenderInstruction {
 
 enum InstructionEnum {
   Render = 0,
-  Branch,
+  Branch = 1,
+  ForEach = 2,
+  Jump = 3,
+  State = 4,
 }
 
 type ViewTemplate = TextNodeTemplate;
@@ -188,4 +278,15 @@ enum TemplateEnum {
 
 class CompileScope {
   constructor(public args: any[]) {}
+}
+
+class BlockEnd {
+  constructor(public instruction: { address: number }) {}
+}
+
+class ForEachBlock {
+  constructor(
+    public forEach: ForEachInstruction,
+    public startJump: JumpInstruction
+  ) {}
 }
