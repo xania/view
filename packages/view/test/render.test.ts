@@ -5,18 +5,21 @@ import {
   List,
   ListExpression,
   ListMutations,
-  Sandbox,
   Signal,
-  Value,
   signal,
 } from '../reactivity';
 
 const testRenderer = () => ({
   output: [] as string[],
-  render(template: ViewTemplate) {
+  render(template: ViewTemplate, memory: ReactiveMemory) {
     switch (template.type) {
       case TemplateEnum.TextNode:
-        this.output.push(template.text);
+        const { text } = template;
+        if (text instanceof Signal) {
+          this.output.push(memory[text.key] ?? text.initial);
+        } else {
+          this.output.push(text as string);
+        }
         break;
       default:
         break;
@@ -39,7 +42,7 @@ describe('renderer', () => {
     expect(output).toHaveLength(isEven ? 1 : 0);
   });
 
-  it('list', () => {
+  it('list output', () => {
     // arrange main graph
     const items = signal([1, 2, 3]);
 
@@ -49,6 +52,8 @@ describe('renderer', () => {
         children: (item) => item,
       })
     );
+
+    expect(output).toEqual(items.initial);
   });
 });
 
@@ -56,7 +61,7 @@ type ReactiveAssembly = Instruction[];
 type ReactiveVar = symbol;
 
 interface Renderer {
-  render(template: ViewTemplate): void;
+  render(template: ViewTemplate, memory: ReactiveMemory): void;
 }
 
 function testRender(view: JSX.Children) {
@@ -67,9 +72,11 @@ function testRender(view: JSX.Children) {
   return renderer.output;
 }
 
+type ReactiveMemory = { [key: ReactiveVar]: any };
+
 function run(asm: ReactiveAssembly, renderer: Renderer) {
   const length = asm.length;
-  const memory: { [key: ReactiveVar]: any } = {};
+  const memory: ReactiveMemory = {};
   const scopeStack = [];
   let scope: any = null;
   let cursor = 0;
@@ -77,11 +84,11 @@ function run(asm: ReactiveAssembly, renderer: Renderer) {
     const instruction = asm[cursor];
     switch (instruction.type) {
       case InstructionEnum.Render:
-        renderer.render(instruction.template);
+        renderer.render(instruction.template, memory);
         cursor++;
         break;
       case InstructionEnum.Jump:
-        cursor = instruction.address;
+        cursor = instruction.addr;
         break;
       case InstructionEnum.Branch:
         const condition = memory[instruction.condition];
@@ -97,13 +104,13 @@ function run(asm: ReactiveAssembly, renderer: Renderer) {
           const iterator = memory[instruction.index] | 0;
           memory[instruction.index] = iterator + 1;
           if (iterator < list.length) {
-            cursor = instruction.jump;
-            scope = list[iterator];
-          } else {
+            memory[instruction.item] = list[iterator];
             cursor++;
+          } else {
+            cursor = instruction.breakAddr;
           }
         } else {
-          cursor = instruction.jump;
+          cursor = instruction.breakAddr;
         }
         break;
       case InstructionEnum.State:
@@ -164,19 +171,18 @@ function compile(view: JSX.Children): ReactiveAssembly {
       });
       program.push(...block);
     } else if (curr instanceof Signal) {
-      const { initial } = curr;
       program.push({
         type: InstructionEnum.Render,
         template: {
           type: TemplateEnum.TextNode,
-          text: initial as string,
+          text: curr,
         },
       });
     } else if (curr instanceof ListExpression) {
       const { children, source } = curr;
       if (source instanceof ListMutations) {
       } else if (source instanceof Signal) {
-        const listItem = signal();
+        const listItem = new RenderScope();
 
         const { initial } = source;
         if (initial) {
@@ -186,31 +192,29 @@ function compile(view: JSX.Children): ReactiveAssembly {
             value: initial,
           });
         }
-        const startJump = {
-          type: InstructionEnum.Jump,
-          address: -1,
+        const startAddr = program.length;
+        const forEach = {
+          type: InstructionEnum.ForEach,
+          breakAddr: -1,
+          index: Symbol(),
+          item: listItem.key,
+          list: source.key,
         } as const;
-        program.push(startJump);
-        stack.push(
-          new ForEachBlock(
-            {
-              type: InstructionEnum.ForEach,
-              jump: program.length,
-              index: Symbol(),
-              item: listItem.key,
-              list: source.key,
-            },
-            startJump
-          )
-        );
+
+        stack.push(new ForEachBlock(forEach, startAddr));
         stack.push(children);
+
+        program.push(forEach);
 
         scope = new CompileScope([listItem]);
       }
     } else if (curr instanceof BlockEnd) {
     } else if (curr instanceof ForEachBlock) {
-      curr.startJump.address = program.length;
-      program.push(curr.forEach);
+      program.push({
+        type: InstructionEnum.Jump,
+        addr: curr.startAddr,
+      });
+      curr.forEach.breakAddr = program.length;
     } else {
       debugger;
     }
@@ -230,7 +234,7 @@ type Instruction =
 
 interface JumpInstruction {
   type: InstructionEnum.Jump;
-  address: number;
+  addr: number;
 }
 
 interface StateInstruction {
@@ -241,7 +245,7 @@ interface StateInstruction {
 
 interface ForEachInstruction {
   type: InstructionEnum.ForEach;
-  jump: number; //
+  breakAddr: number; //
   index: ReactiveVar;
   list: ReactiveVar;
   item: ReactiveVar;
@@ -263,13 +267,14 @@ enum InstructionEnum {
   ForEach = 2,
   Jump = 3,
   State = 4,
+  Update = 5,
 }
 
 type ViewTemplate = TextNodeTemplate;
 
 interface TextNodeTemplate {
   type: TemplateEnum;
-  text: string;
+  text: string | Signal;
 }
 
 enum TemplateEnum {
@@ -285,8 +290,11 @@ class BlockEnd {
 }
 
 class ForEachBlock {
-  constructor(
-    public forEach: ForEachInstruction,
-    public startJump: JumpInstruction
-  ) {}
+  constructor(public forEach: ForEachInstruction, public startAddr: number) {}
+}
+
+export class RenderScope extends Signal {
+  constructor() {
+    super(undefined, Symbol('render-scope'));
+  }
 }
