@@ -107,6 +107,7 @@ function run(asm: ReactiveAssembly, renderer: Renderer) {
             memory[instruction.item] = list[iterator];
             cursor++;
           } else {
+            memory[instruction.item] = undefined; // free up for GC to collect
             cursor = instruction.breakAddr;
           }
         } else {
@@ -182,7 +183,7 @@ function compile(view: JSX.Children): ReactiveAssembly {
       const { children, source } = curr;
       if (source instanceof ListMutations) {
       } else if (source instanceof Signal) {
-        const listItem = new RenderScope();
+        const listItem = signal();
 
         const { initial } = source;
         if (initial) {
@@ -291,10 +292,4 @@ class BlockEnd {
 
 class ForEachBlock {
   constructor(public forEach: ForEachInstruction, public startAddr: number) {}
-}
-
-export class RenderScope extends Signal {
-  constructor() {
-    super(undefined, Symbol('render-scope'));
-  }
 }
