@@ -2,25 +2,21 @@
 
 import { intrinsic } from 'xania';
 
-type nameOrFunction = string | Function;
-
-export function jsx(name: nameOrFunction, props?: any) {
-  if (name === Fragment) {
-    return Fragment(props);
-  } else if (name instanceof Function) {
+export function jsx(view: any, props?: any) {
+  if (view instanceof Function) {
     try {
-      return name(props);
+      return view(props);
     } catch (err) {
       // if is class then try with `new` operator
-      if (name.toString().startsWith('class')) {
-        return Reflect.construct(name, props);
+      if (view.toString().startsWith('class')) {
+        return Reflect.construct(view, props);
       } else {
         throw err;
       }
     }
   }
 
-  return intrinsic(name, props);
+  return intrinsic(view, props);
 }
 
 export function Fragment(props: { children: JSX.Children }) {

@@ -1,14 +1,17 @@
-﻿import { UpdateStateCommand } from './command';
+﻿import { Collection, cpush } from '../utils';
+import { UpdateStateCommand } from './command';
 
 export type Value<T = any> = JSX.MaybePromise<T | undefined | void>;
 type UnwrapPromise<T> = T extends Promise<infer U> ? U : T;
 export type Unwrap<T> = Exclude<UnwrapPromise<T>, undefined | void>;
 
 export class Signal<T = any> {
-  constructor(public initial?: Value<T>, public key: symbol = Symbol()) {}
+  public readonly key: symbol = Symbol();
 
-  map<U>(fn: (x: T) => Value<U>, defaultValue?: U): Computed<T, U> {
-    return new Computed(this, fn, defaultValue);
+  constructor(public initial?: Value<T>) {}
+
+  map<U>(fn: (x: T) => Value<U>): Computed<T, U> {
+    return new Computed(this, fn);
   }
 
   prop<P extends keyof T>(name: P): Property<T, P> {
@@ -89,20 +92,14 @@ export class Effect<T = any, R = any> {
   ) {}
 }
 
-export class Property<T = any, P extends keyof T = any> extends Signal<
-  Unwrap<T[P]>
-> {
+export class Property<T = any, P extends keyof T = any> extends Signal<T[P]> {
   constructor(public parent: Signal<T>, public name: P) {
-    super(mapValue(parent.initial, (value) => value[name]));
+    super(mapValue(parent.initial, name));
   }
 }
 
 export class Computed<T = any, U = any> extends Signal<Unwrap<U>> {
-  constructor(
-    public parent: Signal<T>,
-    public compute: (x: T) => Value<U>,
-    public defaultValue?: U
-  ) {
+  constructor(public parent: Signal<T>, public compute: (x: T) => Value<U>) {
     super(mapValue<T, U>(parent.initial, compute));
   }
 }
@@ -119,11 +116,16 @@ export class Append<T = any> {
 export function mapValue<T, U>(
   input: Value<T>,
   f: (x: T) => Value<U>
-): Value<Unwrap<U>> {
+): Value<Unwrap<U>>;
+export function mapValue<T, K extends keyof T>(
+  input: Value<T>,
+  prop: K
+): Value<T[K]>;
+export function mapValue(input: Value, f: any): Value<any> {
   if (input instanceof Promise) {
     return input.then((resolved) => mapValue(resolved, f));
   } else if (input !== undefined) {
-    return f(input) as Unwrap<U>;
+    return f instanceof Function ? f(input) : input[f];
   }
 }
 

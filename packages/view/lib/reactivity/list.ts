@@ -8,7 +8,7 @@ export function List<T>(props: ListExpression<T>) {
 export class ListExpression<T = any> {
   constructor(
     public source: ListMutations<T> | Signal<T[]> | T[],
-    public children: JSX.Sequence<(item: Signal<T>) => JSX.Element>
+    public children: any
   ) {}
 }
 

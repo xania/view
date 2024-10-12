@@ -6,54 +6,79 @@ import {
   ListExpression,
   ListMutations,
   Signal,
+  State,
   signal,
 } from '../reactivity';
+import {
+  DomDescriptorType,
+  isDomDescriptor,
+} from '../lib/intrinsic/descriptors';
 
-const testRenderer = () => ({
-  output: [] as string[],
-  render(template: ViewTemplate, memory: ReactiveMemory) {
-    switch (template.type) {
-      case TemplateEnum.TextNode:
-        const { text } = template;
-        if (text instanceof Signal) {
-          this.output.push(memory[text.key] ?? text.initial);
-        } else {
-          this.output.push(text as string);
-        }
-        break;
-      default:
-        break;
-    }
-  },
-});
+enum DomNodeEnum {
+  TextNode,
+}
+
+type DomNode = DomTextNode;
+
+interface DomTextNode {
+  type: DomNodeEnum.TextNode;
+  content: string | number;
+}
+
+function textNode(content: string | number): DomNode {
+  return { type: DomNodeEnum.TextNode, content };
+}
 
 describe('renderer', () => {
-  test.each([1, 2, 3])('if %i', (n: number) => {
+  test.each([1, 2, 3])('if static %i', (n: number) => {
     // arrange main graph
     const isEven = (n & 1) === 0;
     const s = signal(isEven);
+    const target = new TargetElement();
 
-    const output = testRender(
+    testRender(
       If({
         condition: s,
         children: [123],
-      })
+      }),
+      target
     );
-    expect(output).toHaveLength(isEven ? 1 : 0);
+    expect(target.childNodes).toHaveLength(isEven ? 1 : 0);
+  });
+
+  it('reactive content', () => {
+    // arrange main graph
+    const s = signal(false);
+    const target = new TargetElement();
+
+    const sandbox = testRender(
+      If({
+        condition: s,
+        children: [123],
+      }),
+      target
+    );
+
+    expect(target.childNodes).toHaveLength(0);
+    sandbox.update(s, true);
+
+    expect(target.childNodes).toHaveLength(1);
   });
 
   it('list output', () => {
     // arrange main graph
     const items = signal([1, 2, 3]);
+    const target = new TargetElement();
 
-    const output = testRender(
+    const sandbox = testRender(
       List({
         source: items,
-        children: (item) => item,
-      })
+        children: ['-', (item: Signal) => item],
+      }),
+      target
     );
 
-    expect(output).toEqual(items.initial);
+    expect(target.childNodes).toEqual(['-', 1, '-', 2, '-', 3].map(textNode));
   });
 });
 
@@ -64,36 +89,65 @@ interface Renderer {
   render(template: ViewTemplate, memory: ReactiveMemory): void;
 }
 
-function testRender(view: JSX.Children) {
+function testRender(view: JSX.Children, target: TargetElement) {
   const program = compile(view);
 
-  const renderer = testRenderer();
-  run(program, renderer);
-  return renderer.output;
+  const sandbox = new Sandbox(target, {});
+  run(program, sandbox);
+
+  return sandbox;
 }
 
 type ReactiveMemory = { [key: ReactiveVar]: any };
 
-function run(asm: ReactiveAssembly, renderer: Renderer) {
+class TargetElement {
+  public childNodes: DomNode[] = [];
+  appendChild(node: DomNode): void {
+    this.childNodes.push(node);
+  }
+}
+
+class RenderScope {
+  constructor(public target: TargetElement) {}
+}
+
+function run(asm: ReactiveAssembly, sandbox: Sandbox) {
   const length = asm.length;
-  const memory: ReactiveMemory = {};
-  const scopeStack = [];
-  let scope: any = null;
+  const scopeStack: RenderScope[] = [];
+  let scope: RenderScope = sandbox;
   let cursor = 0;
+  const { memory } = sandbox;
   while (cursor < length) {
     const instruction = asm[cursor];
     switch (instruction.type) {
+      case InstructionEnum.StepOut:
+        if (scopeStack.length) {
+          scope = scopeStack.pop()!;
+        } else {
+          scope = sandbox;
+        }
+        cursor++;
+        break;
       case InstructionEnum.Render:
-        renderer.render(instruction.template, memory);
+        sandbox.render(instruction.template, scope);
         cursor++;
         break;
       case InstructionEnum.Jump:
         cursor = instruction.addr;
         break;
       case InstructionEnum.Branch:
+        scopeStack.push(scope);
+        scope = new RenderScope(scope.target);
+        sandbox.updates[instruction.condition] = {
+          asm,
+          start: cursor + 1,
+          end: cursor + instruction.jump,
+          scope,
+        };
         const condition = memory[instruction.condition];
         if (!condition) {
           cursor += instruction.jump;
+          sandbox.dispose(scope);
         } else {
           cursor++;
         }
@@ -171,6 +225,9 @@ function compile(view: JSX.Children): ReactiveAssembly {
         jump: block.length + 1,
       });
       program.push(...block);
+      program.push({
+        type: InstructionEnum.StepOut,
+      });
     } else if (curr instanceof Signal) {
       program.push({
         type: InstructionEnum.Render,
@@ -216,6 +273,15 @@ function compile(view: JSX.Children): ReactiveAssembly {
         addr: curr.startAddr,
       });
       curr.forEach.breakAddr = program.length;
+    } else if (isDomDescriptor(curr)) {
+      switch (curr.type) {
+        case DomDescriptorType.Element:
+          console.log(123);
+          break;
+        default:
+          debugger;
+          break;
+      }
     } else {
       debugger;
     }
@@ -224,15 +290,17 @@ function compile(view: JSX.Children): ReactiveAssembly {
   return program;
 }
 
-const identity = <T extends (...args: any[]) => any>(x: T) => x();
-
 type Instruction =
   | RenderInstruction
   | BranchInstruction
   | ForEachInstruction
   | StateInstruction
-  | JumpInstruction;
+  | JumpInstruction
+  | StepOutInstruction;
 
+interface StepOutInstruction {
+  type: InstructionEnum.StepOut;
+}
 interface JumpInstruction {
   type: InstructionEnum.Jump;
   addr: number;
@@ -269,6 +337,7 @@ enum InstructionEnum {
   Jump = 3,
   State = 4,
   Update = 5,
+  StepOut = 6,
 }
 
 type ViewTemplate = TextNodeTemplate;
@@ -291,5 +360,58 @@ class BlockEnd {
 }
 
 class ForEachBlock {
-  constructor(public forEach: ForEachInstruction, public startAddr: number) {}
+  constructor(
+    public forEach: ForEachInstruction,
+    public startAddr: number
+  ) {}
+}
+
+type SandboxUpdates = {
+  [key: ReactiveVar]: {
+    asm: ReactiveAssembly;
+    start: number;
+    end: number;
+    scope: RenderScope;
+  };
+};
+class Sandbox {
+  public readonly updates: SandboxUpdates = {};
+  constructor(
+    public target: TargetElement,
+    public memory: ReactiveMemory
+  ) {}
+
+  render(template: ViewTemplate, scope: RenderScope) {
+    switch (template.type) {
+      case TemplateEnum.TextNode:
+        const { text } = template;
+        scope.target.appendChild(
+          textNode(
+            text instanceof Signal
+              ? (this.memory[text.key] ?? text.initial)
+              : text
+          )
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
+  update<T>(s: State<T>, newValue: T) {
+    let { asm, start: i, end, scope } = this.updates[s.key];
+
+    while (i < end) {
+      const instruction = asm[i++];
+      switch (instruction.type) {
+        case InstructionEnum.Render:
+          this.render(instruction.template, scope);
+          break;
+      }
+    }
+  }
+
+  dispose(scope: RenderScope) {
+    console.log(scope);
+  }
 }

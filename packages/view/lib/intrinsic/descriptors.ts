@@ -44,7 +44,8 @@ export type DataDescriptor = {
 };
 
 export function isDomDescriptor(value: any): value is DomDescriptor {
-  if (typeof value !== 'object' || value === null) return false;
+  if (value === null || value === undefined || value.constructor !== Object)
+    return false;
 
   const type = value.type;
   return type >= DomDescriptorType.Element && type <= DomDescriptorType.Text;
