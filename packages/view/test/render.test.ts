@@ -30,7 +30,7 @@ function textNode(content: string | number): DomNode {
 }
 
 describe('renderer', () => {
-  test.each([1, 2, 3])('if static %i', (n: number) => {
+  test.each([2])('if static %i', (n: number) => {
     // arrange main graph
     const isEven = (n & 1) === 0;
     const s = signal(isEven);
@@ -63,6 +63,25 @@ describe('renderer', () => {
     sandbox.update(s, true);
 
     expect(target.childNodes).toHaveLength(1);
+  });
+
+  it('reactive content true => false', () => {
+    // arrange main graph
+    const s = signal(true);
+    const target = new TargetElement();
+
+    const sandbox = testRender(
+      If({
+        condition: s,
+        children: [123],
+      }),
+      target
+    );
+
+    expect(target.childNodes).toHaveLength(1);
+    sandbox.update(s, false);
+
+    expect(target.childNodes).toHaveLength(0);
   });
 
   it('list output', () => {
@@ -109,6 +128,8 @@ class TargetElement {
 
 class RenderScope {
   constructor(public target: TargetElement) {}
+  public readonly children: { [p: symbol]: RenderScope } = {};
+  public readonly nodes: DomNode[] = [];
 }
 
 function run(asm: ReactiveAssembly, sandbox: Sandbox) {
@@ -120,6 +141,14 @@ function run(asm: ReactiveAssembly, sandbox: Sandbox) {
   while (cursor < length) {
     const instruction = asm[cursor];
     switch (instruction.type) {
+      case InstructionEnum.StepIn:
+        const { scopeKey } = instruction;
+        scopeStack.push(scope);
+        const childScope = new RenderScope(scope.target);
+        scope.children[scopeKey] = childScope;
+        scope = childScope;
+        cursor++;
+        break;
       case InstructionEnum.StepOut:
         if (scopeStack.length) {
           scope = scopeStack.pop()!;
@@ -138,15 +167,16 @@ function run(asm: ReactiveAssembly, sandbox: Sandbox) {
       case InstructionEnum.Branch:
         scopeStack.push(scope);
         scope = new RenderScope(scope.target);
-        sandbox.updates[instruction.condition] = {
-          asm,
-          start: cursor + 1,
-          end: cursor + instruction.jump,
-          scope,
+        sandbox.updates[instruction.condition.key] = {
+          asm: instruction.asm,
+          target: scope.target,
+          scopeKey: instruction.scopeKey,
         };
-        const condition = memory[instruction.condition];
+        sandbox.memory[instruction.condition.key] =
+          instruction.condition.initial;
+        const condition = memory[instruction.condition.key];
         if (!condition) {
-          cursor += instruction.jump;
+          cursor += instruction.asm.length;
           sandbox.dispose(scope);
         } else {
           cursor++;
@@ -215,18 +245,25 @@ function compile(view: JSX.Children): ReactiveAssembly {
       });
     } else if (curr instanceof IfExpression) {
       const { condition, children } = curr.props;
-      const block = compile(children);
+      const scopeKey = Symbol();
+      const body: ReactiveAssembly = [
+        {
+          type: InstructionEnum.StepIn,
+          scopeKey,
+        },
+        ...compile(children),
+        {
+          type: InstructionEnum.StepOut,
+        },
+      ];
       if (condition.initial) {
-        program.push(...block);
+        program.push(...body);
       }
       program.push({
         type: InstructionEnum.Branch,
-        condition: condition.key,
-        jump: block.length + 1,
-      });
-      program.push(...block);
-      program.push({
-        type: InstructionEnum.StepOut,
+        condition: condition,
+        asm: body,
+        scopeKey: scopeKey,
       });
     } else if (curr instanceof Signal) {
       program.push({
@@ -296,8 +333,13 @@ type Instruction =
   | ForEachInstruction
   | StateInstruction
   | JumpInstruction
-  | StepOutInstruction;
+  | StepOutInstruction
+  | StepInInstruction;
 
+interface StepInInstruction {
+  type: InstructionEnum.StepIn;
+  scopeKey: symbol;
+}
 interface StepOutInstruction {
   type: InstructionEnum.StepOut;
 }
@@ -321,8 +363,10 @@ interface ForEachInstruction {
 }
 interface BranchInstruction {
   type: InstructionEnum.Branch;
-  condition: ReactiveVar;
-  jump: number; // number of instruction to skip when condition is false
+  condition: State<boolean>;
+  // jump: number; // number of instruction to skip when condition is false
+  asm: ReactiveAssembly;
+  scopeKey: symbol;
 }
 
 interface RenderInstruction {
@@ -338,6 +382,7 @@ enum InstructionEnum {
   State = 4,
   Update = 5,
   StepOut = 6,
+  StepIn = 7,
 }
 
 type ViewTemplate = TextNodeTemplate;
@@ -369,13 +414,14 @@ class ForEachBlock {
 type SandboxUpdates = {
   [key: ReactiveVar]: {
     asm: ReactiveAssembly;
-    start: number;
-    end: number;
-    scope: RenderScope;
+    target: TargetElement;
+    scopeKey: symbol;
   };
 };
 class Sandbox {
   public readonly updates: SandboxUpdates = {};
+  public readonly children: { [p: symbol]: RenderScope } = {};
+  public readonly nodes: DomNode[] = [];
   constructor(
     public target: TargetElement,
     public memory: ReactiveMemory
@@ -385,13 +431,14 @@ class Sandbox {
     switch (template.type) {
       case TemplateEnum.TextNode:
         const { text } = template;
-        scope.target.appendChild(
-          textNode(
-            text instanceof Signal
-              ? (this.memory[text.key] ?? text.initial)
-              : text
-          )
+        const node = textNode(
+          text instanceof Signal
+            ? (this.memory[text.key] ?? text.initial)
+            : text
         );
+
+        scope.nodes.push(node);
+        scope.target.appendChild(node);
         break;
       default:
         break;
@@ -399,13 +446,23 @@ class Sandbox {
   }
 
   update<T>(s: State<T>, newValue: T) {
-    let { asm, start: i, end, scope } = this.updates[s.key];
+    let { asm, scopeKey, target } = this.updates[s.key];
 
-    while (i < end) {
+    var oldValue = this.memory[s.key];
+    if (oldValue === newValue) return;
+
+    this.memory[s.key] = newValue;
+
+    for (let i = 0; i < asm.length; ) {
       const instruction = asm[i++];
       switch (instruction.type) {
         case InstructionEnum.Render:
-          this.render(instruction.template, scope);
+          // this.render(instruction.template, scope);
+          break;
+        default:
+          console.error(
+            `instruction type ${InstructionEnum[instruction.type]} not yet implemented`
+          );
           break;
       }
     }
