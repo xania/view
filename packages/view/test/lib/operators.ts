@@ -6,7 +6,7 @@ import {
   GetOperator,
   ConnectOperator,
   CombineLatestOperator,
-} from './graph';
+} from '../../lib/reactivity/graph';
 import { Conditional } from './signals/conditional';
 
 type Node = State | Property | Computed | CombineLatest | JoinPoint;
@@ -37,7 +37,7 @@ export const operationProvider: OperatorProvider = {
               source: src.key,
               target: node.joinKey,
               prop: idx,
-            } satisfies ConnectOperator)
+            }) satisfies ConnectOperator
         ),
         {
           type: OperatorEnum.CombineLatest,
@@ -51,7 +51,7 @@ export const operationProvider: OperatorProvider = {
           type: OperatorEnum.When,
           source: node.condition.key,
         },
-        ...node.graph.operators,
+        ...node.body.operators,
       ];
     } else {
       // return {

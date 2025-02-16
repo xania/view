@@ -17,7 +17,7 @@ export type ElementDescriptor = {
   type: DomDescriptorType.Element;
   children?: JSX.Element;
   attrs?: { [name: string]: any };
-  name: string;
+  name: keyof HTMLElementTagNameMap;
 };
 
 export interface StaticElementDescriptor {

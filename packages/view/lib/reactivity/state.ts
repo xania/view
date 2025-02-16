@@ -1,23 +1,25 @@
-﻿import { Signal, Unwrap } from './signal';
+﻿import { Graph, Signal, State, Value } from './signal';
 
-export class State<T = any> extends Signal<T> {
-  dependencies?: undefined = undefined;
+const rootGraph = new Graph();
+
+export function useState<T = unknown>(): State<T>;
+export function useState<T>(initial: Value<T>): State<T>;
+export function useState<T>(initial?: Value<T>) {
+  return rootGraph.state(initial);
 }
 
-export function useState<T>(): State<Unwrap<T>>;
-export function useState<T>(initial: T): State<Unwrap<T>>;
-export function useState<T>(initial?: T) {
-  return new State(initial);
+export function state<T = unknown>(): State<T>;
+export function state<T>(intial: Value<T>): State<T>;
+export function state<T>(initial?: Value<T>) {
+  const s = new State(rootGraph, initial);
+  rootGraph.nodes.push(s);
+  return s;
 }
 
-export function state<T>(): State<Unwrap<T>>;
-export function state<T>(intial: T): State<Unwrap<T>>;
-export function state<T>(initial?: T) {
-  return new State(initial);
-}
-
-export function signal<T>(): State<Unwrap<T>>;
-export function signal<T>(intial: T): State<Unwrap<T>>;
-export function signal<T>(initial?: T) {
-  return new State(initial);
+export function signal<T = unknown>(): State<T>;
+export function signal<T>(intial: Value<T>): State<T>;
+export function signal<T>(initial?: Value<T>) {
+  const s = new State(rootGraph, initial);
+  rootGraph.nodes.push(s);
+  return s;
 }

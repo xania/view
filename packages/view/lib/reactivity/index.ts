@@ -5,3 +5,4 @@ export * from './command';
 export * from './mutation';
 export * from './if';
 export * from './signal';
+export * from './scope';

@@ -5,14 +5,14 @@ import { resumable } from "./packages/vite-plugin-resumable/lib/index";
 // Configure Vitest (https://vitest.dev/config/)
 
 export default defineConfig({
-  test: {
-    exclude: [
-      "**/node_modules/**",
-      "**/dist/**",
-      "./playground/**/*.*",
-      "./playground-temp/**/*.*",
-    ],
-  },
+  // test: {
+  //   exclude: [
+  //     "**/node_modules/**",
+  //     "**/dist/**",
+  //     "./playground/**/*.*",
+  //     "./playground-temp/**/*.*",
+  //   ],
+  // },
   plugins: [resumable()],
   server: {
     port: 1981,

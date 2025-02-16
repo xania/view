@@ -1,11 +1,14 @@
 import { Signal } from '../../../lib/reactivity/signal';
-import { ReactiveGraph } from '../graph';
+import { ReactiveGraph } from '../../../lib/reactivity/graph';
 
-export function when(condition: Signal<boolean>, graph: ReactiveGraph) {
-  return new Conditional(condition, graph);
+function when(condition: Signal<boolean>, body: ReactiveGraph) {
+  return new Conditional(condition, body);
 }
 
 export class Conditional {
   public key: symbol = Symbol('conditional');
-  constructor(public condition: Signal<boolean>, public graph: ReactiveGraph) {}
+  constructor(
+    public condition: Signal<boolean>,
+    public body: ReactiveGraph
+  ) {}
 }

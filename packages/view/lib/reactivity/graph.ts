@@ -46,7 +46,7 @@ export interface GetOperator {
   type: OperatorEnum.Prop;
   source: symbol;
   target: symbol;
-  prop: string;
+  prop: string | symbol | number;
 }
 
 export interface ExportOperator {

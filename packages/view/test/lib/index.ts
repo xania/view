@@ -1,4 +1,4 @@
-import { create } from './graph';
+import { create } from '../../lib/reactivity/graph';
 import { operationProvider } from './operators';
 
 export * from './execution-scope';
