@@ -14,56 +14,67 @@ export function render<TElement>(
 
   const viewStack = [view];
 
-  const containerStack = [];
+  const containerStack: TElement[] = [];
   let container = root;
 
-  while (viewStack.length) {
-    const curr = viewStack.pop()!;
-    if (curr === popContainer) {
-      container = containerStack.pop()!;
-    } else if (isDomDescriptor(curr)) {
-      switch (curr.type) {
-        case DomDescriptorType.Element:
-          const { children, attrs } = curr;
-          const element = nodeFactory.appendElement(
-            container,
-            curr.name,
-            attrs
-          );
-          if (
-            children !== null &&
-            children !== undefined &&
-            children.length > 0
-          ) {
-            containerStack.push(container);
-            container = element;
+  return loop();
 
-            viewStack.push(popContainer);
+  function loop(): void | Promise<void> {
+    while (viewStack.length) {
+      const curr = viewStack.pop()!;
+      if (curr === null || curr === undefined) {
+        continue;
+      } else if (curr instanceof Promise) {
+        return curr.then((resolved) => {
+          viewStack.push(resolved);
+          return loop();
+        });
+      } else if (curr === popContainer) {
+        container = containerStack.pop()!;
+      } else if (curr.constructor === String) {
+        nodeFactory.appendText(container, curr);
+      } else if (curr.constructor === Number) {
+        nodeFactory.appendText(container, curr);
+      } else if (curr.constructor === Array) {
+        for (let i = curr.length - 1; i >= 0; i--) {
+          const item = curr[i];
+          if (item !== null && item !== undefined) {
+            viewStack.push(item);
+          }
+        }
+      } else if (curr instanceof State) {
+        const { initial } = curr;
+        if (initial !== null && initial !== undefined) {
+          viewStack.push(initial);
+        }
+      } else if (isDomDescriptor(curr)) {
+        switch (curr.type) {
+          case DomDescriptorType.Element:
+            const { children, attrs } = curr;
+            const element = nodeFactory.appendElement(
+              container,
+              curr.name,
+              attrs
+            );
+            if (
+              children !== null &&
+              children !== undefined &&
+              children.length > 0
+            ) {
+              containerStack.push(container);
+              container = element;
 
-            for (let i = children.length - 1; i >= 0; i--) {
-              const item = children[i];
-              if (item !== null && item !== undefined) {
-                viewStack.push(item);
+              viewStack.push(popContainer);
+
+              for (let i = children.length - 1; i >= 0; i--) {
+                const item = children[i];
+                if (item !== null && item !== undefined) {
+                  viewStack.push(item);
+                }
               }
             }
-          }
-          break;
-      }
-    } else if (curr.constructor === String) {
-      nodeFactory.appendText(container, curr);
-    } else if (curr.constructor === Number) {
-      nodeFactory.appendText(container, curr);
-    } else if (curr.constructor === Array) {
-      for (let i = curr.length - 1; i >= 0; i--) {
-        const item = curr[i];
-        if (item !== null && item !== undefined) {
-          viewStack.push(item);
+            break;
         }
-      }
-    } else if (curr instanceof State) {
-      const { initial } = curr;
-      if (initial !== null && initial !== undefined) {
-        viewStack.push(initial);
       }
     }
   }

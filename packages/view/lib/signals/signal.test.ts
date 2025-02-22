@@ -16,6 +16,18 @@ describe('signals', () => {
     expect(root.toString()).toEqual('<root>sample view</root>');
   });
 
+  it('trivial async', async () => {
+    // prepare view
+    const view = Promise.resolve('sample view');
+
+    // render view
+    const root = new ViewElementNode('root');
+    await render(view, root, TestNodeFactory);
+
+    // assert
+    expect(root.toString()).toEqual('<root>sample view</root>');
+  });
+
   it('simple signal', () => {
     // prepare view
     const view = ['count: ', useState(1)];
