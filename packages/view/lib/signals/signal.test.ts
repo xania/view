@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { jsx } from '../../jsx-runtime';
-import { render } from './render';
-import { useState } from './signal';
+import { render, ITextNode } from './render';
+import { useSignal, useState } from './signal';
 
-describe('signals', () => {
+describe('render signals', () => {
   it('trivial', () => {
     // prepare view
     const view = 'sample view';
@@ -28,7 +28,7 @@ describe('signals', () => {
     expect(root.toString()).toEqual('<root>sample view</root>');
   });
 
-  it('simple signal', () => {
+  it('simple state', () => {
     // prepare view
     const view = ['count: ', useState(1)];
 
@@ -38,6 +38,18 @@ describe('signals', () => {
 
     // assert
     expect(root.toString()).toEqual('<root>count: 1</root>');
+  });
+
+  it('composed state', () => {
+    // prepare view
+    const view = ['count: ', useState(1).map((x) => x + 1)];
+
+    // render view
+    const root = new ViewElementNode('root');
+    render(view, root, TestNodeFactory);
+
+    // assert
+    expect(root.toString()).toEqual('<root>count: 2</root>');
   });
 
   it('render element', () => {
@@ -56,9 +68,34 @@ describe('signals', () => {
       '<root><div class="section-1">hello</div></root>'
     );
   });
+
+  it('simple signal update', async () => {
+    // prepare view
+    const state = useState(1);
+    const view = ['count: ', state];
+
+    // render view
+    const root = new ViewElementNode('root');
+    const sandbox = await render(view, root, TestNodeFactory);
+
+    expect(root.toString()).toEqual('<root>count: 1</root>');
+
+    sandbox.update(state, 2);
+
+    // assert
+    // expect(root.toString()).toEqual('<root>count: 2</root>');
+  });
 });
 
-type ViewNode = ViewElementNode | string | String;
+type ViewNode = ViewElementNode | ViewTextNode;
+
+class ViewTextNode implements ITextNode {
+  constructor(public nodeValue: string | number | String | Number | null) {}
+
+  toString() {
+    return this.nodeValue;
+  }
+}
 
 class ViewElementNode {
   public children: ViewNode[] = [];
@@ -104,8 +141,13 @@ class TestNodeFactory {
     return child;
   }
 
-  static appendText(container: ViewElementNode, content: string | String) {
-    container.children.push(content);
+  static appendText(
+    container: ViewElementNode,
+    content: ViewTextNode['nodeValue']
+  ): ViewTextNode {
+    const node = new ViewTextNode(content);
+    container.children.push(node);
+    return node;
   }
 }
 

@@ -1,0 +1,2 @@
+- async views are rendered sequentially by default
+-

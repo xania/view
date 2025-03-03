@@ -1,5 +1,5 @@
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { State } from './signal';
+import { State, Signal, Value, Composed } from './signal';
 
 console.log({} instanceof State);
 
@@ -7,9 +7,11 @@ export function render<TElement>(
   view: any,
   root: TElement,
   nodeFactory: ViewNodeFactory<TElement>
-) {
+): Promise<Sandbox<TElement>> | Sandbox<TElement> {
+  const sandbox = new Sandbox(root);
+
   if (view === undefined || view === null) {
-    return '';
+    return sandbox;
   }
 
   const viewStack = [view];
@@ -17,7 +19,12 @@ export function render<TElement>(
   const containerStack: TElement[] = [];
   let container = root;
 
-  return loop();
+  const retval = loop();
+  if (retval instanceof Promise) {
+    return retval.then(() => sandbox);
+  } else {
+    return sandbox;
+  }
 
   function loop(): void | Promise<void> {
     while (viewStack.length) {
@@ -42,11 +49,9 @@ export function render<TElement>(
             viewStack.push(item);
           }
         }
-      } else if (curr instanceof State) {
-        const { initial } = curr;
-        if (initial !== null && initial !== undefined) {
-          viewStack.push(initial);
-        }
+      } else if (curr instanceof Signal) {
+        const initial = sandbox.register(curr);
+        const textNode = nodeFactory.appendText(container, initial);
       } else if (isDomDescriptor(curr)) {
         switch (curr.type) {
           case DomDescriptorType.Element:
@@ -82,14 +87,52 @@ export function render<TElement>(
 
 const popContainer = Symbol();
 
+export interface ITextNode {
+  nodeValue: string | String | number | Number | null;
+}
+
 interface ViewNodeFactory<TElement> {
   appendElement(
     container: TElement,
     name: string,
     attrs: Record<string, any> | undefined
   ): TElement;
-  appendText(
-    container: TElement,
-    content: string | String | number | Number
-  ): void;
+  appendText(container: TElement, content: ITextNode['nodeValue']): ITextNode;
 }
+
+class Sandbox<TElement> {
+  private values: Record<symbol, any> = {};
+  private updates: Record<symbol, Program> = {};
+
+  constructor(public root: TElement) {}
+
+  update<T>(state: State<T>, newValue: T) {
+    console.log(state, newValue);
+  }
+
+  register<T>(signal: Signal<T>): Value<T> {
+    let value: any = undefined;
+
+    const queue: Signal<T>[] = [signal];
+
+    for (let i = 0; i < queue.length; i++) {
+      const curr = queue[i];
+      const { key } = curr;
+
+      if (curr instanceof State) {
+        value = curr.initial;
+        this.values[key] = value;
+      } else if (curr instanceof Composed) {
+        queue.push(...curr.signals);
+      } else {
+        throw new Error('Not Yet Supported');
+      }
+    }
+
+    return value;
+  }
+}
+
+type Program = Instruction[];
+
+type Instruction = Signal;
