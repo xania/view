@@ -40,13 +40,13 @@ describe('render signals', () => {
     expect(root.toString()).toEqual('<root>count: 1</root>');
   });
 
-  it('composed state', () => {
+  it('composed state', async () => {
     // prepare view
-    const view = ['count: ', useState(1).map((x) => x + 1)];
+    const view = ['count: ', useState(Promise.resolve(1)).map((x) => x + 1)];
 
     // render view
     const root = new ViewElementNode('root');
-    render(view, root, TestNodeFactory);
+    await render(view, root, TestNodeFactory);
 
     // assert
     expect(root.toString()).toEqual('<root>count: 2</root>');
@@ -82,8 +82,8 @@ describe('render signals', () => {
 
     sandbox.update(state, 2);
 
-    // assert
-    // expect(root.toString()).toEqual('<root>count: 2</root>');
+    // assert;
+    expect(root.toString()).toEqual('<root>count: 2</root>');
   });
 });
 

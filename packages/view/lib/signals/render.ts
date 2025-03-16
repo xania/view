@@ -1,7 +1,5 @@
 import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { State, Signal, Value, Composed } from './signal';
-
-console.log({} instanceof State);
+import { State, Signal, Value, Arrow, FuncArrow } from './signal';
 
 export function render<TElement>(
   view: any,
@@ -19,9 +17,15 @@ export function render<TElement>(
   const containerStack: TElement[] = [];
   let container = root;
 
+  const promises: Promise<void>[] = [];
   const retval = loop();
+
   if (retval instanceof Promise) {
-    return retval.then(() => sandbox);
+    promises.push(retval);
+  }
+
+  if (promises.length) {
+    return Promise.all(promises).then(() => sandbox);
   } else {
     return sandbox;
   }
@@ -49,9 +53,12 @@ export function render<TElement>(
             viewStack.push(item);
           }
         }
-      } else if (curr instanceof Signal) {
-        const initial = sandbox.register(curr);
-        const textNode = nodeFactory.appendText(container, initial);
+      } else if (curr instanceof State) {
+        const textNode = nodeFactory.appendText(container);
+        const res = sandbox.bindTextNode(curr, textNode);
+        if (res) {
+          promises.push(res);
+        }
       } else if (isDomDescriptor(curr)) {
         switch (curr.type) {
           case DomDescriptorType.Element:
@@ -88,7 +95,7 @@ export function render<TElement>(
 const popContainer = Symbol();
 
 export interface ITextNode {
-  nodeValue: string | String | number | Number | null;
+  nodeValue: any;
 }
 
 interface ViewNodeFactory<TElement> {
@@ -97,7 +104,7 @@ interface ViewNodeFactory<TElement> {
     name: string,
     attrs: Record<string, any> | undefined
   ): TElement;
-  appendText(container: TElement, content: ITextNode['nodeValue']): ITextNode;
+  appendText(container: TElement, content?: ITextNode['nodeValue']): ITextNode;
 }
 
 class Sandbox<TElement> {
@@ -106,27 +113,88 @@ class Sandbox<TElement> {
 
   constructor(public root: TElement) {}
 
-  update<T>(state: State<T>, newValue: T) {
-    console.log(state, newValue);
+  update<T>(state: State<any, T>, newValue: T) {
+    const { graph, key, level } = state;
+    const { values } = this;
+    const oldValue = values[state.key] ?? state.initial;
+
+    if (oldValue === newValue) {
+      return;
+    }
+
+    values[graph] = newValue;
+    const program = this.updates[graph];
+
+    let stateIdx = 0;
+    for (; stateIdx < program.length; stateIdx++) {
+      const instruction = program[stateIdx];
+      const { type } = instruction;
+      if (type === InstructionEnum.Read && instruction.key === key) {
+        stateIdx++;
+        break;
+      }
+    }
+
+    for (; stateIdx < program.length; stateIdx++) {
+      const instruction = program[stateIdx];
+      const { type } = instruction;
+
+      switch (type) {
+        case InstructionEnum.Read:
+          break;
+        case InstructionEnum.SetText:
+          const { node } = instruction;
+          node.nodeValue = newValue;
+          break;
+      }
+    }
   }
 
-  register<T>(signal: Signal<T>): Value<T> {
+  bindTextNode(
+    state: State<any, any>,
+    textNode: ITextNode
+  ): void | Promise<void> {
     let value: any = undefined;
 
-    const queue: Signal<T>[] = [signal];
+    const { graph, arrows } = state;
+    const program = (this.updates[graph] ??= []);
 
+    compile(state, program);
+
+    program.push({
+      type: InstructionEnum.SetText,
+      node: textNode,
+    });
+
+    this.values[graph] = value;
+
+    let stateValue = state.initial;
+    if (stateValue === null || stateValue === undefined) {
+      // ignore
+    } else if (stateValue instanceof Promise) {
+      return stateValue.then((resolved) => {
+        if (resolved !== null && resolved !== undefined) {
+          textNode.nodeValue = resolved as string;
+        }
+      });
+    } else {
+      textNode.nodeValue = stateValue as string;
+    }
+
+    if (!arrows) return;
+
+    const queue: Arrow[] = arrows;
     for (let i = 0; i < queue.length; i++) {
       const curr = queue[i];
-      const { key } = curr;
 
-      if (curr instanceof State) {
-        value = curr.initial;
-        this.values[key] = value;
-      } else if (curr instanceof Composed) {
-        queue.push(...curr.signals);
-      } else {
-        throw new Error('Not Yet Supported');
-      }
+      // if (curr instanceof State) {
+      //   value = curr.initial;
+      //   this.values[key] = value;
+      //   // } else if (curr instanceof Composed) {
+      //   //   queue.push(...curr.signals);
+      // } else {
+      //   throw new Error('Not Yet Supported');
+      // }
     }
 
     return value;
@@ -135,4 +203,71 @@ class Sandbox<TElement> {
 
 type Program = Instruction[];
 
-type Instruction = Signal;
+type Instruction = StateInstruction | FuncInstruction | SetTextInstruction;
+
+interface SetTextInstruction {
+  type: InstructionEnum.SetText;
+  node: ITextNode;
+}
+interface StateInstruction {
+  type: InstructionEnum.Read;
+  key: symbol;
+  level: number;
+}
+
+interface FuncInstruction {
+  type: InstructionEnum.Func;
+  func: Function;
+  level: number;
+}
+
+enum InstructionEnum {
+  Read = 4356234 /* random unique */,
+  Func,
+  SetText,
+}
+
+function compile(state: State<any, any>, program: Program) {
+  let s: State<any, any> | undefined = state;
+
+  while (s) {
+    let index = 0;
+    while (index < program.length) {
+      const curr = program[index];
+      const { type } = curr;
+      if (type === InstructionEnum.Read) {
+        if (curr.level > s.level) {
+          break;
+        }
+        if (curr.key == s.key) {
+          return;
+        }
+      }
+      index++;
+    }
+
+    const partial: Program = [];
+    const { arrows } = s;
+    if (arrows) {
+      for (let i = arrows.length - 1; i >= 0; i--) {
+        const arr = arrows[i];
+        if (arr instanceof FuncArrow) {
+          partial.push({
+            type: InstructionEnum.Func,
+            func: arr.func,
+            level: s.level,
+          });
+        }
+      }
+    }
+    partial.push({
+      type: InstructionEnum.Read,
+      key: s.key,
+      level: s.level,
+    });
+
+    program.splice(index, 0, ...partial);
+
+    s = s.parent;
+  }
+}

@@ -1,7 +1,9 @@
 /**
- * Signal is general representation of functions 'takes' an input of type S and 'produces' T.
+ * Signal is general representation of functions, 'takes' an input of type S and 'produces' T.
  *  Many times, we dont know what the input is, or don't want to depend on the input for purpose of
- *  separation of concern
+ *  separation of concern, T is produces as a scalar T, Promise of T or
+ *  Observable of T (or in general a Monad of T to be more in line with definition
+ *  of Arrow in category theory)
  *
  * We should not assume how 'takes' and 'produces' exactly works, the how is only determined by
  *  the underlying implementation of the rendering engine. Typically this possibly a function tho but it
@@ -9,49 +11,51 @@
  *  in async scenario. Or an signal can represent '[prop]' or '[idx]' operation instead of calling a function
  */
 
+import { currentScope, Scope } from './scope';
+
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
-export abstract class Signal<S = unknown, T = unknown> {
-  public readonly key: symbol = Symbol();
-  public readonly signals?: Signal[];
-
-  // abstract get(source: S): Value<T>;
-
-  map<U>(func: (x: T) => U): Signal<S, U> {
-    return this.compose(new FuncSignal(func));
+export class Signal<S = unknown, T = unknown> {
+  map<U>(input: ArrowInput<T, U>): Arrow<S, U> {
+    if (input instanceof Composed) {
+      return new Composed<S, U>([this, ...input.arrows]);
+    } else {
+      const other = toArrow(input);
+      return new Composed<S, U>([this, other]);
+    }
   }
-
-  abstract compose<U>(other: Signal<T, U>): Signal<S, U>;
-
-  // compose<U>(arr2: Signal<T, U>): Signal<S, U> {
-  //   const arr1 = this;
-
-  //   const composed: any = [];
-  //   if (arr1 instanceof Composed) {
-  //     composed.push(...arr1.signals);
-  //   } else {
-  //     composed.push(arr1);
-  //   }
-  //   if (arr2 instanceof Composed) {
-  //     composed.push(...arr2.signals);
-  //   } else {
-  //     composed.push(arr2);
-  //   }
-  //   return new Composed(composed);
-  // }
 }
 
-export class State<T> extends Signal<void, T> {
-  constructor(readonly initial?: Value<T>) {
-    super();
+export class State<S = any, T = any> implements Arrow<S, T> {
+  public readonly graph: symbol;
+  public readonly scope: Scope;
+  public readonly key: symbol;
+  public readonly level: number;
+
+  constructor(initial: Value<T>);
+  constructor(initial: Value<T>, parent: State<void, S>, arrows: Arrow[]);
+  constructor(
+    readonly initial: Value<T>,
+    readonly parent?: State<void, S>,
+    readonly arrows?: Arrow[]
+  ) {
+    this.scope = parent?.scope ?? currentScope;
+    this.graph = parent?.graph ?? Symbol();
+    this.level = parent?.level ?? 0;
+    this.key = Symbol();
   }
 
-  compose<U>(other: Signal<T, U>): State<U> {
+  map<U>(input: ArrowInput<T, U>): State<T, U> {
     const { initial } = this;
+    if (input instanceof Composed) {
+      const newValue = mapValue(initial, input.arrows);
+      return new State<T, U>(newValue, this, input.arrows);
+    }
+    const other = toArrow(input);
 
-    const newValue = mapValue(initial, other);
+    const newValue = mapValue(initial, [other]);
 
-    return new State<U>(newValue);
+    return new State<T, U>(newValue, this, [other]);
   }
 
   get(): Value<T> {
@@ -60,45 +64,16 @@ export class State<T> extends Signal<void, T> {
 }
 
 export function useSignal<S, T>(fn: (s: S) => T): Signal<S, T> {
-  return new FuncSignal(fn);
+  return new FuncArrow(fn);
 }
 
-export function useState<T>(initial?: T) {
-  return new State(initial);
+export function useState<T>(initial?: Value<T>) {
+  return new State<void, T>(initial);
 }
 
-export class Composed<S, T> extends Signal<S, T> {
-  constructor(public readonly signals: Signal[]) {
-    super();
-  }
-
-  compose<U>(other: Signal<T, U>): Signal<S, U> {
-    throw new Error('Method not implemented.');
-  }
-
-  // get(input: S): Value<T> {
-  //   let output: any = input;
-  //   const { signals } = this;
-
-  //   for (let i = 0; i < signals.length; i++) {
-  //     const signal = signals[i];
-  //     if (output instanceof Promise) {
-  //       output = output.then(signal.get);
-  //     }
-  //     output = signals[i].get(output);
-  //   }
-
-  //   return output;
-  // }
-}
-
-class FuncSignal<S, T> extends Signal<S, T> {
+export class FuncArrow<S, T> extends Signal<S, T> {
   constructor(public func: (s: S) => Value<T>) {
     super();
-  }
-
-  compose<U>(other: Signal<T, U>): Signal<S, U> {
-    throw new Error('Method not implemented.');
   }
 
   get(input: S) {
@@ -106,17 +81,52 @@ class FuncSignal<S, T> extends Signal<S, T> {
   }
 }
 
-function mapValue<T, U>(initial: Value<T>, signal: Signal<T, U>): Value<U> {
-  if (initial === undefined) return undefined;
-  if (initial === null) return undefined;
+function mapValue<T>(
+  retval: Value<T>,
+  arrows: Arrow[],
+  offset: number = 0
+): Value<any> {
+  if (retval === undefined) return undefined;
+  if (retval === null) return undefined;
 
-  if (initial instanceof Promise) {
-    return initial.then((x) => mapValue(x, signal));
+  for (let i = offset; i < arrows.length; i++) {
+    if (retval instanceof Promise) {
+      return retval.then((x) => mapValue(x, arrows, i));
+    }
+
+    const arr = arrows[i];
+    if (arr instanceof FuncArrow) {
+      retval = arr.func(retval);
+    } else if (arr instanceof Composed) {
+      retval = mapValue(retval, arr.arrows, 0);
+    } else throw new Error('');
   }
 
-  let retval = initial;
-  if (signal instanceof FuncSignal) {
-    retval = signal.func(retval);
-  } else if (signal instanceof Composed) {
-  } else throw new Error('');
+  return retval;
+}
+
+class Composed<S, T> implements Arrow<S, T> {
+  constructor(public arrows: Arrow[]) {}
+
+  map<U>(input: ArrowInput<T, U>): Arrow<S, U> {
+    if (input instanceof Composed) {
+      return new Composed<S, U>([...this.arrows, ...input.arrows]);
+    }
+
+    const other = toArrow(input);
+
+    return new Composed<S, U>([...this.arrows, other]);
+  }
+}
+
+export interface Arrow<S = unknown, T = unknown> {
+  map<U>(input: ArrowInput<T, U>): Arrow<S, U>;
+}
+
+type ArrowInput<S, T> = Composed<S, T> | Signal<S, T> | ((s: S) => Value<T>);
+
+function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
+  if (input instanceof Function) return new FuncArrow<S, T>(input);
+
+  return input;
 }
