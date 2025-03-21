@@ -114,7 +114,7 @@ class Sandbox<TElement> {
   constructor(public root: TElement) {}
 
   update<T>(state: State<any, T>, newValue: T) {
-    const { graph, key, level } = state;
+    const { graph, key } = state;
     const { values } = this;
     const oldValue = values[state.key] ?? state.initial;
 
@@ -122,18 +122,22 @@ class Sandbox<TElement> {
       return;
     }
 
-    values[graph] = newValue;
+    values[key] = newValue;
     const program = this.updates[graph];
+
+    printProgram(program);
 
     let stateIdx = 0;
     for (; stateIdx < program.length; stateIdx++) {
       const instruction = program[stateIdx];
       const { type } = instruction;
-      if (type === InstructionEnum.Read && instruction.key === key) {
+      if (type === InstructionEnum.Write && instruction.key === key) {
         stateIdx++;
         break;
       }
     }
+
+    let currentValue = newValue;
 
     for (; stateIdx < program.length; stateIdx++) {
       const instruction = program[stateIdx];
@@ -141,10 +145,17 @@ class Sandbox<TElement> {
 
       switch (type) {
         case InstructionEnum.Read:
+          currentValue = values[instruction.key];
+          break;
+        case InstructionEnum.Write:
+          values[instruction.key] = currentValue;
           break;
         case InstructionEnum.SetText:
           const { node } = instruction;
-          node.nodeValue = newValue;
+          node.nodeValue = currentValue;
+          break;
+        case InstructionEnum.Func:
+          currentValue = instruction.func(currentValue);
           break;
       }
     }
@@ -164,6 +175,7 @@ class Sandbox<TElement> {
     program.push({
       type: InstructionEnum.SetText,
       node: textNode,
+      level: state.level,
     });
 
     this.values[graph] = value;
@@ -203,26 +215,37 @@ class Sandbox<TElement> {
 
 type Program = Instruction[];
 
-type Instruction = StateInstruction | FuncInstruction | SetTextInstruction;
+type Instruction =
+  | StateInstruction
+  | FuncInstruction
+  | SetTextInstruction
+  | ReadInstruction;
 
 interface SetTextInstruction {
   type: InstructionEnum.SetText;
+  level: number;
   node: ITextNode;
 }
 interface StateInstruction {
-  type: InstructionEnum.Read;
-  key: symbol;
+  type: InstructionEnum.Write;
   level: number;
+  key: symbol;
+}
+interface ReadInstruction {
+  type: InstructionEnum.Read;
+  level: number;
+  key: symbol;
 }
 
 interface FuncInstruction {
   type: InstructionEnum.Func;
-  func: Function;
   level: number;
+  func: Function;
 }
 
 enum InstructionEnum {
-  Read = 4356234 /* random unique */,
+  Write = 4356234 /* magic number */,
+  Read,
   Func,
   SetText,
 }
@@ -235,10 +258,10 @@ function compile(state: State<any, any>, program: Program) {
     while (index < program.length) {
       const curr = program[index];
       const { type } = curr;
+      if (curr.level > s.level) {
+        break;
+      }
       if (type === InstructionEnum.Read) {
-        if (curr.level > s.level) {
-          break;
-        }
         if (curr.key == s.key) {
           return;
         }
@@ -247,7 +270,16 @@ function compile(state: State<any, any>, program: Program) {
     }
 
     const partial: Program = [];
-    const { arrows } = s;
+
+    const { parent, arrows } = s;
+    if (parent) {
+      partial.push({
+        type: InstructionEnum.Read,
+        key: parent.key,
+        level: s.level,
+      });
+    }
+
     if (arrows) {
       for (let i = arrows.length - 1; i >= 0; i--) {
         const arr = arrows[i];
@@ -259,15 +291,20 @@ function compile(state: State<any, any>, program: Program) {
           });
         }
       }
+      partial.push({
+        type: InstructionEnum.Write,
+        key: s.key,
+        level: s.level,
+      });
     }
-    partial.push({
-      type: InstructionEnum.Read,
-      key: s.key,
-      level: s.level,
-    });
 
     program.splice(index, 0, ...partial);
 
     s = s.parent;
+  }
+}
+function printProgram(program: Program) {
+  for (const instruction of program) {
+    console.log(InstructionEnum[instruction.type], instruction.level);
   }
 }

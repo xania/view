@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { jsx } from '../../jsx-runtime';
 import { render, ITextNode } from './render';
-import { useSignal, useState } from './signal';
+import { Arrow, useSignal, useState } from './signal';
 
 describe('render signals', () => {
   it('trivial', () => {
@@ -69,7 +69,7 @@ describe('render signals', () => {
     );
   });
 
-  it('simple signal update', async () => {
+  it('simple state update', async () => {
     // prepare view
     const state = useState(1);
     const view = ['count: ', state];
@@ -84,6 +84,25 @@ describe('render signals', () => {
 
     // assert;
     expect(root.toString()).toEqual('<root>count: 2</root>');
+  });
+
+  it('derived state update', async () => {
+    // prepare view
+    const state = useState(1);
+    const derived01 = state.map((x) => x + 1);
+    const derived02 = state.map((x) => x + 2);
+    const view = ['count: ', derived01, '-', derived02];
+
+    // render view
+    const root = new ViewElementNode('root');
+    const sandbox = await render(view, root, TestNodeFactory);
+
+    expect(root.toString()).toEqual('<root>count: 2-3</root>');
+
+    sandbox.update(state, 2);
+
+    // assert;
+    expect(root.toString()).toEqual('<root>count: 3-4</root>');
   });
 });
 
