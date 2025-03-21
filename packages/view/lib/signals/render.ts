@@ -128,12 +128,15 @@ class Sandbox<TElement> {
     printProgram(program);
 
     let stateIdx = 0;
-    for (; stateIdx < program.length; stateIdx++) {
-      const instruction = program[stateIdx];
-      const { type } = instruction;
-      if (type === InstructionEnum.Write && instruction.key === key) {
-        stateIdx++;
-        break;
+
+    if (state.parent) {
+      for (; stateIdx < program.length; stateIdx++) {
+        const instruction = program[stateIdx];
+        const { type } = instruction;
+        if (type === InstructionEnum.Read && instruction.key === key) {
+          stateIdx++;
+          break;
+        }
       }
     }
 
@@ -291,6 +294,9 @@ function compile(state: State<any, any>, program: Program) {
           });
         }
       }
+    }
+
+    if (parent) {
       partial.push({
         type: InstructionEnum.Write,
         key: s.key,
