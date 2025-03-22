@@ -3,7 +3,7 @@ import { jsx } from '../../jsx-runtime';
 import { render, ITextNode } from './render';
 import { Arrow, useSignal, useState } from './signal';
 
-describe('render signals', () => {
+describe('render', () => {
   it('trivial', () => {
     // prepare view
     const view = 'sample view';
@@ -30,26 +30,26 @@ describe('render signals', () => {
 
   it('simple state', () => {
     // prepare view
-    const view = ['count: ', useState(1)];
+    const view = ['state: ', useState(1)];
 
     // render view
     const root = new ViewElementNode('root');
     render(view, root, TestNodeFactory);
 
     // assert
-    expect(root.toString()).toEqual('<root>count: 1</root>');
+    expect(root.toString()).toEqual('<root>state: 1</root>');
   });
 
   it('composed state', async () => {
     // prepare view
-    const view = ['count: ', useState(Promise.resolve(1)).map((x) => x + 1)];
+    const view = ['state: ', useState(Promise.resolve(1)).map((x) => x + 1)];
 
     // render view
     const root = new ViewElementNode('root');
     await render(view, root, TestNodeFactory);
 
     // assert
-    expect(root.toString()).toEqual('<root>count: 2</root>');
+    expect(root.toString()).toEqual('<root>state: 2</root>');
   });
 
   it('render element', () => {
@@ -72,18 +72,18 @@ describe('render signals', () => {
   it('simple state update', async () => {
     // prepare view
     const state = useState(1);
-    const view = ['count: ', state];
+    const view = ['state: ', state];
 
     // render view
     const root = new ViewElementNode('root');
     const sandbox = await render(view, root, TestNodeFactory);
 
-    expect(root.toString()).toEqual('<root>count: 1</root>');
+    expect(root.toString()).toEqual('<root>state: 1</root>');
 
     sandbox.update(state, 2);
 
     // assert;
-    expect(root.toString()).toEqual('<root>count: 2</root>');
+    expect(root.toString()).toEqual('<root>state: 2</root>');
   });
 
   it('derived state update', async () => {
@@ -91,18 +91,31 @@ describe('render signals', () => {
     const state = useState(1);
     const derived01 = state.map((x) => x + 1);
     const derived02 = state.map((x) => x + 2);
-    const view = ['count: ', derived01, '-', derived02];
+    const view = ['state: ', derived01, '-', derived02];
 
     // render view
     const root = new ViewElementNode('root');
     const sandbox = await render(view, root, TestNodeFactory);
 
-    expect(root.toString()).toEqual('<root>count: 2-3</root>');
+    expect(root.toString()).toEqual('<root>state: 2-3</root>');
 
     sandbox.update(state, 2);
 
     // assert;
-    expect(root.toString()).toEqual('<root>count: 3-4</root>');
+    expect(root.toString()).toEqual('<root>state: 3-4</root>');
+  });
+
+  it('async state', async () => {
+    const state = useState(Promise.resolve(1));
+    const derived = state.map((x) => Promise.resolve(x + 1));
+    const view = ['state: ', state, '-', derived];
+
+    const root = new ViewElementNode('root');
+    const sandbox = await render(view, root, TestNodeFactory);
+
+    await sandbox.update(state, Promise.resolve(2));
+
+    expect(root.toString()).toEqual('<root>state: 2-3</root>');
   });
 });
 

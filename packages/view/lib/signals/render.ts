@@ -113,7 +113,7 @@ class Sandbox<TElement> {
 
   constructor(public root: TElement) {}
 
-  update<T>(state: State<any, T>, newValue: T) {
+  update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
     const { values } = this;
     const oldValue = values[state.key] ?? state.initial;
@@ -122,44 +122,66 @@ class Sandbox<TElement> {
       return;
     }
 
-    values[key] = newValue;
     const program = this.updates[graph];
 
-    printProgram(program);
+    // printProgram(program);
 
     let stateIdx = 0;
-
-    if (state.parent) {
-      for (; stateIdx < program.length; stateIdx++) {
-        const instruction = program[stateIdx];
-        const { type } = instruction;
-        if (type === InstructionEnum.Read && instruction.key === key) {
-          stateIdx++;
-          break;
-        }
-      }
-    }
-
-    let currentValue = newValue;
 
     for (; stateIdx < program.length; stateIdx++) {
       const instruction = program[stateIdx];
       const { type } = instruction;
+      if (type === InstructionEnum.Write && instruction.key === key) {
+        break;
+      }
+    }
 
-      switch (type) {
-        case InstructionEnum.Read:
-          currentValue = values[instruction.key];
-          break;
-        case InstructionEnum.Write:
-          values[instruction.key] = currentValue;
-          break;
-        case InstructionEnum.SetText:
-          const { node } = instruction;
-          node.nodeValue = currentValue;
-          break;
-        case InstructionEnum.Func:
-          currentValue = instruction.func(currentValue);
-          break;
+    if (stateIdx >= program.length) {
+      return;
+    }
+
+    const promises: Promise<void>[] = [];
+    loop(newValue, stateIdx);
+
+    if (promises.length) {
+      return Promise.all(promises);
+    }
+
+    function loop(
+      currentValue: any,
+      instructionIdx: number
+    ): Promise<void> | void {
+      for (; instructionIdx < program.length; instructionIdx++) {
+        const instruction = program[instructionIdx];
+        const { type } = instruction;
+
+        switch (type) {
+          case InstructionEnum.Read:
+            currentValue = values[instruction.key];
+            break;
+          case InstructionEnum.Write:
+            values[instruction.key] = currentValue;
+            break;
+          case InstructionEnum.SetText:
+            const { node } = instruction;
+            if (currentValue instanceof Promise) {
+              promises.push(
+                currentValue.then((resolved) => (node.nodeValue = resolved))
+              );
+            } else {
+              node.nodeValue = currentValue;
+            }
+            break;
+          case InstructionEnum.Func:
+            if (currentValue instanceof Promise) {
+              currentValue = currentValue.then((resolved) =>
+                instruction.func(resolved)
+              );
+            } else {
+              currentValue = instruction.func(currentValue);
+            }
+            break;
+        }
       }
     }
   }
@@ -171,7 +193,13 @@ class Sandbox<TElement> {
     let value: any = undefined;
 
     const { graph, arrows } = state;
-    const program = (this.updates[graph] ??= []);
+    const program = (this.updates[graph] ??= [
+      {
+        type: InstructionEnum.Write,
+        key: graph,
+        level: 0,
+      },
+    ]);
 
     compile(state, program);
 

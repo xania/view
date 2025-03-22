@@ -29,7 +29,7 @@ export class Signal<S = unknown, T = unknown> {
   }
 }
 
-export class State<TParent extends State<any, any> | void, T = any>
+export class State<T, TParent extends State<any, any> | void = void>
   implements Arrow<void, T>
 {
   public readonly graph: symbol;
@@ -44,30 +44,36 @@ export class State<TParent extends State<any, any> | void, T = any>
     readonly parent?: TParent,
     readonly arrows?: Arrow[]
   ) {
-    this.scope = parent?.scope ?? currentScope;
-    this.graph = parent?.graph ?? Symbol();
-    this.level = parent ? parent.level + 1 : 0;
     this.key = Symbol();
+    if (parent) {
+      this.scope = parent.scope;
+      this.graph = parent.graph;
+      this.level = parent.level + 1;
+    } else {
+      this.scope = currentScope;
+      this.graph = this.key;
+      this.level = 0;
+    }
   }
 
   get(_: void): Value<T> {
     return this.initial;
   }
 
-  map<U>(input: ArrowInput<T, U>): State<this, U> {
+  map<U>(input: ArrowInput<T, U>): State<U, this> {
     const { initial } = this;
     if (input instanceof Composed) {
       const newValue = mapValue(initial, input.arrows);
-      return new State<this, U>(newValue, this, input.arrows);
+      return new State(newValue, this, input.arrows);
     }
     const other = toArrow(input);
 
     const newValue = mapValue(initial, [other]);
 
-    return new State<this, U>(newValue, this, [other]);
+    return new State(newValue, this, [other]);
   }
 
-  bind<U>(other: State<any, U>): BoundState<this, typeof other> {
+  bind<U>(other: State<U, any>): BoundState<this, typeof other> {
     throw Error('Not supported just Yet!');
   }
 }
@@ -77,7 +83,7 @@ export function useSignal<S, T>(fn: (s: S) => T): Signal<S, T> {
 }
 
 export function useState<T>(initial?: Value<T>) {
-  return new State<undefined, T>(initial);
+  return new State<T, undefined>(initial);
 }
 
 type E<TState> = TState extends Arrow<any, infer T> ? T : never;
@@ -94,8 +100,8 @@ export class BoundState<TState1, TState2>
     throw new Error('Method not implemented.');
   }
 
-  map<U>(input: ArrowInput<[E<TState1>, E<TState2>], U>): State<void, U> {
-    return new State<void, U>(undefined, undefined, [toArrow(input)]);
+  map<U>(input: ArrowInput<[E<TState1>, E<TState2>], U>): State<U> {
+    return new State<U>(undefined, undefined, [toArrow(input)]);
   }
 }
 export class FuncArrow<S, T> extends Signal<S, T> {
