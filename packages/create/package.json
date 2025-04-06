@@ -23,13 +23,12 @@
     "@types/node": "^20.3.2",
     "chalk": "^5.2.0",
     "home-or-tmp": "^4.0.0",
-    "https-proxy-agent": "^7.0.0",
-    "prettier": "^2.8.8",
-    "replace-in-file": "^7.0.1",
-    "sander": "^0.6.0",
-    "tar": "^6.1.15",
-    "tsup": "^7.1.0",
-    "typescript": "^5.1.5"
+    "https-proxy-agent": "^7.0.6",
+    "replace-in-file": "^8.3.0",
+    "tar": "^7.4.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.1.5",
+    "rimraf": "^6.0.1"
   },
   "license": "MIT",
   "dependencies": {

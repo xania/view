@@ -1,19 +1,18 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { State, Signal, Value, Arrow, FuncArrow } from './signal';
+import { Automaton, ITextNode, TextNodeUpdater } from './automaton';
+import { State, Value, Arrow, FuncArrow } from './signal';
 
-export function render<TElement>(
+export function render(
   view: any,
-  automaton: Automaton<TElement>
-): Promise<Sandbox<TElement>> | Sandbox<TElement> {
-  const sandbox = new Sandbox(automaton.current);
+  automaton: Automaton
+): Promise<Sandbox> | Sandbox {
+  const sandbox = new Sandbox();
 
   if (view === undefined || view === null) {
     return sandbox;
   }
 
   const viewStack = [view];
-
-  const containerStack: TElement[] = [];
 
   const promises: Promise<void>[] = [];
   const retval = loop();
@@ -38,19 +37,10 @@ export function render<TElement>(
           viewStack.push(resolved);
           return loop();
         });
-      } else if (curr === popContainer) {
-        automaton.up();
       } else if (curr.constructor === String) {
         automaton.appendText(curr);
       } else if (curr.constructor === Number) {
         automaton.appendText(curr);
-      } else if (curr.constructor === Array) {
-        for (let i = curr.length - 1; i >= 0; i--) {
-          const item = curr[i];
-          if (item !== null && item !== undefined) {
-            viewStack.push(item);
-          }
-        }
       } else if (curr instanceof State) {
         const textNode = automaton.appendText('');
         const res = sandbox.bindTextNode(curr, textNode);
@@ -58,8 +48,7 @@ export function render<TElement>(
           promises.push(res);
         }
       } else {
-        const children = automaton.append(curr);
-        viewStack.push(popContainer);
+        const children = automaton.appendElement(curr);
         if (
           children !== null &&
           children !== undefined &&
@@ -73,72 +62,15 @@ export function render<TElement>(
           }
         }
       }
-
-      // } else if (isDomDescriptor(curr)) {
-      //   switch (curr.type) {
-      //     case DomDescriptorType.Element:
-      //       const { children, attrs } = curr;
-      //       const element = nodeFactory.appendElement(
-      //         container,
-      //         curr.name,
-      //         attrs
-      //       );
-      //       if (
-      //         children !== null &&
-      //         children !== undefined &&
-      //         children.length > 0
-      //       ) {
-      //         containerStack.push(container);
-      //         container = element;
-
-      //         viewStack.push(popContainer);
-
-      //         for (let i = children.length - 1; i >= 0; i--) {
-      //           const item = children[i];
-      //           if (item !== null && item !== undefined) {
-      //             viewStack.push(item);
-      //           }
-      //         }
-      //       }
-      //       break;
-      //   }
-      // }
     }
   }
 }
 
-const popContainer = Symbol();
-
-export type TextNodeUpdater = (nodeValue: any) => void;
-export interface ITextNode {
-  nodeValue: any;
-}
-
-// interface ViewNodeFactory<TElement> {
-//   append<TContainer extends TElement>(
-//     container: TContainer,
-//     child: any
-//   ): { element: TElement; children: any } | void;
-//   // appendElement(
-//   //   container: TElement,
-//   //   name: string,
-//   //   attrs: Record<string, any> | undefined
-//   // ): TElement;
-//   appendText(container: TElement, content?: ITextNode['nodeValue']): ITextNode;
-// }
-
-export interface Automaton<TElement> {
-  readonly current: TElement;
-  up(): void;
-  append(child: any): any[] | void; // -> children
-  appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater;
-}
-
-class Sandbox<TElement> {
+class Sandbox {
   private values: Record<symbol, any> = {};
   private updates: Record<symbol, Program> = {};
 
-  constructor(public root: TElement) {}
+  constructor() {}
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;

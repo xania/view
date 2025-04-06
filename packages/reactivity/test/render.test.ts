@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { render, ITextNode, Automaton, TextNodeUpdater } from '../lib/render';
+import { render } from '../lib/render';
+import { ITextNode, Automaton, TextNodeUpdater } from '../lib/automaton';
 import { useState } from '../lib/signal';
-import { JObject, json, JsonEnum, JToken } from '../lib/json';
+import { JObject, json, JsonAutomaton, JsonEnum, JToken } from '../lib/json';
 // import { DomDescriptorType, isDomDescriptor } from 'xania';
 // import { jsx } from 'xania/jsx-runtime';
 
@@ -39,7 +40,7 @@ describe('render', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(['state: ', 1]).toEqual(root);
+    expect([['state: ', 1]]).toEqual(root);
   });
 
   it('composed state', async () => {
@@ -51,21 +52,29 @@ describe('render', () => {
     await render(view, new JsonAutomaton(root));
 
     // assert
-    expect(['state: ', 2]).toEqual(root);
+    expect([['state: ', 2]]).toEqual(root);
   });
 
-  it('render element', () => {
+  it('render complex element', async () => {
     // prepare view
+    const state = useState(1);
+
     const view = {
-      messages: ['hello'],
+      messages: ['hello', { s: state }],
     };
 
     // render view
     const root: any[] = [];
-    render(view, new JsonAutomaton(root));
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    sandbox.update(state, 2);
 
     // assert
-    expect(root).toEqual([view]);
+    expect(root).toEqual([
+      {
+        messages: ['hello', { s: 2 }],
+      },
+    ]);
   });
 
   it('simple state update', async () => {
@@ -77,11 +86,11 @@ describe('render', () => {
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(['state: ', 1]).toEqual(root);
+    expect([['state: ', 1]]).toEqual(root);
 
     sandbox.update(state, 2);
 
-    expect(['state: ', 2]).toEqual(root);
+    expect([['state: ', 2]]).toEqual(root);
   });
 
   it('derived state update', async () => {
@@ -95,12 +104,12 @@ describe('render', () => {
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual(['state: ', 2, '-', 3]);
+    expect(root).toEqual([['state: ', 2, '-', 3]]);
 
     sandbox.update(state, 2);
 
     // assert;
-    expect(root).toEqual(['state: ', 3, '-', 4]);
+    expect(root).toEqual([['state: ', 3, '-', 4]]);
   });
 
   it('async state', async () => {
@@ -113,27 +122,6 @@ describe('render', () => {
 
     await sandbox.update(state, Promise.resolve(2));
 
-    expect(root).toEqual(['state: ', 2, '-', 3]);
+    expect(root).toEqual([['state: ', 2, '-', 3]]);
   });
 });
-
-class JsonAutomaton implements Automaton<JToken> {
-  private stack: any[] = [];
-  constructor(public current: any[]) {}
-  up(): void {
-    this.current = this.stack.pop();
-  }
-  append(child: any) {
-    this.current.push(child);
-  }
-  appendText(content: ITextNode['nodeValue']): TextNodeUpdater {
-    const { current } = this;
-
-    const nodeIndex = this.current.length;
-    current.push(content);
-
-    return function (value: ITextNode['nodeValue']) {
-      current[nodeIndex] = value;
-    };
-  }
-}
