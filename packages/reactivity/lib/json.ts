@@ -1,4 +1,10 @@
-import { Automaton, ITextNode, TextNodeUpdater } from './automaton';
+import {
+  Automaton,
+  ITextNode,
+  popScope,
+  SetProperty,
+  TextNodeUpdater,
+} from './automaton';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -29,16 +35,21 @@ export function json(token: JToken | JArray) {
   return token;
 }
 
+type AutomatonScope = Array<any> | PropertyScope;
+
 export class JsonAutomaton implements Automaton {
-  private scopes: any[] = [];
-  constructor(public current: any[] | JPropertyScope) {}
+  private scopes: AutomatonScope[] = [];
+  constructor(public current: AutomatonScope) {}
 
   up(): void {
-    this.current = this.scopes.pop();
+    this.current = this.scopes.pop()!;
   }
 
-  appendElement(child: any) {
+  appendElement(child: any): void | SetProperty[] {
     const { current } = this;
+    // if (!(current instanceof Array)) {
+    //   throw Error('invalid add element on non array');
+    // }
 
     if (child instanceof Array) {
       this.scopes.push(current);
@@ -47,23 +58,27 @@ export class JsonAutomaton implements Automaton {
       this.current = copy;
       return child;
     } else if (child === popScope) {
-      this.current = this.scopes.pop();
+      this.current = this.scopes.pop()!;
       return;
-    } else if (child instanceof JPropertyScope) {
-      const { scopes } = this;
-      scopes.push(current);
-      this.current = child;
     } else {
       const obj = {};
       current.push(obj);
 
+      var properties = Object.keys(child);
+      if (properties.length == 0) {
+        return;
+      }
+      this.scopes.push(current);
       const children: any[] = [];
 
-      for (const key of Object.keys(child)) {
-        children.push(new JPropertyScope(obj, key));
+      let nextScope: PropertyScope;
+      for (const key of properties) {
+        nextScope = new PropertyScope(obj, key);
+        this.scopes.push(nextScope);
         children.push(child[key]);
         children.push(popScope);
       }
+      this.current = this.scopes.pop()!;
 
       return children;
     }
@@ -72,26 +87,30 @@ export class JsonAutomaton implements Automaton {
   appendText(content: ITextNode['nodeValue']): TextNodeUpdater {
     const { current } = this;
 
-    if (current instanceof JPropertyScope) {
-      current.push(content);
-      return (value: any) => current.push(value);
-    } else {
+    if (current instanceof Array) {
       const nodeIndex = current.length;
       current.push(content);
 
       return function (value: ITextNode['nodeValue']) {
         current[nodeIndex] = value;
       };
+    } else {
+      current.push(content);
+
+      return function (value: ITextNode['nodeValue']) {
+        current.push(value);
+      };
     }
   }
 }
 
-class JPropertyScope {
-  constructor(public obj: any, public key: string) {}
+class PropertyScope {
+  constructor(
+    public obj: any,
+    public name: string
+  ) {}
 
   push(value: any) {
-    this.obj[this.key] = value;
+    this.obj[this.name] = value;
   }
 }
-
-const popScope = Symbol();

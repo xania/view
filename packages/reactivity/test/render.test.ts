@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
-import { ITextNode, Automaton, TextNodeUpdater } from '../lib/automaton';
 import { useState } from '../lib/signal';
-import { JObject, json, JsonAutomaton, JsonEnum, JToken } from '../lib/json';
+import { JsonAutomaton, JToken } from '../lib/json';
 // import { DomDescriptorType, isDomDescriptor } from 'xania';
 // import { jsx } from 'xania/jsx-runtime';
 
@@ -57,22 +56,22 @@ describe('render', () => {
 
   it('render complex element', async () => {
     // prepare view
-    const state = useState(1);
+    const state = useState<any>(1);
 
     const view = {
-      messages: ['hello', { s: state }],
+      messages: [1, { s: state }, 3],
     };
 
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    sandbox.update(state, 2);
+    sandbox.update(state, [2, 5]);
 
     // assert
     expect(root).toEqual([
       {
-        messages: ['hello', { s: 2 }],
+        messages: [1, { s: [2, 5] }, 3],
       },
     ]);
   });
