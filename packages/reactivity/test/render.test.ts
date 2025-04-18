@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
-import { useState } from '../lib/signal';
+import { useSignal } from '../lib/signal';
 import { JsonAutomaton, JToken } from '../lib/json';
 // import { DomDescriptorType, isDomDescriptor } from 'xania';
 // import { jsx } from 'xania/jsx-runtime';
@@ -30,43 +30,43 @@ describe('render', () => {
     expect(root).toStrictEqual(['sample view']);
   });
 
-  it('simple state read', () => {
+  it('simple signal read', () => {
     // prepare view
-    const view = ['state: ', useState(1)];
+    const view = ['signal: ', useSignal(1)];
 
     // render view
     const root: any[] = [];
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect([['state: ', 1]]).toEqual(root);
+    expect([['signal: ', 1]]).toEqual(root);
   });
 
-  it('composed state', async () => {
+  it('composed signal', async () => {
     // prepare view
-    const view = ['state: ', useState(Promise.resolve(1)).map((x) => x + 1)];
+    const view = ['signal: ', useSignal(Promise.resolve(1)).map((x) => x + 1)];
 
     // render view
     const root: JToken = [];
     await render(view, new JsonAutomaton(root));
 
     // assert
-    expect([['state: ', 2]]).toEqual(root);
+    expect([['signal: ', 2]]).toEqual(root);
   });
 
   it('render complex element', async () => {
     // prepare view
-    const state = useState<any>(1);
+    const signal = useSignal<any>(1);
 
     const view = {
-      messages: [1, { s: state }, 3],
+      messages: [1, { s: signal }, 3],
     };
 
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    sandbox.update(state, [2, 5]);
+    sandbox.update(signal, [2, 5]);
 
     // assert
     expect(root).toEqual([
@@ -76,51 +76,51 @@ describe('render', () => {
     ]);
   });
 
-  it('simple state update', async () => {
+  it('simple signal update', async () => {
     // prepare view
-    const state = useState(1);
-    const view = ['state: ', state];
+    const signal = useSignal(1);
+    const view = ['signal: ', signal];
 
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect([['state: ', 1]]).toEqual(root);
+    expect([['signal: ', 1]]).toEqual(root);
 
-    sandbox.update(state, 2);
+    sandbox.update(signal, 2);
 
-    expect([['state: ', 2]]).toEqual(root);
+    expect([['signal: ', 2]]).toEqual(root);
   });
 
-  it('derived state update', async () => {
+  it('derived signal update', async () => {
     // prepare view
-    const state = useState(1);
-    const derived01 = state.map((x) => x + 1);
-    const derived02 = state.map((x) => x + 2);
-    const view = ['state: ', derived01, '-', derived02];
+    const signal = useSignal(1);
+    const derived01 = signal.map((x) => x + 1);
+    const derived02 = signal.map((x) => x + 2);
+    const view = ['signal: ', derived01, '-', derived02];
 
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual([['state: ', 2, '-', 3]]);
+    expect(root).toEqual([['signal: ', 2, '-', 3]]);
 
-    sandbox.update(state, 2);
+    sandbox.update(signal, 2);
 
     // assert;
-    expect(root).toEqual([['state: ', 3, '-', 4]]);
+    expect(root).toEqual([['signal: ', 3, '-', 4]]);
   });
 
-  it('async state', async () => {
-    const state = useState(Promise.resolve(1));
-    const derived = state.map((x) => Promise.resolve(x + 1));
-    const view = ['state: ', state, '-', derived];
+  it('async signal', async () => {
+    const signal = useSignal(Promise.resolve(1));
+    const derived = signal.map((x) => Promise.resolve(x + 1));
+    const view = ['signal: ', signal, '-', derived];
 
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    await sandbox.update(state, Promise.resolve(2));
+    await sandbox.update(signal, Promise.resolve(2));
 
-    expect(root).toEqual([['state: ', 2, '-', 3]]);
+    expect(root).toEqual([['signal: ', 2, '-', 3]]);
   });
 });

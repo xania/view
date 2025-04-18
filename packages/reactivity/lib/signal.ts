@@ -15,7 +15,7 @@ import { currentScope, Scope } from './scope';
 
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
-export class Signal<S = unknown, T = unknown> {
+class ArrowBase<S = unknown, T = unknown> {
   get(_: S): Value<T> {
     throw Error('Not yet implemented');
   }
@@ -29,7 +29,7 @@ export class Signal<S = unknown, T = unknown> {
   }
 }
 
-export class State<T, TParent extends State<any, any> | void = void>
+export class Signal<T, TParent extends Signal<any, any> | void = void>
   implements Arrow<void, T>
 {
   public readonly graph: symbol;
@@ -60,35 +60,31 @@ export class State<T, TParent extends State<any, any> | void = void>
     return this.initial;
   }
 
-  map<U>(input: ArrowInput<T, U>): State<U, this> {
+  map<U>(input: ArrowInput<T, U>): Signal<U, this> {
     const { initial } = this;
     if (input instanceof Composed) {
       const newValue = mapValue(initial, input.arrows);
-      return new State(newValue, this, input.arrows);
+      return new Signal(newValue, this, input.arrows);
     }
     const other = toArrow(input);
 
     const newValue = mapValue(initial, [other]);
 
-    return new State(newValue, this, [other]);
+    return new Signal(newValue, this, [other]);
   }
 
-  bind<U>(other: State<U, any>): BoundState<this, typeof other> {
+  bind<U>(other: Signal<U, any>): BoundSignal<this, typeof other> {
     throw Error('Not supported just Yet!');
   }
 }
 
-export function useSignal<S, T>(fn: (s: S) => T): Signal<S, T> {
-  return new FuncArrow(fn);
-}
-
-export function useState<T>(initial?: Value<T>) {
-  return new State<T, undefined>(initial);
+export function useSignal<T>(initial?: Value<T>) {
+  return new Signal<T, undefined>(initial);
 }
 
 type E<TState> = TState extends Arrow<any, infer T> ? T : never;
 
-export class BoundState<TState1, TState2>
+export class BoundSignal<TState1, TState2>
   implements Arrow<void, [E<TState1>, E<TState2>]>
 {
   constructor(
@@ -100,11 +96,11 @@ export class BoundState<TState1, TState2>
     throw new Error('Method not implemented.');
   }
 
-  map<U>(input: ArrowInput<[E<TState1>, E<TState2>], U>): State<U> {
-    return new State<U>(undefined, undefined, [toArrow(input)]);
+  map<U>(input: ArrowInput<[E<TState1>, E<TState2>], U>): Signal<U> {
+    return new Signal<U>(undefined, undefined, [toArrow(input)]);
   }
 }
-export class FuncArrow<S, T> extends Signal<S, T> {
+export class FuncArrow<S, T> extends ArrowBase<S, T> {
   constructor(public func: (s: S) => Value<T>) {
     super();
   }
@@ -157,7 +153,6 @@ class Composed<S, T> implements Arrow<S, T> {
 }
 
 export interface Arrow<S = unknown, T = unknown> {
-  get(s: S): Value<T>;
   map<U>(input: ArrowInput<T, U>): Arrow<S, U>;
 }
 

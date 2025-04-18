@@ -1,6 +1,6 @@
 import { ITextNode, TextNodeUpdater } from './automaton';
 import { InstructionEnum, Program } from './program';
-import { Arrow, FuncArrow, State, Value } from './signal';
+import { Arrow, FuncArrow, Signal, Value } from './signal';
 
 export class Sandbox {
   private values: Record<symbol, any> = {};
@@ -8,7 +8,7 @@ export class Sandbox {
 
   constructor() {}
 
-  update<T>(state: State<T, any>, newValue: Value<T>) {
+  update<T>(state: Signal<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
     const { values } = this;
     const oldValue = values[state.key] ?? state.initial;
@@ -87,7 +87,7 @@ export class Sandbox {
   }
 
   bindTextNode(
-    state: State<any, any>,
+    state: Signal<any, any>,
     textNode: ITextNode | TextNodeUpdater
   ): void | Promise<void> {
     let value: any = undefined;
@@ -153,10 +153,8 @@ export class Sandbox {
   }
 }
 
-
-
-function compile(state: State<any, any>, program: Program) {
-  let s: State<any, any> | undefined = state;
+function compile(state: Signal<any, any>, program: Program) {
+  let s: Signal<any, any> | undefined = state;
 
   while (s) {
     let index = 0;
