@@ -7,7 +7,7 @@ import {
   TextNodeUpdater,
 } from './automaton';
 import { Sandbox } from './sandbox';
-import { Signal, Value, Arrow, FuncArrow } from './signal';
+import { State, Value, Arrow, FuncArrow } from './state';
 
 export function render(
   view: any,
@@ -48,7 +48,7 @@ export function render(
         automaton.appendText(curr);
       } else if (curr.constructor === Number) {
         automaton.appendText(curr);
-      } else if (curr instanceof Signal) {
+      } else if (curr instanceof State) {
         const textNode = automaton.appendText('');
         const res = sandbox.bindTextNode(curr, textNode);
         if (res) {

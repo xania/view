@@ -11,8 +11,6 @@
  *  in async scenario. Or an signal can represent '[prop]' or '[idx]' operation instead of calling a function
  */
 
-import { currentScope, Scope } from './scope';
-
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
 class ArrowBase<S = unknown, T = unknown> {
@@ -29,20 +27,23 @@ class ArrowBase<S = unknown, T = unknown> {
   }
 }
 
-export class Signal<T, TParent extends Signal<any, any> | void = void>
-  implements Arrow<void, T>
-{
+export class State<T, TParent extends State<any, any> | void = void> {
   public readonly graph: symbol;
-  public readonly scope: Scope;
   public readonly key: symbol;
   public readonly level: number;
 
-  constructor(initial: Value<T>);
-  constructor(initial: Value<T>, parent: TParent, arrows: Arrow[]);
+  constructor(scope: Scope, initial: Value<T>);
   constructor(
-    readonly initial: Value<T>,
-    readonly parent?: TParent,
-    readonly arrows?: Arrow[]
+    scope: Scope,
+    initial: Value<T>,
+    parent: TParent,
+    arrows: Arrow[]
+  );
+  constructor(
+    public readonly scope: Scope,
+    public readonly initial: Value<T>,
+    public readonly parent?: TParent,
+    public readonly arrows?: Arrow[]
   ) {
     this.key = Symbol();
     if (parent) {
@@ -50,56 +51,31 @@ export class Signal<T, TParent extends Signal<any, any> | void = void>
       this.graph = parent.graph;
       this.level = parent.level + 1;
     } else {
-      this.scope = currentScope;
       this.graph = this.key;
       this.level = 0;
     }
   }
 
-  get(_: void): Value<T> {
-    return this.initial;
-  }
-
-  map<U>(input: ArrowInput<T, U>): Signal<U, this> {
+  map<U>(input: ArrowInput<T, U>): State<U, this> {
     const { initial } = this;
     if (input instanceof Composed) {
       const newValue = mapValue(initial, input.arrows);
-      return new Signal(newValue, this, input.arrows);
+      return new State(this.scope, newValue, this, input.arrows);
     }
     const other = toArrow(input);
 
     const newValue = mapValue(initial, [other]);
 
-    return new Signal(newValue, this, [other]);
-  }
-
-  bind<U>(other: Signal<U, any>): BoundSignal<this, typeof other> {
-    throw Error('Not supported just Yet!');
+    return new State(this.scope, newValue, this, [other]);
   }
 }
 
-export function useSignal<T>(initial?: Value<T>) {
-  return new Signal<T, undefined>(initial);
+export function useState<T>(initial?: Value<T>) {
+  return new State<T>(RootScope, initial);
 }
 
 type E<TState> = TState extends Arrow<any, infer T> ? T : never;
 
-export class BoundSignal<TState1, TState2>
-  implements Arrow<void, [E<TState1>, E<TState2>]>
-{
-  constructor(
-    public s1: TState1,
-    public s2: TState2
-  ) {}
-
-  get(_: void): [E<TState1>, E<TState2>] {
-    throw new Error('Method not implemented.');
-  }
-
-  map<U>(input: ArrowInput<[E<TState1>, E<TState2>], U>): Signal<U> {
-    return new Signal<U>(undefined, undefined, [toArrow(input)]);
-  }
-}
 export class FuncArrow<S, T> extends ArrowBase<S, T> {
   constructor(public func: (s: S) => Value<T>) {
     super();
@@ -163,3 +139,6 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
 
   return input;
 }
+
+class Scope {}
+const RootScope = new Scope();
