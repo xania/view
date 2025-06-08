@@ -1,5 +1,5 @@
 /**
- * Signal is general representation of functions, 'takes' an input of type S and 'produces' T.
+ * Arrow is general representation of functions, 'takes' an input of type S and 'produces' T.
  *  Many times, we dont know what the input is, or don't want to depend on the input for purpose of
  *  separation of concern, T is produces as a scalar T, Promise of T or
  *  Observable of T (or in general a Monad of T to be more in line with definition
@@ -8,7 +8,7 @@
  * We should not assume how 'takes' and 'produces' exactly works, the how is only determined by
  *  the underlying implementation of the rendering engine. Typically this possibly a function tho but it
  *  will be something else than an actual javascript function, in fact return is possibly be delayed
- *  in async scenario. Or an signal can represent '[prop]' or '[idx]' operation instead of calling a function
+ *  in async scenario. Or an arrow can represent '[prop]' or '[idx]' operation instead of calling a function
  */
 
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
@@ -73,8 +73,6 @@ export class State<T, TParent extends State<any, any> | void = void> {
 export function useState<T>(initial?: Value<T>) {
   return new State<T>(RootScope, initial);
 }
-
-type E<TState> = TState extends Arrow<any, infer T> ? T : never;
 
 export class FuncArrow<S, T> extends ArrowBase<S, T> {
   constructor(public func: (s: S) => Value<T>) {

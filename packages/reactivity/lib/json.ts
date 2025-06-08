@@ -1,5 +1,6 @@
 import {
   Automaton,
+  IRegion,
   ITextNode,
   popScope,
   SetProperty,
@@ -35,56 +36,114 @@ export function json(token: JToken | JArray) {
   return token;
 }
 
-type AutomatonScope = Array<any> | PropertyScope;
+type AutomatonScope = Array<any> | Record<any, any>;
 
 export class JsonAutomaton implements Automaton {
   private scopes: AutomatonScope[] = [];
   constructor(public current: AutomatonScope) {}
 
+  startRegion(visible: boolean): IRegion {
+    throw new Error('Method not implemented.');
+  }
+
   up(): void {
     this.current = this.scopes.pop()!;
   }
 
-  appendElement(child: any): void | SetProperty[] {
+  appendObject(property?: string) {
     const { current } = this;
-    // if (!(current instanceof Array)) {
-    //   throw Error('invalid add element on non array');
-    // }
+    const copy = {};
 
-    if (child instanceof Array) {
+    if (current) {
       this.scopes.push(current);
+    }
+
+    if (property) {
+      if (current instanceof Array)
+        throw Error(
+          'invalid state: current expected to be an object when property is provided'
+        );
+
+      current[property] = copy;
+    } else if (current instanceof Array) {
+      current.push(copy);
+    } else
+      throw Error(
+        'invalid state: current expected to be array when property is not provided'
+      );
+
+    this.current = copy;
+  }
+
+  appendArray(property?: string) {
+    const { current } = this;
+    const copy: any[] = [];
+
+    if (current) {
+      this.scopes.push(current);
+    }
+
+    if (property) {
+      if (current instanceof Array)
+        throw Error(
+          'invalid state: current expected to be an object when property is provided'
+        );
+
+      current[property] = copy;
+    } else if (current instanceof Array) {
+      current.push(copy);
+    } else
+      throw Error(
+        'invalid state: current expected to be array when property is not provided'
+      );
+
+    this.current = copy;
+  }
+
+  appendElement(child: any): Array<any> | Record<any, any> {
+    const { current } = this;
+
+    if (!(current instanceof Array)) {
+      throw Error('invalid add element on non array');
+    }
+
+    this.scopes.push(current);
+    if (child instanceof Array) {
       const copy: any[] = [];
       current.push(copy);
       this.current = copy;
       return child;
-    } else if (child === popScope) {
-      this.current = this.scopes.pop()!;
-      return;
     } else {
-      const obj = {};
-      current.push(obj);
+      const copy = {};
+      current.push(copy);
+      this.current = copy;
+      return child;
 
-      var properties = Object.keys(child);
-      if (properties.length == 0) {
-        return;
-      }
-      this.scopes.push(current);
-      const children: any[] = [];
+      // var properties = Object.keys(child);
+      // if (properties.length == 0) {
+      //   return properties as any;
+      // }
 
-      let nextScope: PropertyScope;
-      for (const key of properties) {
-        nextScope = new PropertyScope(obj, key);
-        this.scopes.push(nextScope);
-        children.push(child[key]);
-        children.push(popScope);
-      }
-      this.current = this.scopes.pop()!;
+      // this.scopes.push(current);
+      // const children: any[] = [];
 
-      return children;
+      // let nextScope: PropertyScope;
+      // for (const key of properties) {
+      //   nextScope = new PropertyScope(obj, key);
+      //   this.scopes.push(nextScope);
+      //   children.push(child[key]);
+      //   children.push(popScope);
+      // }
+      // this.current = this.scopes.pop()!;
+
+      // return children;
     }
   }
 
-  appendText(content: ITextNode['nodeValue']): TextNodeUpdater {
+  appendText(
+    content: ITextNode['nodeValue'],
+    property?: string
+  ): TextNodeUpdater {
     const { current } = this;
 
     if (current instanceof Array) {
@@ -93,6 +152,12 @@ export class JsonAutomaton implements Automaton {
 
       return function (value: ITextNode['nodeValue']) {
         current[nodeIndex] = value;
+      };
+    } else if (property) {
+      current[property] = content;
+
+      return function (value: ITextNode['nodeValue']) {
+        current[property] = value;
       };
     } else {
       current.push(content);

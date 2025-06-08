@@ -1,7 +1,13 @@
 export interface Automaton {
   up(): void;
-  appendElement(child: any): SetProperty[] | void; // -> children
-  appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater;
+  appendArray(property?: string): void;
+  appendObject(property?: string): void;
+  appendElement(child: any, property?: string): Array<any> | Record<any, any>; // -> children
+  appendText(
+    content?: ITextNode['nodeValue'],
+    property?: string
+  ): ITextNode | TextNodeUpdater;
+  startRegion(visible: boolean): IRegion;
 }
 
 export type TextNodeUpdater = (nodeValue: any) => void;
@@ -17,3 +23,9 @@ export class SetProperty {
 }
 
 export const popScope = Symbol();
+
+export interface IRegion {
+  visible: boolean;
+  show(): void;
+  hide(): void;
+}

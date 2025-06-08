@@ -1,4 +1,5 @@
 import { ITextNode, TextNodeUpdater } from './automaton';
+import { Conditional } from './components/if';
 import { InstructionEnum, Program } from './program';
 import { Arrow, FuncArrow, State, Value } from './state';
 
@@ -18,6 +19,8 @@ export class Sandbox {
     }
 
     const program = this.updates[graph];
+
+    if (!program) return;
 
     let stateIdx = 0;
 
@@ -84,6 +87,20 @@ export class Sandbox {
         }
       }
     }
+  }
+
+  bindConditional(cond: Conditional) {
+    const { expr } = cond;
+    const { graph, arrows } = expr;
+    const program = (this.updates[graph] ??= [
+      {
+        type: InstructionEnum.Write,
+        key: graph,
+        level: 0,
+      },
+    ]);
+
+    compile(expr, program);
   }
 
   bindTextNode(
@@ -153,7 +170,7 @@ export class Sandbox {
   }
 }
 
-function compile(state: State<any, any>, program: Program) {
+export function compile(state: State<any, any>, program: Program) {
   let s: State<any, any> | undefined = state;
 
   while (s) {
@@ -204,7 +221,9 @@ function compile(state: State<any, any>, program: Program) {
       });
     }
 
-    program.splice(index, 0, ...partial);
+    if (partial.length) {
+      program.splice(index, 0, ...partial);
+    }
 
     s = s.parent;
   }

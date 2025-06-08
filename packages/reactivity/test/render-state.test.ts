@@ -5,13 +5,13 @@ import { JsonAutomaton, JToken } from '../lib/json';
 // import { DomDescriptorType, isDomDescriptor } from 'xania';
 // import { jsx } from 'xania/jsx-runtime';
 
-describe('render', () => {
+describe('render state', () => {
   it('trivial sync', () => {
     // prepare view
     const view = 'sample view';
 
     // render view
-    const root: JToken = [];
+    const root: any[] = [];
     render(view, new JsonAutomaton(root));
 
     // assert
@@ -124,3 +124,7 @@ describe('render', () => {
     expect(root).toEqual([['state: ', 2, '-', 3]]);
   });
 });
+
+function readableAmount(amount: number) {
+  return `${(amount / 1000).toFixed(0)}K`;
+}
