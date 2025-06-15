@@ -1,4 +1,4 @@
-import { ITextNode } from "./automaton";
+import { ITextNode } from './automaton';
 
 export type Program = Instruction[];
 
@@ -7,7 +7,8 @@ export type Instruction =
   | FuncInstruction
   | SetTextInstruction
   | ReadInstruction
-  | EffectInstruction;
+  | EffectInstruction
+  | ShowInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -39,11 +40,19 @@ export interface EffectInstruction {
   func: (x: any) => void | Promise<void>;
 }
 
+export interface ShowInstruction {
+  type: InstructionEnum.Show;
+  level: number;
+  region: {
+    show(visible: boolean): void;
+  };
+}
+
 export enum InstructionEnum {
   Write = 4356234 /* magic number */,
   Read,
   Map,
   Effect,
   SetText,
+  Show,
 }
-

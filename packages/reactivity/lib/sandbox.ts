@@ -84,14 +84,16 @@ export class Sandbox {
               instruction.func(currentValue);
             }
             break;
+          case InstructionEnum.Show:
+            instruction.region.show(currentValue);
+            break;
         }
       }
     }
   }
 
-  bindConditional(cond: Conditional) {
-    const { expr } = cond;
-    const { graph, arrows } = expr;
+  bindConditional(expr: State<boolean>, region: any) {
+    const { graph } = expr;
     const program = (this.updates[graph] ??= [
       {
         type: InstructionEnum.Write,
@@ -101,6 +103,11 @@ export class Sandbox {
     ]);
 
     compile(expr, program);
+    program.push({
+      type: InstructionEnum.Show,
+      level: 0,
+      region,
+    });
   }
 
   bindTextNode(

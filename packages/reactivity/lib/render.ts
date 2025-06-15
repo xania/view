@@ -22,9 +22,6 @@ export function render(
 
   const viewStack = [view];
 
-  const containerStack: Container[] = [];
-  let currentContainer: Container = new Container();
-
   const objectsStack: { property?: string }[] = [];
   let currentObject: (typeof objectsStack)[number] | undefined = undefined;
 
@@ -55,32 +52,21 @@ export function render(
         });
       }
 
-      if (curr === popContainer) {
-        currentContainer = containerStack.pop()!;
-      } else if (curr === decrementContainer) {
-        currentContainer.counter--;
-      } else if (curr.constructor === String) {
+      if (curr.constructor === String) {
         const node = automaton.appendText(curr, currentObject?.property);
-        currentContainer.push(node);
       } else if (curr.constructor === Number) {
         const node = automaton.appendText(curr, currentObject?.property);
-        currentContainer.push(node);
       } else if (curr.constructor === Conditional) {
         const { initial } = curr.expr;
 
-        const region = automaton.startRegion(!!initial);
+        const region = automaton.pushRegion(!!initial, currentObject?.property);
 
-        if (initial) {
-          containerStack.push(currentContainer);
-          currentContainer = new Container();
-          viewStack.push(popContainer);
-          viewStack.push(curr.body);
-        }
+        viewStack.push(popScope);
+        viewStack.push(curr.body);
 
-        sandbox.bindConditional(curr);
+        sandbox.bindConditional(curr.expr, region);
       } else if (curr instanceof State) {
         const textNode = automaton.appendText('', currentObject?.property);
-        currentContainer.push(textNode);
         const res = sandbox.bindTextNode(curr, textNode);
         if (res) {
           promises.push(res);
@@ -162,8 +148,6 @@ class Container {
   }
 }
 
-const popContainer = Symbol('pop-container');
-const decrementContainer = Symbol('decrement-container');
 const popCurrentObject = Symbol('pop-current-object');
 
 // class FragmentAutomaton implements Automaton {

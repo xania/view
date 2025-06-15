@@ -1,11 +1,4 @@
-import {
-  Automaton,
-  IRegion,
-  ITextNode,
-  popScope,
-  SetProperty,
-  TextNodeUpdater,
-} from './automaton';
+import { Automaton, IRegion, ITextNode, TextNodeUpdater } from './automaton';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -37,71 +30,125 @@ export function json(token: JToken | JArray) {
 }
 
 type AutomatonScope = Array<any> | Record<any, any>;
+class AutomatonRegion {
+  private items: any[] = [];
+  private offset: number;
+  constructor(
+    public scope: AutomatonScope,
+    public visible: boolean
+  ) {
+    this.offset = scope.length;
+  }
+
+  push(item: any) {
+    this.items.push(item);
+    if (this.visible) {
+      this.scope.push(item);
+    }
+  }
+
+  show(visible: boolean) {
+    if (this.visible === visible) {
+      return;
+    }
+
+    this.visible = visible;
+
+    if (visible) {
+      this.scope.splice(this.offset, 0, ...this.items);
+    } else {
+      this.scope.splice(this.offset, this.items.length);
+    }
+  }
+}
+
+class AutomatonProperty {
+  private value?: any;
+  constructor(
+    public obj: Record<any, any>,
+    public property: string,
+    public visible: boolean
+  ) {}
+
+  push(value: any, property: string) {
+    this.value = value;
+    if (this.visible) {
+      this.obj[this.property] = value;
+    }
+  }
+
+  show(visible: boolean) {
+    if (this.visible === visible) {
+      return;
+    }
+
+    this.visible = visible;
+
+    if (visible) {
+      this.obj[this.property] = this.value;
+    } else {
+      this.obj[this.property] = undefined;
+    }
+  }
+}
 
 export class JsonAutomaton implements Automaton {
   private scopes: AutomatonScope[] = [];
-  constructor(public current: AutomatonScope) {}
+  constructor(public currentScope: AutomatonScope) {}
 
-  startRegion(visible: boolean): IRegion {
-    throw new Error('Method not implemented.');
+  pushRegion(visible: boolean, property?: string): IRegion {
+    const { currentScope } = this;
+    if (currentScope) {
+      this.scopes.push(currentScope);
+    }
+
+    if (property) {
+      const newRegion = new AutomatonProperty(currentScope, property, visible);
+      this.currentScope = newRegion;
+
+      return newRegion;
+    } else {
+      const newRegion = new AutomatonRegion(currentScope, visible);
+      this.currentScope = newRegion;
+
+      return newRegion;
+    }
   }
 
   up(): void {
-    this.current = this.scopes.pop()!;
+    this.currentScope = this.scopes.pop()!;
   }
 
-  appendObject(property?: string) {
-    const { current } = this;
-    const copy = {};
+  appendObject(property?: string, copy: {} | any[] = {}) {
+    const { currentScope } = this;
 
-    if (current) {
-      this.scopes.push(current);
+    if (currentScope) {
+      this.scopes.push(currentScope);
     }
 
     if (property) {
-      if (current instanceof Array)
+      if (currentScope instanceof Array)
         throw Error(
           'invalid state: current expected to be an object when property is provided'
         );
 
-      current[property] = copy;
-    } else if (current instanceof Array) {
-      current.push(copy);
+      currentScope[property] = copy;
+    } else if (currentScope instanceof Array) {
+      currentScope.push(copy);
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'
       );
 
-    this.current = copy;
+    this.currentScope = copy;
   }
 
   appendArray(property?: string) {
-    const { current } = this;
-    const copy: any[] = [];
-
-    if (current) {
-      this.scopes.push(current);
-    }
-
-    if (property) {
-      if (current instanceof Array)
-        throw Error(
-          'invalid state: current expected to be an object when property is provided'
-        );
-
-      current[property] = copy;
-    } else if (current instanceof Array) {
-      current.push(copy);
-    } else
-      throw Error(
-        'invalid state: current expected to be array when property is not provided'
-      );
-
-    this.current = copy;
+    return this.appendObject(property, []);
   }
 
   appendElement(child: any): Array<any> | Record<any, any> {
-    const { current } = this;
+    const { currentScope: current } = this;
 
     if (!(current instanceof Array)) {
       throw Error('invalid add element on non array');
@@ -111,12 +158,12 @@ export class JsonAutomaton implements Automaton {
     if (child instanceof Array) {
       const copy: any[] = [];
       current.push(copy);
-      this.current = copy;
+      this.currentScope = copy;
       return child;
     } else {
       const copy = {};
       current.push(copy);
-      this.current = copy;
+      this.currentScope = copy;
       return child;
 
       // var properties = Object.keys(child);
@@ -144,38 +191,40 @@ export class JsonAutomaton implements Automaton {
     content: ITextNode['nodeValue'],
     property?: string
   ): TextNodeUpdater {
-    const { current } = this;
+    const { currentScope } = this;
 
-    if (current instanceof Array) {
-      const nodeIndex = current.length;
-      current.push(content);
+    if (currentScope instanceof AutomatonProperty) {
+      if (!property) {
+        throw Error('invalid');
+      }
+      currentScope.push(content, property);
+    } else if (currentScope instanceof AutomatonRegion) {
+      if (property) {
+        throw Error('invalid');
+      }
+      currentScope.push(content);
+    } else if (currentScope instanceof Array) {
+      const nodeIndex = currentScope.length;
+      currentScope.push(content);
 
       return function (value: ITextNode['nodeValue']) {
-        current[nodeIndex] = value;
+        currentScope[nodeIndex] = value;
       };
     } else if (property) {
-      current[property] = content;
+      currentScope[property] = content;
 
       return function (value: ITextNode['nodeValue']) {
-        current[property] = value;
+        currentScope[property] = value;
       };
     } else {
-      current.push(content);
+      currentScope.push(content);
 
       return function (value: ITextNode['nodeValue']) {
-        current.push(value);
+        currentScope.push(value);
       };
     }
-  }
-}
-
-class PropertyScope {
-  constructor(
-    public obj: any,
-    public name: string
-  ) {}
-
-  push(value: any) {
-    this.obj[this.name] = value;
+    return () => {
+      debugger;
+    };
   }
 }
