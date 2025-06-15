@@ -52,8 +52,8 @@ describe('render if', () => {
     var stateP = useState(false);
     var stateC = useState(false);
     const view = {
-      p: If(stateP, 'conditional view'),
-      a: 123,
+      p: If(stateP, Promise.resolve('conditional view')),
+      a: Promise.resolve(123),
       c: If(stateC, 'bla'),
     };
 
@@ -63,7 +63,13 @@ describe('render if', () => {
 
     // assert
     sandbox.update(stateP, true);
-    expect(root).toStrictEqual([{ p: 'conditional view', a: 123 }]);
+    expect(root).toStrictEqual([
+      {
+        /*promises values are 'naturally resolves'*/
+        p: 'conditional view',
+        a: 123,
+      },
+    ]);
 
     // assert
     sandbox.update(stateP, false);

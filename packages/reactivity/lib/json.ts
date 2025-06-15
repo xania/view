@@ -71,6 +71,8 @@ class AutomatonProperty {
   ) {}
 
   push(value: any, property: string) {
+    if (property !== this.property) throw new Error('FATAL');
+
     this.value = value;
     if (this.visible) {
       this.obj[this.property] = value;
