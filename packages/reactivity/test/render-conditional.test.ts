@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
 import { State, useState } from '../lib/state';
 import { JsonAutomaton, JToken } from '../lib/json';
-import { If } from '../lib/components/if';
+import { If } from '../lib/core/if';
 
 describe('render if', () => {
   it('true branch sync', () => {

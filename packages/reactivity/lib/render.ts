@@ -6,7 +6,8 @@ import {
   SetProperty,
   TextNodeUpdater,
 } from './automaton';
-import { Conditional } from './components/if';
+import { Conditional } from './core/if';
+import { Iterator } from './core/for';
 import { Sandbox } from './sandbox';
 import { State } from './state';
 
@@ -59,12 +60,19 @@ export function render(
       } else if (curr.constructor === Conditional) {
         const { initial } = curr.expr;
 
-        const region = automaton.pushRegion(!!initial, currentObject?.property);
+        const region = automaton.pushRegion(false, currentObject?.property);
+        sandbox.bindConditional(curr.expr, region);
 
+        viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popScope);
         viewStack.push(curr.body);
-
-        sandbox.bindConditional(curr.expr, region);
+      } else if (curr.constructor === Iterator) {
+        const { expr } = curr;
+        const tpl = automaton.pushTemplate(currentObject?.property);
+        viewStack.push(new InitializeState(expr));
+        viewStack.push(popScope);
+        viewStack.push(curr.body);
+        sandbox.bindIterator(curr, tpl);
       } else if (curr instanceof State) {
         const textNode = automaton.appendText('', currentObject?.property);
         const res = sandbox.bindTextNode(curr, textNode);
@@ -75,6 +83,8 @@ export function render(
         if (currentObject) {
           currentObject.property = curr.property;
         }
+      } else if (curr instanceof InitializeState) {
+        sandbox.update(curr.expr, curr.expr.initial);
       } else if (curr === popScope) {
         automaton.up();
       } else if (curr === popCurrentObject) {
@@ -187,4 +197,8 @@ const popCurrentObject = Symbol('pop-current-object');
 
 class SelectProperty {
   constructor(public property: string) {}
+}
+
+class InitializeState {
+  constructor(public expr: State<any>) {}
 }

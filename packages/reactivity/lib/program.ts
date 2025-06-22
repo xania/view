@@ -8,7 +8,8 @@ export type Instruction =
   | SetTextInstruction
   | ReadInstruction
   | EffectInstruction
-  | ShowInstruction;
+  | ShowInstruction
+  | ForEachInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -48,6 +49,15 @@ export interface ShowInstruction {
   };
 }
 
+export interface ForEachInstruction {
+  type: InstructionEnum.ForEach;
+  level: number;
+  key: symbol;
+  template: {
+    clone(): void;
+  };
+}
+
 export enum InstructionEnum {
   Write = 4356234 /* magic number */,
   Read,
@@ -55,4 +65,5 @@ export enum InstructionEnum {
   Effect,
   SetText,
   Show,
+  ForEach,
 }

@@ -1,6 +1,7 @@
-import { ITextNode, TextNodeUpdater } from './automaton';
-import { Conditional } from './components/if';
-import { InstructionEnum, Program } from './program';
+import { IRegion, ITextNode, TextNodeUpdater } from './automaton';
+import { Iterator } from './core/for';
+import { Conditional } from './core/if';
+import { ForEachInstruction, InstructionEnum, Program } from './program';
 import { Arrow, FuncArrow, State, Value } from './state';
 
 export class Sandbox {
@@ -12,7 +13,7 @@ export class Sandbox {
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
     const { values } = this;
-    const oldValue = values[state.key] ?? state.initial;
+    const oldValue = values[state.key];
 
     if (oldValue === newValue) {
       return;
@@ -87,9 +88,44 @@ export class Sandbox {
           case InstructionEnum.Show:
             instruction.region.show(currentValue);
             break;
+
+          case InstructionEnum.ForEach:
+            if (currentValue instanceof Promise) {
+              currentValue = currentValue.then((resolved) => {
+                for (const a of resolved) {
+                  instruction.template.clone();
+                }
+              });
+            } else {
+              for (const a of currentValue) {
+                instruction.template.clone();
+              }
+            }
+
+            break;
         }
       }
     }
+  }
+
+  bindIterator(iter: Iterator<any>, template: ForEachInstruction['template']) {
+    const { expr } = iter;
+    const { graph } = expr;
+    const program = (this.updates[graph] ??= [
+      {
+        type: InstructionEnum.Write,
+        key: graph,
+        level: 0,
+      },
+    ]);
+
+    compile(expr, program);
+    program.push({
+      type: InstructionEnum.ForEach,
+      level: 0,
+      key: expr.key,
+      template,
+    });
   }
 
   bindConditional(expr: State<boolean>, region: any) {

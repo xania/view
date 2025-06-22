@@ -8,6 +8,7 @@ export interface Automaton {
     property?: string
   ): ITextNode | TextNodeUpdater;
   pushRegion(visible: boolean, property?: string): IRegion;
+  pushTemplate(property?: string): ITemplate;
 }
 
 export type TextNodeUpdater = (nodeValue: any) => void;
@@ -26,4 +27,8 @@ export const popScope = Symbol();
 
 export type IRegion = {
   show(visible: boolean): void;
+};
+
+export type ITemplate = {
+  clone(): void;
 };

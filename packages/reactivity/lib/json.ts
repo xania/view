@@ -1,4 +1,10 @@
-import { Automaton, IRegion, ITextNode, TextNodeUpdater } from './automaton';
+import {
+  Automaton,
+  IRegion,
+  ITemplate,
+  ITextNode,
+  TextNodeUpdater,
+} from './automaton';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -60,6 +66,11 @@ class AutomatonRegion {
       this.scope.splice(this.offset, this.items.length);
     }
   }
+  clone() {
+    const self = this;
+
+    this.scope.push(...self.items);
+  }
 }
 
 class AutomatonProperty {
@@ -92,6 +103,8 @@ class AutomatonProperty {
       this.obj[this.property] = undefined;
     }
   }
+
+  clone() {}
 }
 
 export class JsonAutomaton implements Automaton {
@@ -111,6 +124,25 @@ export class JsonAutomaton implements Automaton {
       return newRegion;
     } else {
       const newRegion = new AutomatonRegion(currentScope, visible);
+      this.currentScope = newRegion;
+
+      return newRegion;
+    }
+  }
+
+  pushTemplate(property?: string): ITemplate {
+    const { currentScope } = this;
+    if (currentScope) {
+      this.scopes.push(currentScope);
+    }
+
+    if (property) {
+      const newRegion = new AutomatonProperty(currentScope, property, false);
+      this.currentScope = newRegion;
+
+      return newRegion;
+    } else {
+      const newRegion = new AutomatonRegion(currentScope, false);
       this.currentScope = newRegion;
 
       return newRegion;
