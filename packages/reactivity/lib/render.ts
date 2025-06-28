@@ -73,6 +73,11 @@ export function render(
         viewStack.push(popScope);
         viewStack.push(curr.body);
         sandbox.bindIterator(curr, tpl);
+
+        if (currentObject) {
+          objectsStack.push(currentObject);
+          currentObject = undefined;
+        }
       } else if (curr instanceof State) {
         const textNode = automaton.appendText('', currentObject?.property);
         const res = sandbox.bindTextNode(curr, textNode);

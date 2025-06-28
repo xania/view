@@ -9,13 +9,30 @@ describe('render list', () => {
   it('foreach static and sync', () => {
     // prepare view
     var values = useState([1, 2, 3]);
-    const view = ForEach(values, '-');
+    const view = [1, ForEach(values, '-'), 2];
 
     // render view
     const root: any[] = [];
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual(['-', '-', '-']);
+    expect(root).toStrictEqual([[1, ['-', '-', '-'], 2]]);
+  });
+
+  it('foreach on property', () => {
+    // prepare view
+    var values = useState([1, 2, 3]);
+    const view = { bla: [1, ForEach(values, '-'), 2] };
+
+    // render view
+    const root: any[] = [];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual([
+      {
+        bla: [1, ['-', '-', '-'], 2],
+      },
+    ]);
   });
 });

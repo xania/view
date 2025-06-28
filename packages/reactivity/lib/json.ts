@@ -37,8 +37,8 @@ export function json(token: JToken | JArray) {
 
 type AutomatonScope = Array<any> | Record<any, any>;
 class AutomatonRegion {
-  private items: any[] = [];
   private offset: number;
+  private items: any[] = [];
   constructor(
     public scope: AutomatonScope,
     public visible: boolean
@@ -104,7 +104,9 @@ class AutomatonProperty {
     }
   }
 
-  clone() {}
+  clone() {
+    this.obj[this.property] = this.value;
+  }
 }
 
 export class JsonAutomaton implements Automaton {
@@ -136,21 +138,44 @@ export class JsonAutomaton implements Automaton {
       this.scopes.push(currentScope);
     }
 
-    if (property) {
-      const newRegion = new AutomatonProperty(currentScope, property, false);
-      this.currentScope = newRegion;
+    var container: any[] = [];
 
-      return newRegion;
-    } else {
-      const newRegion = new AutomatonRegion(currentScope, false);
-      this.currentScope = newRegion;
+    this.setValue(currentScope, container, property);
 
-      return newRegion;
-    }
+    const newRegion = new AutomatonRegion(container, false);
+    this.currentScope = newRegion;
+
+    return newRegion;
   }
 
   up(): void {
     this.currentScope = this.scopes.pop()!;
+  }
+
+  setValue(currentScope: AutomatonScope, value: any, property?: string) {
+    if (currentScope instanceof AutomatonProperty) {
+      if (!property) {
+        throw Error('invalid');
+      }
+      currentScope.push(value, property);
+    } else if (currentScope instanceof AutomatonRegion) {
+      if (property) {
+        throw Error('invalid');
+      }
+      currentScope.push(value);
+    } else if (property) {
+      if (currentScope instanceof Array)
+        throw Error(
+          'invalid state: current expected to be an object when property is provided'
+        );
+
+      currentScope[property] = value;
+    } else if (currentScope instanceof Array) {
+      currentScope.push(value);
+    } else
+      throw Error(
+        'invalid state: current expected to be array when property is not provided'
+      );
   }
 
   appendObject(property?: string, copy: {} | any[] = {}) {
@@ -160,19 +185,7 @@ export class JsonAutomaton implements Automaton {
       this.scopes.push(currentScope);
     }
 
-    if (property) {
-      if (currentScope instanceof Array)
-        throw Error(
-          'invalid state: current expected to be an object when property is provided'
-        );
-
-      currentScope[property] = copy;
-    } else if (currentScope instanceof Array) {
-      currentScope.push(copy);
-    } else
-      throw Error(
-        'invalid state: current expected to be array when property is not provided'
-      );
+    this.setValue(currentScope, copy, property);
 
     this.currentScope = copy;
   }
