@@ -4,7 +4,7 @@
   "license": "MIT",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
-  "typings": "./lib/index.ts",
+  "types": "./lib/index.ts",
   "type": "module",
   "keywords": [
     "xania",

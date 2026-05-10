@@ -2,10 +2,9 @@
   "name": "vite-plugin-resumable",
   "version": "0.1.9",
   "license": "MIT",
-  "typings": "./lib/index.ts",
+  "types": "./lib/index.ts",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./lib/index.ts",
   "type": "module",
   "exports": {
     ".": {
@@ -22,7 +21,7 @@
     "build": "npm run build:plugin && npm run build:hydrate",
     "build:plugin": "tsup lib/index.ts --sourcemap",
     "build:hydrate": "npx vite build --ssr lib/hydrate/index.ts --outDir dist/hydrate/ --minify",
-    "prepublishOnly": "npm run clean && npm version patch && npm run build",
+    "prepublishOnly": "npm run clean && npm run build",
     "clean": "npx rimraf dist"
   },
   "engines": {
@@ -50,7 +49,7 @@
     "magic-string": "^0.30.0",
     "tsup": "^7.1.0"
   },
-  "peepDependencies": {
+  "peerDependencies": {
     "tslib": "^2.4.1",
     "typescript": "^4.9.4",
     "vite": "4.1.3"

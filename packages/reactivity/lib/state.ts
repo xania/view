@@ -1,14 +1,16 @@
 /**
- * Arrow is general representation of functions, 'takes' an input of type S and 'produces' T.
- *  Many times, we dont know what the input is, or don't want to depend on the input for purpose of
- *  separation of concern, T is produces as a scalar T, Promise of T or
- *  Observable of T (or in general a Monad of T to be more in line with definition
- *  of Arrow in category theory)
+ * An arrow represents a transformation from an input of type `S` to an output
+ * of type `T`.
  *
- * We should not assume how 'takes' and 'produces' exactly works, the how is only determined by
- *  the underlying implementation of the rendering engine. Typically this possibly a function tho but it
- *  will be something else than an actual javascript function, in fact return is possibly be delayed
- *  in async scenario. Or an arrow can represent '[prop]' or '[idx]' operation instead of calling a function
+ * In many cases the input is not known ahead of time, or we intentionally do
+ * not want to depend on it directly for separation-of-concerns reasons. The
+ * output may be produced as a plain value, a `Promise<T>`, or another deferred
+ * form.
+ *
+ * We should not assume how an arrow evaluates internally. That behavior is
+ * determined by the rendering engine. In some cases it may wrap a JavaScript
+ * function; in others it may represent deferred work or structural access such
+ * as property or index selection.
  */
 
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;

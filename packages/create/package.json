@@ -33,7 +33,6 @@
   "license": "MIT",
   "dependencies": {
     "enquirer": "^2.3.6",
-    "execa": "^7.1.1",
-    "rimraf": "^5.0.1"
+    "execa": "^7.1.1"
   }
 }

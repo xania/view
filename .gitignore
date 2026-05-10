@@ -10,3 +10,6 @@ packages/view/dist/
 packages/view/router/
 packages/kitchen-sink/dist/
 dist
+coverage/
+*.tsbuildinfo
+.cache/

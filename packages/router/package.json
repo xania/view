@@ -6,7 +6,7 @@
   "description": "",
   "main": "./dist/main.cjs",
   "module": "./dist/main.js",
-  "typings": "./lib/index.ts",
+  "types": "./lib/index.ts",
   "type": "module",
   "private": false,
   "exports": {
@@ -20,7 +20,7 @@
     "dev": "npx vite --watch build",
     "build": "npm run clean && npx vite build",
     "clean": "npx rimraf dist",
-    "prepublishOnly": "npm version patch && npm run build",
+    "prepublishOnly": "npm run build",
     "lint": "tsc"
   },
   "prettier": {

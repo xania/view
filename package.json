@@ -1,16 +1,19 @@
 {
   "name": "@xania/workspaces",
+  "packageManager": "pnpm@9.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "vite",
     "dev": "vite",
     "preview": "vite preview",
     "build": "vite build",
-    "lint": "tsc"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "pnpm run typecheck",
+    "test": "vitest --workspace vitest.workspace.js"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "dependencies": {
     "examples": "workspace:*",
     "vite-plugin-resumable": "workspace:*",
