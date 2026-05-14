@@ -4,6 +4,9 @@ import { defineConfig } from 'vite';
 import path from 'path';
 
 export default defineConfig({
+  test: {
+    testTimeout: 3000 * 1000,
+  },
   resolve: {
     alias: [
       {

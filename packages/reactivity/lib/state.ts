@@ -13,6 +13,8 @@
  * as property or index selection.
  */
 
+import { Scope, RootScope } from './scope';
+
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
 class ArrowBase<S = unknown, T = unknown> {
@@ -139,6 +141,3 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
 
   return input;
 }
-
-class Scope {}
-const RootScope = new Scope();

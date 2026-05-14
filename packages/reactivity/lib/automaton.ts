@@ -1,3 +1,5 @@
+import { I } from 'vitest/dist/chunks/reporters.d.CqBhtcTq';
+
 export interface Automaton {
   up(): void;
   appendArray(property?: string): void;
@@ -26,9 +28,11 @@ export class SetProperty {
 export const popScope = Symbol();
 
 export type IRegion = {
+  push(item: any, property?: string): void;
   show(visible: boolean): void;
 };
 
 export type ITemplate = {
-  clone(): void;
+  push(item: any, property?: string): void;
+  clone(): IRegion;
 };

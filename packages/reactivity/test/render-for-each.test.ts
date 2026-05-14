@@ -6,6 +6,19 @@ import { If } from '../lib/core/if';
 import { ForEach, Iterator } from '../lib/core/for';
 
 describe('render list', () => {
+  it('foreach basic', () => {
+    // prepare view
+    var values = useState([1, 2, 3]);
+    const view = ForEach(values, '-');
+
+    // render view
+    const root: any[] = [];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual(['-', '-', '-']);
+  });
+
   it('foreach static and sync', () => {
     // prepare view
     var values = useState([1, 2, 3]);
@@ -16,7 +29,7 @@ describe('render list', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([[1, ['-', '-', '-'], 2]]);
+    expect(root).toStrictEqual([[1, '-', '-', '-', 2]]);
   });
 
   it('foreach on property', () => {
@@ -31,8 +44,23 @@ describe('render list', () => {
     // assert
     expect(root).toStrictEqual([
       {
-        bla: [1, ['-', '-', '-'], 2],
+        bla: [1, '-', '-', '-', 2],
       },
     ]);
+  });
+
+  it('foreach on state', async () => {
+    // prepare view
+    const s = useState(3);
+    var values = useState([1, 2, 3]);
+    const view = ForEach(values, s);
+
+    // render view
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+    // await sandbox.update(s, 4);
+
+    // assert
+    expect(root).toStrictEqual([4, 4, 4]);
   });
 });

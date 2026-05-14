@@ -1,12 +1,17 @@
-import { IRegion, ITextNode, TextNodeUpdater } from './automaton';
+import { ITextNode, TextNodeUpdater } from './automaton';
 import { Iterator } from './core/for';
-import { Conditional } from './core/if';
 import { ForEachInstruction, InstructionEnum, Program } from './program';
 import { Arrow, FuncArrow, State, Value } from './state';
+import { Scope, RootScope } from './scope';
 
 export class Sandbox {
   private values: Record<symbol, any> = {};
   private updates: Record<symbol, Program> = {};
+  private currentScope: Scope = RootScope;
+
+  public pushScope() {
+    this.currentScope = new Scope();
+  }
 
   constructor() {}
 

@@ -100,9 +100,9 @@ export function render(
 
         if (currentObject) {
           objectsStack.push(currentObject);
+          currentObject = undefined;
+          viewStack.push(popCurrentObject);
         }
-        currentObject = undefined;
-        viewStack.push(popCurrentObject);
 
         for (let i = curr.length - 1; i >= 0; i--) {
           const item = curr[i];

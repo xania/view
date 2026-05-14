@@ -36,9 +36,36 @@ export function json(token: JToken | JArray) {
 }
 
 type AutomatonScope = Array<any> | Record<any, any>;
+
+class AutomatonTemplate implements ITemplate {
+  private items: any[] = [];
+  constructor(
+    public automaton: JsonAutomaton,
+    public property?: string
+  ) {}
+
+  push(item: any) {
+    const { items } = this;
+    const idx = items.length;
+    items.push(item);
+    return idx;
+  }
+
+  clone(): IRegion {
+    var newRegion = this.automaton.pushRegion(true, this.property);
+
+    for (const item of this.items) {
+      newRegion.push(item);
+    }
+
+    return newRegion;
+  }
+}
+
 class AutomatonRegion {
   private offset: number;
   private items: any[] = [];
+
   constructor(
     public scope: AutomatonScope,
     public visible: boolean
@@ -47,9 +74,24 @@ class AutomatonRegion {
   }
 
   push(item: any) {
-    this.items.push(item);
+    const { items } = this;
+    const idx = items.length;
+    items.push(item);
     if (this.visible) {
       this.scope.push(item);
+    }
+    return idx;
+  }
+
+  update(idx: number, item: any) {
+    this.items[idx] = item;
+
+    if (this.visible) {
+      if (this.scope instanceof Array) {
+        this.scope[this.offset + idx] = item;
+      } else {
+        throw Error('invalid state: expected array scope');
+      }
     }
   }
 
@@ -81,7 +123,7 @@ class AutomatonProperty {
     public visible: boolean
   ) {}
 
-  push(value: any, property: string) {
+  push(value: any, property?: string): void {
     if (property !== this.property) throw new Error('FATAL');
 
     this.value = value;
@@ -132,20 +174,16 @@ export class JsonAutomaton implements Automaton {
     }
   }
 
-  pushTemplate(property?: string): ITemplate {
+  pushTemplate(): ITemplate {
     const { currentScope } = this;
     if (currentScope) {
       this.scopes.push(currentScope);
     }
 
-    var container: any[] = [];
+    const tpl = new AutomatonTemplate(this);
+    this.currentScope = tpl;
 
-    this.setValue(currentScope, container, property);
-
-    const newRegion = new AutomatonRegion(container, false);
-    this.currentScope = newRegion;
-
-    return newRegion;
+    return tpl;
   }
 
   up(): void {
@@ -249,7 +287,10 @@ export class JsonAutomaton implements Automaton {
       if (property) {
         throw Error('invalid');
       }
-      currentScope.push(content);
+      const idx = currentScope.push(content);
+      return (newValue) => {
+        currentScope.update(idx, newValue);
+      };
     } else if (currentScope instanceof Array) {
       const nodeIndex = currentScope.length;
       currentScope.push(content);
@@ -270,6 +311,7 @@ export class JsonAutomaton implements Automaton {
         currentScope.push(value);
       };
     }
+
     return () => {
       debugger;
     };

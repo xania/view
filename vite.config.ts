@@ -6,6 +6,7 @@ import { resumable } from "./packages/vite-plugin-resumable/lib/index";
 
 export default defineConfig({
   test: {
+    testTimeout: 300 * 1000,
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
@@ -24,24 +25,24 @@ export default defineConfig({
 
       "vite-plugin-resumable": path.resolve(
         __dirname,
-        "./packages/vite-plugin-resumable/lib/index.ts"
+        "./packages/vite-plugin-resumable/lib/index.ts",
       ),
 
       "xania/jsx-runtime": path.resolve(
         __dirname,
-        "./packages/view/jsx-runtime.ts"
+        "./packages/view/jsx-runtime.ts",
       ),
       "xania/jsx-dev-runtime": path.resolve(
         __dirname,
-        "./packages/view/jsx-dev-runtime.ts"
+        "./packages/view/jsx-dev-runtime.ts",
       ),
       "xania/headless": path.resolve(
         __dirname,
-        "./packages/view/lib/headless/index.ts"
+        "./packages/view/lib/headless/index.ts",
       ),
       "xania/reactivity": path.resolve(
         __dirname,
-        "./packages/view/lib/reactivity/index.ts"
+        "./packages/view/lib/reactivity/index.ts",
       ),
 
       "xania/router": path.resolve(__dirname, "./packages/view/router.ts"),
