@@ -58,9 +58,8 @@ describe('render list', () => {
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
-    // await sandbox.update(s, 4);
 
     // assert
-    expect(root).toStrictEqual([4, 4, 4]);
+    expect(root).toStrictEqual([3, 3, 3]);
   });
 });

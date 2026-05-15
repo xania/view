@@ -48,7 +48,10 @@ class AutomatonTemplate implements ITemplate {
     const { items } = this;
     const idx = items.length;
     items.push(item);
-    return idx;
+
+    return (newValue: any) => {
+      items[idx] = newValue;
+    };
   }
 
   clone(): IRegion {
@@ -250,25 +253,6 @@ export class JsonAutomaton implements Automaton {
       current.push(copy);
       this.currentScope = copy;
       return child;
-
-      // var properties = Object.keys(child);
-      // if (properties.length == 0) {
-      //   return properties as any;
-      // }
-
-      // this.scopes.push(current);
-      // const children: any[] = [];
-
-      // let nextScope: PropertyScope;
-      // for (const key of properties) {
-      //   nextScope = new PropertyScope(obj, key);
-      //   this.scopes.push(nextScope);
-      //   children.push(child[key]);
-      //   children.push(popScope);
-      // }
-      // this.current = this.scopes.pop()!;
-
-      // return children;
     }
   }
 
@@ -278,7 +262,13 @@ export class JsonAutomaton implements Automaton {
   ): TextNodeUpdater {
     const { currentScope } = this;
 
-    if (currentScope instanceof AutomatonProperty) {
+    if (currentScope instanceof AutomatonTemplate) {
+      if (property) {
+        throw Error('invalid');
+      }
+
+      return currentScope.push(content);
+    } else if (currentScope instanceof AutomatonProperty) {
       if (!property) {
         throw Error('invalid');
       }

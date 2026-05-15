@@ -63,15 +63,15 @@ export function render(
         const region = automaton.pushRegion(false, currentObject?.property);
         sandbox.bindConditional(curr.expr, region);
 
+        viewStack.push(popScope);
+        viewStack.push(curr.body);
+        viewStack.push(new InitializeState(curr.expr));
+      } else if (curr.constructor === Iterator) {
+        const tpl = automaton.pushTemplate(currentObject?.property);
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popScope);
         viewStack.push(curr.body);
-      } else if (curr.constructor === Iterator) {
-        const { expr } = curr;
-        const tpl = automaton.pushTemplate(currentObject?.property);
-        viewStack.push(new InitializeState(expr));
-        viewStack.push(popScope);
-        viewStack.push(curr.body);
+
         sandbox.bindIterator(curr, tpl);
 
         if (currentObject) {

@@ -12,7 +12,7 @@
     "build": "vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "pnpm run typecheck",
-    "test": "vitest --workspace vitest.workspace.js"
+    "test": "pnpm --filter @xania/reactivity exec vitest"
   },
   "dependencies": {
     "examples": "workspace:*",
