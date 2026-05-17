@@ -35,7 +35,7 @@ export function json(token: JToken | JArray) {
   return token;
 }
 
-type AutomatonScope = Array<any> | Record<any, any>;
+type AutomatonScope = Record<any, any>;
 
 class AutomatonTemplate implements ITemplate {
   private items: any[] = [];
@@ -83,7 +83,9 @@ class AutomatonRegion {
     if (this.scope instanceof Array) {
       this.offset = scope.length;
     } else {
-      throw Error('invalid state: expected array scope');
+      throw Error(
+        'invalid state: expected array scope but got object {' + scope + '}'
+      );
     }
   }
 
@@ -176,7 +178,8 @@ export class JsonAutomaton implements Automaton {
     }
 
     if (property) {
-      const newRegion = new AutomatonProperty(currentScope, property, visible);
+      const scope = (currentScope[property] ??= []);
+      const newRegion = new AutomatonRegion(scope, visible);
       this.currentScope = newRegion;
 
       return newRegion;
@@ -188,13 +191,13 @@ export class JsonAutomaton implements Automaton {
     }
   }
 
-  pushTemplate(): ITemplate {
+  pushTemplate(propery?: string): ITemplate {
     const { currentScope } = this;
     if (currentScope) {
       this.scopes.push(currentScope);
     }
 
-    const tpl = new AutomatonTemplate(this);
+    const tpl = new AutomatonTemplate(this, propery);
     this.currentScope = tpl;
 
     return tpl;
@@ -207,13 +210,17 @@ export class JsonAutomaton implements Automaton {
   setValue(currentScope: AutomatonScope, value: any, property?: string) {
     if (currentScope instanceof AutomatonProperty) {
       if (!property) {
-        throw Error('invalid');
+        throw Error(
+          'invalid state: property is required when current scope is property'
+        );
       }
       currentScope.push(value, property);
     } else if (currentScope instanceof AutomatonRegion) {
-      if (property) {
-        throw Error('invalid');
-      }
+      // if (property) {
+      //   throw Error(
+      //     'invalid state: property is not allowed when current scope is region'
+      //   );
+      // }
       currentScope.push(value);
     } else if (property) {
       if (currentScope instanceof Array)
@@ -274,20 +281,26 @@ export class JsonAutomaton implements Automaton {
     const { currentScope } = this;
 
     if (currentScope instanceof AutomatonTemplate) {
-      if (property) {
-        throw Error('invalid');
-      }
+      // if (property) {
+      //   throw Error(
+      //     'invalid state: property is not allowed when current scope is template'
+      //   );
+      // }
 
       return currentScope.push(content);
     } else if (currentScope instanceof AutomatonProperty) {
       if (!property) {
-        throw Error('invalid');
+        throw Error(
+          'invalid state: property is required when current scope is property'
+        );
       }
       currentScope.push(content, property);
     } else if (currentScope instanceof AutomatonRegion) {
-      if (property) {
-        throw Error('invalid');
-      }
+      // if (property) {
+      //   throw Error(
+      //     'invalid state: property is not allowed when current scope is region'
+      //   );
+      // }
       const idx = currentScope.push(content);
       return (newValue) => {
         currentScope.update(idx, newValue);
