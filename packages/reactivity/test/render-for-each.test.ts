@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
-import { State, useState } from '../lib/state';
-import { JsonAutomaton, JToken } from '../lib/json';
-import { If } from '../lib/core/if';
-import { ForEach, Iterator } from '../lib/core/for';
+import { useState } from '../lib/state';
+import { JsonAutomaton } from '../lib/json';
+import { ForEach } from '../lib/core/for';
 
 describe('render list', () => {
   it('foreach basic', () => {
@@ -32,10 +31,10 @@ describe('render list', () => {
     expect(root).toStrictEqual(['root', [1, '-', '-', '-', 2]]);
   });
 
-  it('foreach on property', () => {
+  it('foreach in property', () => {
     // prepare view
     var values = useState([1, 2, 3]);
-    const view = { bla: [1, ForEach(values, '-'), 2] };
+    const view = { prop: [1, ForEach(values, '-'), 2] };
 
     // render view
     const root: any[] = ['root'];
@@ -45,7 +44,7 @@ describe('render list', () => {
     expect(root).toStrictEqual([
       'root',
       {
-        bla: [1, '-', '-', '-', 2],
+        prop: [1, '-', '-', '-', 2],
       },
     ]);
   });
@@ -63,5 +62,20 @@ describe('render list', () => {
 
     // assert
     expect(root).toStrictEqual(['root', 4, 4, 4]);
+  });
+
+  it('foreach on state in property', async () => {
+    // prepare view
+    const s = useState(3);
+    var values = useState([1, 2, 3]);
+    const view = { prop: ForEach(values, s) };
+
+    // render view
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+    await sandbox.update(s, 4);
+
+    // assert
+    expect(root).toStrictEqual(['root', { prop: [4, 4, 4] }]);
   });
 });

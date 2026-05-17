@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
-import { State, useState } from '../lib/state';
-import { JsonAutomaton, JToken } from '../lib/json';
+import { useState } from '../lib/state';
+import { JsonAutomaton } from '../lib/json';
 import { If } from '../lib/core/if';
 
 describe('render if', () => {
@@ -66,13 +66,14 @@ describe('render if', () => {
     expect(root).toStrictEqual([
       {
         /*promises values are 'naturally resolves'*/
-        p: 'conditional view',
+        p: ['conditional view'],
         a: 123,
+        c: [],
       },
     ]);
 
     // assert
     sandbox.update(stateP, false);
-    expect(root).toStrictEqual([{ p: undefined, a: 123 }]);
+    expect(root).toStrictEqual([{ p: [], a: 123, c: [] }]);
   });
 });
