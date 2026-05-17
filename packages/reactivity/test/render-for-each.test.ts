@@ -12,11 +12,11 @@ describe('render list', () => {
     const view = ForEach(values, '-');
 
     // render view
-    const root: any[] = [];
+    const root: any[] = ['root'];
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual(['-', '-', '-']);
+    expect(root).toStrictEqual(['root', '-', '-', '-']);
   });
 
   it('foreach static and sync', () => {
@@ -25,11 +25,11 @@ describe('render list', () => {
     const view = [1, ForEach(values, '-'), 2];
 
     // render view
-    const root: any[] = [];
+    const root: any[] = ['root'];
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([[1, '-', '-', '-', 2]]);
+    expect(root).toStrictEqual(['root', [1, '-', '-', '-', 2]]);
   });
 
   it('foreach on property', () => {
@@ -38,11 +38,12 @@ describe('render list', () => {
     const view = { bla: [1, ForEach(values, '-'), 2] };
 
     // render view
-    const root: any[] = [];
+    const root: any[] = ['root'];
     render(view, new JsonAutomaton(root));
 
     // assert
     expect(root).toStrictEqual([
+      'root',
       {
         bla: [1, '-', '-', '-', 2],
       },
@@ -56,10 +57,11 @@ describe('render list', () => {
     const view = ForEach(values, s);
 
     // render view
-    const root: any[] = [];
+    const root: any[] = ['root'];
     const sandbox = await render(view, new JsonAutomaton(root));
+    await sandbox.update(s, 4);
 
     // assert
-    expect(root).toStrictEqual([3, 3, 3]);
+    expect(root).toStrictEqual(['root', 4, 4, 4]);
   });
 });

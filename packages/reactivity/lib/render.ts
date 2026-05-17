@@ -68,16 +68,24 @@ export function render(
         viewStack.push(new InitializeState(curr.expr));
       } else if (curr.constructor === Iterator) {
         const tpl = automaton.pushTemplate(currentObject?.property);
+        // viewStack.push(new BindIterator(curr, tpl));
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popScope);
         viewStack.push(curr.body);
 
         sandbox.bindIterator(curr, tpl);
 
-        if (currentObject) {
-          objectsStack.push(currentObject);
-          currentObject = undefined;
-        }
+        // if (currentObject) {
+        //   objectsStack.push(currentObject);
+        //   currentObject = undefined;
+        // }
+      } else if (curr instanceof BindIterator) {
+        // sandbox.bindIterator(curr.expr, curr.template);
+        // sandbox.update(curr.expr.expr, curr.expr.expr.initial);
+        // if (currentObject) {
+        //   objectsStack.push(currentObject);
+        //   currentObject = undefined;
+        // }
       } else if (curr instanceof State) {
         const textNode = automaton.appendText('', currentObject?.property);
         const res = sandbox.bindTextNode(curr, textNode);
@@ -206,4 +214,11 @@ class SelectProperty {
 
 class InitializeState {
   constructor(public expr: State<any>) {}
+}
+
+class BindIterator {
+  constructor(
+    public expr: Iterator<any>,
+    public template: any
+  ) {}
 }

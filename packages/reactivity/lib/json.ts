@@ -39,6 +39,7 @@ type AutomatonScope = Array<any> | Record<any, any>;
 
 class AutomatonTemplate implements ITemplate {
   private items: any[] = [];
+  private regions: IRegion[] = [];
   constructor(
     public automaton: JsonAutomaton,
     public property?: string
@@ -50,7 +51,9 @@ class AutomatonTemplate implements ITemplate {
     items.push(item);
 
     return (newValue: any) => {
-      items[idx] = newValue;
+      for (const reg of this.regions) {
+        reg.update(idx, newValue);
+      }
     };
   }
 
@@ -60,6 +63,10 @@ class AutomatonTemplate implements ITemplate {
     for (const item of this.items) {
       newRegion.push(item);
     }
+
+    this.automaton.up();
+
+    this.regions.push(newRegion);
 
     return newRegion;
   }
@@ -73,7 +80,11 @@ class AutomatonRegion {
     public scope: AutomatonScope,
     public visible: boolean
   ) {
-    this.offset = scope.length;
+    if (this.scope instanceof Array) {
+      this.offset = scope.length;
+    } else {
+      throw Error('invalid state: expected array scope');
+    }
   }
 
   push(item: any) {
@@ -149,8 +160,8 @@ class AutomatonProperty {
     }
   }
 
-  clone() {
-    this.obj[this.property] = this.value;
+  update(_: number, __: any) {
+    throw new Error('invalid state: update is not supported on property');
   }
 }
 

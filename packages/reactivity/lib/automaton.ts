@@ -30,6 +30,7 @@ export const popScope = Symbol();
 export type IRegion = {
   push(item: any, property?: string): void;
   show(visible: boolean): void;
+  update(idx: number, value: any): void;
 };
 
 export type ITemplate = {
