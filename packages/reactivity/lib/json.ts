@@ -1,5 +1,6 @@
 import {
   Automaton,
+  INode,
   IRegion,
   ITemplate,
   ITextNode,
@@ -35,7 +36,7 @@ export function json(token: JToken | JArray) {
   return token;
 }
 
-type AutomatonScope = Record<any, any>;
+type AutomatonScope = Record<string | number, any>;
 
 class AutomatonTemplate implements ITemplate {
   private items: any[] = [];
@@ -57,8 +58,8 @@ class AutomatonTemplate implements ITemplate {
     };
   }
 
-  clone(): IRegion {
-    var newRegion = this.automaton.pushRegion(true, this.property);
+  clone(visible: boolean = true): IRegion {
+    var newRegion = this.automaton.pushRegion(visible, this.property);
 
     for (const item of this.items) {
       newRegion.push(item);
@@ -167,9 +168,64 @@ class AutomatonProperty {
   }
 }
 
+class AutomatonNode {
+  private currentValue?: any;
+
+  constructor(
+    public parent: AutomatonScope,
+    public property: string | number,
+    public visible: boolean = true
+  ) {}
+
+  push(value: any) {
+    this.currentValue = value;
+
+    const { parent, property } = this;
+
+    const nodeValue = this.visible ? value : undefined;
+
+    parent[property as any] = nodeValue;
+
+    return (newValue: any) => {
+      this.currentValue = newValue;
+
+      parent[property as any] = newValue;
+    };
+  }
+
+  show(visible: boolean) {
+    if (this.visible === visible) {
+      return;
+    }
+    this.visible = visible;
+
+    const { parent, property } = this;
+    if (visible) {
+      parent[property as any] = this.currentValue;
+    } else {
+      parent[property as any] = undefined;
+    }
+  }
+}
+
 export class JsonAutomaton implements Automaton {
   private scopes: AutomatonScope[] = [];
   constructor(public currentScope: AutomatonScope) {}
+
+  appendNode(visible: boolean, property?: string): INode {
+    const { currentScope } = this;
+    if (currentScope) {
+      this.scopes.push(currentScope);
+    }
+
+    const newNode = new AutomatonNode(
+      currentScope,
+      property ?? currentScope.length,
+      visible
+    );
+    this.currentScope = newNode;
+    return newNode;
+  }
 
   pushRegion(visible: boolean, property?: string): IRegion {
     const { currentScope } = this;
@@ -305,6 +361,8 @@ export class JsonAutomaton implements Automaton {
       return (newValue) => {
         currentScope.update(idx, newValue);
       };
+    } else if (currentScope instanceof AutomatonNode) {
+      return currentScope.push(content);
     } else if (currentScope instanceof Array) {
       const nodeIndex = currentScope.length;
       currentScope.push(content);

@@ -44,7 +44,7 @@ export interface EffectInstruction {
 export interface ShowInstruction {
   type: InstructionEnum.Show;
   level: number;
-  region: {
+  node: {
     show(visible: boolean): void;
   };
 }
@@ -54,7 +54,7 @@ export interface ForEachInstruction {
   level: number;
   key: symbol;
   template: {
-    clone(): void;
+    clone(visible?: boolean): void;
   };
 }
 

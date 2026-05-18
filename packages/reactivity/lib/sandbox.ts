@@ -91,7 +91,7 @@ export class Sandbox {
             }
             break;
           case InstructionEnum.Show:
-            instruction.region.show(currentValue);
+            instruction.node.show(currentValue);
             break;
 
           case InstructionEnum.ForEach:
@@ -133,7 +133,7 @@ export class Sandbox {
     });
   }
 
-  bindConditional(expr: State<boolean>, region: any) {
+  bindConditional(expr: State<boolean>, node: any) {
     const { graph } = expr;
     const program = (this.updates[graph] ??= [
       {
@@ -147,7 +147,7 @@ export class Sandbox {
     program.push({
       type: InstructionEnum.Show,
       level: 0,
-      region,
+      node,
     });
   }
 

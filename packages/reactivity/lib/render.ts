@@ -58,14 +58,18 @@ export function render(
       } else if (curr.constructor === Number) {
         const node = automaton.appendText(curr, currentObject?.property);
       } else if (curr.constructor === Conditional) {
-        const { initial } = curr.expr;
-
-        const region = automaton.pushRegion(false, currentObject?.property);
-        sandbox.bindConditional(curr.expr, region);
+        const node = automaton.appendNode(false, currentObject?.property);
+        sandbox.bindConditional(curr.expr, node);
 
         viewStack.push(popScope);
         viewStack.push(curr.body);
         viewStack.push(new InitializeState(curr.expr));
+
+        // const region = automaton.pushRegion(false, currentObject?.property);
+
+        // viewStack.push(popScope);
+        // viewStack.push(curr.body);
+        // viewStack.push(new InitializeState(curr.expr));
       } else if (curr.constructor === Iterator) {
         const tpl = automaton.pushTemplate(currentObject?.property);
         // viewStack.push(new BindIterator(curr, tpl));

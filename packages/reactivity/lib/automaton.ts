@@ -1,5 +1,3 @@
-import { I } from 'vitest/dist/chunks/reporters.d.CqBhtcTq';
-
 export interface Automaton {
   up(): void;
   appendArray(property?: string): void;
@@ -9,6 +7,7 @@ export interface Automaton {
     content?: ITextNode['nodeValue'],
     property?: string
   ): ITextNode | TextNodeUpdater;
+  appendNode(visible: boolean, property?: string): INode;
   pushRegion(visible: boolean, property?: string): IRegion;
   pushTemplate(property?: string): ITemplate;
 }
@@ -27,6 +26,10 @@ export class SetProperty {
 
 export const popScope = Symbol();
 
+export type INode = {
+  push(item: any, property?: string): void;
+  show(visible: boolean): void;
+};
 export type IRegion = {
   push(item: any, property?: string): void;
   show(visible: boolean): void;
@@ -35,5 +38,5 @@ export type IRegion = {
 
 export type ITemplate = {
   push(item: any, property?: string): void;
-  clone(): IRegion;
+  clone(visible?: boolean): IRegion;
 };

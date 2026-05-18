@@ -26,7 +26,7 @@ describe('render if', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([]);
+    expect(root).toStrictEqual([undefined]);
   });
 
   it('reactive branch sync', async () => {
@@ -39,12 +39,12 @@ describe('render if', () => {
     const sandbox = await render(view, new JsonAutomaton(root));
 
     // assert
-    sandbox.update(state, true);
+    await sandbox.update(state, true);
     expect(root).toStrictEqual([['left', 'conditional view', 'right']]);
 
     // assert
     sandbox.update(state, false);
-    expect(root).toStrictEqual([['left', 'right']]);
+    expect(root).toStrictEqual([['left', undefined, 'right']]);
   });
 
   it('reactive branch with property', async () => {
@@ -62,18 +62,17 @@ describe('render if', () => {
     const sandbox = await render(view, new JsonAutomaton(root));
 
     // assert
-    sandbox.update(stateP, true);
+    await sandbox.update(stateP, true);
     expect(root).toStrictEqual([
       {
-        /*promises values are 'naturally resolves'*/
-        p: ['conditional view'],
+        p: 'conditional view',
         a: 123,
-        c: [],
+        c: undefined,
       },
     ]);
 
     // assert
-    sandbox.update(stateP, false);
-    expect(root).toStrictEqual([{ p: [], a: 123, c: [] }]);
+    await sandbox.update(stateP, false);
+    expect(root).toStrictEqual([{ p: undefined, a: 123, c: undefined }]);
   });
 });
