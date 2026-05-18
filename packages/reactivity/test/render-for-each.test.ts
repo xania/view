@@ -73,9 +73,25 @@ describe('render list', () => {
     // render view
     const root: any[] = ['root'];
     const sandbox = await render(view, new JsonAutomaton(root));
+    // assert
+    expect(root).toStrictEqual(['root', { prop: [3, 3, 3] }]);
+
     await sandbox.update(s, 4);
 
     // assert
     expect(root).toStrictEqual(['root', { prop: [4, 4, 4] }]);
+  });
+
+  it('foreach dynamic', () => {
+    // prepare view
+    var values = useState([1]);
+    const view = ForEach(values, (e) => e);
+
+    // render view
+    const root: any[] = ['root'];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual(['root', 1]);
   });
 });

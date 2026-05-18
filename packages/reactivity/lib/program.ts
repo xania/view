@@ -9,7 +9,9 @@ export type Instruction =
   | ReadInstruction
   | EffectInstruction
   | ShowInstruction
-  | ForEachInstruction;
+  | ForEachInstruction
+  | CloneInstruction
+  | JumpInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -52,10 +54,23 @@ export interface ShowInstruction {
 export interface ForEachInstruction {
   type: InstructionEnum.ForEach;
   level: number;
-  key: symbol;
+  exprKey: symbol;
+  itemState?: symbol;
+}
+
+export interface CloneInstruction {
+  type: InstructionEnum.Clone;
+  level: number;
+  jump: number;
   template: {
     clone(visible?: boolean): void;
   };
+}
+
+export interface JumpInstruction {
+  type: InstructionEnum.Jump;
+  level: number;
+  steps: number;
 }
 
 export enum InstructionEnum {
@@ -66,4 +81,6 @@ export enum InstructionEnum {
   SetText,
   Show,
   ForEach,
+  Clone,
+  Jump,
 }

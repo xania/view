@@ -331,10 +331,12 @@ export class JsonAutomaton implements Automaton {
   }
 
   appendText(
-    content: ITextNode['nodeValue'],
+    input: ITextNode['nodeValue'],
     property?: string
   ): TextNodeUpdater {
     const { currentScope } = this;
+
+    const content = input ?? '';
 
     if (currentScope instanceof AutomatonTemplate) {
       // if (property) {

@@ -1,6 +1,7 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
 import {
   Automaton,
+  ITemplate,
   ITextNode,
   popScope,
   SetProperty,
@@ -64,34 +65,19 @@ export function render(
         viewStack.push(popScope);
         viewStack.push(curr.body);
         viewStack.push(new InitializeState(curr.expr));
-
-        // const region = automaton.pushRegion(false, currentObject?.property);
-
-        // viewStack.push(popScope);
-        // viewStack.push(curr.body);
-        // viewStack.push(new InitializeState(curr.expr));
       } else if (curr.constructor === Iterator) {
         const tpl = automaton.pushTemplate(currentObject?.property);
-        // viewStack.push(new BindIterator(curr, tpl));
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popScope);
+        viewStack.push(new BindIterator(curr, tpl));
         viewStack.push(curr.body);
-
-        sandbox.bindIterator(curr, tpl);
-
-        // if (currentObject) {
-        //   objectsStack.push(currentObject);
-        //   currentObject = undefined;
-        // }
       } else if (curr instanceof BindIterator) {
-        // sandbox.bindIterator(curr.expr, curr.template);
-        // sandbox.update(curr.expr.expr, curr.expr.expr.initial);
-        // if (currentObject) {
-        //   objectsStack.push(currentObject);
-        //   currentObject = undefined;
-        // }
+        sandbox.bindIterator(curr.iterator, curr.template);
       } else if (curr instanceof State) {
-        const textNode = automaton.appendText('', currentObject?.property);
+        const textNode = automaton.appendText(
+          curr.initial,
+          currentObject?.property
+        );
         const res = sandbox.bindTextNode(curr, textNode);
         if (res) {
           promises.push(res);
@@ -222,7 +208,7 @@ class InitializeState {
 
 class BindIterator {
   constructor(
-    public expr: Iterator<any>,
-    public template: any
+    public iterator: Iterator<any>,
+    public template: ITemplate
   ) {}
 }

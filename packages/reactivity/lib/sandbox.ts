@@ -1,6 +1,11 @@
 import { ITextNode, TextNodeUpdater } from './automaton';
 import { Iterator } from './core/for';
-import { ForEachInstruction, InstructionEnum, Program } from './program';
+import {
+  CloneInstruction,
+  ForEachInstruction,
+  InstructionEnum,
+  Program,
+} from './program';
 import { Arrow, FuncArrow, State, Value } from './state';
 import { Scope, RootScope } from './scope';
 
@@ -17,7 +22,7 @@ export class Sandbox {
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
-    const { values } = this;
+    const { values, updates } = this;
     const oldValue = values[state.key];
 
     if (oldValue === newValue) {
@@ -43,6 +48,7 @@ export class Sandbox {
     }
 
     const promises: Promise<void>[] = [];
+    const enumerators: Enumerator[] = [];
     loop(newValue, stateIdx);
 
     if (promises.length) {
@@ -96,24 +102,40 @@ export class Sandbox {
 
           case InstructionEnum.ForEach:
             if (currentValue instanceof Promise) {
-              currentValue = currentValue.then((resolved) => {
-                for (const a of resolved) {
-                  instruction.template.clone();
-                }
-              });
+              throw new Error('Not Yet Supported');
             } else {
-              for (const a of currentValue) {
-                instruction.template.clone();
-              }
+              enumerators.push({
+                items: currentValue,
+                index: 0,
+              });
             }
 
+            break;
+          case InstructionEnum.Clone:
+            const enumerator = enumerators[enumerators.length - 1];
+            if (!enumerator) {
+              instructionIdx += instruction.jump;
+            } else {
+              const { index, items } = enumerator;
+              if (index < items.length) {
+                currentValue = items[index];
+                enumerator.index = index + 1;
+                instruction.template.clone();
+              } else {
+                instructionIdx += instruction.jump;
+              }
+            }
+            break;
+
+          case InstructionEnum.Jump:
+            instructionIdx += instruction.steps;
             break;
         }
       }
     }
   }
 
-  bindIterator(iter: Iterator<any>, template: ForEachInstruction['template']) {
+  bindIterator(iter: Iterator<any>, template: CloneInstruction['template']) {
     const { expr } = iter;
     const { graph } = expr;
     const program = (this.updates[graph] ??= [
@@ -125,11 +147,34 @@ export class Sandbox {
     ]);
 
     compile(expr, program);
+
+    const startIdx = program.length;
     program.push({
       type: InstructionEnum.ForEach,
       level: 0,
-      key: expr.key,
+      exprKey: expr.key,
+      itemState: iter.itemState?.key,
+    });
+
+    const itemUpdate = iter.itemState
+      ? this.updates[iter.itemState.key]
+      : undefined;
+
+    program.push({
+      type: InstructionEnum.Clone,
+      level: 0,
       template,
+      jump: (itemUpdate?.length ?? 0) + 1,
+    });
+
+    if (itemUpdate) {
+      program.push(...itemUpdate);
+    }
+
+    program.push({
+      type: InstructionEnum.Jump,
+      level: 0,
+      steps: startIdx - program.length,
     });
   }
 
@@ -276,8 +321,14 @@ export function compile(state: State<any, any>, program: Program) {
     s = s.parent;
   }
 }
+
 function printProgram(program: Program) {
-  for (const instruction of program) {
-    console.log(InstructionEnum[instruction.type], instruction.level);
-  }
+  return program
+    .map((instruction) => InstructionEnum[instruction.type])
+    .join('\n');
 }
+
+type Enumerator = {
+  items: any[];
+  index: number;
+};
