@@ -1,22 +1,15 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import {
-  Automaton,
-  ITemplate,
-  ITextNode,
-  popScope,
-  SetProperty,
-  TextNodeUpdater,
-} from './automaton';
+import { Automaton, ITemplate, popScope } from './automaton';
 import { Conditional } from './core/if';
 import { Iterator } from './core/for';
 import { Sandbox } from './sandbox';
-import { State } from './state';
+import { RootScope, Scope, State } from './state';
 
 export function render(
   view: any,
   automaton: Automaton
 ): Promise<Sandbox> | Sandbox {
-  const sandbox = new Sandbox();
+  const sandbox = new Sandbox(automaton);
 
   if (view === undefined || view === null) {
     return sandbox;
@@ -28,7 +21,7 @@ export function render(
   let currentObject: (typeof objectsStack)[number] | undefined = undefined;
 
   const promises: Promise<void>[] = [];
-  const retval = loop();
+  const retval = traverse(RootScope);
 
   if (retval instanceof Promise) {
     promises.push(retval);
@@ -40,7 +33,7 @@ export function render(
     return sandbox;
   }
 
-  function loop(): void | Promise<void> {
+  function traverse(currentScope: Scope): void | Promise<void> {
     while (viewStack.length) {
       const curr = viewStack.pop()!;
       if (curr === null || curr === undefined) {
@@ -50,14 +43,22 @@ export function render(
       if (curr instanceof Promise) {
         return curr.then((resolved) => {
           viewStack.push(resolved);
-          return loop();
+          return traverse(currentScope);
         });
       }
 
       if (curr.constructor === String) {
-        const node = automaton.appendText(curr, currentObject?.property);
+        const node = automaton.appendText(
+          currentScope,
+          curr,
+          currentObject?.property
+        );
       } else if (curr.constructor === Number) {
-        const node = automaton.appendText(curr, currentObject?.property);
+        const node = automaton.appendText(
+          currentScope,
+          curr,
+          currentObject?.property
+        );
       } else if (curr.constructor === Conditional) {
         const node = automaton.appendNode(false, currentObject?.property);
         sandbox.bindConditional(curr.expr, node);
@@ -66,7 +67,7 @@ export function render(
         viewStack.push(curr.body);
         viewStack.push(new InitializeState(curr.expr));
       } else if (curr.constructor === Iterator) {
-        const tpl = automaton.pushTemplate(currentObject?.property);
+        const tpl = automaton.pushTemplate(curr.scope, currentObject?.property);
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popScope);
         viewStack.push(new BindIterator(curr, tpl));
@@ -75,10 +76,11 @@ export function render(
         sandbox.bindIterator(curr.iterator, curr.template);
       } else if (curr instanceof State) {
         const textNode = automaton.appendText(
+          curr.scope,
           curr.initial,
           currentObject?.property
         );
-        const res = sandbox.bindTextNode(curr, textNode);
+        const res = sandbox.bindTextNode(currentScope, curr, textNode);
         if (res) {
           promises.push(res);
         }

@@ -84,7 +84,7 @@ describe('render list', () => {
 
   it('foreach dynamic', () => {
     // prepare view
-    var values = useState([1]);
+    var values = useState([1, 2, 3]);
     const view = ForEach(values, (e) => e);
 
     // render view
@@ -92,6 +92,6 @@ describe('render list', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual(['root', 1]);
+    expect(root).toStrictEqual(['root', 1, 2, 3]);
   });
 });

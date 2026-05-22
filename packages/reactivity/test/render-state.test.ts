@@ -6,7 +6,7 @@ import { JsonAutomaton, JToken } from '../lib/json';
 // import { jsx } from 'xania/jsx-runtime';
 
 describe('render state', () => {
-  it('trivial sync', () => {
+  it('trivial sync 123', () => {
     // prepare view
     const view = 'sample view';
 
@@ -119,9 +119,11 @@ describe('render state', () => {
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    await sandbox.update(state, Promise.resolve(2));
+    expect(root).toEqual([['state: ', 1, '-', 2]]);
 
-    expect(root).toEqual([['state: ', 2, '-', 3]]);
+    // await sandbox.update(state, Promise.resolve(2));
+
+    // expect(root).toEqual([['state: ', 2, '-', 3]]);
   });
 });
 

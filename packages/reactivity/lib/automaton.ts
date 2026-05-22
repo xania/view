@@ -1,18 +1,21 @@
+import { Scope } from './state';
+
 export interface Automaton {
   up(): void;
   appendArray(property?: string): void;
   appendObject(property?: string): void;
   appendElement(child: any, property?: string): Array<any> | Record<any, any>; // -> children
   appendText(
+    scope: Scope,
     content?: ITextNode['nodeValue'],
     property?: string
   ): ITextNode | TextNodeUpdater;
   appendNode(visible: boolean, property?: string): INode;
   pushRegion(visible: boolean, property?: string): IRegion;
-  pushTemplate(property?: string): ITemplate;
+  pushTemplate(scope: Scope, property?: string): ITemplate;
 }
 
-export type TextNodeUpdater = (nodeValue: any) => void;
+export type TextNodeUpdater = (scope: Scope, nodeValue: any) => void;
 export interface ITextNode {
   nodeValue: any;
 }
@@ -37,6 +40,6 @@ export type IRegion = {
 };
 
 export type ITemplate = {
-  push(item: any, property?: string): void;
+  push(scope: Scope, item: any, property?: string): void;
   clone(visible?: boolean): IRegion;
 };

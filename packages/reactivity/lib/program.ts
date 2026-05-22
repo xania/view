@@ -1,4 +1,5 @@
 import { ITextNode } from './automaton';
+import { Scope } from './state';
 
 export type Program = Instruction[];
 
@@ -40,7 +41,7 @@ export interface FuncInstruction {
 export interface EffectInstruction {
   type: InstructionEnum.Effect;
   level: number;
-  func: (x: any) => void | Promise<void>;
+  func: (scope: Scope, x: any) => void | Promise<void>;
 }
 
 export interface ShowInstruction {
@@ -68,7 +69,7 @@ export interface CloneInstruction {
 }
 
 export interface JumpInstruction {
-  type: InstructionEnum.Jump;
+  type: InstructionEnum.MoveNext;
   level: number;
   steps: number;
 }
@@ -82,5 +83,5 @@ export enum InstructionEnum {
   Show,
   ForEach,
   Clone,
-  Jump,
+  MoveNext,
 }

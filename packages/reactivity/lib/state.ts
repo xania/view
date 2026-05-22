@@ -13,8 +13,6 @@
  * as property or index selection.
  */
 
-import { Scope, RootScope } from './scope';
-
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
 class ArrowBase<S = unknown, T = unknown> {
@@ -72,10 +70,6 @@ export class State<T, TParent extends State<any, any> | void = void> {
 
     return new State(this.scope, newValue, this, [other]);
   }
-}
-
-export function useState<T>(initial?: Value<T>) {
-  return new State<T>(RootScope, initial);
 }
 
 export class FuncArrow<S, T> extends ArrowBase<S, T> {
@@ -140,4 +134,24 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
   if (input instanceof Function) return new FuncArrow<S, T>(input);
 
   return input;
+}
+
+export class Scope {
+  constructor(public level: number) {}
+
+  pushScope() {
+    const { level } = this;
+    const newScope = new Scope(level + 1);
+    return newScope;
+  }
+
+  state<T>(initial?: T) {
+    return new State<T>(this, initial);
+  }
+}
+
+export const RootScope = new Scope(0); // root scope
+
+export function useState<T>(initial?: T) {
+  return new State<T>(RootScope, initial);
 }

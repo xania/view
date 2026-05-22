@@ -1,28 +1,17 @@
-import { ITextNode, TextNodeUpdater } from './automaton';
+import { Automaton, ITextNode, TextNodeUpdater } from './automaton';
 import { Iterator } from './core/for';
-import {
-  CloneInstruction,
-  ForEachInstruction,
-  InstructionEnum,
-  Program,
-} from './program';
-import { Arrow, FuncArrow, State, Value } from './state';
-import { Scope, RootScope } from './scope';
+import { CloneInstruction, InstructionEnum, Program } from './program';
+import { Arrow, FuncArrow, RootScope, Scope, State, Value } from './state';
 
 export class Sandbox {
   private values: Record<symbol, any> = {};
   private updates: Record<symbol, Program> = {};
-  private currentScope: Scope = RootScope;
 
-  public pushScope() {
-    this.currentScope = new Scope();
-  }
-
-  constructor() {}
+  constructor(public automaton: Automaton) {}
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
-    const { values, updates } = this;
+    const { values, updates, automaton } = this;
     const oldValue = values[state.key];
 
     if (oldValue === newValue) {
@@ -48,16 +37,17 @@ export class Sandbox {
     }
 
     const promises: Promise<void>[] = [];
-    const enumerators: Enumerator[] = [];
-    loop(newValue, stateIdx);
+    loop(state.scope, newValue, stateIdx);
 
     if (promises.length) {
       return Promise.all(promises);
     }
 
     function loop(
+      currentScope: Scope,
       currentValue: any,
-      instructionIdx: number
+      instructionIdx: number,
+      enumerator?: Enumerator
     ): Promise<void> | void {
       for (; instructionIdx < program.length; instructionIdx++) {
         const instruction = program[instructionIdx];
@@ -91,9 +81,11 @@ export class Sandbox {
             break;
           case InstructionEnum.Effect:
             if (currentValue instanceof Promise) {
-              promises.push(currentValue.then(instruction.func));
+              promises.push(
+                currentValue.then((x) => instruction.func(currentScope, x))
+              );
             } else {
-              instruction.func(currentValue);
+              instruction.func(currentScope, currentValue);
             }
             break;
           case InstructionEnum.Show:
@@ -104,7 +96,7 @@ export class Sandbox {
             if (currentValue instanceof Promise) {
               throw new Error('Not Yet Supported');
             } else {
-              enumerators.push({
+              return loop(currentScope, currentValue, instructionIdx + 1, {
                 items: currentValue,
                 index: 0,
               });
@@ -112,7 +104,6 @@ export class Sandbox {
 
             break;
           case InstructionEnum.Clone:
-            const enumerator = enumerators[enumerators.length - 1];
             if (!enumerator) {
               instructionIdx += instruction.jump;
             } else {
@@ -127,7 +118,8 @@ export class Sandbox {
             }
             break;
 
-          case InstructionEnum.Jump:
+          case InstructionEnum.MoveNext:
+            automaton.up();
             instructionIdx += instruction.steps;
             break;
         }
@@ -172,7 +164,7 @@ export class Sandbox {
     }
 
     program.push({
-      type: InstructionEnum.Jump,
+      type: InstructionEnum.MoveNext,
       level: 0,
       steps: startIdx - program.length,
     });
@@ -197,9 +189,13 @@ export class Sandbox {
   }
 
   bindTextNode(
+    scope: Scope,
     state: State<any, any>,
     textNode: ITextNode | TextNodeUpdater
   ): void | Promise<void> {
+    if (!(scope instanceof Scope)) {
+      debugger;
+    }
     let value: any = undefined;
 
     const { graph, arrows } = state;
@@ -234,12 +230,12 @@ export class Sandbox {
     } else if (stateValue instanceof Promise) {
       return stateValue.then((resolved) => {
         if (resolved !== null && resolved !== undefined) {
-          if (textNode instanceof Function) textNode(resolved);
+          if (textNode instanceof Function) textNode(scope, resolved);
           else textNode.nodeValue = resolved as string;
         }
       });
     } else {
-      if (textNode instanceof Function) textNode(stateValue);
+      if (textNode instanceof Function) textNode(scope, stateValue);
       else textNode.nodeValue = stateValue as string;
     }
 
