@@ -58,7 +58,7 @@ class AutomatonTemplate implements ITemplate {
 
     const templateScope = this.scope;
 
-    return (scope: Scope, newValue: any) => {
+    return (newValue: any) => {
       if (stateScope.level < templateScope.level) {
         for (const reg of this.regions) {
           reg.update(idx, newValue);
@@ -370,7 +370,7 @@ export class JsonAutomaton implements Automaton {
       //   );
       // }
       const idx = currentTarget.push(scope, content);
-      return (scope: Scope, newValue) => {
+      return (newValue) => {
         currentTarget.update(idx, newValue);
       };
     } else if (currentTarget instanceof AutomatonNode) {
@@ -379,21 +379,17 @@ export class JsonAutomaton implements Automaton {
       const nodeIndex = currentTarget.length;
       currentTarget.push(content);
 
-      return function (scope: Scope, value: ITextNode['nodeValue']) {
+      return function (value: ITextNode['nodeValue']) {
         currentTarget[nodeIndex] = value;
       };
     } else if (property) {
       currentTarget[property] = content;
 
-      return function (scope: Scope, value: ITextNode['nodeValue']) {
+      return function (value: ITextNode['nodeValue']) {
         currentTarget[property] = value;
       };
     } else {
-      currentTarget.push(scope, content);
-
-      return function (scope: Scope, value: ITextNode['nodeValue']) {
-        currentTarget.push(scope, value);
-      };
+      throw Error('Not yet implemented!');
     }
 
     return () => {

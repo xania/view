@@ -41,7 +41,7 @@ export interface FuncInstruction {
 export interface EffectInstruction {
   type: InstructionEnum.Effect;
   level: number;
-  func: (scope: Scope, x: any) => void | Promise<void>;
+  func: (x: any) => void | Promise<void>;
 }
 
 export interface ShowInstruction {

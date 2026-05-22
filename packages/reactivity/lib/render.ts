@@ -1,5 +1,5 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { Automaton, ITemplate, popScope } from './automaton';
+import { Automaton, ITemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { Iterator } from './core/for';
 import { Sandbox } from './sandbox';
@@ -20,7 +20,7 @@ export function render(
   const objectsStack: { property?: string }[] = [];
   let currentObject: (typeof objectsStack)[number] | undefined = undefined;
 
-  const promises: Promise<void>[] = [];
+  const promises: Promise<any>[] = [];
   const retval = traverse(RootScope);
 
   if (retval instanceof Promise) {
@@ -63,13 +63,13 @@ export function render(
         const node = automaton.appendNode(false, currentObject?.property);
         sandbox.bindConditional(curr.expr, node);
 
-        viewStack.push(popScope);
+        viewStack.push(popTarget);
         viewStack.push(curr.body);
         viewStack.push(new InitializeState(curr.expr));
       } else if (curr.constructor === Iterator) {
         const tpl = automaton.pushTemplate(curr.scope, currentObject?.property);
         viewStack.push(new InitializeState(curr.expr));
-        viewStack.push(popScope);
+        viewStack.push(popTarget);
         viewStack.push(new BindIterator(curr, tpl));
         viewStack.push(curr.body);
       } else if (curr instanceof BindIterator) {
@@ -80,7 +80,7 @@ export function render(
           curr.initial,
           currentObject?.property
         );
-        const res = sandbox.bindTextNode(currentScope, curr, textNode);
+        const res = sandbox.bindTextNode(curr, textNode);
         if (res) {
           promises.push(res);
         }
@@ -89,14 +89,21 @@ export function render(
           currentObject.property = curr.property;
         }
       } else if (curr instanceof InitializeState) {
-        sandbox.update(curr.expr, curr.expr.initial);
-      } else if (curr === popScope) {
+        const { initial } = curr.expr;
+        if (initial instanceof Promise) {
+          return initial
+            .then((res) => sandbox.update(curr.expr, res))
+            .then((_) => traverse(currentScope));
+        } else {
+          sandbox.update(curr.expr, initial);
+        }
+      } else if (curr === popTarget) {
         automaton.up();
       } else if (curr === popCurrentObject) {
         currentObject = objectsStack.pop();
       } else if (curr.constructor === Array) {
         automaton.appendArray(currentObject?.property);
-        viewStack.push(popScope);
+        viewStack.push(popTarget);
 
         if (currentObject) {
           objectsStack.push(currentObject);
@@ -112,7 +119,7 @@ export function render(
         }
       } else {
         automaton.appendObject(currentObject?.property);
-        viewStack.push(popScope);
+        viewStack.push(popTarget);
 
         if (currentObject) {
           objectsStack.push(currentObject);

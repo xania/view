@@ -37,14 +37,13 @@ export class Sandbox {
     }
 
     const promises: Promise<void>[] = [];
-    loop(state.scope, newValue, stateIdx);
+    traverse(newValue, stateIdx);
 
     if (promises.length) {
       return Promise.all(promises);
     }
 
-    function loop(
-      currentScope: Scope,
+    function traverse(
       currentValue: any,
       instructionIdx: number,
       enumerator?: Enumerator
@@ -81,11 +80,9 @@ export class Sandbox {
             break;
           case InstructionEnum.Effect:
             if (currentValue instanceof Promise) {
-              promises.push(
-                currentValue.then((x) => instruction.func(currentScope, x))
-              );
+              promises.push(currentValue.then(instruction.func));
             } else {
-              instruction.func(currentScope, currentValue);
+              instruction.func(currentValue);
             }
             break;
           case InstructionEnum.Show:
@@ -96,7 +93,7 @@ export class Sandbox {
             if (currentValue instanceof Promise) {
               throw new Error('Not Yet Supported');
             } else {
-              return loop(currentScope, currentValue, instructionIdx + 1, {
+              return traverse(currentValue, instructionIdx + 1, {
                 items: currentValue,
                 index: 0,
               });
@@ -189,13 +186,9 @@ export class Sandbox {
   }
 
   bindTextNode(
-    scope: Scope,
     state: State<any, any>,
     textNode: ITextNode | TextNodeUpdater
   ): void | Promise<void> {
-    if (!(scope instanceof Scope)) {
-      debugger;
-    }
     let value: any = undefined;
 
     const { graph, arrows } = state;
@@ -230,12 +223,12 @@ export class Sandbox {
     } else if (stateValue instanceof Promise) {
       return stateValue.then((resolved) => {
         if (resolved !== null && resolved !== undefined) {
-          if (textNode instanceof Function) textNode(scope, resolved);
+          if (textNode instanceof Function) textNode(resolved);
           else textNode.nodeValue = resolved as string;
         }
       });
     } else {
-      if (textNode instanceof Function) textNode(scope, stateValue);
+      if (textNode instanceof Function) textNode(stateValue);
       else textNode.nodeValue = stateValue as string;
     }
 

@@ -15,7 +15,7 @@ export interface Automaton {
   pushTemplate(scope: Scope, property?: string): ITemplate;
 }
 
-export type TextNodeUpdater = (scope: Scope, nodeValue: any) => void;
+export type TextNodeUpdater = (nodeValue: any) => void;
 export interface ITextNode {
   nodeValue: any;
 }

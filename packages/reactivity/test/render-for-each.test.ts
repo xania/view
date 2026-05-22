@@ -82,7 +82,7 @@ describe('render list', () => {
     expect(root).toStrictEqual(['root', { prop: [4, 4, 4] }]);
   });
 
-  it('foreach dynamic', () => {
+  it('foreach item state', () => {
     // prepare view
     var values = useState([1, 2, 3]);
     const view = ForEach(values, (e) => e);
