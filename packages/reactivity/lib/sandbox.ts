@@ -70,42 +70,30 @@ export class Sandbox {
             break;
           case InstructionEnum.Update:
             {
-              const { object, property } = instruction;
+              const { property } = instruction;
+              const target = instruction.target ?? automaton.currentTarget;
 
-              if (object instanceof Array) {
-                object[property as number] = currentValue;
-              } else if (object.update instanceof Function) {
-                object.update(property, currentValue);
+              if (target instanceof Array) {
+                target[property as number] = currentValue;
+              } else if (target.update instanceof Function) {
+                target.update(property, currentValue);
               } else {
-                object[property] = currentValue;
+                target[property] = currentValue;
               }
             }
             break;
           case InstructionEnum.UpdateMany:
             {
-              const { objects, property } = instruction;
+              const { targets, property } = instruction;
 
-              for (const object of objects) {
-                if (object instanceof Array) {
-                  object[property as number] = currentValue;
-                } else if (object.update instanceof Function) {
-                  object.update(property, currentValue);
+              for (const target of targets) {
+                if (target instanceof Array) {
+                  target[property as number] = currentValue;
+                } else if (target.update instanceof Function) {
+                  target.update(property, currentValue);
                 } else {
-                  object[property] = currentValue;
+                  target[property] = currentValue;
                 }
-              }
-            }
-            break;
-          case InstructionEnum.UpdateCurrent:
-            {
-              const { property } = instruction;
-
-              const object = automaton.currentTarget;
-
-              if (object.update instanceof Function) {
-                object.update(property, currentValue);
-              } else {
-                object[property] = currentValue;
               }
             }
             break;
@@ -150,7 +138,7 @@ export class Sandbox {
             }
 
             break;
-          case InstructionEnum.Clone:
+          case InstructionEnum.MoveNext:
             if (!enumerator) {
               instructionIdx += instruction.jump;
             } else {
@@ -158,14 +146,16 @@ export class Sandbox {
               if (index < items.length) {
                 currentValue = items[index];
                 enumerator.index = index + 1;
-                instruction.template.clone();
               } else {
                 instructionIdx += instruction.jump;
               }
             }
             break;
+          case InstructionEnum.Clone:
+            instruction.template.clone();
+            break;
 
-          case InstructionEnum.MoveNext:
+          case InstructionEnum.Jump:
             automaton.up();
             instructionIdx += instruction.steps;
             break;
@@ -199,19 +189,25 @@ export class Sandbox {
       ? this.updates[iter.itemState.key]
       : undefined;
 
-    program.push({
-      type: InstructionEnum.Clone,
-      level: 0,
-      template,
-      jump: (itemUpdate?.length ?? 0) + 1,
-    });
+    program.push(
+      {
+        type: InstructionEnum.MoveNext,
+        level: 0,
+        jump: (itemUpdate?.length ?? 0) + 2,
+      },
+      {
+        type: InstructionEnum.Clone,
+        level: 0,
+        template,
+      }
+    );
 
     if (itemUpdate) {
       program.push(...itemUpdate);
     }
 
     program.push({
-      type: InstructionEnum.MoveNext,
+      type: InstructionEnum.Jump,
       level: 0,
       steps: startIdx - program.length,
     });

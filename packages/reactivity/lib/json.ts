@@ -343,7 +343,7 @@ export class JsonAutomaton implements Automaton {
         {
           type: InstructionEnum.Update,
           level: 0,
-          object: currentTarget,
+          target: currentTarget,
           property: nodeIndex,
         },
       ];
@@ -355,14 +355,14 @@ export class JsonAutomaton implements Automaton {
           {
             type: InstructionEnum.UpdateMany,
             level: 0,
-            objects: currentTarget.regions,
+            targets: currentTarget.regions,
             property: itemIdx,
           },
         ];
       } else {
         return [
           {
-            type: InstructionEnum.UpdateCurrent,
+            type: InstructionEnum.Update,
             level: 0,
             property: itemIdx,
           },
@@ -374,7 +374,7 @@ export class JsonAutomaton implements Automaton {
         {
           type: InstructionEnum.Update,
           level: 0,
-          object: currentTarget,
+          target: currentTarget,
           property,
         },
       ];

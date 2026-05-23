@@ -15,7 +15,7 @@ export type Instruction =
   | JumpInstruction
   | UpdateInstruction
   | UpdateManyInstruction
-  | UpdateCurrentInstruction;
+  | MoveNextInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -65,14 +65,13 @@ export interface ForEachInstruction {
 export interface CloneInstruction {
   type: InstructionEnum.Clone;
   level: number;
-  jump: number;
   template: {
     clone(visible?: boolean): void;
   };
 }
 
 export interface JumpInstruction {
-  type: InstructionEnum.MoveNext;
+  type: InstructionEnum.Jump;
   level: number;
   steps: number;
 }
@@ -80,21 +79,21 @@ export interface JumpInstruction {
 export interface UpdateInstruction {
   type: InstructionEnum.Update;
   level: number;
-  object: Updatable;
+  target?: Updatable;
   property: string | number;
 }
 
 export interface UpdateManyInstruction {
   type: InstructionEnum.UpdateMany;
   level: number;
-  objects: Updatable[];
+  targets: Updatable[];
   property: string | number;
 }
 
-export interface UpdateCurrentInstruction {
-  type: InstructionEnum.UpdateCurrent;
+export interface MoveNextInstruction {
+  type: InstructionEnum.MoveNext;
   level: number;
-  property: string | number;
+  jump: number;
 }
 
 export enum InstructionEnum {
@@ -106,8 +105,8 @@ export enum InstructionEnum {
   Show,
   ForEach,
   Clone,
-  MoveNext,
+  Jump,
   Update,
   UpdateMany,
-  UpdateCurrent,
+  MoveNext,
 }
