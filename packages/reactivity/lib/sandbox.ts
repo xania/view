@@ -73,7 +73,7 @@ export class Sandbox {
               const { object, property } = instruction;
 
               if (object instanceof Array) {
-                object[property] = currentValue;
+                object[property as number] = currentValue;
               } else if (object.update instanceof Function) {
                 object.update(property, currentValue);
               } else {
@@ -87,7 +87,7 @@ export class Sandbox {
 
               for (const object of objects) {
                 if (object instanceof Array) {
-                  object[property] = currentValue;
+                  object[property as number] = currentValue;
                 } else if (object.update instanceof Function) {
                   object.update(property, currentValue);
                 } else {
@@ -102,9 +102,7 @@ export class Sandbox {
 
               const object = automaton.currentTarget;
 
-              if (object instanceof Array) {
-                object[property] = currentValue;
-              } else if (object.update instanceof Function) {
+              if (object.update instanceof Function) {
                 object.update(property, currentValue);
               } else {
                 object[property] = currentValue;

@@ -2,9 +2,11 @@ import { Program } from './program';
 import { Scope, State } from './state';
 
 export type Updatable =
-  | []
-  | Record<any, any>
-  | { update(idx: number, value: any): void };
+  | {
+      update?: (idx: number | string, value: any) => void;
+      [key: string]: any;
+    }
+  | Record<string | number, any>;
 
 export interface Automaton {
   currentTarget: Updatable;
