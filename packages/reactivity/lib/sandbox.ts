@@ -4,10 +4,19 @@ import { CloneInstruction, InstructionEnum, Program } from './program';
 import { Arrow, FuncArrow, RootScope, Scope, State, Value } from './state';
 
 export class Sandbox {
-  private values: Record<symbol, any> = {};
-  private updates: Record<symbol, Program> = {};
+  public values: Record<symbol, any> = {};
+  public updates: Record<symbol, Program> = {};
 
   constructor(public automaton: Automaton) {}
+
+  appendValue(s: State<any>, initial: any, property: string | undefined) {
+    const { automaton, updates } = this;
+
+    const program = automaton.appendValue(s.scope, initial, property);
+    if (program) {
+      updates[s.graph] = program;
+    }
+  }
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
@@ -33,7 +42,7 @@ export class Sandbox {
     }
 
     if (stateIdx >= program.length) {
-      return;
+      stateIdx = 0;
     }
 
     const promises: Promise<void>[] = [];
@@ -58,6 +67,49 @@ export class Sandbox {
             break;
           case InstructionEnum.Write:
             values[instruction.key] = currentValue;
+            break;
+          case InstructionEnum.Update:
+            {
+              const { object, property } = instruction;
+
+              if (object instanceof Array) {
+                object[property] = currentValue;
+              } else if (object.update instanceof Function) {
+                object.update(property, currentValue);
+              } else {
+                object[property] = currentValue;
+              }
+            }
+            break;
+          case InstructionEnum.UpdateMany:
+            {
+              const { objects, property } = instruction;
+
+              for (const object of objects) {
+                if (object instanceof Array) {
+                  object[property] = currentValue;
+                } else if (object.update instanceof Function) {
+                  object.update(property, currentValue);
+                } else {
+                  object[property] = currentValue;
+                }
+              }
+            }
+            break;
+          case InstructionEnum.UpdateCurrent:
+            {
+              const { property } = instruction;
+
+              const object = automaton.currentTarget;
+
+              if (object instanceof Array) {
+                object[property] = currentValue;
+              } else if (object.update instanceof Function) {
+                object.update(property, currentValue);
+              } else {
+                object[property] = currentValue;
+              }
+            }
             break;
           case InstructionEnum.SetText:
             const { node } = instruction;

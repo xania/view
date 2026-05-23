@@ -1,10 +1,22 @@
-import { Scope } from './state';
+import { Program } from './program';
+import { Scope, State } from './state';
+
+export type Updatable =
+  | []
+  | Record<any, any>
+  | { update(idx: number, value: any): void };
 
 export interface Automaton {
+  currentTarget: Updatable;
   up(): void;
   appendArray(property?: string): void;
   appendObject(property?: string): void;
   appendElement(child: any, property?: string): Array<any> | Record<any, any>; // -> children
+  appendValue(
+    sourceScope: Scope,
+    content?: string | number | undefined,
+    property?: string
+  ): Program | undefined;
   appendText(
     scope: Scope,
     content?: ITextNode['nodeValue'],

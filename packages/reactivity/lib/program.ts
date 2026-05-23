@@ -1,4 +1,4 @@
-import { ITextNode } from './automaton';
+import { ITextNode, Updatable } from './automaton';
 import { Scope } from './state';
 
 export type Program = Instruction[];
@@ -12,7 +12,10 @@ export type Instruction =
   | ShowInstruction
   | ForEachInstruction
   | CloneInstruction
-  | JumpInstruction;
+  | JumpInstruction
+  | UpdateInstruction
+  | UpdateManyInstruction
+  | UpdateCurrentInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -74,6 +77,26 @@ export interface JumpInstruction {
   steps: number;
 }
 
+export interface UpdateInstruction {
+  type: InstructionEnum.Update;
+  level: number;
+  object: Updatable;
+  property: string | number;
+}
+
+export interface UpdateManyInstruction {
+  type: InstructionEnum.UpdateMany;
+  level: number;
+  objects: Updatable[];
+  property: string | number;
+}
+
+export interface UpdateCurrentInstruction {
+  type: InstructionEnum.UpdateCurrent;
+  level: number;
+  property: string | number;
+}
+
 export enum InstructionEnum {
   Write = 4356234 /* magic number */,
   Read,
@@ -84,4 +107,7 @@ export enum InstructionEnum {
   ForEach,
   Clone,
   MoveNext,
+  Update,
+  UpdateMany,
+  UpdateCurrent,
 }

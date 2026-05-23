@@ -75,15 +75,26 @@ export function render(
       } else if (curr instanceof BindIterator) {
         sandbox.bindIterator(curr.iterator, curr.template);
       } else if (curr instanceof State) {
-        const textNode = automaton.appendText(
-          curr.scope,
-          curr.initial,
-          currentObject?.property
-        );
-        const res = sandbox.bindTextNode(curr, textNode);
-        if (res) {
-          promises.push(res);
+        const { initial } = curr;
+
+        if (initial instanceof Promise) {
+          return initial.then((resolved) => {
+            sandbox.appendValue(curr, resolved, currentObject?.property);
+            return traverse(currentScope);
+          });
         }
+
+        sandbox.appendValue(curr, initial, currentObject?.property);
+
+        // const textNode = automaton.appendText(
+        //   curr.scope,
+        //   curr.initial,
+        //   currentObject?.property
+        // );
+        // const res = sandbox.bindTextNode(curr, textNode);
+        // if (res) {
+        //   promises.push(res);
+        // }
       } else if (curr instanceof SelectProperty) {
         if (currentObject) {
           currentObject.property = curr.property;

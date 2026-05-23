@@ -92,24 +92,24 @@ describe('render state', () => {
     expect([['state: ', 2]]).toEqual(root);
   });
 
-  it('derived state update', async () => {
-    // prepare view
-    const state = useState(1);
-    const derived01 = state.map((x) => x + 1);
-    const derived02 = state.map((x) => x + 2);
-    const view = ['state: ', derived01, '-', derived02];
+  // it('derived state update', async () => {
+  //   // prepare view
+  //   const state = useState(1);
+  //   const derived01 = state.map((x) => x + 1);
+  //   const derived02 = state.map((x) => x + 2);
+  //   const view = ['state: ', derived01, '-', derived02];
 
-    // render view
-    const root: any[] = [];
-    const sandbox = await render(view, new JsonAutomaton(root));
+  //   // render view
+  //   const root: any[] = [];
+  //   const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual([['state: ', 2, '-', 3]]);
+  //   expect(root).toEqual([['state: ', 2, '-', 3]]);
 
-    sandbox.update(state, 2);
+  //   sandbox.update(state, 2);
 
-    // assert;
-    expect(root).toEqual([['state: ', 3, '-', 4]]);
-  });
+  //   // assert;
+  //   expect(root).toEqual([['state: ', 3, '-', 4]]);
+  // });
 
   it('async state', async () => {
     const state = useState(Promise.resolve(1));

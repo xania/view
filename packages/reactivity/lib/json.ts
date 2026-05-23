@@ -6,7 +6,8 @@ import {
   ITextNode,
   TextNodeUpdater,
 } from './automaton';
-import { RootScope, Scope } from './state';
+import { InstructionEnum, Program } from './program';
+import { RootScope, Scope, State } from './state';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -41,33 +42,19 @@ type AutomatonScope = Record<string | number, any>;
 
 class AutomatonTemplate implements ITemplate {
   private items: any[] = [];
-  private regions: IRegion[] = [];
+  public regions: IRegion[] = [];
   constructor(
     public automaton: JsonAutomaton,
     public scope: Scope,
     public property?: string
   ) {}
 
-  push(stateScope: Scope, item: any) {
-    if (!(stateScope instanceof Scope)) {
-      debugger;
-    }
+  push(item: any) {
     const { items } = this;
     const idx = items.length;
     items.push(item);
 
-    const templateScope = this.scope;
-
-    return (newValue: any) => {
-      if (stateScope.level < templateScope.level) {
-        for (const reg of this.regions) {
-          reg.update(idx, newValue);
-        }
-      } else {
-        const { currentTarget } = this.automaton;
-        currentTarget.update(idx, newValue);
-      }
-    };
+    return idx;
   }
 
   clone(visible: boolean = true): IRegion {
@@ -341,6 +328,61 @@ export class JsonAutomaton implements Automaton {
     }
   }
 
+  appendValue<T>(
+    sourceScope: Scope,
+    stateValue?: T,
+    property?: string
+  ): Program | undefined {
+    const { currentTarget } = this;
+
+    if (currentTarget instanceof Array) {
+      const nodeIndex = currentTarget.length;
+      currentTarget.push(stateValue);
+
+      return [
+        {
+          type: InstructionEnum.Update,
+          level: 0,
+          object: currentTarget,
+          property: nodeIndex,
+        },
+      ];
+    } else if (currentTarget instanceof AutomatonTemplate) {
+      const itemIdx = currentTarget.push(stateValue);
+
+      if (sourceScope.level < currentTarget.scope.level) {
+        return [
+          {
+            type: InstructionEnum.UpdateMany,
+            level: 0,
+            objects: currentTarget.regions,
+            property: itemIdx,
+          },
+        ];
+      } else {
+        return [
+          {
+            type: InstructionEnum.UpdateCurrent,
+            level: 0,
+            property: itemIdx,
+          },
+        ];
+      }
+    } else if (property) {
+      currentTarget[property] = stateValue;
+      return [
+        {
+          type: InstructionEnum.Update,
+          level: 0,
+          object: currentTarget,
+          property,
+        },
+      ];
+    } else {
+      debugger;
+    }
+  }
+
   appendText(
     scope: Scope,
     content: ITextNode['nodeValue'],
@@ -355,7 +397,10 @@ export class JsonAutomaton implements Automaton {
       //   );
       // }
 
-      return currentTarget.push(scope, content);
+      currentTarget.push(content);
+      return () => {
+        debugger;
+      };
     } else if (currentTarget instanceof AutomatonProperty) {
       if (!property) {
         throw Error(
