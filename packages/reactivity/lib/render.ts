@@ -45,9 +45,9 @@ export function render(
       }
 
       if (curr.constructor === String) {
-        const node = automaton.appendText(currentScope, curr);
+        const node = automaton.appendText(curr);
       } else if (curr.constructor === Number) {
-        const node = automaton.appendText(currentScope, curr);
+        const node = automaton.appendText(curr);
       } else if (curr.constructor === Conditional) {
         const { initial: visible } = curr.expr;
 
@@ -77,12 +77,12 @@ export function render(
 
         if (initial instanceof Promise) {
           return initial.then((resolved) => {
-            sandbox.appendValue(curr, resolved);
+            appendValue(curr, resolved);
             return traverse(currentScope);
           });
         }
 
-        sandbox.appendValue(curr, initial);
+        appendValue(curr, initial);
       } else if (curr instanceof InitializeState) {
         const { initial } = curr.expr;
         if (initial instanceof Promise) {
@@ -114,6 +114,15 @@ export function render(
           viewStack.push(propValue);
         }
       }
+    }
+  }
+
+  function appendValue(s: State<any>, initial: any) {
+    const { automaton, updates } = sandbox;
+
+    const program = automaton.appendValue(s.scope, initial);
+    if (program) {
+      updates[s.graph] = program;
     }
   }
 }

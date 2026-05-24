@@ -18,10 +18,7 @@ export interface Automaton {
     sourceScope: Scope,
     content?: string | number | undefined
   ): Program | undefined;
-  appendText(
-    scope: Scope,
-    content?: ITextNode['nodeValue']
-  ): ITextNode | TextNodeUpdater;
+  appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater;
   appendNode(visible: boolean): INode;
   pushRegion(visible: boolean): IRegion;
   pushTemplate(scope: Scope): ITemplate;

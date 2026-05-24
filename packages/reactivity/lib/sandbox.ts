@@ -9,15 +9,6 @@ export class Sandbox {
 
   constructor(public automaton: Automaton) {}
 
-  appendValue(s: State<any>, initial: any) {
-    const { automaton, updates } = this;
-
-    const program = automaton.appendValue(s.scope, initial);
-    if (program) {
-      updates[s.graph] = program;
-    }
-  }
-
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
     const { values, updates, automaton } = this;
@@ -71,7 +62,7 @@ export class Sandbox {
           case InstructionEnum.Update:
             {
               const { property } = instruction;
-              const target = instruction.target ?? automaton.currentTarget;
+              const target = instruction.target ?? automaton.currentTarget.data;
 
               if (target instanceof Array) {
                 target[property as number] = currentValue;
@@ -87,12 +78,14 @@ export class Sandbox {
               const { targets, property } = instruction;
 
               for (const target of targets) {
-                if (target instanceof Array) {
-                  target[property as number] = currentValue;
-                } else if (target.update instanceof Function) {
-                  target.update(property, currentValue);
+                const data = target;
+
+                if (data instanceof Array) {
+                  data[property as number] = currentValue;
+                } else if (data.update instanceof Function) {
+                  data.update(property, currentValue);
                 } else {
-                  target[property] = currentValue;
+                  data[property] = currentValue;
                 }
               }
             }
