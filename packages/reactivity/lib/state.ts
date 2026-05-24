@@ -145,13 +145,17 @@ export class Scope {
     return newScope;
   }
 
-  state<T>(initial?: T) {
+  state<T>(initial: Promise<T>): State<T>;
+  state<T>(initial: T): State<T>;
+  state<T>(initial?: Value<T>) {
     return new State<T>(this, initial);
   }
 }
 
 export const RootScope = new Scope(0); // root scope
 
-export function useState<T>(initial?: T) {
+export function useState<T>(initial: Promise<T>): State<T>;
+export function useState<T>(initial: T): State<T>;
+export function useState<T>(initial?: Value<T>) {
   return new State<T>(RootScope, initial);
 }
