@@ -9,10 +9,10 @@ export class Sandbox {
 
   constructor(public automaton: Automaton) {}
 
-  appendValue(s: State<any>, initial: any, property: string | undefined) {
+  appendValue(s: State<any>, initial: any) {
     const { automaton, updates } = this;
 
-    const program = automaton.appendValue(s.scope, initial, property);
+    const program = automaton.appendValue(s.scope, initial);
     if (program) {
       updates[s.graph] = program;
     }
@@ -156,7 +156,7 @@ export class Sandbox {
             break;
 
           case InstructionEnum.Jump:
-            automaton.up();
+            automaton.popTarget();
             instructionIdx += instruction.steps;
             break;
         }

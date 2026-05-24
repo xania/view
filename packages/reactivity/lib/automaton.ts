@@ -10,23 +10,21 @@ export type Updatable =
 
 export interface Automaton {
   currentTarget: Updatable;
-  up(): void;
-  appendArray(property?: string): void;
-  appendObject(property?: string): void;
-  appendElement(child: any, property?: string): Array<any> | Record<any, any>; // -> children
+  popTarget(): void;
+  appendArray(): void;
+  appendProperties(properties: string[]): void;
+  appendElement(child: any): Array<any> | Record<any, any>; // -> children
   appendValue(
     sourceScope: Scope,
-    content?: string | number | undefined,
-    property?: string
+    content?: string | number | undefined
   ): Program | undefined;
   appendText(
     scope: Scope,
-    content?: ITextNode['nodeValue'],
-    property?: string
+    content?: ITextNode['nodeValue']
   ): ITextNode | TextNodeUpdater;
-  appendNode(visible: boolean, property?: string): INode;
-  pushRegion(visible: boolean, property?: string): IRegion;
-  pushTemplate(scope: Scope, property?: string): ITemplate;
+  appendNode(visible: boolean): INode;
+  pushRegion(visible: boolean): IRegion;
+  pushTemplate(scope: Scope): ITemplate;
 }
 
 export type TextNodeUpdater = (nodeValue: any) => void;
@@ -44,16 +42,16 @@ export class SetProperty {
 export const popScope = Symbol();
 
 export type INode = {
-  push(item: any, property?: string): void;
+  push(item: any): void;
   show(visible: boolean): void;
 };
 export type IRegion = {
-  push(item: any, property?: string): void;
+  push(item: any): void;
   show(visible: boolean): void;
   update(idx: number, value: any): void;
 };
 
 export type ITemplate = {
-  push(scope: Scope, item: any, property?: string): void;
+  push(scope: Scope, item: any): void;
   clone(visible?: boolean): IRegion;
 };

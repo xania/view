@@ -17,9 +17,6 @@ export function render(
 
   const viewStack = [view];
 
-  const objectsStack: { property?: string }[] = [];
-  let currentObject: (typeof objectsStack)[number] | undefined = undefined;
-
   const promises: Promise<any>[] = [];
   const retval = traverse(RootScope);
 
@@ -48,26 +45,27 @@ export function render(
       }
 
       if (curr.constructor === String) {
-        const node = automaton.appendText(
-          currentScope,
-          curr,
-          currentObject?.property
-        );
+        const node = automaton.appendText(currentScope, curr);
       } else if (curr.constructor === Number) {
-        const node = automaton.appendText(
-          currentScope,
-          curr,
-          currentObject?.property
-        );
+        const node = automaton.appendText(currentScope, curr);
       } else if (curr.constructor === Conditional) {
-        const node = automaton.appendNode(false, currentObject?.property);
+        const { initial: visible } = curr.expr;
+
+        const node = automaton.appendNode(
+          visible instanceof Promise ? false : !!visible
+        );
         sandbox.bindConditional(curr.expr, node);
 
         viewStack.push(popTarget);
         viewStack.push(curr.body);
-        viewStack.push(new InitializeState(curr.expr));
+
+        if (visible instanceof Promise) {
+          promises.push(
+            visible.then((resolved) => sandbox.update(curr.expr, resolved))
+          );
+        }
       } else if (curr.constructor === Iterator) {
-        const tpl = automaton.pushTemplate(curr.scope, currentObject?.property);
+        const tpl = automaton.pushTemplate(curr.scope);
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popTarget);
         viewStack.push(new BindIterator(curr, tpl));
@@ -79,26 +77,12 @@ export function render(
 
         if (initial instanceof Promise) {
           return initial.then((resolved) => {
-            sandbox.appendValue(curr, resolved, currentObject?.property);
+            sandbox.appendValue(curr, resolved);
             return traverse(currentScope);
           });
         }
 
-        sandbox.appendValue(curr, initial, currentObject?.property);
-
-        // const textNode = automaton.appendText(
-        //   curr.scope,
-        //   curr.initial,
-        //   currentObject?.property
-        // );
-        // const res = sandbox.bindTextNode(curr, textNode);
-        // if (res) {
-        //   promises.push(res);
-        // }
-      } else if (curr instanceof SelectProperty) {
-        if (currentObject) {
-          currentObject.property = curr.property;
-        }
+        sandbox.appendValue(curr, initial);
       } else if (curr instanceof InitializeState) {
         const { initial } = curr.expr;
         if (initial instanceof Promise) {
@@ -109,18 +93,10 @@ export function render(
           sandbox.update(curr.expr, initial);
         }
       } else if (curr === popTarget) {
-        automaton.up();
-      } else if (curr === popCurrentObject) {
-        currentObject = objectsStack.pop();
+        automaton.popTarget();
       } else if (curr.constructor === Array) {
-        automaton.appendArray(currentObject?.property);
+        automaton.appendArray();
         viewStack.push(popTarget);
-
-        if (currentObject) {
-          objectsStack.push(currentObject);
-          currentObject = undefined;
-          viewStack.push(popCurrentObject);
-        }
 
         for (let i = curr.length - 1; i >= 0; i--) {
           const item = curr[i];
@@ -129,99 +105,18 @@ export function render(
           }
         }
       } else {
-        automaton.appendObject(currentObject?.property);
-        viewStack.push(popTarget);
+        const properties = Object.keys(curr);
+        automaton.appendProperties(properties);
 
-        if (currentObject) {
-          objectsStack.push(currentObject);
-        }
-        currentObject = {};
-
-        viewStack.push(popCurrentObject);
-
-        for (const prop in curr) {
+        for (const prop of properties) {
           const propValue = curr[prop];
+          viewStack.push(popTarget);
           viewStack.push(propValue);
-          viewStack.push(new SelectProperty(prop));
         }
-
-        // if (currentContainer) {
-        //   debugger;
-        // }
-        // if (
-        //   children !== null &&
-        //   children !== undefined &&
-        //   children.length > 0
-        // ) {
-        //   if (currentContainer) {
-        //     currentContainer.counter++;
-        //     viewStack.push(decrementContainer);
-        //   }
-
-        //   for (let i = children.length - 1; i >= 0; i--) {
-        //     const item = children[i];
-        //     if (item !== null && item !== undefined) {
-        //       viewStack.push(item);
-        //     }
-        //   }
-        // }
       }
     }
   }
 }
-
-interface ContainerItem {}
-class Container {
-  public counter: number = 0;
-  public items: ContainerItem[] = [];
-  push(item: ContainerItem): void {
-    if (this.counter == 0) {
-      this.items.push(item);
-    }
-  }
-}
-
-const popCurrentObject = Symbol('pop-current-object');
-
-// class FragmentAutomaton implements Automaton {
-//   depth: number = 0;
-
-//   constructor(public parent: Automaton) {}
-
-//   up(): void {
-//     this.depth--;
-//     this.parent.up();
-//   }
-//   appendElement(child: any): Record<any, any> | Array<any> {
-//     this.depth++;
-//     return this.parent.appendElement(child);
-//   }
-//   appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater {
-//     return this.parent.appendText(content);
-//   }
-// }
-
-// class PropertyAutomaton implements Automaton {
-//   constructor(
-//     public parent: Automaton,
-//     public propertyName: string
-//   ) {}
-
-//   up(): void {
-//     this.parent.up();
-//   }
-//   appendElement(child: any): Record<any, any> | Array<any> {
-//     return this.parent.appendElement(child);
-//   }
-//   appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater {
-//     return this.parent.appendText(content);
-//   }
-// }
-
-class SelectProperty {
-  constructor(public property: string) {}
-}
-
 class InitializeState {
   constructor(public expr: State<any>) {}
 }
