@@ -38,14 +38,14 @@ export function json(token: JToken | JArray) {
   return token;
 }
 
-type AutomatonData = Record<string | number, any> | any[];
+type AutomatonOutput = Record<string | number, any> | any[];
 type AutomatonTarget = {
-  data:
+  output:
     | ObjectProperty
     | AutomatonRegion
     | AutomatonNode
     | AutomatonTemplate
-    | AutomatonData;
+    | AutomatonOutput;
   events?: Record<string | number, any>;
 };
 
@@ -83,15 +83,15 @@ class AutomatonRegion {
   private items: any[] = [];
 
   constructor(
-    public target: AutomatonData,
+    public output: AutomatonOutput,
     public visible: boolean
   ) {
-    if (this.target instanceof Array) {
-      this.offset = this.target.length;
+    if (this.output instanceof Array) {
+      this.offset = this.output.length;
     } else {
       throw Error(
         'invalid state: expected array scope but got object {' +
-          this.target +
+          this.output +
           '}'
       );
     }
@@ -102,7 +102,7 @@ class AutomatonRegion {
     const idx = items.length;
     items.push(item);
     if (this.visible) {
-      this.target.push(item);
+      this.output.push(item);
     }
     return idx;
   }
@@ -111,8 +111,8 @@ class AutomatonRegion {
     this.items[idx] = item;
 
     if (this.visible) {
-      if (this.target instanceof Array) {
-        this.target[this.offset + idx] = item;
+      if (this.output instanceof Array) {
+        this.output[this.offset + idx] = item;
       } else {
         throw Error('invalid state: expected array scope');
       }
@@ -127,15 +127,15 @@ class AutomatonRegion {
     this.visible = visible;
 
     if (visible) {
-      this.target.splice(this.offset, 0, ...this.items);
+      this.output.splice(this.offset, 0, ...this.items);
     } else {
-      this.target.splice(this.offset, this.items.length);
+      this.output.splice(this.offset, this.items.length);
     }
   }
   clone() {
     const self = this;
 
-    this.target.push(...self.items);
+    this.output.push(...self.items);
   }
 }
 
@@ -204,8 +204,8 @@ class ObjectProperty {
 export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
-  constructor(rootData: AutomatonTarget['data']) {
-    this.currentTarget = { data: rootData };
+  constructor(rootData: AutomatonTarget['output']) {
+    this.currentTarget = { output: rootData };
   }
 
   appendProperties(properties: string[]): void {
@@ -213,7 +213,7 @@ export class JsonAutomaton implements Automaton {
       const newObject = {};
 
       const { currentTarget } = this;
-      this.setValue(currentTarget.data, newObject);
+      this.setValue(currentTarget.output, newObject);
 
       for (const prop of properties) {
         const newNode = new ObjectProperty(newObject, prop);
@@ -221,22 +221,22 @@ export class JsonAutomaton implements Automaton {
         if (this.currentTarget) {
           this.targets.push(this.currentTarget);
         }
-        this.currentTarget = { data: newNode };
+        this.currentTarget = { output: newNode };
       }
     }
   }
 
   appendNode(visible: boolean): INode {
     const { currentTarget } = this;
-    if (!(currentTarget.data instanceof Array)) {
+    if (!(currentTarget.output instanceof Array)) {
       throw Error('Invalid target: expected array');
     }
     if (currentTarget) {
       this.targets.push(currentTarget);
     }
 
-    const newNode = new AutomatonNode(currentTarget.data, visible);
-    this.currentTarget = { data: newNode };
+    const newNode = new AutomatonNode(currentTarget.output, visible);
+    this.currentTarget = { output: newNode };
     return newNode;
   }
 
@@ -246,8 +246,8 @@ export class JsonAutomaton implements Automaton {
       this.targets.push(currentTarget);
     }
 
-    const newRegion = new AutomatonRegion(currentTarget.data, visible);
-    this.currentTarget = { data: newRegion };
+    const newRegion = new AutomatonRegion(currentTarget.output, visible);
+    this.currentTarget = { output: newRegion };
 
     return newRegion;
   }
@@ -259,7 +259,7 @@ export class JsonAutomaton implements Automaton {
     }
 
     const tpl = new AutomatonTemplate(this, scope);
-    this.currentTarget = { data: tpl };
+    this.currentTarget = { output: tpl };
 
     return tpl;
   }
@@ -268,18 +268,18 @@ export class JsonAutomaton implements Automaton {
     this.currentTarget = this.targets.pop()!;
   }
 
-  setValue(currentTarget: AutomatonTarget['data'], value: any) {
-    if (currentTarget instanceof ObjectProperty) {
-      currentTarget.object[currentTarget.prop] = value;
-    } else if (currentTarget instanceof AutomatonRegion) {
+  setValue(output: AutomatonTarget['output'], value: any) {
+    if (output instanceof ObjectProperty) {
+      output.object[output.prop] = value;
+    } else if (output instanceof AutomatonRegion) {
       // if (property) {
       //   throw Error(
       //     'invalid state: property is not allowed when current scope is region'
       //   );
       // }
-      currentTarget.push(value);
-    } else if (currentTarget instanceof Array) {
-      currentTarget.push(value);
+      output.push(value);
+    } else if (output instanceof Array) {
+      output.push(value);
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'
@@ -294,9 +294,9 @@ export class JsonAutomaton implements Automaton {
     }
 
     const copy: any[] = [];
-    this.setValue(currentTarget.data, copy);
+    this.setValue(currentTarget.output, copy);
 
-    this.currentTarget = { data: copy, events: {} };
+    this.currentTarget = { output: copy, events: {} };
   }
 
   appendElement(child: any): Array<any> | Record<any, any> {
@@ -310,18 +310,18 @@ export class JsonAutomaton implements Automaton {
     if (child instanceof Array) {
       const copy: any[] = [];
       current.push(copy);
-      this.currentTarget = { data: copy };
+      this.currentTarget = { output: copy };
       return child;
     } else {
       const copy = {};
       current.push(copy);
-      this.currentTarget = { data: copy };
+      this.currentTarget = { output: copy };
       return child;
     }
   }
 
   appendValue<T>(sourceScope: Scope, stateValue?: T): Program | undefined {
-    const { data } = this.currentTarget;
+    const { output: data } = this.currentTarget;
 
     if (data instanceof ObjectProperty) {
       const { object, prop } = data;
@@ -384,7 +384,7 @@ export class JsonAutomaton implements Automaton {
     if (content instanceof Scope) {
       debugger;
     }
-    const { data } = this.currentTarget;
+    const { output: data } = this.currentTarget;
 
     if (data instanceof ObjectProperty) {
       data.object[data.prop] = content;

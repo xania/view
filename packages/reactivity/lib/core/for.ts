@@ -11,7 +11,7 @@ export function ForEach<T>(
 ) {
   const childScope = scope.pushScope();
   if (body instanceof Function) {
-    const itemState = childScope.state<T>(undefined);
+    const itemState = childScope.state<T>();
     return new Iterator(expr, body(itemState), childScope, itemState);
   }
 

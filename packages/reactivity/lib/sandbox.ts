@@ -62,14 +62,15 @@ export class Sandbox {
           case InstructionEnum.Update:
             {
               const { property } = instruction;
-              const target = instruction.target ?? automaton.currentTarget.data;
+              const output =
+                instruction.target ?? automaton.currentTarget.output;
 
-              if (target instanceof Array) {
-                target[property as number] = currentValue;
-              } else if (target.update instanceof Function) {
-                target.update(property, currentValue);
+              if (output instanceof Array) {
+                output[property as number] = currentValue;
+              } else if (output.update instanceof Function) {
+                output.update(property, currentValue);
               } else {
-                target[property] = currentValue;
+                output[property] = currentValue;
               }
             }
             break;

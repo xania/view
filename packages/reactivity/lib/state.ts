@@ -145,6 +145,7 @@ export class Scope {
     return newScope;
   }
 
+  state<T>(): State<T>;
   state<T>(initial: Promise<T>): State<T>;
   state<T>(initial: T): State<T>;
   state<T>(initial?: Value<T>) {
