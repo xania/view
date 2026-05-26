@@ -6,7 +6,12 @@ import {
   ITextNode,
   TextNodeUpdater,
 } from './automaton';
-import { InstructionEnum, Program } from './program';
+import {
+  InstructionEnum,
+  Program,
+  TraversalEnum,
+  TraversalInstruction,
+} from './program';
 import { Scope } from './state';
 
 export enum JsonEnum {
@@ -34,10 +39,6 @@ interface JString {
   value: string;
 }
 
-export function json(token: JToken | JArray) {
-  return token;
-}
-
 type AutomatonOutput = Record<string | number, any> | any[];
 type AutomatonTarget = {
   output:
@@ -47,6 +48,7 @@ type AutomatonTarget = {
     | AutomatonTemplate
     | AutomatonOutput;
   events?: Record<string | number, any>;
+  traversal: TraversalInstruction[];
 };
 
 class AutomatonTemplate implements ITemplate {
@@ -197,32 +199,39 @@ class AutomatonNode {
 class ObjectProperty {
   constructor(
     public object: any,
-    public prop: string
+    public prop?: string
   ) {}
 }
 
 export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
-  constructor(rootData: AutomatonTarget['output']) {
-    this.currentTarget = { output: rootData };
+  constructor(private rootData: AutomatonTarget['output']) {
+    this.currentTarget = {
+      output: rootData,
+      traversal: resolveTraversal(rootData),
+    };
   }
 
-  appendProperties(properties: string[]): void {
-    if (properties.length > 0) {
-      const newObject = {};
+  appendObject() {
+    const { currentTarget } = this;
+    this.targets.push(currentTarget);
 
-      const { currentTarget } = this;
-      this.setValue(currentTarget.output, newObject);
+    const newObject = {};
+    this.setValue(currentTarget.output, newObject);
 
-      for (const prop of properties) {
-        const newNode = new ObjectProperty(newObject, prop);
+    const newNode = new ObjectProperty(newObject);
+    this.currentTarget = {
+      output: newNode,
+      traversal: resolveTraversal(currentTarget.output),
+    };
+  }
 
-        if (this.currentTarget) {
-          this.targets.push(this.currentTarget);
-        }
-        this.currentTarget = { output: newNode };
-      }
+  selectProperty(prop: string): void {
+    const { currentTarget } = this;
+
+    if (currentTarget.output instanceof ObjectProperty) {
+      currentTarget.output.prop = prop;
     }
   }
 
@@ -231,23 +240,28 @@ export class JsonAutomaton implements Automaton {
     if (!(currentTarget.output instanceof Array)) {
       throw Error('Invalid target: expected array');
     }
-    if (currentTarget) {
-      this.targets.push(currentTarget);
-    }
+    this.targets.push(currentTarget);
 
     const newNode = new AutomatonNode(currentTarget.output, visible);
-    this.currentTarget = { output: newNode };
+    this.currentTarget = {
+      output: newNode,
+      traversal: resolveTraversal(currentTarget.output),
+    };
     return newNode;
   }
 
   pushRegion(visible: boolean): IRegion {
     const { currentTarget } = this;
-    if (currentTarget) {
-      this.targets.push(currentTarget);
+    if (!currentTarget) {
+      throw Error('Cannot push standalone region, a target is not found');
     }
+    this.targets.push(currentTarget);
 
     const newRegion = new AutomatonRegion(currentTarget.output, visible);
-    this.currentTarget = { output: newRegion };
+    this.currentTarget = {
+      output: newRegion,
+      traversal: resolveTraversal(currentTarget.output),
+    };
 
     return newRegion;
   }
@@ -259,17 +273,23 @@ export class JsonAutomaton implements Automaton {
     }
 
     const tpl = new AutomatonTemplate(this, scope);
-    this.currentTarget = { output: tpl };
+    this.currentTarget = { output: tpl, traversal: [] };
 
     return tpl;
   }
 
   popTarget(): void {
+    if (this.targets.length == 0) {
+      throw Error('cannot pop out root');
+    }
     this.currentTarget = this.targets.pop()!;
   }
 
   setValue(output: AutomatonTarget['output'], value: any) {
     if (output instanceof ObjectProperty) {
+      if (!output.prop) {
+        throw Error('Cannot set value, prop is not selected');
+      }
       output.object[output.prop] = value;
     } else if (output instanceof AutomatonRegion) {
       // if (property) {
@@ -296,28 +316,11 @@ export class JsonAutomaton implements Automaton {
     const copy: any[] = [];
     this.setValue(currentTarget.output, copy);
 
-    this.currentTarget = { output: copy, events: {} };
-  }
-
-  appendElement(child: any): Array<any> | Record<any, any> {
-    const { currentTarget: current } = this;
-
-    if (!(current instanceof Array)) {
-      throw Error('invalid add element on non array');
-    }
-
-    this.targets.push(current);
-    if (child instanceof Array) {
-      const copy: any[] = [];
-      current.push(copy);
-      this.currentTarget = { output: copy };
-      return child;
-    } else {
-      const copy = {};
-      current.push(copy);
-      this.currentTarget = { output: copy };
-      return child;
-    }
+    this.currentTarget = {
+      output: copy,
+      events: {},
+      traversal: resolveTraversal(currentTarget.output),
+    };
   }
 
   appendValue<T>(sourceScope: Scope, stateValue?: T): Program | undefined {
@@ -325,6 +328,9 @@ export class JsonAutomaton implements Automaton {
 
     if (data instanceof ObjectProperty) {
       const { object, prop } = data;
+      if (!prop) {
+        throw Error('Cannot append value to object, need prop');
+      }
       object[prop] = stateValue;
       return [
         {
@@ -387,6 +393,9 @@ export class JsonAutomaton implements Automaton {
     const { output: data } = this.currentTarget;
 
     if (data instanceof ObjectProperty) {
+      if (!data.prop) {
+        throw Error('Cannot append text, prop is not selected');
+      }
       data.object[data.prop] = content;
       return () => {
         debugger;
@@ -435,5 +444,27 @@ export class JsonAutomaton implements Automaton {
     return () => {
       debugger;
     };
+  }
+}
+
+function resolveTraversal(
+  output: AutomatonTarget['output']
+): TraversalInstruction[] {
+  if (output instanceof Array) {
+    return [
+      {
+        type: TraversalEnum.SelectIndex,
+        index: output.length,
+      },
+    ];
+  } else if (output instanceof ObjectProperty && output.prop) {
+    return [
+      {
+        type: TraversalEnum.SelectProperty,
+        prop: output.prop,
+      },
+    ];
+  } else {
+    throw Error('Could not resolve traversal for output');
   }
 }

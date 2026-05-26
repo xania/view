@@ -72,6 +72,8 @@ export function render(
         viewStack.push(curr.body);
       } else if (curr instanceof BindIterator) {
         sandbox.bindIterator(curr.iterator, curr.template);
+      } else if (curr instanceof SelectProperty) {
+        automaton.selectProperty(curr.prop);
       } else if (curr instanceof State) {
         const { initial } = curr;
 
@@ -105,13 +107,16 @@ export function render(
           }
         }
       } else {
+        automaton.appendObject();
+
         const properties = Object.keys(curr);
-        automaton.appendProperties(properties);
+
+        viewStack.push(popTarget);
 
         for (const prop of properties) {
           const propValue = curr[prop];
-          viewStack.push(popTarget);
           viewStack.push(propValue);
+          viewStack.push(new SelectProperty(prop));
         }
       }
     }
@@ -135,4 +140,8 @@ class BindIterator {
     public iterator: Iterator<any>,
     public template: ITemplate
   ) {}
+}
+
+class SelectProperty {
+  constructor(public prop: string) {}
 }

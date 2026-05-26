@@ -11,9 +11,9 @@ export type Updatable =
 export interface Automaton {
   currentTarget: Updatable;
   popTarget(): void;
+  appendObject(): void;
+  selectProperty(prop: string): void;
   appendArray(): void;
-  appendProperties(properties: string[]): void;
-  appendElement(child: any): Array<any> | Record<any, any>; // -> children
   appendValue(
     sourceScope: Scope,
     content?: string | number | undefined

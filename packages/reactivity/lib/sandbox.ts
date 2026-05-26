@@ -149,8 +149,11 @@ export class Sandbox {
             instruction.template.clone();
             break;
 
-          case InstructionEnum.Jump:
+          case InstructionEnum.PopTarget:
             automaton.popTarget();
+            break;
+
+          case InstructionEnum.Jump:
             instructionIdx += instruction.steps;
             break;
         }
@@ -184,7 +187,7 @@ export class Sandbox {
     program.push(
       {
         type: InstructionEnum.MoveNext,
-        jump: (itemUpdate?.length ?? 0) + 2,
+        jump: (itemUpdate?.length ?? 0) + 3,
       },
       {
         type: InstructionEnum.Clone,
@@ -195,6 +198,10 @@ export class Sandbox {
     if (itemUpdate) {
       program.push(...itemUpdate);
     }
+
+    program.push({
+      type: InstructionEnum.PopTarget,
+    });
 
     program.push({
       type: InstructionEnum.Jump,

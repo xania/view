@@ -15,7 +15,8 @@ export type Instruction =
   | JumpInstruction
   | UpdateInstruction
   | UpdateManyInstruction
-  | MoveNextInstruction;
+  | MoveNextInstruction
+  | PopTargetInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -84,6 +85,10 @@ export interface MoveNextInstruction {
   jump: number;
 }
 
+export interface PopTargetInstruction {
+  type: InstructionEnum.PopTarget;
+}
+
 export enum InstructionEnum {
   Write = 4356234 /* magic number */,
   Read,
@@ -97,4 +102,23 @@ export enum InstructionEnum {
   Update,
   UpdateMany,
   MoveNext,
+  PopTarget,
+}
+
+export type TraversalInstruction =
+  | SelectIndexInstruction
+  | SelectPropertyInstruction;
+interface SelectIndexInstruction {
+  type: TraversalEnum.SelectIndex;
+  index: number;
+}
+
+interface SelectPropertyInstruction {
+  type: TraversalEnum.SelectProperty;
+  prop: string;
+}
+
+export enum TraversalEnum {
+  SelectIndex = 9038592,
+  SelectProperty,
 }
