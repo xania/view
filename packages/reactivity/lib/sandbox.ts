@@ -164,7 +164,6 @@ export class Sandbox {
       {
         type: InstructionEnum.Write,
         key: graph,
-        level: 0,
       },
     ]);
 
@@ -173,7 +172,6 @@ export class Sandbox {
     const startIdx = program.length;
     program.push({
       type: InstructionEnum.ForEach,
-      level: 0,
       exprKey: expr.key,
       itemState: iter.itemState?.key,
     });
@@ -185,12 +183,10 @@ export class Sandbox {
     program.push(
       {
         type: InstructionEnum.MoveNext,
-        level: 0,
         jump: (itemUpdate?.length ?? 0) + 2,
       },
       {
         type: InstructionEnum.Clone,
-        level: 0,
         template,
       }
     );
@@ -201,7 +197,6 @@ export class Sandbox {
 
     program.push({
       type: InstructionEnum.Jump,
-      level: 0,
       steps: startIdx - program.length,
     });
   }
@@ -212,14 +207,12 @@ export class Sandbox {
       {
         type: InstructionEnum.Write,
         key: graph,
-        level: 0,
       },
     ]);
 
     compile(expr, program);
     program.push({
       type: InstructionEnum.Show,
-      level: 0,
       node,
     });
   }
@@ -235,7 +228,6 @@ export class Sandbox {
       {
         type: InstructionEnum.Write,
         key: graph,
-        level: 0,
       },
     ]);
 
@@ -244,14 +236,12 @@ export class Sandbox {
     if (textNode instanceof Function) {
       program.push({
         type: InstructionEnum.Effect,
-        level: state.level,
         func: textNode,
       });
     } else
       program.push({
         type: InstructionEnum.SetText,
         node: textNode,
-        level: state.level,
       });
 
     this.values[graph] = value;
@@ -299,9 +289,6 @@ export function compile(state: State<any, any>, program: Program) {
     while (index < program.length) {
       const curr = program[index];
       const { type } = curr;
-      if (curr.level > s.level) {
-        break;
-      }
       if (type === InstructionEnum.Read) {
         if (curr.key == s.key) {
           return;
@@ -317,7 +304,6 @@ export function compile(state: State<any, any>, program: Program) {
       partial.push({
         type: InstructionEnum.Read,
         key: parent.key,
-        level: s.level,
       });
     }
 
@@ -328,7 +314,6 @@ export function compile(state: State<any, any>, program: Program) {
           partial.push({
             type: InstructionEnum.Map,
             func: arr.func,
-            level: s.level,
           });
         }
       }
@@ -338,7 +323,6 @@ export function compile(state: State<any, any>, program: Program) {
       partial.push({
         type: InstructionEnum.Write,
         key: s.key,
-        level: s.level,
       });
     }
 

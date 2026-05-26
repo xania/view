@@ -329,7 +329,6 @@ export class JsonAutomaton implements Automaton {
       return [
         {
           type: InstructionEnum.Update,
-          level: 0,
           target: object,
           property: prop,
         },
@@ -341,7 +340,6 @@ export class JsonAutomaton implements Automaton {
       return [
         {
           type: InstructionEnum.Update,
-          level: 0,
           target: data,
           property: nodeIndex,
         },
@@ -353,7 +351,6 @@ export class JsonAutomaton implements Automaton {
         return [
           {
             type: InstructionEnum.UpdateMany,
-            level: 0,
             targets: data.regions,
             property: itemIdx,
           },
@@ -362,7 +359,6 @@ export class JsonAutomaton implements Automaton {
         return [
           {
             type: InstructionEnum.Update,
-            level: 0,
             property: itemIdx,
           },
         ];
@@ -372,7 +368,6 @@ export class JsonAutomaton implements Automaton {
       return [
         {
           type: InstructionEnum.Update,
-          level: 0,
           target: data,
           property: data.index,
         },
