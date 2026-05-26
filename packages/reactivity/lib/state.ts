@@ -32,7 +32,6 @@ class ArrowBase<S = unknown, T = unknown> {
 export class State<T, TParent extends State<any, any> | void = void> {
   public readonly graph: symbol;
   public readonly key: symbol;
-  public readonly level: number;
 
   constructor(scope: Scope, initial: Value<T>);
   constructor(
@@ -51,10 +50,8 @@ export class State<T, TParent extends State<any, any> | void = void> {
     if (parent) {
       this.scope = parent.scope;
       this.graph = parent.graph;
-      this.level = parent.level + 1;
     } else {
       this.graph = this.key;
-      this.level = 0;
     }
   }
 
