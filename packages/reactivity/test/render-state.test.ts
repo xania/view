@@ -56,7 +56,7 @@ describe('render state', () => {
 
   it('render complex element', async () => {
     // prepare view
-    const state = useState<any>(1);
+    const state = useState<any>(2);
 
     const view = {
       messages: [1, { s: state }, 3],
@@ -65,13 +65,19 @@ describe('render state', () => {
     // render view
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
+    // assert
+    expect(root).toEqual([
+      {
+        messages: [1, { s: 2 }, 3],
+      },
+    ]);
 
-    sandbox.update(state, [2, 5]);
+    sandbox.update(state, 4);
 
     // assert
     expect(root).toEqual([
       {
-        messages: [1, { s: [2, 5] }, 3],
+        messages: [1, { s: 4 }, 3],
       },
     ]);
   });

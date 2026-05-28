@@ -1,24 +1,25 @@
-import { Automaton, ITextNode, TextNodeUpdater } from './automaton';
 import { Iterator } from './core/for';
+import { JsonAutomaton } from './json';
 import { CloneInstruction, InstructionEnum, Program } from './program';
-import { Arrow, FuncArrow, RootScope, Scope, State, Value } from './state';
+import { FuncArrow, State, Value } from './state';
 
 export class Sandbox {
   public values: Record<symbol, any> = {};
-  public updates: Record<symbol, Program> = {};
 
-  constructor(public automaton: Automaton) {}
+  constructor(public automaton: JsonAutomaton) {}
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
     const { graph, key } = state;
-    const { values, updates, automaton } = this;
+    const { values, automaton } = this;
     const oldValue = values[state.key];
 
     if (oldValue === newValue) {
       return;
     }
 
-    const program = this.updates[graph];
+    if (!this.automaton.events) return;
+
+    const program = this.automaton.events[graph];
 
     if (!program) return;
 
@@ -67,10 +68,14 @@ export class Sandbox {
 
               if (output instanceof Array) {
                 output[property as number] = currentValue;
-              } else if (output.update instanceof Function) {
+              } else if (
+                'update' in output &&
+                output.update instanceof Function
+              ) {
                 output.update(property, currentValue);
               } else {
-                output[property] = currentValue;
+                const data = output as Record<string | number, any>;
+                data[property] = currentValue;
               }
             }
             break;
@@ -83,10 +88,14 @@ export class Sandbox {
 
                 if (data instanceof Array) {
                   data[property as number] = currentValue;
-                } else if (data.update instanceof Function) {
+                } else if (
+                  'update' in data &&
+                  data.update instanceof Function
+                ) {
                   data.update(property, currentValue);
                 } else {
-                  data[property] = currentValue;
+                  const target = data as Record<string | number, any>;
+                  target[property] = currentValue;
                 }
               }
             }
@@ -156,15 +165,27 @@ export class Sandbox {
           case InstructionEnum.Jump:
             instructionIdx += instruction.steps;
             break;
+          default:
+            console.warn(
+              `instruction type not supported ${InstructionEnum[type]}`
+            );
+            break;
         }
       }
     }
   }
 
-  bindIterator(iter: Iterator<any>, template: CloneInstruction['template']) {
+  static bindIterator(
+    iter: Iterator<any>,
+    template: CloneInstruction['template'],
+    events: Record<string | number | symbol, any> | undefined
+  ) {
     const { expr } = iter;
     const { graph } = expr;
-    const program = (this.updates[graph] ??= [
+
+    if (!events) return;
+
+    const program = (events[graph] ??= [
       {
         type: InstructionEnum.Write,
         key: graph,
@@ -180,9 +201,8 @@ export class Sandbox {
       itemState: iter.itemState?.key,
     });
 
-    const itemUpdate = iter.itemState
-      ? this.updates[iter.itemState.key]
-      : undefined;
+    const itemUpdate =
+      iter.itemState && events ? events[iter.itemState.key] : undefined;
 
     program.push(
       {
@@ -200,7 +220,7 @@ export class Sandbox {
     }
 
     program.push({
-      type: InstructionEnum.PopTarget,
+      type: InstructionEnum.PopTarget, // pop region
     });
 
     program.push({
@@ -209,84 +229,85 @@ export class Sandbox {
     });
   }
 
-  bindConditional(expr: State<boolean>, node: any) {
-    const { graph } = expr;
-    const program = (this.updates[graph] ??= [
-      {
-        type: InstructionEnum.Write,
-        key: graph,
-      },
-    ]);
+  // bindConditional(expr: State<boolean>, node: any) {
+  //   const { graph } = expr;
+  //   const program = (this.automaton.events[graph] ??= [
+  //     {
+  //       type: InstructionEnum.Write,
+  //       key: graph,
+  //     },
+  //   ]);
 
-    compile(expr, program);
-    program.push({
-      type: InstructionEnum.Show,
-      node,
-    });
-  }
+  //   compile(expr, program);
+  //   program.push({
+  //     type: InstructionEnum.Show,
+  //     node,
+  //   });
+  // }
 
-  bindTextNode(
-    state: State<any, any>,
-    textNode: ITextNode | TextNodeUpdater
-  ): void | Promise<void> {
-    let value: any = undefined;
+  // bindTextNode(
+  //   state: State<any, any>,
+  //   textNode: ITextNode | TextNodeUpdater
+  // ): void | Promise<void> {
+  //   return;
+  //   let value: any = undefined;
 
-    const { graph, arrows } = state;
-    const program = (this.updates[graph] ??= [
-      {
-        type: InstructionEnum.Write,
-        key: graph,
-      },
-    ]);
+  //   const { graph, arrows } = state;
+  //   const program = (this.automaton.events[graph] ??= [
+  //     {
+  //       type: InstructionEnum.Write,
+  //       key: graph,
+  //     },
+  //   ]);
 
-    compile(state, program);
+  //   compile(state, program);
 
-    if (textNode instanceof Function) {
-      program.push({
-        type: InstructionEnum.Effect,
-        func: textNode,
-      });
-    } else
-      program.push({
-        type: InstructionEnum.SetText,
-        node: textNode,
-      });
+  //   if (textNode instanceof Function) {
+  //     program.push({
+  //       type: InstructionEnum.Effect,
+  //       func: textNode,
+  //     });
+  //   } else
+  //     program.push({
+  //       type: InstructionEnum.SetText,
+  //       node: textNode,
+  //     });
 
-    this.values[graph] = value;
+  //   this.values[graph] = value;
 
-    let stateValue = state.initial;
-    if (stateValue === null || stateValue === undefined) {
-      // ignore
-    } else if (stateValue instanceof Promise) {
-      return stateValue.then((resolved) => {
-        if (resolved !== null && resolved !== undefined) {
-          if (textNode instanceof Function) textNode(resolved);
-          else textNode.nodeValue = resolved as string;
-        }
-      });
-    } else {
-      if (textNode instanceof Function) textNode(stateValue);
-      else textNode.nodeValue = stateValue as string;
-    }
+  //   let stateValue = state.initial;
+  //   if (stateValue === null || stateValue === undefined) {
+  //     // ignore
+  //   } else if (stateValue instanceof Promise) {
+  //     return stateValue.then((resolved) => {
+  //       if (resolved !== null && resolved !== undefined) {
+  //         if (textNode instanceof Function) textNode(resolved);
+  //         else textNode.nodeValue = resolved as string;
+  //       }
+  //     });
+  //   } else {
+  //     if (textNode instanceof Function) textNode(stateValue);
+  //     else textNode.nodeValue = stateValue as string;
+  //   }
 
-    if (!arrows) return;
+  //   if (!arrows) return;
 
-    const queue: Arrow[] = arrows;
-    for (let i = 0; i < queue.length; i++) {
-      const curr = queue[i];
+  //   const queue: Arrow[] = arrows;
+  //   for (let i = 0; i < queue.length; i++) {
+  //     const curr = queue[i];
 
-      // if (curr instanceof State) {
-      //   value = curr.initial;
-      //   this.values[key] = value;
-      //   // } else if (curr instanceof Composed) {
-      //   //   queue.push(...curr.signals);
-      // } else {
-      //   throw new Error('Not Yet Supported');
-      // }
-    }
+  //     // if (curr instanceof State) {
+  //     //   value = curr.initial;
+  //     //   this.values[key] = value;
+  //     //   // } else if (curr instanceof Composed) {
+  //     //   //   queue.push(...curr.signals);
+  //     // } else {
+  //     //   throw new Error('Not Yet Supported');
+  //     // }
+  //   }
 
-    return value;
-  }
+  //   return value;
+  // }
 }
 
 export function compile(state: State<any, any>, program: Program) {

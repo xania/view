@@ -4,18 +4,15 @@ type BodyFun = (e: State<unknown>) => any;
 
 type ForEachBody = string | BodyFun | State<any> | number | boolean;
 
-export function ForEach<T>(
-  expr: State<T[]>,
-  body: ForEachBody,
-  scope: Scope = RootScope
-) {
-  const childScope = scope.pushScope();
-  if (body instanceof Function) {
-    const itemState = childScope.state<T>();
-    return new Iterator(expr, body(itemState), childScope, itemState);
-  }
+export class ForEachComponent<T> {
+  constructor(
+    public expr: State<T[]>,
+    public body: ForEachBody
+  ) {}
+}
 
-  return new Iterator(expr, body, childScope);
+export function ForEach<T>(expr: State<T[]>, body: ForEachBody) {
+  return new ForEachComponent(expr, body);
 }
 
 export class Iterator<T> {

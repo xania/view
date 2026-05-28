@@ -26,7 +26,7 @@ describe('render if', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([undefined]);
+    expect(root).toStrictEqual([]);
   });
 
   it('reactive branch sync', async () => {
@@ -44,7 +44,7 @@ describe('render if', () => {
 
     // assert
     sandbox.update(state, false);
-    expect(root).toStrictEqual([['left', undefined, 'right']]);
+    expect(root).toStrictEqual([['left', 'right']]);
   });
 
   it('reactive branch of branch', async () => {
@@ -58,7 +58,7 @@ describe('render if', () => {
     const sandbox = await render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([undefined]);
+    expect(root).toStrictEqual([]);
 
     // show node
     await sandbox.update(visisble, true);

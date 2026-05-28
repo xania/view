@@ -16,7 +16,9 @@ export type Instruction =
   | UpdateInstruction
   | UpdateManyInstruction
   | MoveNextInstruction
-  | PopTargetInstruction;
+  | PopTargetInstruction
+  | SelectIndexInstruction
+  | SelectPropertyInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -103,22 +105,20 @@ export enum InstructionEnum {
   UpdateMany,
   MoveNext,
   PopTarget,
+  SelectIndex,
+  SelectProperty,
 }
 
 export type TraversalInstruction =
   | SelectIndexInstruction
-  | SelectPropertyInstruction;
+  | SelectPropertyInstruction
+  | ForEachInstruction;
 interface SelectIndexInstruction {
-  type: TraversalEnum.SelectIndex;
+  type: InstructionEnum.SelectIndex;
   index: number;
 }
 
 interface SelectPropertyInstruction {
-  type: TraversalEnum.SelectProperty;
+  type: InstructionEnum.SelectProperty;
   prop: string;
-}
-
-export enum TraversalEnum {
-  SelectIndex = 9038592,
-  SelectProperty,
 }

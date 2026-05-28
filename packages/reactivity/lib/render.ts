@@ -1,13 +1,14 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { Automaton, ITemplate, popScope as popTarget } from './automaton';
+import { ITemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
-import { Iterator } from './core/for';
+import { ForEachComponent, Iterator } from './core/for';
 import { Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
+import { JsonAutomaton } from './json';
 
 export function render(
   view: any,
-  automaton: Automaton
+  automaton: JsonAutomaton
 ): Promise<Sandbox> | Sandbox {
   const sandbox = new Sandbox(automaton);
 
@@ -49,29 +50,44 @@ export function render(
       } else if (curr.constructor === Number) {
         const node = automaton.appendText(curr);
       } else if (curr.constructor === Conditional) {
-        const { initial: visible } = curr.expr;
+        const { expr } = curr;
 
-        const node = automaton.appendNode(
-          visible instanceof Promise ? false : !!visible
-        );
-        sandbox.bindConditional(curr.expr, node);
+        if (expr instanceof State) {
+          automaton.pushRegion(expr);
+        } else {
+          debugger;
+        }
 
         viewStack.push(popTarget);
         viewStack.push(curr.body);
+      } else if (curr.constructor === ForEachComponent) {
+        const { body, expr } = curr;
 
-        if (visible instanceof Promise) {
-          promises.push(
-            visible.then((resolved) => sandbox.update(curr.expr, resolved))
+        const scope = RootScope;
+
+        const childScope = scope.pushScope();
+
+        if (body instanceof Function) {
+          const itemState = childScope.state();
+          viewStack.push(
+            new Iterator(expr, body(itemState), childScope, itemState)
           );
+        } else {
+          viewStack.push(new Iterator(expr, body, childScope));
         }
       } else if (curr.constructor === Iterator) {
-        const tpl = automaton.pushTemplate(curr.scope);
+        const tpl = automaton.pushTemplate(
+          curr.expr,
+          curr.scope,
+          curr.itemState
+        );
+
+        const events = (automaton.currentTarget.events ??= {});
+        Sandbox.bindIterator(curr, tpl, events);
+
         viewStack.push(new InitializeState(curr.expr));
         viewStack.push(popTarget);
-        viewStack.push(new BindIterator(curr, tpl));
         viewStack.push(curr.body);
-      } else if (curr instanceof BindIterator) {
-        sandbox.bindIterator(curr.iterator, curr.template);
       } else if (curr instanceof SelectProperty) {
         automaton.selectProperty(curr.prop);
       } else if (curr instanceof State) {
@@ -79,12 +95,12 @@ export function render(
 
         if (initial instanceof Promise) {
           return initial.then((resolved) => {
-            appendValue(curr, resolved);
+            automaton.appendValue(curr, resolved);
             return traverse(currentScope);
           });
         }
 
-        appendValue(curr, initial);
+        automaton.appendValue(curr, initial);
       } else if (curr instanceof InitializeState) {
         const { initial } = curr.expr;
         if (initial instanceof Promise) {
@@ -121,25 +137,9 @@ export function render(
       }
     }
   }
-
-  function appendValue(s: State<any>, initial: any) {
-    const { automaton, updates } = sandbox;
-
-    const program = automaton.appendValue(s.scope, initial);
-    if (program) {
-      updates[s.graph] = program;
-    }
-  }
 }
 class InitializeState {
   constructor(public expr: State<any>) {}
-}
-
-class BindIterator {
-  constructor(
-    public iterator: Iterator<any>,
-    public template: ITemplate
-  ) {}
 }
 
 class SelectProperty {
