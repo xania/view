@@ -63,7 +63,7 @@ export class AutomatonRegion {
 
   constructor(
     public output: AutomatonOutput,
-    public visible: boolean
+    public visible: boolean | void
   ) {
     if (this.output instanceof Array) {
       this.offset = this.output.length;

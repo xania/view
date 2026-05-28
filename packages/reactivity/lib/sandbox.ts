@@ -1,6 +1,5 @@
-import { Iterator } from './core/for';
 import { JsonAutomaton } from './json';
-import { CloneInstruction, InstructionEnum, Program } from './program';
+import { InstructionEnum, Program } from './program';
 import { FuncArrow, State, Value } from './state';
 
 export class Sandbox {
@@ -173,60 +172,6 @@ export class Sandbox {
         }
       }
     }
-  }
-
-  static bindIterator(
-    iter: Iterator<any>,
-    template: CloneInstruction['template'],
-    events: Record<string | number | symbol, any> | undefined
-  ) {
-    const { expr } = iter;
-    const { graph } = expr;
-
-    if (!events) return;
-
-    const program = (events[graph] ??= [
-      {
-        type: InstructionEnum.Write,
-        key: graph,
-      },
-    ]);
-
-    compile(expr, program);
-
-    const startIdx = program.length;
-    program.push({
-      type: InstructionEnum.ForEach,
-      exprKey: expr.key,
-      itemState: iter.itemState?.key,
-    });
-
-    const itemUpdate =
-      iter.itemState && events ? events[iter.itemState.key] : undefined;
-
-    program.push(
-      {
-        type: InstructionEnum.MoveNext,
-        jump: (itemUpdate?.length ?? 0) + 3,
-      },
-      {
-        type: InstructionEnum.Clone,
-        template,
-      }
-    );
-
-    if (itemUpdate) {
-      program.push(...itemUpdate);
-    }
-
-    program.push({
-      type: InstructionEnum.PopTarget, // pop region
-    });
-
-    program.push({
-      type: InstructionEnum.Jump,
-      steps: startIdx - program.length,
-    });
   }
 
   // bindConditional(expr: State<boolean>, node: any) {

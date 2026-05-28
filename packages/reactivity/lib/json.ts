@@ -90,48 +90,23 @@ export class JsonAutomaton {
     return newNode;
   }
 
-  pushRegion(visible: State<boolean> | Value<boolean> = true): IRegion {
+  pushRegion(visible: boolean | void = true): IRegion {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
     }
     this.targets.push(currentTarget);
 
-    if (visible instanceof State) {
-      const newRegion = new AutomatonRegion(
-        currentTarget.output,
-        !!visible.initial
-      );
+    const newRegion = new AutomatonRegion(currentTarget.output, visible);
 
-      this.currentTarget = {
-        output: newRegion,
-        traversal: resolveTraversal(currentTarget.output),
-        events: {
-          [visible.key]: [
-            {
-              type: InstructionEnum.Show,
-              node: newRegion,
-            },
-          ],
-        },
-      };
-      return newRegion;
-    } else {
-      const newRegion = new AutomatonRegion(currentTarget.output, !!visible);
-
-      this.currentTarget = {
-        output: newRegion,
-        traversal: resolveTraversal(currentTarget.output),
-      };
-      return newRegion;
-    }
+    this.currentTarget = {
+      output: newRegion,
+      traversal: resolveTraversal(currentTarget.output),
+    };
+    return newRegion;
   }
 
-  pushTemplate(
-    exprState: State<any>,
-    scope: Scope,
-    itemState?: State<any>
-  ): ITemplate {
+  pushTemplate(exprState: State<any>, scope: Scope, itemState?: State<any>) {
     const { currentTarget } = this;
     if (currentTarget) {
       this.targets.push(currentTarget);

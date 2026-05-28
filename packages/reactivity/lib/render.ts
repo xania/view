@@ -2,7 +2,8 @@
 import { ITemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachComponent, Iterator } from './core/for';
-import { Sandbox } from './sandbox';
+import { CloneInstruction, InstructionEnum } from './program';
+import { compile, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
 import { JsonAutomaton } from './json';
 
@@ -50,14 +51,19 @@ export function render(
       } else if (curr.constructor === Number) {
         const node = automaton.appendText(curr);
       } else if (curr.constructor === Conditional) {
-        const { expr } = curr;
+        const { expr, visible } = curr;
+
+        const region = automaton.pushRegion(visible);
+        const events = (automaton.currentTarget.events ??= {});
 
         if (expr instanceof State) {
-          automaton.pushRegion(expr);
-        } else {
-          debugger;
+          events[expr.key] = [
+            {
+              type: InstructionEnum.Show,
+              node: region,
+            },
+          ];
         }
-
         viewStack.push(popTarget);
         viewStack.push(curr.body);
       } else if (curr.constructor === ForEachComponent) {
@@ -85,7 +91,7 @@ export function render(
         const events = (automaton.currentTarget.events ??= {});
 
         viewStack.push(new InitializeState(curr.expr));
-        viewStack.push(() => Sandbox.bindIterator(curr, tpl, events));
+        viewStack.push(() => bindIterator(curr, tpl, events));
         viewStack.push(popTarget);
         viewStack.push(curr.body);
       } else if (curr instanceof Function) {
@@ -146,4 +152,58 @@ class InitializeState {
 
 class SelectProperty {
   constructor(public prop: string) {}
+}
+
+function bindIterator(
+  iter: Iterator<any>,
+  template: CloneInstruction['template'],
+  events: Record<string | number | symbol, any> | undefined
+) {
+  const { expr } = iter;
+  const { graph } = expr;
+
+  if (!events) return;
+
+  const program = (events[graph] ??= [
+    {
+      type: InstructionEnum.Write,
+      key: graph,
+    },
+  ]);
+
+  compile(expr, program);
+
+  const startIdx = program.length;
+  program.push({
+    type: InstructionEnum.ForEach,
+    exprKey: expr.key,
+    itemState: iter.itemState?.key,
+  });
+
+  const itemUpdate =
+    iter.itemState && events ? events[iter.itemState.key] : undefined;
+
+  program.push(
+    {
+      type: InstructionEnum.MoveNext,
+      jump: (itemUpdate?.length ?? 0) + 3,
+    },
+    {
+      type: InstructionEnum.Clone,
+      template,
+    }
+  );
+
+  if (itemUpdate) {
+    program.push(...itemUpdate);
+  }
+
+  program.push({
+    type: InstructionEnum.PopTarget, // pop region
+  });
+
+  program.push({
+    type: InstructionEnum.Jump,
+    steps: startIdx - program.length,
+  });
 }
