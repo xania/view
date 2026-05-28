@@ -83,11 +83,13 @@ export function render(
         );
 
         const events = (automaton.currentTarget.events ??= {});
-        Sandbox.bindIterator(curr, tpl, events);
 
         viewStack.push(new InitializeState(curr.expr));
+        viewStack.push(() => Sandbox.bindIterator(curr, tpl, events));
         viewStack.push(popTarget);
         viewStack.push(curr.body);
+      } else if (curr instanceof Function) {
+        curr();
       } else if (curr instanceof SelectProperty) {
         automaton.selectProperty(curr.prop);
       } else if (curr instanceof State) {
