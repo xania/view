@@ -106,26 +106,16 @@ export class JsonAutomaton {
     return newRegion;
   }
 
-  pushTemplate(exprState: State<any>, scope: Scope, itemState?: State<any>) {
+  pushTemplate(scope: Scope) {
     const { currentTarget } = this;
     if (currentTarget) {
       this.targets.push(currentTarget);
     }
 
-    currentTarget.events ??= {};
-    currentTarget.events[exprState.graph] = [
-      {
-        type: InstructionEnum.ForEach,
-        exprKey: exprState.key,
-        itemState: itemState?.key,
-      },
-    ];
-
     const tpl = new AutomatonTemplate(this, scope);
     this.currentTarget = {
       output: tpl,
       traversal: resolveTraversal(currentTarget.output),
-      events: currentTarget.events,
     };
 
     return tpl;

@@ -1,7 +1,7 @@
 // import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
 import { ITemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
-import { ForEachComponent, Iterator } from './core/for';
+import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { CloneInstruction, InstructionEnum } from './program';
 import { compile, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
@@ -68,32 +68,18 @@ export function render(
         viewStack.push(curr.body);
       } else if (curr.constructor === ForEachComponent) {
         const { body, expr } = curr;
-
         const scope = RootScope;
-
         const childScope = scope.pushScope();
 
-        if (body instanceof Function) {
-          const itemState = childScope.state();
-          viewStack.push(
-            new Iterator(expr, body(itemState), childScope, itemState)
-          );
-        } else {
-          viewStack.push(new Iterator(expr, body, childScope));
-        }
-      } else if (curr.constructor === Iterator) {
-        const tpl = automaton.pushTemplate(
-          curr.expr,
-          curr.scope,
-          curr.itemState
-        );
+        var iterator = buildIterator(childScope, body);
+        const tpl = automaton.pushTemplate(childScope);
 
         const events = (automaton.currentTarget.events ??= {});
 
-        viewStack.push(new InitializeState(curr.expr));
-        viewStack.push(() => bindIterator(curr, tpl, events));
+        viewStack.push(new InitializeState(expr));
         viewStack.push(popTarget);
-        viewStack.push(curr.body);
+        viewStack.push(() => bindIterator(expr, iterator, tpl, events));
+        viewStack.push(iterator.body);
       } else if (curr instanceof Function) {
         curr();
       } else if (curr instanceof SelectProperty) {
@@ -155,11 +141,11 @@ class SelectProperty {
 }
 
 function bindIterator(
+  expr: State<any>,
   iter: Iterator<any>,
   template: CloneInstruction['template'],
   events: Record<string | number | symbol, any> | undefined
 ) {
-  const { expr } = iter;
   const { graph } = expr;
 
   if (!events) return;
@@ -206,4 +192,13 @@ function bindIterator(
     type: InstructionEnum.Jump,
     steps: startIdx - program.length,
   });
+}
+
+function buildIterator(childScope: Scope, body: ForEachBody) {
+  if (body instanceof Function) {
+    const itemState = childScope.state();
+    return new Iterator(body(itemState), childScope, itemState);
+  } else {
+    return new Iterator(body, childScope);
+  }
 }
