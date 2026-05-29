@@ -76,4 +76,19 @@ describe('render list', () => {
     // assert
     expect(root).toStrictEqual(['root', 1, 2, 3]);
   });
+
+  it('foreach complex item state', () => {
+    // prepare view
+    var values = useState([1, 2, 3]);
+    const view = ForEach(values, (e) => ({
+      s: e,
+    }));
+
+    // render view
+    const root: any[] = ['root'];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual(['root', { s: 1 }, { s: 2 }, { s: 3 }]);
+  });
 });

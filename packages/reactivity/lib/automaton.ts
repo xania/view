@@ -44,11 +44,15 @@ export class AutomatonTemplate implements ITemplate {
     return idx;
   }
 
+  update(idx: number, item: any) {
+    this.items[idx] = item;
+  }
+
   clone(): IRegion {
     var newRegion = this.automaton.pushRegion();
 
     for (const item of this.items) {
-      newRegion.push(item);
+      newRegion.push(cloneTemplateItem(item));
     }
 
     this.regions.push(newRegion);
@@ -178,6 +182,24 @@ export class ObjectProperty {
     public object: any,
     public prop?: string
   ) {}
+}
+
+function cloneTemplateItem<T>(item: T): T {
+  if (item instanceof Array) {
+    return item.map(cloneTemplateItem) as T;
+  }
+
+  if (item && item.constructor === Object) {
+    const clone: Record<string | number | symbol, any> = {};
+    for (const key of Reflect.ownKeys(item)) {
+      clone[key] = cloneTemplateItem(
+        (item as Record<string | number | symbol, any>)[key]
+      );
+    }
+    return clone as T;
+  }
+
+  return item;
 }
 
 // export interface Automaton {

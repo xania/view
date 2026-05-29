@@ -173,16 +173,17 @@ function bindIterator(
     {
       type: InstructionEnum.MoveNext,
       jump: (itemUpdate?.length ?? 0) + 3,
-    },
-    {
-      type: InstructionEnum.Clone,
-      template,
     }
   );
 
   if (itemUpdate) {
     program.push(...itemUpdate);
   }
+
+  program.push({
+    type: InstructionEnum.Clone,
+    template,
+  });
 
   program.push({
     type: InstructionEnum.PopTarget, // pop region

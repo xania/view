@@ -157,6 +157,8 @@ export class JsonAutomaton {
       output.push(value);
     } else if (output instanceof Array) {
       output.push(value);
+    } else if (output instanceof AutomatonTemplate) {
+      output.push(value);
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'
@@ -180,7 +182,7 @@ export class JsonAutomaton {
     };
   }
 
-  appendValue<T>(state: State<any>, stateValue?: T): Program | undefined {
+  appendValue<T>(state: State<any>, stateValue?: T): void {
     let { output } = this.currentTarget;
 
     const currentEvents = (this.currentTarget.events ??= {});
@@ -199,14 +201,6 @@ export class JsonAutomaton {
         target: object,
         property: prop,
       });
-
-      return [
-        {
-          type: InstructionEnum.Update,
-          target: object,
-          property: prop,
-        },
-      ];
     } else if (output instanceof Array) {
       const nodeIndex = output.length;
       output.push(stateValue);
@@ -216,14 +210,6 @@ export class JsonAutomaton {
         target: output,
         property: nodeIndex,
       });
-
-      return [
-        {
-          type: InstructionEnum.Update,
-          target: output,
-          property: nodeIndex,
-        },
-      ];
     } else if (output instanceof AutomatonTemplate) {
       const itemIdx = output.push(stateValue);
 
@@ -233,26 +219,12 @@ export class JsonAutomaton {
           targets: output.regions,
           property: itemIdx,
         });
-
-        return [
-          {
-            type: InstructionEnum.UpdateMany,
-            targets: output.regions,
-            property: itemIdx,
-          },
-        ];
       } else {
         stateEvent.push({
           type: InstructionEnum.Update,
+          target: output,
           property: itemIdx,
         });
-
-        return [
-          {
-            type: InstructionEnum.Update,
-            property: itemIdx,
-          },
-        ];
       }
     } else if (output instanceof AutomatonNode) {
       output.push(stateValue);
@@ -262,13 +234,6 @@ export class JsonAutomaton {
         target: output,
         property: output.index,
       });
-      return [
-        {
-          type: InstructionEnum.Update,
-          target: output,
-          property: output.index,
-        },
-      ];
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
@@ -277,13 +242,6 @@ export class JsonAutomaton {
         target: output,
         property: idx,
       });
-      return [
-        {
-          type: InstructionEnum.Update,
-          target: output,
-          property: idx,
-        },
-      ];
     } else {
       debugger;
     }
