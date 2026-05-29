@@ -169,12 +169,10 @@ function bindIterator(
   const itemUpdate =
     iter.itemState && events ? events[iter.itemState.key] : undefined;
 
-  program.push(
-    {
-      type: InstructionEnum.MoveNext,
-      jump: (itemUpdate?.length ?? 0) + 3,
-    }
-  );
+  program.push({
+    type: InstructionEnum.MoveNext,
+    jump: (itemUpdate?.length ?? 0) + 3,
+  });
 
   if (itemUpdate) {
     program.push(...itemUpdate);
