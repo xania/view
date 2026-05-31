@@ -171,7 +171,12 @@ export class JsonAutomaton {
         },
       ];
     } else if (output instanceof AutomatonTemplate) {
-      output.push(value);
+      return [
+        {
+          type: InstructionEnum.SelectIndex,
+          index: output.push(value),
+        },
+      ];
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'

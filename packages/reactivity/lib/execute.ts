@@ -27,6 +27,19 @@ export function execute(currentValue: any, output: unknown, program: Program) {
           currentOutput.output[idx] = currentValue;
         }
         break;
+      case InstructionEnum.UpdateObject:
+        (currentOutput as any)[instruction.property] = currentValue;
+        break;
+      case InstructionEnum.SelectIndex:
+        if (currentOutput instanceof Region) {
+          const idx = currentOutput.offset + instruction.index;
+          currentOutput = currentOutput.output[idx];
+        }
+        break;
+      default:
+        const unsupportedType = InstructionEnum[type];
+        console.warn(`instruction type not supported ${unsupportedType}`);
+        break;
     }
   }
 }
