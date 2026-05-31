@@ -1,17 +1,14 @@
 import {
-  AutomatonNode,
   AutomatonRegion,
   AutomatonTarget,
   AutomatonTemplate,
-  INode,
   IRegion,
-  ITemplate,
   ITextNode,
   ObjectProperty,
   TextNodeUpdater,
 } from './automaton';
-import { InstructionEnum, Program, TraversalInstruction } from './program';
-import { Scope, State, Value } from './state';
+import { InstructionEnum, TraversalInstruction } from './program';
+import { Scope, State } from './state';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -42,11 +39,11 @@ export class JsonAutomaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
   constructor(
-    rootData: AutomatonTarget['output'],
+    public rootOutput: AutomatonTarget['output'],
     public events: AutomatonTarget['events'] = { [Symbol()]: 'root' as any }
   ) {
     this.currentTarget = {
-      output: rootData,
+      output: rootOutput,
       traversal: [],
       events,
     };
@@ -57,13 +54,13 @@ export class JsonAutomaton {
     this.targets.push(currentTarget);
 
     const newObject = {};
-    this.setValue(currentTarget.output, newObject);
 
     const newNode = new ObjectProperty(newObject);
+
     this.currentTarget = {
       output: newNode,
       events: currentTarget.events,
-      traversal: resolveTraversal(currentTarget.output),
+      traversal: this.setValue(currentTarget.output, newObject) ?? [],
     };
   }
 
@@ -75,25 +72,14 @@ export class JsonAutomaton {
     }
   }
 
-  appendNode(visible: State<boolean>): INode {
-    const { currentTarget } = this;
-    if (!(currentTarget.output instanceof Array)) {
-      throw Error('Invalid target: expected array');
-    }
-    this.targets.push(currentTarget);
-
-    const newNode = new AutomatonNode(currentTarget.output, !!visible.initial);
-    this.currentTarget = {
-      output: newNode,
-      traversal: resolveTraversal(currentTarget.output),
-    };
-    return newNode;
-  }
-
   pushRegion(visible: boolean | void = true): IRegion {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
+    }
+
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
     }
     this.targets.push(currentTarget);
 
@@ -101,8 +87,14 @@ export class JsonAutomaton {
 
     this.currentTarget = {
       output: newRegion,
-      traversal: resolveTraversal(currentTarget.output),
+      traversal: [
+        {
+          type: InstructionEnum.SelectFragment,
+          index: newRegion.offset,
+        },
+      ],
     };
+
     return newRegion;
   }
 
@@ -111,11 +103,21 @@ export class JsonAutomaton {
     if (currentTarget) {
       this.targets.push(currentTarget);
     }
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
 
-    const tpl = new AutomatonTemplate(this, scope);
+    const tpl = new AutomatonTemplate(currentTarget.output, scope);
     this.currentTarget = {
       output: tpl,
-      traversal: resolveTraversal(currentTarget.output),
+      traversal: [
+        {
+          // TODO verify this is needed
+          type: InstructionEnum.SelectFragment,
+          index: currentTarget.output.length,
+        },
+      ],
+      // traversal: resolveTraversal(currentTarget.output),
     };
 
     return tpl;
@@ -142,21 +144,32 @@ export class JsonAutomaton {
     this.currentTarget = parentTarget;
   }
 
-  setValue(output: AutomatonTarget['output'], value: any) {
+  setValue(
+    output: AutomatonTarget['output'],
+    value: any
+  ): TraversalInstruction[] | void {
     if (output instanceof ObjectProperty) {
       if (!output.prop) {
         throw Error('Cannot set value, prop is not selected');
       }
       output.object[output.prop] = value;
+      return [
+        {
+          type: InstructionEnum.SelectProperty,
+          prop: output.prop,
+        },
+      ];
     } else if (output instanceof AutomatonRegion) {
-      // if (property) {
-      //   throw Error(
-      //     'invalid state: property is not allowed when current scope is region'
-      //   );
-      // }
       output.push(value);
     } else if (output instanceof Array) {
+      const offset = output.length;
       output.push(value);
+      return [
+        {
+          type: InstructionEnum.SelectIndex,
+          index: offset,
+        },
+      ];
     } else if (output instanceof AutomatonTemplate) {
       output.push(value);
     } else
@@ -173,12 +186,11 @@ export class JsonAutomaton {
     }
 
     const copy: any[] = [];
-    this.setValue(currentTarget.output, copy);
 
     this.currentTarget = {
       output: copy,
       events: currentTarget.events,
-      traversal: resolveTraversal(currentTarget.output),
+      traversal: this.setValue(currentTarget.output, copy) ?? [],
     };
   }
 
@@ -197,8 +209,7 @@ export class JsonAutomaton {
       object[prop] = stateValue;
 
       stateEvent.push({
-        type: InstructionEnum.Update,
-        target: object,
+        type: InstructionEnum.UpdateObject,
         property: prop,
       });
     } else if (output instanceof Array) {
@@ -206,41 +217,30 @@ export class JsonAutomaton {
       output.push(stateValue);
 
       stateEvent.push({
-        type: InstructionEnum.Update,
-        target: output,
-        property: nodeIndex,
+        type: InstructionEnum.UpdateArray,
+        index: nodeIndex,
       });
     } else if (output instanceof AutomatonTemplate) {
       const itemIdx = output.push(stateValue);
 
       if (state.scope.level < output.scope.level) {
         stateEvent.push({
-          type: InstructionEnum.UpdateMany,
-          targets: output.regions,
-          property: itemIdx,
+          type: InstructionEnum.UpdateRegions,
+          regions: output.regions,
+          index: itemIdx,
         });
       } else {
         stateEvent.push({
-          type: InstructionEnum.Update,
-          target: output,
-          property: itemIdx,
+          type: InstructionEnum.UpdateArray,
+          index: itemIdx,
         });
       }
-    } else if (output instanceof AutomatonNode) {
-      output.push(stateValue);
-
-      stateEvent.push({
-        type: InstructionEnum.Update,
-        target: output,
-        property: output.index,
-      });
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
       stateEvent.push({
-        type: InstructionEnum.Update,
-        target: output,
-        property: idx,
+        type: InstructionEnum.UpdateArray,
+        index: idx,
       });
     } else {
       debugger;
@@ -265,28 +265,15 @@ export class JsonAutomaton {
         debugger;
       };
     } else if (data instanceof AutomatonTemplate) {
-      // if (property) {
-      //   throw Error(
-      //     'invalid state: property is not allowed when current scope is template'
-      //   );
-      // }
-
       data.push(content);
       return () => {
         debugger;
       };
     } else if (data instanceof AutomatonRegion) {
-      // if (property) {
-      //   throw Error(
-      //     'invalid state: property is not allowed when current scope is region'
-      //   );
-      // }
       const idx = data.push(content);
       return (newValue) => {
         data.update(idx, newValue);
       };
-    } else if (data instanceof AutomatonNode) {
-      data.push(content);
     } else if (data instanceof Array) {
       const nodeIndex = data.length;
       data.push(content);
@@ -315,12 +302,16 @@ function resolveTraversal(
   output: AutomatonTarget['output']
 ): TraversalInstruction[] {
   if (output instanceof Array) {
-    return [
-      {
-        type: InstructionEnum.SelectIndex,
-        index: output.length,
-      },
-    ];
+    if (output.length == 0) {
+      return [];
+    } else {
+      return [
+        {
+          type: InstructionEnum.SelectFragment,
+          index: output.length,
+        },
+      ];
+    }
   } else if (output instanceof ObjectProperty && output.prop) {
     return [
       {
@@ -330,13 +321,6 @@ function resolveTraversal(
     ];
   } else if (output instanceof AutomatonTemplate) {
     return [];
-  } else if (output instanceof AutomatonNode) {
-    return [
-      {
-        type: InstructionEnum.SelectIndex,
-        index: output.index,
-      },
-    ];
   } else {
     throw Error('Could not resolve traversal for output');
   }

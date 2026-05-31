@@ -19,7 +19,6 @@ export type AutomatonTarget = {
   output:
     | ObjectProperty
     | AutomatonRegion
-    | AutomatonNode
     | AutomatonTemplate
     | AutomatonOutput;
   traversal: TraversalInstruction[];
@@ -28,11 +27,10 @@ export type AutomatonTarget = {
 
 export class AutomatonTemplate implements ITemplate {
   private items: any[] = [];
-  public regions: IRegion[] = [];
+  public readonly regions: number[] = [];
+
   constructor(
-    public automaton: {
-      pushRegion(visible: State<boolean> | Value<boolean>): IRegion;
-    },
+    public output: any[],
     public scope: Scope
   ) {}
 
@@ -48,21 +46,17 @@ export class AutomatonTemplate implements ITemplate {
     this.items[idx] = item;
   }
 
-  clone(): IRegion {
-    var newRegion = this.automaton.pushRegion();
-
+  clone(): void {
+    const offset = this.output.length;
+    this.regions.push(offset);
     for (const item of this.items) {
-      newRegion.push(cloneTemplateItem(item));
+      this.output.push(cloneTemplateItem(item));
     }
-
-    this.regions.push(newRegion);
-
-    return newRegion;
   }
 }
 
 export class AutomatonRegion {
-  private offset: number;
+  public readonly offset: number;
   private items: any[] = [];
 
   constructor(
@@ -122,61 +116,6 @@ export class AutomatonRegion {
   }
 }
 
-export class AutomatonNode {
-  private currentValue?: any;
-
-  constructor(
-    public parent: any[],
-    public visible: boolean = true,
-    public index = parent.length
-  ) {}
-
-  push(value: any) {
-    this.currentValue = value;
-
-    const { parent, index } = this;
-
-    if (index !== parent.length) {
-      throw Error('Race condition');
-    }
-
-    const nodeValue = this.visible ? value : undefined;
-
-    parent.push(nodeValue);
-  }
-
-  show(visible: boolean) {
-    if (this.visible === visible) {
-      return;
-    }
-    this.visible = visible;
-
-    const { parent, index } = this;
-    if (visible) {
-      parent[index] = this.currentValue;
-    } else {
-      parent[index] = undefined;
-    }
-  }
-
-  update(_: number, newValue: any) {
-    const { currentValue } = this;
-
-    if (currentValue === newValue) {
-      return;
-    }
-
-    this.currentValue = newValue;
-
-    const { parent, index } = this;
-    if (this.visible) {
-      parent[index] = newValue;
-    } else {
-      parent[index] = undefined;
-    }
-  }
-}
-
 export class ObjectProperty {
   constructor(
     public object: any,
@@ -202,23 +141,6 @@ function cloneTemplateItem<T>(item: T): T {
   return item;
 }
 
-// export interface Automaton {
-//   currentTarget: AutomatonTarget;
-//   events: Record<symbol, Program>;
-//   popTarget(): void;
-//   appendObject(): void;
-//   selectProperty(prop: string): void;
-//   appendArray(): void;
-//   appendValue(
-//     state: State<any>,
-//     content?: string | number | undefined
-//   ): Program | undefined;
-//   appendText(content?: ITextNode['nodeValue']): ITextNode | TextNodeUpdater;
-//   appendNode(visible: boolean): INode;
-//   pushRegion(visible: boolean): IRegion;
-//   pushTemplate(state: State<any>): ITemplate;
-// }
-
 export type TextNodeUpdater = (nodeValue: any) => void;
 export interface ITextNode {
   nodeValue: any;
@@ -238,6 +160,7 @@ export type INode = {
   show(visible: boolean): void;
 };
 export type IRegion = {
+  offset: number;
   push(item: any): void;
   show(visible: boolean): void;
   update(idx: number, value: any): void;
@@ -245,5 +168,5 @@ export type IRegion = {
 
 export type ITemplate = {
   push(scope: Scope, item: any): void;
-  clone(visible?: boolean): IRegion;
+  clone(visible?: boolean): void;
 };

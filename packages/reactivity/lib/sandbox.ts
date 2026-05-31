@@ -1,5 +1,7 @@
+import { IRegion } from './automaton';
+import { Region as Fragment, Region } from './execute';
 import { JsonAutomaton } from './json';
-import { InstructionEnum, Program } from './program';
+import { Instruction, InstructionEnum, Program } from './program';
 import { FuncArrow, State, Value } from './state';
 
 export class Sandbox {
@@ -37,6 +39,9 @@ export class Sandbox {
     }
 
     const promises: Promise<void>[] = [];
+
+    let currentOutput = this.automaton.rootOutput as any;
+
     traverse(newValue, stateIdx);
 
     if (promises.length) {
@@ -59,46 +64,56 @@ export class Sandbox {
           case InstructionEnum.Write:
             values[instruction.key] = currentValue;
             break;
-          case InstructionEnum.Update:
-            {
-              const { property } = instruction;
-              const output =
-                instruction.target ?? automaton.currentTarget.output;
-
-              if (output instanceof Array) {
-                output[property as number] = currentValue;
-              } else if (
-                'update' in output &&
-                output.update instanceof Function
-              ) {
-                output.update(property, currentValue);
-              } else {
-                const data = output as Record<string | number, any>;
-                data[property] = currentValue;
-              }
+          case InstructionEnum.UpdateArray:
+            const { index } = instruction;
+            if (currentOutput instanceof Array) {
+              currentOutput[index] = currentValue;
+            } else if (currentOutput instanceof Fragment) {
+              const idx = currentOutput.offset + instruction.index;
+              currentOutput.output[idx] = currentValue;
+            } else {
+              throw Error('not an array');
             }
             break;
-          case InstructionEnum.UpdateMany:
-            {
-              const { targets, property } = instruction;
+          case InstructionEnum.UpdateObject:
+            const { property } = instruction;
+            const output = instruction.output ?? currentOutput;
 
-              for (const target of targets) {
-                const data = target;
-
-                if (data instanceof Array) {
-                  data[property as number] = currentValue;
-                } else if (
-                  'update' in data &&
-                  data.update instanceof Function
-                ) {
-                  data.update(property, currentValue);
-                } else {
-                  const target = data as Record<string | number, any>;
-                  target[property] = currentValue;
-                }
-              }
+            if (output instanceof Array) {
+              throw Error('not an object');
+              // output[property as number] = currentValue;
+            } else if (
+              'update' in output &&
+              output.update instanceof Function
+            ) {
+              output.update(property, currentValue);
+            } else {
+              const data = output as Record<string | number | symbol, any>;
+              data[property] = currentValue;
             }
             break;
+
+          // case InstructionEnum.UpdateMany:
+          //   {
+          //     const { regions, property } = instruction;
+
+          //     for (const target of regions) {
+          //       const data = target;
+
+          //       if (data instanceof Array) {
+          //         data[property as number] = currentValue;
+          //       } else if (
+          //         'update' in data &&
+          //         data.update instanceof Function
+          //       ) {
+          //         data.update(property, currentValue);
+          //       } else {
+          //         const target = data as Record<string | number, any>;
+          //         target[property] = currentValue;
+          //       }
+          //     }
+          //   }
+          //   break;
           case InstructionEnum.SetText:
             const { node } = instruction;
             if (currentValue instanceof Promise) {
@@ -132,31 +147,36 @@ export class Sandbox {
           case InstructionEnum.ForEach:
             if (currentValue instanceof Promise) {
               throw new Error('Not Yet Supported');
-            } else {
+            } else if (currentValue.length > 0) {
               return traverse(currentValue, instructionIdx + 1, {
                 items: currentValue,
                 index: 0,
               });
+            } else {
+              instructionIdx += instruction.jump;
             }
-
             break;
           case InstructionEnum.MoveNext:
             if (!enumerator) {
               instructionIdx += instruction.jump;
-            } else {
+            } else if (currentOutput instanceof Fragment) {
               const { index, items } = enumerator;
+              const { regions } = instruction;
               if (index < items.length) {
                 currentValue = items[index];
+                if (index >= regions.length) {
+                  instruction.template.clone();
+                }
+                const offset = regions[index];
+                currentOutput.offset = offset;
                 enumerator.index = index + 1;
               } else {
                 instructionIdx += instruction.jump;
               }
+            } else {
+              throw Error('not a region');
             }
             break;
-          case InstructionEnum.Clone:
-            instruction.template.clone();
-            break;
-
           case InstructionEnum.PopTarget:
             automaton.popTarget();
             break;
@@ -164,95 +184,59 @@ export class Sandbox {
           case InstructionEnum.Jump:
             instructionIdx += instruction.steps;
             break;
+          case InstructionEnum.SelectFragment:
+            if (currentOutput instanceof Array) {
+              currentOutput = new Fragment(currentOutput, instruction.index);
+            } else {
+              throw Error('not an array');
+            }
+            break;
+          case InstructionEnum.SelectProperty:
+            if (
+              currentOutput instanceof Fragment ||
+              currentOutput instanceof Array
+            ) {
+              throw Error('Invalid operation: Array or region not expected');
+            }
+
+            currentOutput = currentOutput[instruction.prop];
+            break;
+          case InstructionEnum.SelectIndex:
+            if (currentOutput instanceof Array) {
+              currentOutput = currentOutput[instruction.index];
+            } else {
+              throw Error('Invalid operation: Array or region not expected');
+            }
+
+            break;
+          case InstructionEnum.UpdateRegions:
+            const array =
+              currentOutput instanceof Region
+                ? currentOutput.output
+                : (currentOutput as any[]);
+
+            for (const offset of instruction.regions) {
+              const idx = offset + instruction.index;
+              array[idx] = currentValue;
+            }
+
+            break;
+
+          // case InstructionEnum.NextSibling:
+          //   currentOutput = {
+          //     output: currentOutput.output,
+          //     index: instruction.index,
+          //   };
+          //   break;
+
           default:
-            console.warn(
-              `instruction type not supported ${InstructionEnum[type]}`
-            );
+            const unsupportedType = InstructionEnum[type];
+            console.warn(`instruction type not supported ${unsupportedType}`);
             break;
         }
       }
     }
   }
-
-  // bindConditional(expr: State<boolean>, node: any) {
-  //   const { graph } = expr;
-  //   const program = (this.automaton.events[graph] ??= [
-  //     {
-  //       type: InstructionEnum.Write,
-  //       key: graph,
-  //     },
-  //   ]);
-
-  //   compile(expr, program);
-  //   program.push({
-  //     type: InstructionEnum.Show,
-  //     node,
-  //   });
-  // }
-
-  // bindTextNode(
-  //   state: State<any, any>,
-  //   textNode: ITextNode | TextNodeUpdater
-  // ): void | Promise<void> {
-  //   return;
-  //   let value: any = undefined;
-
-  //   const { graph, arrows } = state;
-  //   const program = (this.automaton.events[graph] ??= [
-  //     {
-  //       type: InstructionEnum.Write,
-  //       key: graph,
-  //     },
-  //   ]);
-
-  //   compile(state, program);
-
-  //   if (textNode instanceof Function) {
-  //     program.push({
-  //       type: InstructionEnum.Effect,
-  //       func: textNode,
-  //     });
-  //   } else
-  //     program.push({
-  //       type: InstructionEnum.SetText,
-  //       node: textNode,
-  //     });
-
-  //   this.values[graph] = value;
-
-  //   let stateValue = state.initial;
-  //   if (stateValue === null || stateValue === undefined) {
-  //     // ignore
-  //   } else if (stateValue instanceof Promise) {
-  //     return stateValue.then((resolved) => {
-  //       if (resolved !== null && resolved !== undefined) {
-  //         if (textNode instanceof Function) textNode(resolved);
-  //         else textNode.nodeValue = resolved as string;
-  //       }
-  //     });
-  //   } else {
-  //     if (textNode instanceof Function) textNode(stateValue);
-  //     else textNode.nodeValue = stateValue as string;
-  //   }
-
-  //   if (!arrows) return;
-
-  //   const queue: Arrow[] = arrows;
-  //   for (let i = 0; i < queue.length; i++) {
-  //     const curr = queue[i];
-
-  //     // if (curr instanceof State) {
-  //     //   value = curr.initial;
-  //     //   this.values[key] = value;
-  //     //   // } else if (curr instanceof Composed) {
-  //     //   //   queue.push(...curr.signals);
-  //     // } else {
-  //     //   throw new Error('Not Yet Supported');
-  //     // }
-  //   }
-
-  //   return value;
-  // }
 }
 
 export function compile(state: State<any, any>, program: Program) {

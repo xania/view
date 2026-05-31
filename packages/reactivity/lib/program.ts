@@ -1,4 +1,4 @@
-import { ITextNode, Updatable } from './automaton';
+import { AutomatonTemplate, IRegion, ITextNode, Updatable } from './automaton';
 import { Scope } from './state';
 
 export type Program = Instruction[];
@@ -13,12 +13,12 @@ export type Instruction =
   | ForEachInstruction
   | CloneInstruction
   | JumpInstruction
-  | UpdateInstruction
-  | UpdateManyInstruction
+  | UpdateArrayInstruction
+  | UpdateObjectInstruction
+  | UpdateRegionsInstruction
   | MoveNextInstruction
   | PopTargetInstruction
-  | SelectIndexInstruction
-  | SelectPropertyInstruction;
+  | TraversalInstruction;
 
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
@@ -56,6 +56,7 @@ export interface ForEachInstruction {
   type: InstructionEnum.ForEach;
   exprKey: symbol;
   itemState?: symbol;
+  jump: number;
 }
 
 export interface CloneInstruction {
@@ -70,21 +71,28 @@ export interface JumpInstruction {
   steps: number;
 }
 
-export interface UpdateInstruction {
-  type: InstructionEnum.Update;
-  target?: Updatable;
-  property: string | number;
+export interface UpdateArrayInstruction {
+  type: InstructionEnum.UpdateArray;
+  index: number;
 }
 
-export interface UpdateManyInstruction {
-  type: InstructionEnum.UpdateMany;
-  targets: Updatable[];
-  property: string | number;
+export interface UpdateObjectInstruction {
+  type: InstructionEnum.UpdateObject;
+  output?: Updatable;
+  property: number | string | symbol;
+}
+
+export interface UpdateRegionsInstruction {
+  type: InstructionEnum.UpdateRegions;
+  regions: number[];
+  index: number;
 }
 
 export interface MoveNextInstruction {
   type: InstructionEnum.MoveNext;
   jump: number;
+  regions: number[];
+  template: AutomatonTemplate;
 }
 
 export interface PopTargetInstruction {
@@ -101,24 +109,32 @@ export enum InstructionEnum {
   ForEach,
   Clone,
   Jump,
-  Update,
-  UpdateMany,
+  UpdateArray,
+  UpdateObject,
+  UpdateRegions,
   MoveNext,
   PopTarget,
-  SelectIndex,
+  SelectFragment,
   SelectProperty,
+  SelectIndex,
 }
 
 export type TraversalInstruction =
-  | SelectIndexInstruction
+  | SelectFragmentInstruction
   | SelectPropertyInstruction
+  | SelectIndexInstruction
   | ForEachInstruction;
-interface SelectIndexInstruction {
-  type: InstructionEnum.SelectIndex;
+interface SelectFragmentInstruction {
+  type: InstructionEnum.SelectFragment;
   index: number;
 }
 
 interface SelectPropertyInstruction {
   type: InstructionEnum.SelectProperty;
-  prop: string;
+  prop: string | number | symbol;
+}
+
+interface SelectIndexInstruction {
+  type: InstructionEnum.SelectIndex;
+  index: number;
 }

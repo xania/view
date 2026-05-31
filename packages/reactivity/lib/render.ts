@@ -1,11 +1,11 @@
-// import { DomDescriptorType, isDomDescriptor } from '../intrinsic';
-import { ITemplate, popScope as popTarget } from './automaton';
+import { AutomatonTemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { CloneInstruction, InstructionEnum } from './program';
+import { InstructionEnum, Program } from './program';
 import { compile, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
 import { JsonAutomaton } from './json';
+import { execute } from './execute';
 
 export function render(
   view: any,
@@ -67,7 +67,7 @@ export function render(
         viewStack.push(popTarget);
         viewStack.push(curr.body);
       } else if (curr.constructor === ForEachComponent) {
-        const { body, expr } = curr;
+        const { body, expr, initial } = curr;
         const scope = RootScope;
         const childScope = scope.pushScope();
 
@@ -76,9 +76,13 @@ export function render(
 
         const events = (automaton.currentTarget.events ??= {});
 
-        viewStack.push(new InitializeState(expr));
         viewStack.push(popTarget);
         viewStack.push(() => bindIterator(expr, iterator, tpl, events));
+        if (initial) {
+          viewStack.push(() =>
+            initializeIterator(automaton, tpl, initial, iterator.itemState)
+          );
+        }
         viewStack.push(iterator.body);
       } else if (curr instanceof Function) {
         curr();
@@ -140,17 +144,49 @@ class SelectProperty {
   constructor(public prop: string) {}
 }
 
+function initializeIterator(
+  automaton: JsonAutomaton,
+  template: AutomatonTemplate,
+  items: any[],
+  itemState?: State<any>
+) {
+  const { currentTarget } = automaton;
+  if (currentTarget.output !== template) {
+    throw Error('whaaaaaat');
+  }
+
+  const itemUpdate =
+    itemState && currentTarget.events && currentTarget.events[itemState.key];
+
+  const output = template.output;
+
+  for (const item of items) {
+    const offset = output.length;
+    const region = template.clone();
+
+    if (itemUpdate) {
+      execute(item, template.output, [
+        {
+          type: InstructionEnum.SelectFragment,
+          index: offset,
+        },
+        ...itemUpdate,
+      ]);
+    }
+  }
+}
+
 function bindIterator(
   expr: State<any>,
   iter: Iterator<any>,
-  template: CloneInstruction['template'],
+  template: AutomatonTemplate,
   events: Record<string | number | symbol, any> | undefined
 ) {
   const { graph } = expr;
 
   if (!events) return;
 
-  const program = (events[graph] ??= [
+  const program: Program = (events[graph] ??= [
     {
       type: InstructionEnum.Write,
       key: graph,
@@ -159,33 +195,27 @@ function bindIterator(
 
   compile(expr, program);
 
+  const itemUpdate =
+    iter.itemState && events ? events[iter.itemState.key] : undefined;
+
   const startIdx = program.length;
   program.push({
     type: InstructionEnum.ForEach,
     exprKey: expr.key,
     itemState: iter.itemState?.key,
+    jump: (itemUpdate?.length ?? 0) + 3,
   });
-
-  const itemUpdate =
-    iter.itemState && events ? events[iter.itemState.key] : undefined;
 
   program.push({
     type: InstructionEnum.MoveNext,
-    jump: (itemUpdate?.length ?? 0) + 3,
+    jump: (itemUpdate?.length ?? 0) + 2,
+    regions: template.regions,
+    template,
   });
 
   if (itemUpdate) {
     program.push(...itemUpdate);
   }
-
-  program.push({
-    type: InstructionEnum.Clone,
-    template,
-  });
-
-  program.push({
-    type: InstructionEnum.PopTarget, // pop region
-  });
 
   program.push({
     type: InstructionEnum.Jump,

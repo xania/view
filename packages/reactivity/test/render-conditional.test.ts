@@ -14,7 +14,7 @@ describe('render if', () => {
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([view.body]);
+    expect(root).toStrictEqual(['conditional view']);
   });
 
   it('false branch sync', () => {
@@ -47,11 +47,11 @@ describe('render if', () => {
     expect(root).toStrictEqual([['left', 'right']]);
   });
 
-  it('reactive branch of branch', async () => {
+  it('reactive branch of state', async () => {
     // prepare view
     const state = useState(1);
-    const visisble = useState(false);
-    const view = If(visisble, state);
+    const visible = useState(false);
+    const view = If(visible, state);
 
     // render view
     const root: any[] = [];
@@ -61,7 +61,7 @@ describe('render if', () => {
     expect(root).toStrictEqual([]);
 
     // show node
-    await sandbox.update(visisble, true);
+    await sandbox.update(visible, true);
     expect(root).toStrictEqual([1]);
 
     // update node value
