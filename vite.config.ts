@@ -1,4 +1,4 @@
-﻿import { defineConfig } from "vite";
+﻿import { defineConfig } from "vitest/config";
 import path from "node:path";
 import { resumable } from "./packages/vite-plugin-resumable/lib/index";
 

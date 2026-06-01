@@ -41,7 +41,8 @@
   },
   "author": "Ibrahim ben Salah",
   "devDependencies": {
-    "vitest": "3.0.9"
+    "esbuild": "^0.28.0",
+    "vitest": "4.1.8"
   },
   "repository": {
     "type": "git",
