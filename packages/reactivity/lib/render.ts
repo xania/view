@@ -162,7 +162,7 @@ function initializeIterator(
 
   for (const item of items) {
     const offset = output.length;
-    const region = template.clone();
+    template.clone();
 
     if (itemUpdate) {
       execute(item, template.output, [
