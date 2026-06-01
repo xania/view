@@ -1,7 +1,6 @@
-import { IRegion } from './automaton';
-import { Region as Fragment, Region } from './execute';
+import { Fragment } from './execute';
 import { JsonAutomaton } from './json';
-import { Instruction, InstructionEnum, Program } from './program';
+import { InstructionEnum, type Program } from './program';
 import { FuncArrow, State, Value } from './state';
 
 export class Sandbox {
@@ -191,6 +190,22 @@ export class Sandbox {
               throw Error('not an array');
             }
             break;
+
+          case InstructionEnum.SelectFragments:
+            if (currentOutput instanceof Array) {
+              const fragment = new Fragment(currentOutput, 0);
+              for (const idx of instruction.indices) {
+                fragment.offset = idx;
+                currentOutput = fragment;
+                traverse(currentValue, instructionIdx + 1);
+              }
+              return;
+            } else {
+              throw Error('not an array');
+            }
+
+            break;
+
           case InstructionEnum.SelectProperty:
             if (
               currentOutput instanceof Fragment ||
@@ -204,6 +219,9 @@ export class Sandbox {
           case InstructionEnum.SelectIndex:
             if (currentOutput instanceof Array) {
               currentOutput = currentOutput[instruction.index];
+            } else if (currentOutput instanceof Fragment) {
+              const idx = currentOutput.offset + instruction.index;
+              currentOutput = currentOutput.output[idx];
             } else {
               throw Error('Invalid operation: Array or region not expected');
             }
@@ -211,7 +229,7 @@ export class Sandbox {
             break;
           case InstructionEnum.UpdateRegions:
             const array =
-              currentOutput instanceof Region
+              currentOutput instanceof Fragment
                 ? currentOutput.output
                 : (currentOutput as any[]);
 

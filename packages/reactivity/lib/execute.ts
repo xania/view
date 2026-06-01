@@ -14,15 +14,15 @@ export function execute(currentValue: any, output: unknown, program: Program) {
     switch (type) {
       case InstructionEnum.SelectFragment:
         if (currentOutput instanceof Array)
-          currentOutput = new Region(currentOutput, instruction.index);
-        else if (currentOutput instanceof Region) {
+          currentOutput = new Fragment(currentOutput, instruction.index);
+        else if (currentOutput instanceof Fragment) {
           currentOutput.offset = instruction.index;
         }
         break;
       case InstructionEnum.UpdateArray:
         if (currentOutput instanceof Array) {
           currentOutput[instruction.index] = currentValue;
-        } else if (currentOutput instanceof Region) {
+        } else if (currentOutput instanceof Fragment) {
           const idx = currentOutput.offset + instruction.index;
           currentOutput.output[idx] = currentValue;
         }
@@ -31,7 +31,7 @@ export function execute(currentValue: any, output: unknown, program: Program) {
         (currentOutput as any)[instruction.property] = currentValue;
         break;
       case InstructionEnum.SelectIndex:
-        if (currentOutput instanceof Region) {
+        if (currentOutput instanceof Fragment) {
           const idx = currentOutput.offset + instruction.index;
           currentOutput = currentOutput.output[idx];
         }
@@ -44,7 +44,7 @@ export function execute(currentValue: any, output: unknown, program: Program) {
   }
 }
 
-export class Region {
+export class Fragment {
   constructor(
     public output: any[],
     public offset: number

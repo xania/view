@@ -113,8 +113,8 @@ export class JsonAutomaton {
       traversal: [
         {
           // TODO verify this is needed
-          type: InstructionEnum.SelectFragment,
-          index: currentTarget.output.length,
+          type: InstructionEnum.SelectFragments,
+          indices: tpl.regions,
         },
       ],
       // traversal: resolveTraversal(currentTarget.output),

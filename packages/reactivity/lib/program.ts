@@ -115,18 +115,25 @@ export enum InstructionEnum {
   MoveNext,
   PopTarget,
   SelectFragment,
+  SelectFragments,
   SelectProperty,
   SelectIndex,
 }
 
 export type TraversalInstruction =
   | SelectFragmentInstruction
+  | SelectFragmentsInstruction
   | SelectPropertyInstruction
   | SelectIndexInstruction
   | ForEachInstruction;
 interface SelectFragmentInstruction {
   type: InstructionEnum.SelectFragment;
   index: number;
+}
+
+interface SelectFragmentsInstruction {
+  type: InstructionEnum.SelectFragments;
+  indices: number[];
 }
 
 interface SelectPropertyInstruction {

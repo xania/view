@@ -64,6 +64,21 @@ describe('render list', () => {
     expect(root).toStrictEqual(['root', 4, 4, 4]);
   });
 
+  it('foreach on complex state', async () => {
+    // prepare view
+    const s = useState(3);
+    var values = useState([1, 2]);
+    const view = ForEach(values, { s });
+
+    // render view
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+    await sandbox.update(s, 4);
+
+    // assert
+    expect(root).toStrictEqual(['root', { s: 4 }, { s: 4 }]);
+  });
+
   it('foreach item state', () => {
     // prepare view
     var values = useState([1, 2, 3]);

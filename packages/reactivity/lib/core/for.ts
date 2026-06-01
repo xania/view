@@ -2,7 +2,13 @@ import { RootScope, Scope, State, useState } from '../state';
 
 type BodyFun = (e: State<unknown>) => any;
 
-export type ForEachBody = string | BodyFun | State<any> | number | boolean;
+export type ForEachBody =
+  | string
+  | BodyFun
+  | State<any>
+  | number
+  | boolean
+  | Record<any, any>;
 
 export class ForEachComponent<T> {
   constructor(
