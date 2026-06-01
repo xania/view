@@ -58,6 +58,13 @@ export class Sandbox {
         const instruction = program[instructionIdx];
         const { type } = instruction;
 
+        if (currentValue instanceof Promise) {
+          return currentValue.then((resolved) => {
+            currentValue = resolved;
+            traverse(currentValue, instructionIdx, enumerator);
+          });
+        }
+
         switch (type) {
           case InstructionEnum.Read:
             currentValue = values[instruction.key];
