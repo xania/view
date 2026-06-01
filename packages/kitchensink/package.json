@@ -1,0 +1,18 @@
+{
+  "name": "@xania/kitchensink",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xania/reactivity": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^8.0.16",
+    "typescript": "^6.0.3"
+  }
+}

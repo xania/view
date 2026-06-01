@@ -99,6 +99,19 @@ importers:
 
   packages/headlessui: {}
 
+  packages/kitchensink:
+    dependencies:
+      '@xania/reactivity':
+        specifier: workspace:*
+        version: link:../reactivity
+    devDependencies:
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.16
+        version: 8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@1.21.7)(sass@1.100.0)(yaml@2.7.0)
+
   packages/reactivity:
     devDependencies:
       esbuild:
