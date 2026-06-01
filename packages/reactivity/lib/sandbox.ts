@@ -41,6 +41,8 @@ export class Sandbox {
 
     let currentOutput = this.automaton.rootOutput as any;
 
+    const memory: Record<symbol, any> = {};
+    const checkpoints: Record<symbol, any> = {};
     traverse(newValue, stateIdx);
 
     if (promises.length) {
@@ -91,7 +93,6 @@ export class Sandbox {
               data[property] = currentValue;
             }
             break;
-
           // case InstructionEnum.UpdateMany:
           //   {
           //     const { regions, property } = instruction;
@@ -192,16 +193,37 @@ export class Sandbox {
             break;
 
           case InstructionEnum.SelectFragments:
-            if (currentOutput instanceof Array) {
-              const fragment = new Fragment(currentOutput, 0);
-              for (const idx of instruction.indices) {
-                fragment.offset = idx;
-                currentOutput = fragment;
-                traverse(currentValue, instructionIdx + 1);
-              }
-              return;
+            let fragmentIdx: number = 0;
+            if (memory[instruction.key] === undefined) {
+              fragmentIdx = 0;
             } else {
-              throw Error('not an array');
+              fragmentIdx = 1 + memory[instruction.key];
+            }
+
+            if (fragmentIdx >= instruction.indices.length) {
+              instructionIdx += instruction.jump;
+            } else {
+              memory[instruction.key] = fragmentIdx;
+
+              const checkpoint: Fragment | undefined =
+                checkpoints[instruction.key];
+
+              if (checkpoint) {
+                checkpoint.offset = instruction.indices[fragmentIdx];
+                currentOutput = checkpoint;
+              } else if (currentOutput instanceof Array) {
+                currentOutput = checkpoints[instruction.key] = new Fragment(
+                  currentOutput,
+                  instruction.indices[fragmentIdx]
+                );
+              } else if (currentOutput instanceof Fragment) {
+                currentOutput = checkpoints[instruction.key] = new Fragment(
+                  currentOutput.output,
+                  instruction.indices[fragmentIdx]
+                );
+              } else {
+                throw Error('not an array');
+              }
             }
 
             break;

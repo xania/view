@@ -134,6 +134,8 @@ interface SelectFragmentInstruction {
 interface SelectFragmentsInstruction {
   type: InstructionEnum.SelectFragments;
   indices: number[];
+  key: symbol;
+  jump: number;
 }
 
 interface SelectPropertyInstruction {

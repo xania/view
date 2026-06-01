@@ -112,12 +112,10 @@ export class JsonAutomaton {
       output: tpl,
       traversal: [
         {
-          // TODO verify this is needed
-          type: InstructionEnum.SelectFragments,
-          indices: tpl.regions,
+          type: InstructionEnum.SelectIndex,
+          index: currentTarget.output.length,
         },
       ],
-      // traversal: resolveTraversal(currentTarget.output),
     };
 
     return tpl;
@@ -136,8 +134,29 @@ export class JsonAutomaton {
     if (events) {
       const parentEvents = (parentTarget.events ??= {});
 
-      for (const key of Reflect.ownKeys(events)) {
-        parentEvents[key] = [...currentTarget.traversal, ...events[key]];
+      if (currentTarget.output instanceof AutomatonTemplate) {
+        const regions = currentTarget.output.regions;
+        for (const key of Reflect.ownKeys(events)) {
+          const program = events[key];
+          parentEvents[key] = [
+            {
+              type: InstructionEnum.SelectFragments,
+              indices: regions,
+              key: Symbol(),
+              jump: program.length + 1,
+            },
+            ...program,
+            {
+              type: InstructionEnum.Jump,
+              steps: -program.length - 2,
+            },
+          ];
+        }
+      } else {
+        for (const key of Reflect.ownKeys(events)) {
+          const program = [...currentTarget.traversal, ...events[key]];
+          parentEvents[key] = program;
+        }
       }
     }
 
@@ -229,9 +248,13 @@ export class JsonAutomaton {
       const itemIdx = output.push(stateValue);
 
       if (state.scope.level < output.scope.level) {
+        // stateEvent.push({
+        //   type: InstructionEnum.UpdateRegions,
+        //   regions: output.regions,
+        //   index: itemIdx,
+        // });
         stateEvent.push({
-          type: InstructionEnum.UpdateRegions,
-          regions: output.regions,
+          type: InstructionEnum.UpdateArray,
           index: itemIdx,
         });
       } else {
