@@ -2,10 +2,9 @@ import { AutomatonTemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { InstructionEnum } from './program';
-import { Sandbox } from './sandbox';
+import { Fragment, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
 import { JsonAutomaton } from './json';
-import { execute } from './execute';
 
 export function render(
   view: any,
@@ -77,7 +76,7 @@ export function render(
         viewStack.push(popTarget);
         if (initial) {
           viewStack.push(() =>
-            initializeIterator(automaton, tpl, initial, iterator.itemState)
+            initializeIterator(sandbox, tpl, initial, iterator.itemState)
           );
         }
         viewStack.push(iterator.body);
@@ -142,12 +141,12 @@ class SelectProperty {
 }
 
 function initializeIterator(
-  automaton: JsonAutomaton,
+  sandbox: Sandbox,
   template: AutomatonTemplate,
   items: any[],
   itemState?: State<any>
 ) {
-  const { currentTarget } = automaton;
+  const { currentTarget } = sandbox.automaton;
   if (currentTarget.output !== template) {
     throw Error('whaaaaaat');
   }
@@ -157,18 +156,14 @@ function initializeIterator(
 
   const output = template.output;
 
+  const fragment = new Fragment(output, 0);
+
   for (const item of items) {
-    const offset = output.length;
+    fragment.offset = output.length;
     template.clone();
 
     if (itemUpdate) {
-      execute(item, template.output, [
-        {
-          type: InstructionEnum.SelectFragment,
-          index: offset,
-        },
-        ...itemUpdate,
-      ]);
+      sandbox.execute(item, fragment, itemUpdate);
     }
   }
 }

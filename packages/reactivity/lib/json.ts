@@ -87,12 +87,7 @@ export class JsonAutomaton {
 
     this.currentTarget = {
       output: newRegion,
-      traversal: [
-        {
-          type: InstructionEnum.SelectFragment,
-          index: newRegion.offset,
-        },
-      ],
+      traversal: [],
     };
 
     return newRegion;
@@ -319,37 +314,5 @@ export class JsonAutomaton {
     } else {
       throw Error('Not yet implemented!');
     }
-
-    return () => {
-      debugger;
-    };
-  }
-}
-
-function resolveTraversal(
-  output: AutomatonTarget['output']
-): TraversalInstruction[] {
-  if (output instanceof Array) {
-    if (output.length == 0) {
-      return [];
-    } else {
-      return [
-        {
-          type: InstructionEnum.SelectFragment,
-          index: output.length,
-        },
-      ];
-    }
-  } else if (output instanceof ObjectProperty && output.prop) {
-    return [
-      {
-        type: InstructionEnum.SelectProperty,
-        prop: output.prop,
-      },
-    ];
-  } else if (output instanceof AutomatonTemplate) {
-    return [];
-  } else {
-    throw Error('Could not resolve traversal for output');
   }
 }

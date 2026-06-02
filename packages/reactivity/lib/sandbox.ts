@@ -1,4 +1,3 @@
-import { Fragment } from './execute';
 import { JsonAutomaton } from './json';
 import { InstructionEnum, type Program } from './program';
 import { FuncArrow, State, Value } from './state';
@@ -9,8 +8,8 @@ export class Sandbox {
   constructor(public automaton: JsonAutomaton) {}
 
   update<T>(state: State<T, any>, newValue: Value<T>) {
-    const { graph, key } = state;
-    const { values, automaton } = this;
+    const { graph } = state;
+    const { values } = this;
     const oldValue = values[state.key];
 
     if (oldValue === newValue) {
@@ -18,217 +17,154 @@ export class Sandbox {
     }
 
     if (!this.automaton.events) return;
-
     const program = this.automaton.events[graph];
-
     if (!program) return;
 
-    let stateIdx = 0;
+    return this.execute(newValue, this.automaton.rootOutput, program);
+  }
 
-    for (; stateIdx < program.length; stateIdx++) {
-      const instruction = program[stateIdx];
-      const { type } = instruction;
-      if (type === InstructionEnum.Write && instruction.key === key) {
-        break;
-      }
-    }
+  execute(
+    currentValue: any,
+    output: unknown,
+    program: Program,
+    state?: ExecuteState
+  ) {
+    let currentOutput = output as any;
 
-    if (stateIdx >= program.length) {
-      stateIdx = 0;
-    }
+    let memory: Record<symbol, any> | undefined = state?.memory;
+    let checkpoints: Record<symbol, any> | undefined = state?.checkpoints;
 
-    const promises: Promise<void>[] = [];
-
-    let currentOutput = this.automaton.rootOutput as any;
-
-    const memory: Record<symbol, any> = {};
-    const checkpoints: Record<symbol, any> = {};
-    traverse(newValue, stateIdx);
-
-    if (promises.length) {
-      return Promise.all(promises);
-    }
-
-    function traverse(
-      currentValue: any,
-      instructionIdx: number,
-    ): Promise<void> | void {
-      for (; instructionIdx < program.length; instructionIdx++) {
-        const instruction = program[instructionIdx];
-        const { type } = instruction;
-
-        if (currentValue instanceof Promise) {
-          return currentValue.then((resolved) => {
-            currentValue = resolved;
-            traverse(currentValue, instructionIdx);
+    for (
+      let instructionIdx = state?.instructionIdx || 0;
+      instructionIdx < program.length;
+      instructionIdx++
+    ) {
+      if (currentValue instanceof Promise) {
+        return currentValue.then((resolved) => {
+          this.execute(resolved, currentOutput, program, {
+            instructionIdx,
+            memory,
+            checkpoints,
           });
-        }
+        });
+      }
 
-        switch (type) {
-          case InstructionEnum.Read:
-            currentValue = values[instruction.key];
-            break;
-          case InstructionEnum.Write:
-            values[instruction.key] = currentValue;
-            break;
-          case InstructionEnum.UpdateArray:
-            const { index } = instruction;
-            if (currentOutput instanceof Array) {
-              currentOutput[index] = currentValue;
-            } else if (currentOutput instanceof Fragment) {
-              const idx = currentOutput.offset + instruction.index;
-              currentOutput.output[idx] = currentValue;
-            } else {
-              throw Error('not an array');
-            }
-            break;
-          case InstructionEnum.UpdateObject:
-            const { property } = instruction;
-            const output = instruction.output ?? currentOutput;
+      const instruction = program[instructionIdx];
 
-            if (output instanceof Array) {
-              throw Error('not an object');
-              // output[property as number] = currentValue;
-            } else if (
-              'update' in output &&
-              output.update instanceof Function
-            ) {
-              output.update(property, currentValue);
-            } else {
-              const data = output as Record<string | number | symbol, any>;
-              data[property] = currentValue;
-            }
-            break;
-          case InstructionEnum.SetText:
-            const { node } = instruction;
-            if (currentValue instanceof Promise) {
-              promises.push(
-                currentValue.then((resolved) => (node.nodeValue = resolved))
-              );
-            } else {
-              node.nodeValue = currentValue;
-            }
-            break;
-          case InstructionEnum.Map:
-            if (currentValue instanceof Promise) {
-              currentValue = currentValue.then((resolved) =>
-                instruction.func(resolved)
-              );
-            } else {
-              currentValue = instruction.func(currentValue);
-            }
-            break;
-          case InstructionEnum.Effect:
-            if (currentValue instanceof Promise) {
-              promises.push(currentValue.then(instruction.func));
-            } else {
-              instruction.func(currentValue);
-            }
-            break;
-          case InstructionEnum.Show:
-            instruction.node.show(currentValue);
-            break;
+      const { type } = instruction;
+      switch (type) {
+        case InstructionEnum.UpdateArray:
+          const { index } = instruction;
+          if (currentOutput instanceof Array) {
+            currentOutput[index] = currentValue;
+          } else if (currentOutput instanceof Fragment) {
+            const idx = currentOutput.offset + instruction.index;
+            currentOutput.output[idx] = currentValue;
+          } else {
+            throw Error('not an array');
+          }
+          break;
+        case InstructionEnum.UpdateObject:
+          const { property } = instruction;
 
-          case InstructionEnum.PopTarget:
-            automaton.popTarget();
-            break;
+          if (currentOutput instanceof Array) {
+            throw Error('not an object');
+          } else if (
+            'update' in currentOutput &&
+            currentOutput.update instanceof Function
+          ) {
+            currentOutput.update(property, currentValue);
+          } else {
+            currentOutput[property] = currentValue;
+          }
+          break;
+        case InstructionEnum.Show:
+          instruction.node.show(currentValue);
+          break;
+        case InstructionEnum.Jump:
+          instructionIdx += instruction.steps;
+          break;
 
-          case InstructionEnum.Jump:
-            instructionIdx += instruction.steps;
-            break;
-          case InstructionEnum.SelectFragment:
-            if (currentOutput instanceof Array) {
-              currentOutput = new Fragment(currentOutput, instruction.index);
-            } else {
-              throw Error('not an array');
-            }
-            break;
+        case InstructionEnum.SelectProperty:
+          if (
+            currentOutput instanceof Fragment ||
+            currentOutput instanceof Array
+          ) {
+            throw Error('Invalid operation: Array or region not expected');
+          }
 
-          case InstructionEnum.SelectFragments:
-            let fragmentIdx: number = 0;
-            if (memory[instruction.key] === undefined) {
-              fragmentIdx = 0;
-            } else {
-              fragmentIdx = 1 + memory[instruction.key];
-            }
+          currentOutput = currentOutput[instruction.prop];
+          break;
+        case InstructionEnum.SelectIndex:
+          if (currentOutput instanceof Array) {
+            currentOutput = currentOutput[instruction.index];
+          } else if (currentOutput instanceof Fragment) {
+            const idx = currentOutput.offset + instruction.index;
+            currentOutput = currentOutput.output[idx];
+          } else {
+            throw Error('Invalid operation: Array or region not expected');
+          }
 
-            if (fragmentIdx >= instruction.indices.length) {
-              instructionIdx += instruction.jump;
-            } else {
+          break;
+
+        case InstructionEnum.SelectFragments:
+          let fragmentIdx: number = 0;
+          if (!memory || memory[instruction.key] === undefined) {
+            fragmentIdx = 0;
+          } else {
+            fragmentIdx = 1 + memory[instruction.key];
+          }
+
+          if (fragmentIdx >= instruction.indices.length) {
+            instructionIdx += instruction.jump;
+          } else {
+            if (memory) {
               memory[instruction.key] = fragmentIdx;
-
-              const checkpoint: Fragment | undefined =
-                checkpoints[instruction.key];
-
-              if (checkpoint) {
-                checkpoint.offset = instruction.indices[fragmentIdx];
-                currentOutput = checkpoint;
-              } else if (currentOutput instanceof Array) {
-                currentOutput = checkpoints[instruction.key] = new Fragment(
-                  currentOutput,
-                  instruction.indices[fragmentIdx]
-                );
-              } else if (currentOutput instanceof Fragment) {
-                currentOutput = checkpoints[instruction.key] = new Fragment(
-                  currentOutput.output,
-                  instruction.indices[fragmentIdx]
-                );
-              } else {
-                throw Error('not an array');
-              }
-            }
-
-            break;
-
-          case InstructionEnum.SelectProperty:
-            if (
-              currentOutput instanceof Fragment ||
-              currentOutput instanceof Array
-            ) {
-              throw Error('Invalid operation: Array or region not expected');
-            }
-
-            currentOutput = currentOutput[instruction.prop];
-            break;
-          case InstructionEnum.SelectIndex:
-            if (currentOutput instanceof Array) {
-              currentOutput = currentOutput[instruction.index];
-            } else if (currentOutput instanceof Fragment) {
-              const idx = currentOutput.offset + instruction.index;
-              currentOutput = currentOutput.output[idx];
             } else {
-              throw Error('Invalid operation: Array or region not expected');
+              memory = { [instruction.key]: fragmentIdx };
             }
 
-            break;
-          case InstructionEnum.UpdateRegions:
-            const array =
-              currentOutput instanceof Fragment
-                ? currentOutput.output
-                : (currentOutput as any[]);
+            const checkpoint: Fragment | undefined =
+              checkpoints && checkpoints[instruction.key];
 
-            for (const offset of instruction.regions) {
-              const idx = offset + instruction.index;
-              array[idx] = currentValue;
+            if (checkpoint) {
+              checkpoint.offset = instruction.indices[fragmentIdx];
+              currentOutput = checkpoint;
+            } else if (currentOutput instanceof Array) {
+              currentOutput = new Fragment(
+                currentOutput,
+                instruction.indices[fragmentIdx]
+              );
+            } else if (currentOutput instanceof Fragment) {
+              currentOutput = new Fragment(
+                currentOutput.output,
+                instruction.indices[fragmentIdx]
+              );
+            } else {
+              throw Error('not an array');
             }
 
-            break;
+            if (checkpoints) {
+              checkpoints[instruction.key] = currentOutput;
+            } else {
+              checkpoints = { [instruction.key]: currentOutput };
+            }
+          }
 
-          // case InstructionEnum.NextSibling:
-          //   currentOutput = {
-          //     output: currentOutput.output,
-          //     index: instruction.index,
-          //   };
-          //   break;
-
-          default:
-            const unsupportedType = InstructionEnum[type];
-            console.warn(`instruction type not supported ${unsupportedType}`);
-            break;
-        }
+          break;
+        default:
+          const unsupportedType = InstructionEnum[type];
+          console.warn(`instruction type not supported ${unsupportedType}`);
+          break;
       }
     }
   }
+}
+
+interface ExecuteState {
+  instructionIdx?: number;
+  memory?: Record<symbol, any>;
+  checkpoints?: Record<symbol, any>;
 }
 
 export function compile(state: State<any, any>, program: Program) {
@@ -288,4 +224,11 @@ function printProgram(program: Program) {
   return program
     .map((instruction) => InstructionEnum[instruction.type])
     .join('\n');
+}
+
+export class Fragment {
+  constructor(
+    public output: any[],
+    public offset: number
+  ) {}
 }

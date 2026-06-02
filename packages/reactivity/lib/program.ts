@@ -1,4 +1,4 @@
-import { ITextNode, Updatable } from './automaton';
+import { ITextNode } from './automaton';
 
 export type Program = Instruction[];
 
@@ -13,8 +13,6 @@ export type Instruction =
   | JumpInstruction
   | UpdateArrayInstruction
   | UpdateObjectInstruction
-  | UpdateRegionsInstruction
-  | PopTargetInstruction
   | TraversalInstruction;
 
 export interface SetTextInstruction {
@@ -68,18 +66,7 @@ export interface UpdateArrayInstruction {
 
 export interface UpdateObjectInstruction {
   type: InstructionEnum.UpdateObject;
-  output?: Updatable;
   property: number | string | symbol;
-}
-
-export interface UpdateRegionsInstruction {
-  type: InstructionEnum.UpdateRegions;
-  regions: number[];
-  index: number;
-}
-
-export interface PopTargetInstruction {
-  type: InstructionEnum.PopTarget;
 }
 
 export enum InstructionEnum {
@@ -93,8 +80,6 @@ export enum InstructionEnum {
   Jump,
   UpdateArray,
   UpdateObject,
-  UpdateRegions,
-  PopTarget,
   SelectFragment,
   SelectFragments,
   SelectProperty,
@@ -102,7 +87,6 @@ export enum InstructionEnum {
 }
 
 export type TraversalInstruction =
-  | SelectFragmentInstruction
   | SelectFragmentsInstruction
   | SelectPropertyInstruction
   | SelectIndexInstruction;
