@@ -52,7 +52,6 @@ export class Sandbox {
     function traverse(
       currentValue: any,
       instructionIdx: number,
-      enumerator?: Enumerator
     ): Promise<void> | void {
       for (; instructionIdx < program.length; instructionIdx++) {
         const instruction = program[instructionIdx];
@@ -61,7 +60,7 @@ export class Sandbox {
         if (currentValue instanceof Promise) {
           return currentValue.then((resolved) => {
             currentValue = resolved;
-            traverse(currentValue, instructionIdx, enumerator);
+            traverse(currentValue, instructionIdx);
           });
         }
 
@@ -100,27 +99,6 @@ export class Sandbox {
               data[property] = currentValue;
             }
             break;
-          // case InstructionEnum.UpdateMany:
-          //   {
-          //     const { regions, property } = instruction;
-
-          //     for (const target of regions) {
-          //       const data = target;
-
-          //       if (data instanceof Array) {
-          //         data[property as number] = currentValue;
-          //       } else if (
-          //         'update' in data &&
-          //         data.update instanceof Function
-          //       ) {
-          //         data.update(property, currentValue);
-          //       } else {
-          //         const target = data as Record<string | number, any>;
-          //         target[property] = currentValue;
-          //       }
-          //     }
-          //   }
-          //   break;
           case InstructionEnum.SetText:
             const { node } = instruction;
             if (currentValue instanceof Promise) {
@@ -151,39 +129,6 @@ export class Sandbox {
             instruction.node.show(currentValue);
             break;
 
-          case InstructionEnum.ForEach:
-            if (currentValue instanceof Promise) {
-              throw new Error('Not Yet Supported');
-            } else if (currentValue.length > 0) {
-              return traverse(currentValue, instructionIdx + 1, {
-                items: currentValue,
-                index: 0,
-              });
-            } else {
-              instructionIdx += instruction.jump;
-            }
-            break;
-          case InstructionEnum.MoveNext:
-            if (!enumerator) {
-              instructionIdx += instruction.jump;
-            } else if (currentOutput instanceof Fragment) {
-              const { index, items } = enumerator;
-              const { regions } = instruction;
-              if (index < items.length) {
-                currentValue = items[index];
-                if (index >= regions.length) {
-                  instruction.template.clone();
-                }
-                const offset = regions[index];
-                currentOutput.offset = offset;
-                enumerator.index = index + 1;
-              } else {
-                instructionIdx += instruction.jump;
-              }
-            } else {
-              throw Error('not a region');
-            }
-            break;
           case InstructionEnum.PopTarget:
             automaton.popTarget();
             break;
@@ -344,8 +289,3 @@ function printProgram(program: Program) {
     .map((instruction) => InstructionEnum[instruction.type])
     .join('\n');
 }
-
-type Enumerator = {
-  items: any[];
-  index: number;
-};

@@ -1,8 +1,8 @@
 import { AutomatonTemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { InstructionEnum, Program } from './program';
-import { compile, Sandbox } from './sandbox';
+import { InstructionEnum } from './program';
+import { Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
 import { JsonAutomaton } from './json';
 import { execute } from './execute';
@@ -67,17 +67,14 @@ export function render(
         viewStack.push(popTarget);
         viewStack.push(curr.body);
       } else if (curr.constructor === ForEachComponent) {
-        const { body, expr, initial } = curr;
+        const { body, initial } = curr;
         const scope = RootScope;
         const childScope = scope.pushScope();
 
         var iterator = buildIterator(childScope, body);
         const tpl = automaton.pushTemplate(childScope);
 
-        const events = (automaton.currentTarget.events ??= {});
-
         viewStack.push(popTarget);
-        viewStack.push(() => bindIterator(expr, iterator, tpl, events));
         if (initial) {
           viewStack.push(() =>
             initializeIterator(automaton, tpl, initial, iterator.itemState)
@@ -174,53 +171,6 @@ function initializeIterator(
       ]);
     }
   }
-}
-
-function bindIterator(
-  expr: State<any>,
-  iter: Iterator<any>,
-  template: AutomatonTemplate,
-  events: Record<string | number | symbol, any> | undefined
-) {
-  const { graph } = expr;
-
-  if (!events) return;
-
-  const program: Program = (events[graph] ??= [
-    {
-      type: InstructionEnum.Write,
-      key: graph,
-    },
-  ]);
-
-  compile(expr, program);
-
-  const itemUpdate =
-    iter.itemState && events ? events[iter.itemState.key] : undefined;
-
-  const startIdx = program.length;
-  program.push({
-    type: InstructionEnum.ForEach,
-    exprKey: expr.key,
-    itemState: iter.itemState?.key,
-    jump: (itemUpdate?.length ?? 0) + 3,
-  });
-
-  program.push({
-    type: InstructionEnum.MoveNext,
-    jump: (itemUpdate?.length ?? 0) + 2,
-    regions: template.regions,
-    template,
-  });
-
-  if (itemUpdate) {
-    program.push(...itemUpdate);
-  }
-
-  program.push({
-    type: InstructionEnum.Jump,
-    steps: startIdx - program.length,
-  });
 }
 
 function buildIterator(childScope: Scope, body: ForEachBody) {

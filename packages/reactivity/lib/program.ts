@@ -1,5 +1,4 @@
-import { AutomatonTemplate, IRegion, ITextNode, Updatable } from './automaton';
-import { Scope } from './state';
+import { ITextNode, Updatable } from './automaton';
 
 export type Program = Instruction[];
 
@@ -10,13 +9,11 @@ export type Instruction =
   | ReadInstruction
   | EffectInstruction
   | ShowInstruction
-  | ForEachInstruction
   | CloneInstruction
   | JumpInstruction
   | UpdateArrayInstruction
   | UpdateObjectInstruction
   | UpdateRegionsInstruction
-  | MoveNextInstruction
   | PopTargetInstruction
   | TraversalInstruction;
 
@@ -52,13 +49,6 @@ export interface ShowInstruction {
   };
 }
 
-export interface ForEachInstruction {
-  type: InstructionEnum.ForEach;
-  exprKey: symbol;
-  itemState?: symbol;
-  jump: number;
-}
-
 export interface CloneInstruction {
   type: InstructionEnum.Clone;
   template: {
@@ -88,13 +78,6 @@ export interface UpdateRegionsInstruction {
   index: number;
 }
 
-export interface MoveNextInstruction {
-  type: InstructionEnum.MoveNext;
-  jump: number;
-  regions: number[];
-  template: AutomatonTemplate;
-}
-
 export interface PopTargetInstruction {
   type: InstructionEnum.PopTarget;
 }
@@ -106,13 +89,11 @@ export enum InstructionEnum {
   Effect,
   SetText,
   Show,
-  ForEach,
   Clone,
   Jump,
   UpdateArray,
   UpdateObject,
   UpdateRegions,
-  MoveNext,
   PopTarget,
   SelectFragment,
   SelectFragments,
@@ -124,8 +105,7 @@ export type TraversalInstruction =
   | SelectFragmentInstruction
   | SelectFragmentsInstruction
   | SelectPropertyInstruction
-  | SelectIndexInstruction
-  | ForEachInstruction;
+  | SelectIndexInstruction;
 interface SelectFragmentInstruction {
   type: InstructionEnum.SelectFragment;
   index: number;
