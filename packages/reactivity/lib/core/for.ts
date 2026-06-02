@@ -1,10 +1,10 @@
-import { RootScope, Scope, State, useState } from '../state';
+import type { Scope, State } from '../state';
 
-type BodyFun = (e: State<unknown>) => any;
+type BodyFun<T> = (e: State<T>) => any;
 
-export type ForEachBody =
+export type ForEachBody<T = any> =
   | string
-  | BodyFun
+  | BodyFun<T>
   | State<any>
   | number
   | boolean
@@ -12,13 +12,13 @@ export type ForEachBody =
 
 export class ForEachComponent<T> {
   constructor(
-    public expr: State<T[]>,
+    public expr: State<T[], any>,
     public initial: T[] | void,
-    public body: ForEachBody
+    public body: ForEachBody<T>
   ) {}
 }
 
-export function ForEach<T>(expr: State<T[]>, body: ForEachBody) {
+export function ForEach<T>(expr: State<T[], any>, body: ForEachBody<T>) {
   const { initial } = expr;
   if (initial instanceof Promise) {
     return initial.then(

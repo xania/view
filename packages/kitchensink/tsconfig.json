@@ -1,6 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "paths": {
+      "@xania/reactivity/*": ["../reactivity/lib/*"]
+    },
+    "types": ["vite/client"],
     "noEmit": true
   },
   "include": ["src", "vite.config.ts"]

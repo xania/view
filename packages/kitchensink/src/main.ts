@@ -1,10 +1,10 @@
-import { If } from '@xania/reactivity/core/if';
-import { ForEach } from '@xania/reactivity/core/for';
-import { JsonAutomaton } from '@xania/reactivity/json';
-import { render } from '@xania/reactivity/render';
-import { Sandbox } from '@xania/reactivity/sandbox';
-import { State, useState } from '@xania/reactivity/state';
-import './styles.css';
+import { If } from "@xania/reactivity/core/if";
+import { ForEach } from "@xania/reactivity/core/for";
+import { JsonAutomaton } from "@xania/reactivity/json";
+import { render } from "@xania/reactivity/render";
+import { Sandbox } from "@xania/reactivity/sandbox";
+import { State, useState } from "@xania/reactivity/state";
+import "./styles.css";
 
 type Todo = {
   id: number;
@@ -17,6 +17,10 @@ type DemoModel = {
   visible: State<boolean>;
   todos: State<Todo[]>;
   asyncLabel: State<string>;
+  currentCount: number;
+  currentVisible: boolean;
+  currentTodos: Todo[];
+  currentAsyncLabel: string;
   nextTodoId: number;
 };
 
@@ -26,10 +30,10 @@ type DemoRuntime = {
   model: DemoModel;
 };
 
-const app = document.querySelector<HTMLDivElement>('#app');
+const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
-  throw new Error('App root was not found');
+  throw new Error("App root was not found");
 }
 
 app.innerHTML = `
@@ -94,13 +98,13 @@ app.innerHTML = `
   </section>
 `;
 
-const preview = getElement<HTMLPreElement>('preview');
-const status = getElement<HTMLDivElement>('status');
-const countValue = getElement<HTMLSpanElement>('countValue');
-const visibleValue = getElement<HTMLSpanElement>('visibleValue');
-const todoValue = getElement<HTMLSpanElement>('todoValue');
-const asyncValue = getElement<HTMLSpanElement>('asyncValue');
-const nodeCount = getElement<HTMLSpanElement>('nodeCount');
+const preview = getElement<HTMLPreElement>("preview");
+const status = getElement<HTMLDivElement>("status");
+const countValue = getElement<HTMLSpanElement>("countValue");
+const visibleValue = getElement<HTMLSpanElement>("visibleValue");
+const todoValue = getElement<HTMLSpanElement>("todoValue");
+const asyncValue = getElement<HTMLSpanElement>("asyncValue");
+const nodeCount = getElement<HTMLSpanElement>("nodeCount");
 
 let runtime: DemoRuntime;
 
@@ -111,153 +115,189 @@ createDemo()
     paint(runtime);
   })
   .catch((error) => {
-    status.textContent = 'failed';
-    preview.textContent = error instanceof Error ? error.stack ?? error.message : String(error);
+    status.textContent = "failed";
+    preview.textContent =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
   });
 
 async function createDemo(): Promise<DemoRuntime> {
-  const model: DemoModel = {
-    count: useState(2),
-    visible: useState(true),
-    todos: useState([
-      { id: 1, title: 'Wire state', done: true },
-      { id: 2, title: 'Render templates', done: false },
-    ]),
-    asyncLabel: useState(Promise.resolve('loaded from promise')),
+  return createDemoFromValues({
+    count: 2,
+    visible: true,
+    todos: [
+      { id: 1, title: "Wire state", done: true },
+      { id: 2, title: "Render templates", done: false },
+    ],
+    asyncLabel: "loaded from promise",
     nextTodoId: 3,
-  };
-
-  const doubled = model.count.map((value) => value * 2);
-  const summary = model.count.map((value) => `count:${value}`);
-
-  const view = [
-    {
-      feature: 'state',
-      count: model.count,
-      doubled,
-      summary,
-    },
-    If(model.visible, {
-      feature: 'conditional',
-      body: ['visible', model.count],
-    }),
-    {
-      feature: 'foreach',
-      items: [ForEach(model.todos, (todo) => ({
-        title: todo.map((item) => item.title),
-        done: todo.map((item) => item.done),
-      }))],
-    },
-    {
-      feature: 'async',
-      label: model.asyncLabel,
-    },
-  ];
-
-  const root: any[] = [];
-  const sandbox = await render(view, new JsonAutomaton(root));
-
-  return { root, sandbox, model };
+  });
 }
 
 function bindControls(current: DemoRuntime) {
-  getElement<HTMLButtonElement>('increment').addEventListener('click', () => {
-    updateCount(current, 1);
+  getElement<HTMLButtonElement>("increment").addEventListener("click", () => {
+    void updateCount(current, 1);
   });
 
-  getElement<HTMLButtonElement>('decrement').addEventListener('click', () => {
-    updateCount(current, -1);
+  getElement<HTMLButtonElement>("decrement").addEventListener("click", () => {
+    void updateCount(current, -1);
   });
 
-  getElement<HTMLButtonElement>('toggle').addEventListener('click', () => {
-    const next = !current.model.visible.initial;
-    current.model.visible = useState(next);
-    rerender(current);
+  getElement<HTMLButtonElement>("toggle").addEventListener("click", () => {
+    void toggleVisible(current);
   });
 
-  getElement<HTMLButtonElement>('addTodo').addEventListener('click', () => {
-    const todos = current.model.todos.initial.slice();
+  getElement<HTMLButtonElement>("addTodo").addEventListener("click", () => {
+    const todos = current.model.currentTodos.slice();
     todos.push({
       id: current.model.nextTodoId,
       title: `Explore ${current.model.nextTodoId}`,
       done: false,
     });
     current.model.nextTodoId += 1;
-    current.model.todos = useState(todos);
+    current.model.currentTodos = todos;
     rerender(current);
   });
 
-  getElement<HTMLButtonElement>('completeTodo').addEventListener('click', () => {
-    const todos = current.model.todos.initial.map((todo, index) =>
-      index === 0 ? { ...todo, done: !todo.done } : todo
-    );
-    current.model.todos = useState(todos);
-    rerender(current);
-  });
+  getElement<HTMLButtonElement>("completeTodo").addEventListener(
+    "click",
+    () => {
+      const todos = current.model.currentTodos.map((todo, index) =>
+        index === 0 ? { ...todo, done: !todo.done } : todo,
+      );
+      current.model.currentTodos = todos;
+      rerender(current);
+    },
+  );
 
-  getElement<HTMLButtonElement>('refreshAsync').addEventListener('click', async () => {
-    status.textContent = 'resolving';
-    await current.sandbox.update(
-      current.model.asyncLabel,
-      Promise.resolve(`resolved at ${new Date().toLocaleTimeString()}`)
-    );
-    status.textContent = 'ready';
-    paint(current);
-  });
+  getElement<HTMLButtonElement>("refreshAsync").addEventListener(
+    "click",
+    async () => {
+      const next = `resolved at ${new Date().toLocaleTimeString()}`;
+      status.textContent = "resolving";
+      await current.sandbox.update(
+        current.model.asyncLabel,
+        Promise.resolve(next),
+      );
+      current.model.currentAsyncLabel = next;
+      status.textContent = "ready";
+      paint(current);
+    },
+  );
 }
 
-function updateCount(current: DemoRuntime, delta: number) {
-  const next = current.model.count.initial + delta;
-  current.model.count = useState(next);
-  rerender(current);
+async function updateCount(current: DemoRuntime, delta: number) {
+  const next = current.model.currentCount + delta;
+  await current.sandbox.update(current.model.count, next);
+  current.model.currentCount = next;
+  paint(current);
+}
+
+async function toggleVisible(current: DemoRuntime) {
+  const next = !current.model.currentVisible;
+  await current.sandbox.update(current.model.visible, next);
+  current.model.currentVisible = next;
+  paint(current);
 }
 
 function rerender(current: DemoRuntime) {
+  status.textContent = "rendering";
   createDemoFromModel(current.model)
     .then((next) => {
       current.root = next.root;
       current.sandbox = next.sandbox;
       current.model = next.model;
+      status.textContent = "ready";
       paint(current);
     })
     .catch((error) => {
-      status.textContent = 'failed';
-      preview.textContent = error instanceof Error ? error.message : String(error);
+      status.textContent = "failed";
+      preview.textContent =
+        error instanceof Error ? error.message : String(error);
     });
 }
 
 async function createDemoFromModel(model: DemoModel): Promise<DemoRuntime> {
+  return createDemoFromValues({
+    count: model.currentCount,
+    visible: model.currentVisible,
+    todos: model.currentTodos,
+    asyncLabel: model.currentAsyncLabel,
+    nextTodoId: model.nextTodoId,
+  });
+}
+
+type DemoValues = {
+  count: number;
+  visible: boolean;
+  todos: Todo[];
+  asyncLabel: string;
+  nextTodoId: number;
+};
+
+async function createDemoFromValues(values: DemoValues): Promise<DemoRuntime> {
   const nextModel: DemoModel = {
-    ...model,
-    count: useState(model.count.initial),
-    visible: useState(model.visible.initial),
-    todos: useState(model.todos.initial),
-    asyncLabel: useState(model.asyncLabel.initial),
+    count: useState(values.count),
+    visible: useState(values.visible),
+    todos: useState(values.todos),
+    asyncLabel: useState(Promise.resolve(values.asyncLabel)),
+    currentCount: values.count,
+    currentVisible: values.visible,
+    currentTodos: values.todos,
+    currentAsyncLabel: values.asyncLabel,
+    nextTodoId: values.nextTodoId,
   };
 
   const doubled = nextModel.count.map((value) => value * 2);
   const summary = nextModel.count.map((value) => `count:${value}`);
+  const completeCount = nextModel.todos.map(
+    (items) => items.filter((item) => item.done).length,
+  );
 
   const view = [
     {
-      feature: 'state',
+      feature: "state",
       count: nextModel.count,
       doubled,
       summary,
     },
-    If(nextModel.visible, {
-      feature: 'conditional',
-      body: ['visible', nextModel.count],
-    }),
     {
-      feature: 'foreach',
-      items: [ForEach(nextModel.todos, (todo) => ({
-        title: todo.map((item) => item.title),
-        done: todo.map((item) => item.done),
-      }))],
+      feature: "conditional",
+      visible: nextModel.visible,
+      body: [
+        If(nextModel.visible, [
+          "visible",
+          {
+            count: nextModel.count,
+            completed: completeCount,
+          },
+        ]),
+      ],
     },
     {
-      feature: 'async',
+      feature: "foreach",
+      items: [
+        ForEach(nextModel.todos, (todo) => {
+          const todoState = todo as State<Todo>;
+
+          return {
+            id: todoState.map((item) => item.id),
+            title: todoState.map((item) => item.title),
+            done: todoState.map((item) => item.done),
+            labels: [
+              ForEach(
+                todoState.map((item) => [
+                  item.done ? "complete" : "open",
+                  `#${item.id}`,
+                ]),
+                (label) => label,
+              ),
+            ],
+          };
+        }),
+      ],
+    },
+    {
+      feature: "async",
       label: nextModel.asyncLabel,
     },
   ];
@@ -269,13 +309,13 @@ async function createDemoFromModel(model: DemoModel): Promise<DemoRuntime> {
 }
 
 function paint(current: DemoRuntime) {
-  const count = current.model.count.initial;
-  const visible = current.model.visible.initial;
-  const todos = current.model.todos.initial;
-  const asyncLabel = current.root[3]?.label ?? 'pending';
+  const count = current.model.currentCount;
+  const visible = current.model.currentVisible;
+  const todos = current.model.currentTodos;
+  const asyncLabel = current.model.currentAsyncLabel;
 
   countValue.textContent = String(count);
-  visibleValue.textContent = visible ? 'shown' : 'hidden';
+  visibleValue.textContent = visible ? "shown" : "hidden";
   todoValue.textContent = `${todos.length} items`;
   asyncValue.textContent = String(asyncLabel);
   nodeCount.textContent = `${countNodes(current.root)} nodes`;
@@ -287,12 +327,12 @@ function countNodes(value: unknown): number {
     return 1 + value.reduce((sum, item) => sum + countNodes(item), 0);
   }
 
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     return (
       1 +
-      Object.values(value as Record<string, unknown>).reduce(
+      Object.values(value as Record<string, unknown>).reduce<number>(
         (sum, item) => sum + countNodes(item),
-        0
+        0,
       )
     );
   }
