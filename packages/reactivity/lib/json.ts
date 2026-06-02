@@ -7,7 +7,7 @@ import {
   ObjectProperty,
   TextNodeUpdater,
 } from './automaton';
-import { InstructionEnum, TraversalInstruction } from './program';
+import { Instruction, InstructionEnum, TraversalInstruction } from './program';
 import { Scope, State } from './state';
 
 export enum JsonEnum {
@@ -40,7 +40,7 @@ export class JsonAutomaton {
   public currentTarget: AutomatonTarget;
   constructor(
     public rootOutput: AutomatonTarget['output'],
-    public events: AutomatonTarget['events'] = { [Symbol()]: 'root' as any }
+    public events: AutomatonTarget['events'] = {}
   ) {
     this.currentTarget = {
       output: rootOutput,
@@ -59,7 +59,6 @@ export class JsonAutomaton {
 
     this.currentTarget = {
       output: newNode,
-      events: currentTarget.events,
       traversal: this.setValue(currentTarget.output, newObject) ?? [],
     };
   }
@@ -145,12 +144,26 @@ export class JsonAutomaton {
               type: InstructionEnum.Jump,
               steps: -program.length - 2,
             },
+            { type: InstructionEnum.PopOutput },
           ];
         }
       } else {
         for (const key of Reflect.ownKeys(events)) {
-          const program = [...currentTarget.traversal, ...events[key]];
-          parentEvents[key] = program;
+          const program: Instruction[] = [
+            ...currentTarget.traversal,
+            ...events[key],
+          ];
+
+          let depth = getDepth(currentTarget.traversal);
+          while (depth--) {
+            program.push({ type: InstructionEnum.PopOutput });
+          }
+
+          if (parentEvents[key]) {
+            parentEvents[key].push(...program);
+          } else {
+            parentEvents[key] = program;
+          }
         }
       }
     }
@@ -208,7 +221,6 @@ export class JsonAutomaton {
 
     this.currentTarget = {
       output: copy,
-      events: currentTarget.events,
       traversal: this.setValue(currentTarget.output, copy) ?? [],
     };
   }
@@ -243,11 +255,6 @@ export class JsonAutomaton {
       const itemIdx = output.push(stateValue);
 
       if (state.scope.level < output.scope.level) {
-        // stateEvent.push({
-        //   type: InstructionEnum.UpdateRegions,
-        //   regions: output.regions,
-        //   index: itemIdx,
-        // });
         stateEvent.push({
           type: InstructionEnum.UpdateArray,
           index: itemIdx,
@@ -315,4 +322,18 @@ export class JsonAutomaton {
       throw Error('Not yet implemented!');
     }
   }
+}
+
+function getDepth(traversal: TraversalInstruction[]) {
+  let depth = 0;
+  for (const instruction of traversal) {
+    if (
+      instruction.type === InstructionEnum.SelectIndex ||
+      instruction.type === InstructionEnum.SelectProperty
+    ) {
+      depth++;
+    }
+  }
+
+  return depth;
 }

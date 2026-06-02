@@ -2,7 +2,7 @@ import { AutomatonTemplate, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { InstructionEnum } from './program';
-import { Fragment, Sandbox } from './sandbox';
+import { ExecuteState, Fragment, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
 import { JsonAutomaton } from './json';
 
@@ -123,8 +123,10 @@ export function render(
 
         viewStack.push(popTarget);
 
-        for (const prop of properties) {
+        for (let idx = properties.length - 1; idx >= 0; idx--) {
+          const prop = properties[idx];
           const propValue = curr[prop];
+
           viewStack.push(propValue);
           viewStack.push(new SelectProperty(prop));
         }
@@ -163,7 +165,9 @@ function initializeIterator(
     template.clone();
 
     if (itemUpdate) {
-      sandbox.execute(item, fragment, itemUpdate);
+      sandbox.execute(item, itemUpdate, {
+        currentOutput: fragment,
+      });
     }
   }
 }

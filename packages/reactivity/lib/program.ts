@@ -13,6 +13,7 @@ export type Instruction =
   | JumpInstruction
   | UpdateArrayInstruction
   | UpdateObjectInstruction
+  | PopOutputInstruction
   | TraversalInstruction;
 
 export interface SetTextInstruction {
@@ -70,29 +71,30 @@ export interface UpdateObjectInstruction {
 }
 
 export enum InstructionEnum {
-  Write = 4356234 /* magic number */,
-  Read,
-  Map,
-  Effect,
-  SetText,
-  Show,
-  Clone,
-  Jump,
-  UpdateArray,
-  UpdateObject,
-  SelectFragment,
-  SelectFragments,
-  SelectProperty,
-  SelectIndex,
+  Write = 'Write',
+  Read = 'Read',
+  Map = 'Map',
+  Effect = 'Effect',
+  SetText = 'SetText',
+  Show = 'Show',
+  Clone = 'Clone',
+  Jump = 'Jump',
+  UpdateArray = 'UpdateArray',
+  UpdateObject = 'UpdateObject',
+  PopOutput = 'PopOutput',
+  SelectFragment = 'SelectFragment',
+  SelectFragments = 'SelectFragments',
+  SelectProperty = 'SelectProperty',
+  SelectIndex = 'SelectIndex',
 }
 
 export type TraversalInstruction =
   | SelectFragmentsInstruction
   | SelectPropertyInstruction
   | SelectIndexInstruction;
-interface SelectFragmentInstruction {
-  type: InstructionEnum.SelectFragment;
-  index: number;
+
+interface PopOutputInstruction {
+  type: InstructionEnum.PopOutput;
 }
 
 interface SelectFragmentsInstruction {

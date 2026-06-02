@@ -30,8 +30,18 @@ describe('render state', () => {
     expect([['state: ', 1]]).toEqual(root);
   });
 
-});
+  it('complex state read', async () => {
+    // prepare view
+    const x = useState(1);
+    const view = ['state: ', x, { a: x, p: { c: x } }];
 
-function readableAmount(amount: number) {
-  return `${(amount / 1000).toFixed(0)}K`;
-}
+    // render view
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    sandbox.update(x, 2);
+
+    // assert
+    expect([['state: ', 2, { a: 2, p: { c: 2 } }]]).toEqual(root);
+  });
+});

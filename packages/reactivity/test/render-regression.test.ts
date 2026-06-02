@@ -108,13 +108,7 @@ describe('render regression', () => {
     // assert
     expect(root).toStrictEqual([
       'root',
-      [
-        'items',
-        { left: 1 },
-        { left: 2 },
-        { right: 'a' },
-        { right: 'b' },
-      ],
+      ['items', { left: 1 }, { left: 2 }, { right: 'a' }, { right: 'b' }],
     ]);
   });
 
@@ -122,20 +116,13 @@ describe('render regression', () => {
     // prepare view
     const rows = useState(['first', 'second']);
     const values = useState([1, 2]);
-    const view = ForEach(rows, () => [
-      'row',
-      ForEach(values, '-'),
-    ]);
+    const view = ForEach(rows, () => ['row', ForEach(values, '-')]);
 
     // render view
     const root: any[] = ['root'];
     render(view, new JsonAutomaton(root));
 
     // assert
-    expect(root).toStrictEqual([
-      'root',
-      ['row', '-', '-'],
-      ['row', '-', '-'],
-    ]);
+    expect(root).toStrictEqual(['root', ['row', '-', '-'], ['row', '-', '-']]);
   });
 });

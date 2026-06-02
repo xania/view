@@ -20,46 +20,60 @@ export class Sandbox {
     const program = this.automaton.events[graph];
     if (!program) return;
 
-    return this.execute(newValue, this.automaton.rootOutput, program);
+    values[state.key] = newValue;
+
+    const execState: ExecuteState = {
+      currentOutput: this.automaton.rootOutput,
+      outputStack: [],
+    };
+
+    if (newValue instanceof Promise) {
+      return newValue.then((resolved) => {
+        values[state.key] = resolved;
+        return this.execute(resolved, program, execState);
+      });
+    }
+
+    return this.execute(newValue, program, execState);
   }
 
   execute(
     currentValue: any,
-    output: unknown,
     program: Program,
-    state?: ExecuteState
-  ) {
-    let currentOutput = output as any;
-
+    state: ExecuteState
+  ): void | Promise<void> {
     let memory: Record<symbol, any> | undefined = state?.memory;
     let checkpoints: Record<symbol, any> | undefined = state?.checkpoints;
+
+    if (currentValue instanceof Promise) {
+      return currentValue.then((resolved) => {
+        return this.execute(resolved, program, state);
+      });
+    }
+
+    const debugProgram = program.map((instruction) => {
+      return {
+        ...instruction,
+        type: InstructionEnum[instruction.type],
+      };
+    });
 
     for (
       let instructionIdx = state?.instructionIdx || 0;
       instructionIdx < program.length;
       instructionIdx++
     ) {
-      if (currentValue instanceof Promise) {
-        return currentValue.then((resolved) => {
-          this.execute(resolved, currentOutput, program, {
-            instructionIdx,
-            memory,
-            checkpoints,
-          });
-        });
-      }
-
       const instruction = program[instructionIdx];
 
       const { type } = instruction;
       switch (type) {
         case InstructionEnum.UpdateArray:
           const { index } = instruction;
-          if (currentOutput instanceof Array) {
-            currentOutput[index] = currentValue;
-          } else if (currentOutput instanceof Fragment) {
-            const idx = currentOutput.offset + instruction.index;
-            currentOutput.output[idx] = currentValue;
+          if (state.currentOutput instanceof Array) {
+            state.currentOutput[index] = currentValue;
+          } else if (state.currentOutput instanceof Fragment) {
+            const idx = state.currentOutput.offset + instruction.index;
+            state.currentOutput.output[idx] = currentValue;
           } else {
             throw Error('not an array');
           }
@@ -67,15 +81,15 @@ export class Sandbox {
         case InstructionEnum.UpdateObject:
           const { property } = instruction;
 
-          if (currentOutput instanceof Array) {
+          if (state.currentOutput instanceof Array) {
             throw Error('not an object');
           } else if (
-            'update' in currentOutput &&
-            currentOutput.update instanceof Function
+            'update' in state.currentOutput &&
+            state.currentOutput.update instanceof Function
           ) {
-            currentOutput.update(property, currentValue);
+            state.currentOutput.update(property, currentValue);
           } else {
-            currentOutput[property] = currentValue;
+            state.currentOutput[property] = currentValue;
           }
           break;
         case InstructionEnum.Show:
@@ -85,22 +99,26 @@ export class Sandbox {
           instructionIdx += instruction.steps;
           break;
 
+        case InstructionEnum.PopOutput:
+          popFromStack(state);
+          break;
+
         case InstructionEnum.SelectProperty:
           if (
-            currentOutput instanceof Fragment ||
-            currentOutput instanceof Array
+            state.currentOutput instanceof Fragment ||
+            state.currentOutput instanceof Array
           ) {
             throw Error('Invalid operation: Array or region not expected');
           }
 
-          currentOutput = currentOutput[instruction.prop];
+          pushToStack(state, state.currentOutput[instruction.prop]);
           break;
         case InstructionEnum.SelectIndex:
-          if (currentOutput instanceof Array) {
-            currentOutput = currentOutput[instruction.index];
-          } else if (currentOutput instanceof Fragment) {
-            const idx = currentOutput.offset + instruction.index;
-            currentOutput = currentOutput.output[idx];
+          if (state.currentOutput instanceof Array) {
+            pushToStack(state, state.currentOutput[instruction.index]);
+          } else if (state.currentOutput instanceof Fragment) {
+            const idx = state.currentOutput.offset + instruction.index;
+            pushToStack(state, state.currentOutput.output[idx]);
           } else {
             throw Error('Invalid operation: Array or region not expected');
           }
@@ -129,25 +147,31 @@ export class Sandbox {
 
             if (checkpoint) {
               checkpoint.offset = instruction.indices[fragmentIdx];
-              currentOutput = checkpoint;
-            } else if (currentOutput instanceof Array) {
-              currentOutput = new Fragment(
-                currentOutput,
-                instruction.indices[fragmentIdx]
+              pushToStack(state, checkpoint);
+            } else if (state.currentOutput instanceof Array) {
+              pushToStack(
+                state,
+                new Fragment(
+                  state.currentOutput,
+                  instruction.indices[fragmentIdx]
+                )
               );
-            } else if (currentOutput instanceof Fragment) {
-              currentOutput = new Fragment(
-                currentOutput.output,
-                instruction.indices[fragmentIdx]
+            } else if (state.currentOutput instanceof Fragment) {
+              pushToStack(
+                state,
+                new Fragment(
+                  state.currentOutput.output,
+                  state.currentOutput.offset + instruction.indices[fragmentIdx]
+                )
               );
             } else {
               throw Error('not an array');
             }
 
             if (checkpoints) {
-              checkpoints[instruction.key] = currentOutput;
+              checkpoints[instruction.key] = state.currentOutput;
             } else {
-              checkpoints = { [instruction.key]: currentOutput };
+              checkpoints = { [instruction.key]: state.currentOutput };
             }
           }
 
@@ -161,10 +185,28 @@ export class Sandbox {
   }
 }
 
-interface ExecuteState {
+export interface ExecuteState {
+  currentOutput: any;
   instructionIdx?: number;
   memory?: Record<symbol, any>;
   checkpoints?: Record<symbol, any>;
+  outputStack?: any[];
+}
+
+function pushToStack(state: ExecuteState, output: any) {
+  if (state.outputStack === undefined) {
+    state.outputStack = [state.currentOutput];
+  } else {
+    state.outputStack.push(state.currentOutput);
+  }
+  state.currentOutput = output;
+}
+
+function popFromStack(state: ExecuteState) {
+  if (state.outputStack === undefined || state.outputStack.length === 0) {
+    throw Error('Output stack underflow');
+  }
+  state.currentOutput = state.outputStack.pop();
 }
 
 export function compile(state: State<any, any>, program: Program) {
