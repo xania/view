@@ -7,8 +7,8 @@ import {
   ObjectProperty,
   TextNodeUpdater,
 } from './automaton';
-import { Instruction, InstructionEnum, TraversalInstruction } from './program';
-import { Scope, State } from './state';
+import { Instruction, InstructionEnum, type Program, TraversalInstruction } from './program';
+import { FuncArrow, Scope, State } from './state';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -137,14 +137,14 @@ export class JsonAutomaton {
               type: InstructionEnum.SelectFragments,
               indices: regions,
               key: Symbol(),
-              jump: program.length + 1,
+              jump: program.length + 2,
             },
             ...program,
+            { type: InstructionEnum.PopOutput },
             {
               type: InstructionEnum.Jump,
-              steps: -program.length - 2,
+              steps: -program.length - 3,
             },
-            { type: InstructionEnum.PopOutput },
           ];
         }
       } else {
@@ -187,7 +187,13 @@ export class JsonAutomaton {
         },
       ];
     } else if (output instanceof AutomatonRegion) {
-      output.push(value);
+      const idx = output.push(value);
+      return [
+        {
+          type: InstructionEnum.SelectIndex,
+          index: idx,
+        },
+      ];
     } else if (output instanceof Array) {
       const offset = output.length;
       output.push(value);
@@ -231,6 +237,7 @@ export class JsonAutomaton {
     const currentEvents = (this.currentTarget.events ??= {});
 
     const stateEvent = (currentEvents[state.graph] ??= []);
+    appendStateRead(state, stateEvent);
 
     if (output instanceof ObjectProperty) {
       const { object, prop } = output;
@@ -336,4 +343,39 @@ function getDepth(traversal: TraversalInstruction[]) {
   }
 
   return depth;
+}
+
+function appendStateRead(state: State<any, any>, program: Program) {
+  const chain: State<any, any>[] = [];
+  let root = state;
+
+  while (root.parent) {
+    chain.unshift(root);
+    root = root.parent;
+  }
+
+  program.push({
+    type: InstructionEnum.Read,
+    key: root.key,
+  });
+
+  for (const derived of chain) {
+    const { arrows } = derived;
+    if (arrows) {
+      for (let i = arrows.length - 1; i >= 0; i--) {
+        const arr = arrows[i];
+        if (arr instanceof FuncArrow) {
+          program.push({
+            type: InstructionEnum.Map,
+            func: arr.func,
+          });
+        }
+      }
+    }
+
+    program.push({
+      type: InstructionEnum.Write,
+      key: derived.key,
+    });
+  }
 }

@@ -67,6 +67,21 @@ export class Sandbox {
 
       const { type } = instruction;
       switch (type) {
+        case InstructionEnum.Read:
+          currentValue = this.values[instruction.key];
+          break;
+        case InstructionEnum.Write:
+          this.values[instruction.key] = currentValue;
+          break;
+        case InstructionEnum.Map:
+          currentValue = instruction.func(currentValue);
+          break;
+        case InstructionEnum.Effect:
+          currentValue = instruction.func(currentValue);
+          break;
+        case InstructionEnum.SetText:
+          instruction.node.nodeValue = currentValue;
+          break;
         case InstructionEnum.UpdateArray:
           const { index } = instruction;
           if (state.currentOutput instanceof Array) {

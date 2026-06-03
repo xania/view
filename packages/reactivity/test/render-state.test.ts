@@ -2,11 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
 import { JsonAutomaton } from '../lib/json';
-// import { DomDescriptorType, isDomDescriptor } from 'xania';
-// import { jsx } from 'xania/jsx-runtime';
 
 describe('render state', () => {
-  it('trivial sync 123', () => {
+  it('trivial sync', () => {
     // prepare view
     const view = 'sample view';
 
@@ -33,7 +31,11 @@ describe('render state', () => {
   it('complex state read', async () => {
     // prepare view
     const x = useState(1);
-    const view = ['state: ', x, { a: x, p: { c: x } }];
+    const view = [
+      'state: ',
+      Promise.resolve(x),
+      { a: Promise.resolve(x), p: { c: Promise.resolve(x) } },
+    ];
 
     // render view
     const root: any[] = [];

@@ -165,6 +165,7 @@ function initializeIterator(
     template.clone();
 
     if (itemUpdate) {
+      sandbox.values[itemState.key] = item;
       sandbox.execute(item, itemUpdate, {
         currentOutput: fragment,
       });
