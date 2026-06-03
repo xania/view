@@ -4,7 +4,7 @@ import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { InstructionEnum } from './program';
 import { ExecuteState, Fragment, Sandbox } from './sandbox';
 import { RootScope, Scope, State } from './state';
-import { JsonAutomaton } from './json';
+import { concatOptimized, JsonAutomaton } from './json';
 
 export function render(
   view: any,
@@ -154,7 +154,11 @@ function initializeIterator(
   }
 
   const itemUpdate =
-    itemState && currentTarget.events && currentTarget.events[itemState.key];
+    itemState &&
+    concatOptimized(
+      [],
+      currentTarget.events && currentTarget.events[itemState.key]
+    );
 
   const output = template.output;
 

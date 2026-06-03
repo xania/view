@@ -137,35 +137,34 @@ export class JsonAutomaton {
         const regions = currentTarget.output.regions;
         for (const key of Reflect.ownKeys(events)) {
           const program = events[key];
-          parentEvents[key] = [
+          const result: Program = [
             {
               type: InstructionEnum.SelectFragments,
               indices: regions,
               key: Symbol(),
               jump: program.length + 2,
             },
-            ...program,
+          ];
+
+          // result.push(...program);
+          concatOptimized(result, program);
+
+          result.push(
             { type: InstructionEnum.PopOutput },
             {
               type: InstructionEnum.Jump,
-              steps: -program.length - 3,
-            },
-          ];
+              steps: -result.length - 2,
+            }
+          );
+
+          parentEvents[key] = result;
         }
       } else {
         for (const key of Reflect.ownKeys(events)) {
           const eventProgram = events[key];
           const program: Instruction[] = currentTarget.traversal.slice(0);
 
-          for (const instruction of eventProgram) {
-            if (
-              instruction.type === InstructionEnum.Read &&
-              !requireStateRead(program)
-            ) {
-              continue;
-            }
-            program.push(instruction);
-          }
+          concatOptimized(program, eventProgram);
 
           let depth = getDepth(currentTarget.traversal);
           while (depth--) {
@@ -402,4 +401,22 @@ function requireStateRead(program: Instruction[]) {
     }
   }
   return false;
+}
+
+export function concatOptimized(
+  target: Instruction[],
+  program?: Instruction[]
+) {
+  if (!program) return target;
+
+  for (const instruction of program) {
+    if (
+      instruction.type === InstructionEnum.Read &&
+      !requireStateRead(target)
+    ) {
+      continue;
+    }
+    target.push(instruction);
+  }
+  return target;
 }

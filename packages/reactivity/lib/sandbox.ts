@@ -43,7 +43,6 @@ export class Sandbox {
     state: ExecuteState
   ): void | Promise<void> {
     let memory: Record<symbol, any> | undefined = state?.memory;
-    let checkpoints: Record<symbol, any> | undefined = state?.checkpoints;
 
     if (currentValue instanceof Promise) {
       return currentValue.then((resolved) => {
@@ -52,7 +51,7 @@ export class Sandbox {
     }
 
     for (
-      let instructionIdx = state?.instructionIdx || 0;
+      let instructionIdx = state?.instructionIdx ?? 0;
       instructionIdx < program.length;
       instructionIdx++
     ) {
@@ -150,13 +149,7 @@ export class Sandbox {
               memory = { [instruction.key]: fragmentIdx };
             }
 
-            const checkpoint: Fragment | undefined =
-              checkpoints && checkpoints[instruction.key];
-
-            if (checkpoint) {
-              checkpoint.offset = instruction.indices[fragmentIdx];
-              pushToStack(state, checkpoint);
-            } else if (state.currentOutput instanceof Array) {
+            if (state.currentOutput instanceof Array) {
               pushToStack(
                 state,
                 new Fragment(
@@ -174,12 +167,6 @@ export class Sandbox {
               );
             } else {
               throw Error('not an array');
-            }
-
-            if (checkpoints) {
-              checkpoints[instruction.key] = state.currentOutput;
-            } else {
-              checkpoints = { [instruction.key]: state.currentOutput };
             }
           }
 
@@ -204,7 +191,6 @@ export interface ExecuteState {
   currentOutput: any;
   instructionIdx?: number;
   memory?: Record<symbol, any>;
-  checkpoints?: Record<symbol, any>;
   outputStack?: any[];
 }
 
