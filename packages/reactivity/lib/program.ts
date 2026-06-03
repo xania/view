@@ -33,7 +33,7 @@ export interface ReadInstruction {
 }
 
 export interface FuncInstruction {
-  type: InstructionEnum.Map;
+  type: InstructionEnum.MapState;
   func: Function;
 }
 
@@ -74,7 +74,7 @@ export interface UpdateObjectInstruction {
 export enum InstructionEnum {
   Write = 'Write',
   Read = 'Read',
-  Map = 'Map',
+  MapState = 'MapState',
   Effect = 'Effect',
   SetText = 'SetText',
   Show = 'Show',
@@ -85,14 +85,14 @@ export enum InstructionEnum {
   PopOutput = 'PopOutput',
   SelectFragment = 'SelectFragment',
   SelectFragments = 'SelectFragments',
-  SelectProperty = 'SelectProperty',
-  SelectIndex = 'SelectIndex',
+  PushProperty = 'PushProperty',
+  PushIndex = 'PushIndex',
 }
 
 export type TraversalInstruction =
   | SelectFragmentsInstruction
-  | SelectPropertyInstruction
-  | SelectIndexInstruction;
+  | PushPropertyInstruction
+  | PushIndexInstruction;
 
 interface PopOutputInstruction {
   type: InstructionEnum.PopOutput;
@@ -105,12 +105,12 @@ interface SelectFragmentsInstruction {
   jump: number;
 }
 
-interface SelectPropertyInstruction {
-  type: InstructionEnum.SelectProperty;
+interface PushPropertyInstruction {
+  type: InstructionEnum.PushProperty;
   prop: string | number | symbol;
 }
 
-interface SelectIndexInstruction {
-  type: InstructionEnum.SelectIndex;
+interface PushIndexInstruction {
+  type: InstructionEnum.PushIndex;
   index: number;
 }

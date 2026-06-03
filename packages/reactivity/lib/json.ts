@@ -111,7 +111,7 @@ export class JsonAutomaton {
       output: tpl,
       traversal: [
         {
-          type: InstructionEnum.SelectIndex,
+          type: InstructionEnum.PushIndex,
           index: currentTarget.output.length,
         },
       ],
@@ -154,10 +154,18 @@ export class JsonAutomaton {
         }
       } else {
         for (const key of Reflect.ownKeys(events)) {
-          const program: Instruction[] = [
-            ...currentTarget.traversal,
-            ...events[key],
-          ];
+          const eventProgram = events[key];
+          const program: Instruction[] = currentTarget.traversal.slice(0);
+
+          for (const instruction of eventProgram) {
+            if (
+              instruction.type === InstructionEnum.Read &&
+              !requireStateRead(program)
+            ) {
+              continue;
+            }
+            program.push(instruction);
+          }
 
           let depth = getDepth(currentTarget.traversal);
           while (depth--) {
@@ -187,7 +195,7 @@ export class JsonAutomaton {
       output.object[output.prop] = value;
       return [
         {
-          type: InstructionEnum.SelectProperty,
+          type: InstructionEnum.PushProperty,
           prop: output.prop,
         },
       ];
@@ -195,7 +203,7 @@ export class JsonAutomaton {
       const idx = output.push(value);
       return [
         {
-          type: InstructionEnum.SelectIndex,
+          type: InstructionEnum.PushIndex,
           index: idx,
         },
       ];
@@ -204,14 +212,14 @@ export class JsonAutomaton {
       output.push(value);
       return [
         {
-          type: InstructionEnum.SelectIndex,
+          type: InstructionEnum.PushIndex,
           index: offset,
         },
       ];
     } else if (output instanceof AutomatonTemplate) {
       return [
         {
-          type: InstructionEnum.SelectIndex,
+          type: InstructionEnum.PushIndex,
           index: output.push(value),
         },
       ];
@@ -340,8 +348,8 @@ function getDepth(traversal: TraversalInstruction[]) {
   let depth = 0;
   for (const instruction of traversal) {
     if (
-      instruction.type === InstructionEnum.SelectIndex ||
-      instruction.type === InstructionEnum.SelectProperty
+      instruction.type === InstructionEnum.PushIndex ||
+      instruction.type === InstructionEnum.PushProperty
     ) {
       depth++;
     }
@@ -364,7 +372,6 @@ function appendStateRead(state: State<any, any>, program: Program) {
     key: root.key,
     initial: root.initial,
   });
-
   for (const derived of chain) {
     const { arrows } = derived;
     if (arrows) {
@@ -372,11 +379,27 @@ function appendStateRead(state: State<any, any>, program: Program) {
         const arr = arrows[i];
         if (arr instanceof FuncArrow) {
           program.push({
-            type: InstructionEnum.Map,
+            type: InstructionEnum.MapState,
             func: arr.func,
           });
         }
       }
     }
   }
+}
+function requireStateRead(program: Instruction[]) {
+  let length = program.length;
+
+  while (length--) {
+    const instr = program[length];
+
+    if (instr.type === InstructionEnum.MapState) {
+      return true;
+    }
+
+    if (instr.type === InstructionEnum.Read && instr.key) {
+      return false;
+    }
+  }
+  return false;
 }

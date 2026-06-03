@@ -51,13 +51,6 @@ export class Sandbox {
       });
     }
 
-    const debugProgram = program.map((instruction) => {
-      return {
-        ...instruction,
-        type: InstructionEnum[instruction.type],
-      };
-    });
-
     for (
       let instructionIdx = state?.instructionIdx || 0;
       instructionIdx < program.length;
@@ -73,7 +66,7 @@ export class Sandbox {
         case InstructionEnum.Write:
           this.values[instruction.key] = currentValue;
           break;
-        case InstructionEnum.Map:
+        case InstructionEnum.MapState:
           currentValue = instruction.func(currentValue);
           break;
         case InstructionEnum.Effect:
@@ -118,7 +111,7 @@ export class Sandbox {
           popFromStack(state);
           break;
 
-        case InstructionEnum.SelectProperty:
+        case InstructionEnum.PushProperty:
           if (
             state.currentOutput instanceof Fragment ||
             state.currentOutput instanceof Array
@@ -128,7 +121,7 @@ export class Sandbox {
 
           pushToStack(state, state.currentOutput[instruction.prop]);
           break;
-        case InstructionEnum.SelectIndex:
+        case InstructionEnum.PushIndex:
           if (state.currentOutput instanceof Array) {
             pushToStack(state, state.currentOutput[instruction.index]);
           } else if (state.currentOutput instanceof Fragment) {
@@ -263,7 +256,7 @@ export function compile(state: State<any, any>, program: Program) {
         const arr = arrows[i];
         if (arr instanceof FuncArrow) {
           partial.push({
-            type: InstructionEnum.Map,
+            type: InstructionEnum.MapState,
             func: arr.func,
           });
         }

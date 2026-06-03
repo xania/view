@@ -61,11 +61,11 @@ export class State<T, TParent extends State<any, any> | void = void> {
       const newValue = mapValue(initial, input.arrows);
       return new State(this.scope, newValue, this, input.arrows);
     }
-    const other = toArrow(input);
 
-    const newValue = mapValue(initial, [other]);
+    const others = [toArrow(input)];
+    const newValue = mapValue(initial, others);
 
-    return new State(this.scope, newValue, this, [other]);
+    return new State(this.scope, newValue, this, others);
   }
 }
 
