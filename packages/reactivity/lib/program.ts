@@ -29,6 +29,7 @@ export interface StateInstruction {
 export interface ReadInstruction {
   type: InstructionEnum.Read;
   key: symbol;
+  initial: any;
 }
 
 export interface FuncInstruction {

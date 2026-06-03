@@ -7,7 +7,12 @@ import {
   ObjectProperty,
   TextNodeUpdater,
 } from './automaton';
-import { Instruction, InstructionEnum, type Program, TraversalInstruction } from './program';
+import {
+  Instruction,
+  InstructionEnum,
+  type Program,
+  TraversalInstruction,
+} from './program';
 import { FuncArrow, Scope, State } from './state';
 
 export enum JsonEnum {
@@ -357,6 +362,7 @@ function appendStateRead(state: State<any, any>, program: Program) {
   program.push({
     type: InstructionEnum.Read,
     key: root.key,
+    initial: root.initial,
   });
 
   for (const derived of chain) {
@@ -372,10 +378,5 @@ function appendStateRead(state: State<any, any>, program: Program) {
         }
       }
     }
-
-    program.push({
-      type: InstructionEnum.Write,
-      key: derived.key,
-    });
   }
 }

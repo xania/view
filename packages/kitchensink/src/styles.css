@@ -142,6 +142,11 @@ h2 {
   overflow: hidden;
 }
 
+.debug-panel {
+  grid-column: 1 / -1;
+  overflow: hidden;
+}
+
 .preview-head {
   border-bottom: 1px solid #e2dccf;
   padding: 16px;
@@ -161,6 +166,14 @@ pre {
   font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   font-size: 0.9rem;
   line-height: 1.55;
+}
+
+.debug-panel pre {
+  min-height: 260px;
+  max-height: 420px;
+  color: #25312c;
+  background: #f7fbf7;
+  background-image: none;
 }
 
 @media (max-width: 760px) {

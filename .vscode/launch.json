@@ -5,11 +5,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "chrome",
+      "type": "pwa-chrome",
       "request": "launch",
-      "name": "Launch Chrome against localhost",
-      "url": "http://localhost:1981",
-      "webRoot": "${workspaceFolder}"
+      "name": "Launch kitchensink in Chrome",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/packages/kitchensink",
+      "preLaunchTask": "kitchensink: dev",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/src/*": "${workspaceFolder}/packages/kitchensink/src/*",
+        "/@fs/${workspaceFolder}/*": "${workspaceFolder}/*",
+        "/@fs/*": "*",
+        "webpack:///*": "${workspaceFolder}/*"
+      }
     }
   ]
 }

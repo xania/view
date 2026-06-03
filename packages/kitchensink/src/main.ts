@@ -30,6 +30,12 @@ type DemoRuntime = {
   model: DemoModel;
 };
 
+declare global {
+  interface Window {
+    __xaniaKitchensink?: DemoRuntime;
+  }
+}
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -94,6 +100,14 @@ app.innerHTML = `
         </div>
         <pre id="preview"></pre>
       </section>
+
+      <section class="panel debug-panel">
+        <div class="preview-head">
+          <h2>Debug</h2>
+          <span id="debugValue">enabled</span>
+        </div>
+        <pre id="debug"></pre>
+      </section>
     </section>
   </section>
 `;
@@ -105,12 +119,16 @@ const visibleValue = getElement<HTMLSpanElement>("visibleValue");
 const todoValue = getElement<HTMLSpanElement>("todoValue");
 const asyncValue = getElement<HTMLSpanElement>("asyncValue");
 const nodeCount = getElement<HTMLSpanElement>("nodeCount");
+const debugOutput = getElement<HTMLPreElement>("debug");
+const debugValue = getElement<HTMLSpanElement>("debugValue");
 
 let runtime: DemoRuntime;
+let lastAction = "initial render";
 
 createDemo()
   .then((created) => {
     runtime = created;
+    window.__xaniaKitchensink = runtime;
     bindControls(runtime);
     paint(runtime);
   })
@@ -155,6 +173,7 @@ function bindControls(current: DemoRuntime) {
     });
     current.model.nextTodoId += 1;
     current.model.currentTodos = todos;
+    lastAction = `todos -> ${todos.length}`;
     rerender(current);
   });
 
@@ -165,6 +184,7 @@ function bindControls(current: DemoRuntime) {
         index === 0 ? { ...todo, done: !todo.done } : todo,
       );
       current.model.currentTodos = todos;
+      lastAction = "toggle first todo";
       rerender(current);
     },
   );
@@ -173,6 +193,7 @@ function bindControls(current: DemoRuntime) {
     "click",
     async () => {
       const next = `resolved at ${new Date().toLocaleTimeString()}`;
+      lastAction = `asyncLabel -> ${next}`;
       status.textContent = "resolving";
       await current.sandbox.update(
         current.model.asyncLabel,
@@ -187,6 +208,7 @@ function bindControls(current: DemoRuntime) {
 
 async function updateCount(current: DemoRuntime, delta: number) {
   const next = current.model.currentCount + delta;
+  lastAction = `count -> ${next}`;
   await current.sandbox.update(current.model.count, next);
   current.model.currentCount = next;
   paint(current);
@@ -194,6 +216,7 @@ async function updateCount(current: DemoRuntime, delta: number) {
 
 async function toggleVisible(current: DemoRuntime) {
   const next = !current.model.currentVisible;
+  lastAction = `visible -> ${next}`;
   await current.sandbox.update(current.model.visible, next);
   current.model.currentVisible = next;
   paint(current);
@@ -206,6 +229,7 @@ function rerender(current: DemoRuntime) {
       current.root = next.root;
       current.sandbox = next.sandbox;
       current.model = next.model;
+      window.__xaniaKitchensink = current;
       status.textContent = "ready";
       paint(current);
     })
@@ -320,6 +344,70 @@ function paint(current: DemoRuntime) {
   asyncValue.textContent = String(asyncLabel);
   nodeCount.textContent = `${countNodes(current.root)} nodes`;
   preview.textContent = JSON.stringify(current.root, null, 2);
+  paintDebug(current);
+}
+
+function paintDebug(current: DemoRuntime) {
+  const eventPrograms = current.sandbox.automaton.events
+    ? Reflect.ownKeys(current.sandbox.automaton.events).map((key) => {
+        const program = current.sandbox.automaton.events?.[key] ?? [];
+
+        return {
+          key: formatDebugValue(key),
+          instructions: program.map((instruction) =>
+            Object.fromEntries(
+              Object.entries(instruction).map(([name, value]) => [
+                name,
+                formatDebugValue(value),
+              ]),
+            ),
+          ),
+        };
+      })
+    : [];
+
+  const snapshot = {
+    lastAction,
+    model: {
+      count: current.model.currentCount,
+      visible: current.model.currentVisible,
+      todos: current.model.currentTodos,
+      asyncLabel: current.model.currentAsyncLabel,
+      nextTodoId: current.model.nextTodoId,
+    },
+    root: current.root,
+    eventPrograms,
+  };
+
+  debugValue.textContent = `${eventPrograms.length} programs`;
+  debugOutput.textContent = JSON.stringify(snapshot, null, 2);
+  console.debug("[kitchensink]", snapshot);
+}
+
+function formatDebugValue(value: unknown): unknown {
+  if (typeof value === "symbol") {
+    return value.toString();
+  }
+
+  if (typeof value === "function") {
+    return `[Function ${value.name || "anonymous"}]`;
+  }
+
+  if (value instanceof Array) {
+    return value.map(formatDebugValue);
+  }
+
+  if (value && typeof value === "object") {
+    if ("constructor" in value && value.constructor !== Object) {
+      return `[${value.constructor.name}]`;
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, formatDebugValue(item)]),
+    );
+  }
+
+  return value;
 }
 
 function countNodes(value: unknown): number {

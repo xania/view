@@ -68,7 +68,7 @@ export class Sandbox {
       const { type } = instruction;
       switch (type) {
         case InstructionEnum.Read:
-          currentValue = this.values[instruction.key];
+          currentValue = this.values[instruction.key] ?? instruction.initial;
           break;
         case InstructionEnum.Write:
           this.values[instruction.key] = currentValue;
@@ -196,6 +196,13 @@ export class Sandbox {
           console.warn(`instruction type not supported ${unsupportedType}`);
           break;
       }
+
+      if (currentValue instanceof Promise) {
+        return currentValue.then((resolved) => {
+          state.instructionIdx = instructionIdx + 1;
+          return this.execute(resolved, program, state);
+        });
+      }
     }
   }
 }
@@ -247,6 +254,7 @@ export function compile(state: State<any, any>, program: Program) {
       partial.push({
         type: InstructionEnum.Read,
         key: parent.key,
+        initial: parent.initial,
       });
     }
 

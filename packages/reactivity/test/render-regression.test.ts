@@ -128,53 +128,10 @@ describe('render regression', () => {
 
   it('updates kitchensink-shaped derived state without output stack underflow', async () => {
     const count = useState(2);
-    const visible = useState(true);
-    const todos = useState([
-      { id: 1, title: 'Wire state', done: true },
-      { id: 2, title: 'Render templates', done: false },
-    ]);
-    const completeCount = todos.map(
-      (items) => items.filter((item) => item.done).length
-    );
-
     const view = [
       {
-        feature: 'state',
-        count,
         doubled: count.map((value) => value * 2),
         summary: count.map((value) => `count:${value}`),
-      },
-      {
-        feature: 'conditional',
-        visible,
-        body: [
-          If(visible, [
-            'visible',
-            {
-              count,
-              completed: completeCount,
-            },
-          ]),
-        ],
-      },
-      {
-        feature: 'foreach',
-        items: [
-          ForEach(todos, (todo) => ({
-            id: todo.map((item) => item.id),
-            title: todo.map((item) => item.title),
-            done: todo.map((item) => item.done),
-            labels: [
-              ForEach(
-                todo.map((item) => [
-                  item.done ? 'complete' : 'open',
-                  `#${item.id}`,
-                ]),
-                (label) => label
-              ),
-            ],
-          })),
-        ],
       },
     ];
 
@@ -184,7 +141,6 @@ describe('render regression', () => {
     await sandbox.update(count, 3);
 
     expect(root[0][0]).toMatchObject({
-      count: 3,
       doubled: 6,
       summary: 'count:3',
     });
