@@ -74,6 +74,9 @@ export class Sandbox {
         case InstructionEnum.SetText:
           instruction.node.nodeValue = currentValue;
           break;
+        case InstructionEnum.Clone:
+          instruction.template.clone();
+          break;
         case InstructionEnum.UpdateArray:
           const { index } = instruction;
           if (state.currentOutput instanceof Array) {
@@ -105,6 +108,11 @@ export class Sandbox {
         case InstructionEnum.Jump:
           instructionIdx += instruction.steps;
           break;
+        case InstructionEnum.IfVisible:
+          if (!instruction.node.visible) {
+            instructionIdx += instruction.steps;
+          }
+          break;
 
         case InstructionEnum.PopOutput:
           popFromStack(state);
@@ -120,6 +128,10 @@ export class Sandbox {
 
           pushToStack(state, state.currentOutput[instruction.prop]);
           break;
+
+        case InstructionEnum.PushOutput:
+          pushToStack(state, instruction.output);
+          break;
         case InstructionEnum.PushIndex:
           if (state.currentOutput instanceof Array) {
             pushToStack(state, state.currentOutput[instruction.index]);
@@ -132,7 +144,7 @@ export class Sandbox {
 
           break;
 
-        case InstructionEnum.SelectFragments:
+        case InstructionEnum.SelectTemplate:
           let fragmentIdx: number = 0;
           if (!memory || memory[instruction.key] === undefined) {
             fragmentIdx = 0;
@@ -140,7 +152,7 @@ export class Sandbox {
             fragmentIdx = 1 + memory[instruction.key];
           }
 
-          if (fragmentIdx >= instruction.indices.length) {
+          if (fragmentIdx >= instruction.tpl.regions.length) {
             instructionIdx += instruction.jump;
           } else {
             if (memory) {
@@ -154,7 +166,7 @@ export class Sandbox {
                 state,
                 new Fragment(
                   state.currentOutput,
-                  instruction.indices[fragmentIdx]
+                  instruction.tpl.regions[fragmentIdx]
                 )
               );
             } else if (state.currentOutput instanceof Fragment) {
@@ -162,7 +174,8 @@ export class Sandbox {
                 state,
                 new Fragment(
                   state.currentOutput.output,
-                  state.currentOutput.offset + instruction.indices[fragmentIdx]
+                  state.currentOutput.offset +
+                    instruction.tpl.regions[fragmentIdx]
                 )
               );
             } else {
@@ -262,12 +275,6 @@ export function compile(state: State<any, any>, program: Program) {
 
     s = s.parent;
   }
-}
-
-function printProgram(program: Program) {
-  return program
-    .map((instruction) => InstructionEnum[instruction.type])
-    .join('\n');
 }
 
 export class Fragment {

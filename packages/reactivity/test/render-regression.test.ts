@@ -145,4 +145,43 @@ describe('render regression', () => {
       summary: 'count:3',
     });
   });
+
+  it('renders the kitchensink foreach feature', async () => {
+    const todos = useState([
+      { id: 1, title: 'Wire state', done: true },
+      { id: 2, title: 'Render templates', done: false },
+    ]);
+
+    const view = {
+      feature: 'foreach',
+      items: [
+        ForEach(todos, (todo) => ({
+          id: todo.map((item) => item.id),
+          title: todo.map((item) => item.title),
+          done: todo.map((item) => item.done),
+        })),
+      ],
+    };
+
+    const root: any[] = [];
+    await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([
+      {
+        feature: 'foreach',
+        items: [
+          {
+            id: 1,
+            title: 'Wire state',
+            done: true,
+          },
+          {
+            id: 2,
+            title: 'Render templates',
+            done: false,
+          },
+        ],
+      },
+    ]);
+  });
 });

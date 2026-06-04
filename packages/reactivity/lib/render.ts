@@ -1,4 +1,4 @@
-import { AutomatonTemplate, popScope as popTarget } from './automaton';
+import { AutomatonTemplate, clone, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { InstructionEnum } from './program';
@@ -52,19 +52,15 @@ export function render(
       } else if (curr.constructor === Conditional) {
         const { expr, visible } = curr;
 
-        const region = automaton.pushRegion(visible);
-        const events = (automaton.currentTarget.events ??= {});
-
         if (expr instanceof State) {
-          events[expr.key] = [
-            {
-              type: InstructionEnum.Show,
-              node: region,
-            },
-          ];
+          const conditional = automaton.pushConditional(expr, visible);
+          viewStack.push(popTarget);
+          viewStack.push(curr.body);
+        } else if (visible) {
+          automaton.pushRegion();
+          viewStack.push(popTarget);
+          viewStack.push(curr.body);
         }
-        viewStack.push(popTarget);
-        viewStack.push(curr.body);
       } else if (curr.constructor === ForEachComponent) {
         const { body, initial } = curr;
         const scope = RootScope;
@@ -166,6 +162,7 @@ function initializeIterator(
 
   for (const item of items) {
     fragment.offset = output.length;
+
     template.clone();
 
     if (itemUpdate) {

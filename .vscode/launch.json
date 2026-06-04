@@ -5,19 +5,27 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-chrome",
+      "name": "launch kitchensink in Chrome",
+      "type": "chrome",
       "request": "launch",
-      "name": "Launch kitchensink in Chrome",
-      "url": "http://localhost:5173",
+      "url": "http://localhost:5173/",
       "webRoot": "${workspaceFolder}/packages/kitchensink",
-      "preLaunchTask": "kitchensink: dev",
-      "sourceMaps": true,
-      "sourceMapPathOverrides": {
-        "/src/*": "${workspaceFolder}/packages/kitchensink/src/*",
-        "/@fs/${workspaceFolder}/*": "${workspaceFolder}/*",
-        "/@fs/*": "*",
-        "webpack:///*": "${workspaceFolder}/*"
-      }
+      "sourceMaps": true
     }
+
+    // {
+    //   "type": "pwa-chrome",
+    //   "request": "launch",
+    //   "name": "Launch kitchensink in Chrome",
+    //   "url": "http://localhost:5173",
+    //   "webRoot": "${workspaceFolder}/packages/kitchensink",
+    //   "sourceMaps": true,
+    //   "sourceMapPathOverrides": {
+    //     "/src/*": "${workspaceFolder}/packages/kitchensink/src/*",
+    //     "/@fs/${workspaceFolder}/*": "${workspaceFolder}/*",
+    //     "/@fs/*": "*",
+    //     "webpack:///*": "${workspaceFolder}/*"
+    //   }
+    // }
   ]
 }

@@ -1,4 +1,4 @@
-import { Instruction, TraversalInstruction } from './program';
+import { Instruction } from './program';
 import { Scope, State, Value } from './state';
 
 export type Updatable =
@@ -21,12 +21,12 @@ export type AutomatonTarget = {
     | AutomatonRegion
     | AutomatonTemplate
     | AutomatonOutput;
-  traversal: TraversalInstruction[];
+  traversal: Instruction[];
   events?: Record<string | symbol, Instruction[]>;
 };
 
 export class AutomatonTemplate implements ITemplate {
-  private items: any[] = [];
+  public items: any[] = [];
   public readonly regions: number[] = [];
 
   constructor(
@@ -49,9 +49,8 @@ export class AutomatonTemplate implements ITemplate {
   clone(): void {
     const offset = this.output.length;
     this.regions.push(offset);
-    for (const item of this.items) {
-      this.output.push(cloneTemplateItem(item));
-    }
+
+    clone(this.items, this.output);
   }
 }
 
@@ -116,6 +115,53 @@ export class AutomatonRegion {
   }
 }
 
+export class AutomatonConditional {
+  public readonly offset: number;
+  public items: any[] = [];
+
+  constructor(
+    public output: any[],
+    public state: State<boolean>,
+    public visible: boolean | void
+  ) {
+    if (this.output instanceof Array) {
+      this.offset = this.output.length;
+    } else {
+      throw Error(
+        'invalid state: expected array scope but got object {' +
+          this.output +
+          '}'
+      );
+    }
+  }
+
+  show(visible: boolean) {
+    if (this.visible === visible) return;
+
+    this.visible = visible;
+
+    if (visible) {
+      this.output.splice(this.offset, 0, ...this.items);
+    } else {
+      this.output.splice(this.offset, this.items.length);
+    }
+  }
+
+  push(item: any) {
+    const { items } = this;
+    const idx = items.length;
+    items.push(item);
+    if (this.visible) {
+      this.output.push(item);
+    }
+    return idx;
+  }
+
+  clone() {
+    clone(this.items, this.output);
+  }
+}
+
 export class ObjectProperty {
   constructor(
     public object: any,
@@ -170,3 +216,9 @@ export type ITemplate = {
   push(scope: Scope, item: any): void;
   clone(visible?: boolean): void;
 };
+
+export function clone(template: any[], output: any[]): void {
+  for (const item of template) {
+    output.push(cloneTemplateItem(item));
+  }
+}

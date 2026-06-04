@@ -1,4 +1,5 @@
 import {
+  AutomatonConditional,
   AutomatonRegion,
   AutomatonTarget,
   AutomatonTemplate,
@@ -7,12 +8,7 @@ import {
   ObjectProperty,
   TextNodeUpdater,
 } from './automaton';
-import {
-  Instruction,
-  InstructionEnum,
-  type Program,
-  TraversalInstruction,
-} from './program';
+import { Instruction, InstructionEnum, type Program } from './program';
 import { FuncArrow, Scope, State } from './state';
 
 export enum JsonEnum {
@@ -97,6 +93,34 @@ export class JsonAutomaton {
     return newRegion;
   }
 
+  pushConditional(
+    state: State<any, any>,
+    stateValue: any
+  ): AutomatonConditional {
+    const { currentTarget } = this;
+    if (!currentTarget) {
+      throw Error('Cannot push standalone region, a target is not found');
+    }
+
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
+    this.targets.push(currentTarget);
+
+    const newConditional = new AutomatonConditional(
+      currentTarget.output,
+      state,
+      stateValue
+    );
+
+    this.currentTarget = {
+      output: newConditional,
+      traversal: [],
+    };
+
+    return newConditional;
+  }
+
   pushTemplate(scope: Scope) {
     const { currentTarget } = this;
     if (currentTarget) {
@@ -129,18 +153,53 @@ export class JsonAutomaton {
     const { events } = currentTarget;
 
     const parentTarget = this.targets.pop()!;
+    const parentEvents = (parentTarget.events ??= {});
+
+    if (currentTarget.output instanceof AutomatonConditional) {
+      const visibleEvent = (parentEvents[currentTarget.output.state.key] ??=
+        []);
+
+      visibleEvent.push({
+        type: InstructionEnum.Show,
+        node: currentTarget.output,
+      });
+    }
 
     if (events) {
-      const parentEvents = (parentTarget.events ??= {});
+      if (currentTarget.output instanceof AutomatonConditional) {
+        for (const key of Reflect.ownKeys(events)) {
+          const eventProgram = concatOptimized([], events[key]);
 
-      if (currentTarget.output instanceof AutomatonTemplate) {
-        const regions = currentTarget.output.regions;
+          const result: Program = [
+            {
+              type: InstructionEnum.PushOutput,
+              output: currentTarget.output.items,
+            },
+            ...eventProgram,
+            {
+              type: InstructionEnum.PopOutput,
+            },
+            {
+              type: InstructionEnum.IfVisible,
+              node: currentTarget.output,
+              steps: eventProgram.length,
+            },
+            ...eventProgram,
+          ];
+
+          if (parentEvents[key]) {
+            parentEvents[key].push(...result);
+          } else {
+            parentEvents[key] = result;
+          }
+        }
+      } else if (currentTarget.output instanceof AutomatonTemplate) {
         for (const key of Reflect.ownKeys(events)) {
           const program = events[key];
           const result: Program = [
             {
-              type: InstructionEnum.SelectFragments,
-              indices: regions,
+              type: InstructionEnum.SelectTemplate,
+              tpl: currentTarget.output,
               key: Symbol(),
               jump: program.length + 2,
             },
@@ -157,7 +216,11 @@ export class JsonAutomaton {
             }
           );
 
-          parentEvents[key] = result;
+          if (parentEvents[key]) {
+            parentEvents[key].push(...result);
+          } else {
+            parentEvents[key] = result;
+          }
         }
       } else {
         for (const key of Reflect.ownKeys(events)) {
@@ -186,7 +249,7 @@ export class JsonAutomaton {
   setValue(
     output: AutomatonTarget['output'],
     value: any
-  ): TraversalInstruction[] | void {
+  ): Instruction[] | void {
     if (output instanceof ObjectProperty) {
       if (!output.prop) {
         throw Error('Cannot set value, prop is not selected');
@@ -199,6 +262,14 @@ export class JsonAutomaton {
         },
       ];
     } else if (output instanceof AutomatonRegion) {
+      const idx = output.push(value);
+      return [
+        {
+          type: InstructionEnum.PushIndex,
+          index: idx,
+        },
+      ];
+    } else if (output instanceof AutomatonConditional) {
       const idx = output.push(value);
       return [
         {
@@ -291,66 +362,56 @@ export class JsonAutomaton {
         type: InstructionEnum.UpdateArray,
         index: idx,
       });
+    } else if (output instanceof AutomatonConditional) {
+      const idx = output.push(stateValue);
+
+      stateEvent.push({
+        type: InstructionEnum.UpdateArray,
+        index: idx,
+      });
     } else {
       debugger;
     }
   }
 
-  appendText(
-    content: ITextNode['nodeValue'],
-    property?: string
-  ): TextNodeUpdater {
-    if (content instanceof Scope) {
-      debugger;
-    }
-    const { output: data } = this.currentTarget;
+  appendText(content: ITextNode['nodeValue'], property?: string): void {
+    const { output } = this.currentTarget;
 
-    if (data instanceof ObjectProperty) {
-      if (!data.prop) {
+    if (output instanceof ObjectProperty) {
+      if (!output.prop) {
         throw Error('Cannot append text, prop is not selected');
       }
-      data.object[data.prop] = content;
-      return () => {
-        debugger;
-      };
-    } else if (data instanceof AutomatonTemplate) {
-      data.push(content);
-      return () => {
-        debugger;
-      };
-    } else if (data instanceof AutomatonRegion) {
-      const idx = data.push(content);
-      return (newValue) => {
-        data.update(idx, newValue);
-      };
-    } else if (data instanceof Array) {
-      const nodeIndex = data.length;
-      data.push(content);
-
-      return function (value: ITextNode['nodeValue']) {
-        data[nodeIndex] = value;
-      };
+      output.object[output.prop] = content;
+    } else if (output instanceof AutomatonTemplate) {
+      output.push(content);
+    } else if (output instanceof AutomatonRegion) {
+      const idx = output.push(content);
+    } else if (output instanceof AutomatonConditional) {
+      const idx = output.push(content);
+    } else if (output instanceof Array) {
+      const nodeIndex = output.length;
+      output.push(content);
     } else if (property) {
-      const target = data as Record<string | number, any>;
+      const target = output as Record<string | number, any>;
       target[property] = content;
-
-      return function (value: ITextNode['nodeValue']) {
-        target[property] = value;
-      };
     } else {
       throw Error('Not yet implemented!');
     }
   }
 }
 
-function getDepth(traversal: TraversalInstruction[]) {
+function getDepth(traversal: Instruction[]) {
   let depth = 0;
   for (const instruction of traversal) {
     if (
       instruction.type === InstructionEnum.PushIndex ||
-      instruction.type === InstructionEnum.PushProperty
+      instruction.type === InstructionEnum.PushProperty ||
+      instruction.type === InstructionEnum.PushOutput
     ) {
       depth++;
+    }
+    if (instruction.type === InstructionEnum.PopOutput) {
+      depth--;
     }
   }
 

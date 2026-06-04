@@ -1,4 +1,4 @@
-import { ITextNode } from './automaton';
+import { AutomatonTemplate, ITextNode } from './automaton';
 
 export type Program = Instruction[];
 
@@ -14,8 +14,11 @@ export type Instruction =
   | UpdateArrayInstruction
   | UpdateObjectInstruction
   | PopOutputInstruction
-  | TraversalInstruction;
-
+  | IfVisibleInstruction
+  | SelectTemplateInstruction
+  | PushOutputInstruction
+  | PushPropertyInstruction
+  | PushIndexInstruction;
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
@@ -52,13 +55,21 @@ export interface ShowInstruction {
 export interface CloneInstruction {
   type: InstructionEnum.Clone;
   template: {
-    clone(visible?: boolean): void;
+    clone(): void;
   };
 }
 
 export interface JumpInstruction {
   type: InstructionEnum.Jump;
   steps: number;
+}
+
+export interface IfVisibleInstruction {
+  type: InstructionEnum.IfVisible;
+  steps: number;
+  node: {
+    visible: boolean | void;
+  };
 }
 
 export interface UpdateArrayInstruction {
@@ -80,29 +91,31 @@ export enum InstructionEnum {
   Show = 'Show',
   Clone = 'Clone',
   Jump = 'Jump',
+  IfVisible = 'IfVisible',
   UpdateArray = 'UpdateArray',
   UpdateObject = 'UpdateObject',
   PopOutput = 'PopOutput',
   SelectFragment = 'SelectFragment',
-  SelectFragments = 'SelectFragments',
+  PushOutput = 'SelectOutput',
+  SelectTemplate = 'SelectTemplate',
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
 }
-
-export type TraversalInstruction =
-  | SelectFragmentsInstruction
-  | PushPropertyInstruction
-  | PushIndexInstruction;
 
 interface PopOutputInstruction {
   type: InstructionEnum.PopOutput;
 }
 
-interface SelectFragmentsInstruction {
-  type: InstructionEnum.SelectFragments;
-  indices: number[];
+interface SelectTemplateInstruction {
+  type: InstructionEnum.SelectTemplate;
+  tpl: AutomatonTemplate;
   key: symbol;
   jump: number;
+}
+
+interface PushOutputInstruction {
+  type: InstructionEnum.PushOutput;
+  output: any;
 }
 
 interface PushPropertyInstruction {
