@@ -187,11 +187,7 @@ export class JsonAutomaton {
             ...eventProgram,
           ];
 
-          if (parentEvents[key]) {
-            parentEvents[key].push(...result);
-          } else {
-            parentEvents[key] = result;
-          }
+          appendEventProgram(parentEvents, key, result);
         }
       } else if (currentTarget.output instanceof AutomatonTemplate) {
         for (const key of Reflect.ownKeys(events)) {
@@ -216,11 +212,7 @@ export class JsonAutomaton {
             }
           );
 
-          if (parentEvents[key]) {
-            parentEvents[key].push(...result);
-          } else {
-            parentEvents[key] = result;
-          }
+          appendEventProgram(parentEvents, key, result);
         }
       } else {
         for (const key of Reflect.ownKeys(events)) {
@@ -234,11 +226,7 @@ export class JsonAutomaton {
             program.push({ type: InstructionEnum.PopOutput });
           }
 
-          if (parentEvents[key]) {
-            parentEvents[key].push(...program);
-          } else {
-            parentEvents[key] = program;
-          }
+          appendEventProgram(parentEvents, key, program);
         }
       }
     }
@@ -480,4 +468,17 @@ export function concatOptimized(
     target.push(instruction);
   }
   return target;
+}
+
+function appendEventProgram(
+  events: Record<string | symbol, Instruction[]>,
+  key: string | symbol,
+  program: Instruction[]
+) {
+  const current = events[key];
+  if (current) {
+    current.push(...program);
+  } else {
+    events[key] = program.slice();
+  }
 }

@@ -159,6 +159,10 @@ describe('render regression', () => {
           id: todo.map((item) => item.id),
           title: todo.map((item) => item.title),
           done: todo.map((item) => item.done),
+          labels: todo.map((item) => [
+            item.done ? 'complete' : 'open',
+            `#${item.id}`,
+          ]),
         })),
       ],
     };
@@ -174,11 +178,13 @@ describe('render regression', () => {
             id: 1,
             title: 'Wire state',
             done: true,
+            labels: ['complete', '#1'],
           },
           {
             id: 2,
             title: 'Render templates',
             done: false,
+            labels: ['open', '#2'],
           },
         ],
       },

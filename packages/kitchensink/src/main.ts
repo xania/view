@@ -307,15 +307,10 @@ async function createDemoFromValues(values: DemoValues): Promise<DemoRuntime> {
             id: todoState.map((item) => item.id),
             title: todoState.map((item) => item.title),
             done: todoState.map((item) => item.done),
-            labels: [
-              ForEach(
-                todoState.map((item) => [
-                  item.done ? "complete" : "open",
-                  `#${item.id}`,
-                ]),
-                (label) => label,
-              ),
-            ],
+            labels: todoState.map((item) => [
+              item.done ? "complete" : "open",
+              `#${item.id}`,
+            ]),
           };
         }),
       ],
