@@ -190,4 +190,35 @@ describe('render regression', () => {
       },
     ]);
   });
+
+  it('renders a nested foreach from outer item state', async () => {
+    const todos = useState([
+      { id: 1, labels: ['complete', '#1'] },
+      { id: 2, labels: ['open', '#2'] },
+    ]);
+
+    const view = ForEach(todos, (todo) => ({
+      id: todo.map((item) => item.id),
+      labels: [
+        ForEach(
+          todo.map((item) => item.labels),
+          (label) => label
+        ),
+      ],
+    }));
+
+    const root: any[] = [];
+    await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([
+      {
+        id: 1,
+        labels: ['complete', '#1'],
+      },
+      {
+        id: 2,
+        labels: ['open', '#2'],
+      },
+    ]);
+  });
 });

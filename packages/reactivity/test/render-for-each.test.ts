@@ -62,4 +62,18 @@ describe('render list', () => {
     expect(root).toStrictEqual(['root', 1, 2, 3]);
   });
 
+  it('nested foreach basic', () => {
+    // prepare view
+    var values = useState([1, 2]);
+    var nested = useState([1]);
+
+    const view = ForEach(values, (e) => [e, ForEach(nested, [e, '-'])]);
+
+    // render view
+    const root: any[] = ['root'];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual(['root', [1, [1, '-']], [2, [2, '-']]]);
+  });
 });

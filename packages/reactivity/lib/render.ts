@@ -66,13 +66,14 @@ export function render(
         const scope = RootScope;
         const childScope = scope.pushScope();
 
-        var iterator = buildIterator(childScope, body);
+        const iterator = buildIterator(childScope, body);
         const tpl = automaton.pushTemplate(childScope);
 
         viewStack.push(popTarget);
         if (initial) {
+          const { itemState } = iterator;
           viewStack.push(() =>
-            initializeIterator(sandbox, tpl, initial, iterator.itemState)
+            initializeIterator(sandbox, tpl, initial, itemState)
           );
         }
         viewStack.push(iterator.body);
@@ -145,9 +146,6 @@ function initializeIterator(
   itemState?: State<any>
 ) {
   const { currentTarget } = sandbox.automaton;
-  if (currentTarget.output !== template) {
-    throw Error('whaaaaaat');
-  }
 
   const itemUpdate =
     itemState &&
