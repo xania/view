@@ -29,43 +29,59 @@ class ArrowBase<S = unknown, T = unknown> {
   }
 }
 
-export class State<T = any, TParent extends State<any, any> | void = void> {
-  public readonly graph: symbol;
-  public readonly key: symbol;
+export interface Lense<T = any> {
+  readonly key: symbol;
+  readonly initial?: Value<T>;
+  map<U>(func: Func<T, U>['func']): Func<T, U>;
+}
 
-  constructor(scope: Scope, initial: Value<T>);
-  constructor(
-    scope: Scope,
-    initial: Value<T>,
-    parent: TParent,
-    arrows: Arrow[]
-  );
+export function isLense(l: any): l is Lense<any> {
+  return l instanceof State || l instanceof Func || l instanceof ItemState;
+}
+
+export class State<T = any> implements Lense<T> {
+  public readonly key: symbol = Symbol();
+
   constructor(
     public readonly scope: Scope,
-    public readonly initial: Value<T>,
-    public readonly parent?: TParent,
-    public readonly arrows?: Arrow[]
-  ) {
-    this.key = Symbol();
-    if (parent) {
-      this.scope = parent.scope;
-      this.graph = parent.graph;
-    } else {
-      this.graph = this.key;
-    }
-  }
+    public readonly initial?: Value<T>
+  ) {}
 
-  map<U>(input: ArrowInput<T, U>): State<U, this> {
+  map<U>(func: Func<T, U>['func']): Func<T, U> {
     const { initial } = this;
-    if (input instanceof Composed) {
-      const newValue = mapValue(initial, input.arrows);
-      return new State(this.scope, newValue, this, input.arrows);
-    }
 
-    const others = [toArrow(input)];
-    const newValue = mapValue(initial, others);
+    const newValue = mapValue(initial, func);
 
-    return new State(this.scope, newValue, this, others);
+    return new Func(this, func, newValue);
+  }
+}
+
+export class ItemState<T> implements Lense<T> {
+  public readonly key: symbol = Symbol();
+
+  constructor(
+    public readonly scope: Scope,
+    public readonly list: Lense<T[]>
+  ) {}
+
+  map<U>(func: Func<T, U>['func']): Func<T, U> {
+    return new Func(this, func);
+  }
+}
+
+export class Func<T, U> implements Lense<U> {
+  public readonly key: symbol = Symbol();
+
+  constructor(
+    public readonly parent: Lense<T>,
+    public readonly func: (s: T) => Value<U>,
+    public readonly initial: Value<U>
+  ) {}
+
+  map<S>(func: Func<U, S>['func']): Func<U, S> {
+    const { initial } = this;
+    const newValue = mapValue(initial, func);
+    return new Func(this, func, newValue);
   }
 }
 
@@ -79,28 +95,18 @@ export class FuncArrow<S, T> extends ArrowBase<S, T> {
   }
 }
 
-function mapValue<T>(
-  retval: Value<T>,
-  arrows: Arrow[],
-  offset: number = 0
-): Value<any> {
-  if (retval === undefined) return undefined;
-  if (retval === null) return undefined;
+function mapValue<T, U>(src: Value<T>, func: (s: T) => Value<U>): Value<any> {
+  if (src === undefined) return undefined;
+  if (src === null) return undefined;
 
-  for (let i = offset; i < arrows.length; i++) {
-    if (retval instanceof Promise) {
-      return retval.then((x) => mapValue(x, arrows, i));
-    }
-
-    const arr = arrows[i];
-    if (arr instanceof FuncArrow) {
-      retval = arr.func(retval);
-    } else if (arr instanceof Composed) {
-      retval = mapValue(retval, arr.arrows, 0);
-    } else throw new Error('');
+  if (src instanceof Promise) {
+    return src.then((resolved) => {
+      if (resolved === undefined || resolved === null) return undefined;
+      return func(resolved);
+    });
   }
 
-  return retval;
+  return func(src);
 }
 
 class Composed<S, T> implements Arrow<S, T> {
@@ -156,4 +162,17 @@ export function useState<T>(initial: Promise<T>): State<T>;
 export function useState<T>(initial: T): State<T>;
 export function useState<T>(initial?: Value<T>) {
   return new State<T>(RootScope, initial);
+}
+
+export function resolveRootState(lense: Lense<any>): State {
+  while (!(lense instanceof State)) {
+    if (lense instanceof Func) {
+      lense = lense.parent;
+    } else if (lense instanceof ItemState) {
+      lense = lense.list;
+    } else {
+      throw new Error('Resolve root state failed: not supported lense');
+    }
+  }
+  return lense;
 }

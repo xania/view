@@ -12,7 +12,7 @@ describe('render optimization', () => {
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    const countEvent = sandbox.automaton.events![count.graph] as Program;
+    const countEvent = sandbox.automaton.events![count.key] as Program;
 
     expect(countEvent).toMatchObject([
       {

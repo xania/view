@@ -28,5 +28,4 @@ describe('render if', () => {
     // assert
     expect(root).toStrictEqual([]);
   });
-
 });

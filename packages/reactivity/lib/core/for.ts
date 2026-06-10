@@ -1,6 +1,6 @@
-import type { Scope, State } from '../state';
+import type { ItemState, Lense, Scope, State } from '../state';
 
-type BodyFun<T> = (e: State<T>) => any;
+type BodyFun<T> = (e: Lense<T>) => any;
 
 export type ForEachBody<T = any> =
   | string
@@ -12,13 +12,13 @@ export type ForEachBody<T = any> =
 
 export class ForEachComponent<T> {
   constructor(
-    public expr: State<T[], any>,
+    public expr: Lense<T[]>,
     public initial: T[] | void,
     public body: ForEachBody<T>
   ) {}
 }
 
-export function ForEach<T>(expr: State<T[], any>, body: ForEachBody<T>) {
+export function ForEach<T>(expr: Lense<T[]>, body: ForEachBody<T>) {
   const { initial } = expr;
 
   const actions = expr.map(reconcile);
@@ -33,7 +33,7 @@ export class Iterator<T> {
   constructor(
     public body: any,
     public scope: Scope,
-    public itemState?: State<T>
+    public itemState?: ItemState<T>
   ) {}
 }
 

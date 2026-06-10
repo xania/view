@@ -6,10 +6,17 @@ import {
   IRegion,
   ITextNode,
   ObjectProperty,
-  TextNodeUpdater,
 } from './automaton';
 import { Instruction, InstructionEnum, type Program } from './program';
-import { FuncArrow, Scope, State } from './state';
+import {
+  Func,
+  FuncArrow,
+  ItemState,
+  Lense,
+  resolveRootState,
+  Scope,
+  State,
+} from './state';
 
 export enum JsonEnum {
   Object = 99823786,
@@ -93,10 +100,7 @@ export class JsonAutomaton {
     return newRegion;
   }
 
-  pushConditional(
-    state: State<any, any>,
-    stateValue: any
-  ): AutomatonConditional {
+  pushConditional(state: Lense<any>, stateValue: any): AutomatonConditional {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
@@ -302,13 +306,15 @@ export class JsonAutomaton {
     };
   }
 
-  appendValue<T>(state: State<any>, stateValue?: T): void {
+  appendValue<T>(lense: Lense<any>, stateValue?: T): void {
     let { output } = this.currentTarget;
 
     const currentEvents = (this.currentTarget.events ??= {});
 
-    const stateEvent = (currentEvents[state.graph] ??= []);
-    appendStateRead(state, stateEvent);
+    const rootKey = resolveRootState(lense).key;
+
+    const stateEvent = (currentEvents[rootKey] ??= []);
+    appendStateRead(lense, stateEvent);
 
     if (output instanceof ObjectProperty) {
       const { object, prop } = output;
@@ -332,17 +338,17 @@ export class JsonAutomaton {
     } else if (output instanceof AutomatonTemplate) {
       const itemIdx = output.push(stateValue);
 
-      if (state.scope.level < output.scope.level) {
-        stateEvent.push({
-          type: InstructionEnum.UpdateArray,
-          index: itemIdx,
-        });
-      } else {
-        stateEvent.push({
-          type: InstructionEnum.UpdateArray,
-          index: itemIdx,
-        });
-      }
+      // if (lense.scope.level < output.scope.level) {
+      //   stateEvent.push({
+      //     type: InstructionEnum.UpdateArray,
+      //     index: itemIdx,
+      //   });
+      // } else {
+      stateEvent.push({
+        type: InstructionEnum.UpdateArray,
+        index: itemIdx,
+      });
+      // }
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
@@ -406,43 +412,45 @@ function getDepth(traversal: Instruction[]) {
   return depth;
 }
 
-function appendStateRead(state: State<any, any>, program: Program) {
-  const chain: State<any, any>[] = [];
-  let root = state;
+function appendStateRead(lense: Lense<any>, program: Program) {
+  const sub: Program = [];
 
-  while (root.parent && root.arrows?.length) {
-    chain.unshift(root);
-    root = root.parent;
+  while (true) {
+    if (lense instanceof State) {
+      program.push({
+        type: InstructionEnum.Read,
+        key: lense.key,
+        initial: lense.initial,
+      });
+      break;
+    } else if (lense instanceof ItemState) {
+      program.push({
+        type: InstructionEnum.Read,
+        key: lense.key,
+        initial: undefined,
+      });
+      break;
+    } else if (lense instanceof Func) {
+      sub.push({
+        type: InstructionEnum.Write,
+        key: lense.key,
+      });
+      sub.push({
+        type: InstructionEnum.MapState,
+        func: lense.func,
+        key: lense.key,
+      });
+      lense = lense.parent;
+    } else {
+      throw Error('appendStateRead: Invalid lense type');
+    }
   }
 
-  program.push({
-    type: InstructionEnum.Read,
-    key: root.key,
-    initial: root.initial,
-  });
-
-  if (chain.length) {
-    for (const derived of chain) {
-      const { arrows } = derived;
-      if (arrows) {
-        for (let i = arrows.length - 1; i >= 0; i--) {
-          const arr = arrows[i];
-          if (arr instanceof FuncArrow) {
-            program.push({
-              type: InstructionEnum.MapState,
-              func: arr.func,
-              key: derived.key,
-            });
-          }
-        }
-      }
-    }
-    program.push({
-      type: InstructionEnum.Write,
-      key: state.key,
-    });
+  for (let i = sub.length - 1; i >= 0; i--) {
+    program.push(sub[i]);
   }
 }
+
 function requireStateRead(program: Instruction[]) {
   let length = program.length;
 

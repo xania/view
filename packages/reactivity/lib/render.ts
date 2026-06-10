@@ -3,7 +3,15 @@ import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { InstructionEnum } from './program';
 import { ExecuteState, Fragment, Sandbox } from './sandbox';
-import { RootScope, Scope, State } from './state';
+import {
+  isLense,
+  ItemState,
+  Lense,
+  resolveRootState,
+  RootScope,
+  Scope,
+  State,
+} from './state';
 import { concatOptimized, JsonAutomaton } from './json';
 
 export function render(
@@ -52,7 +60,7 @@ export function render(
       } else if (curr.constructor === Conditional) {
         const { expr, visible } = curr;
 
-        if (expr instanceof State) {
+        if (isLense(expr)) {
           const conditional = automaton.pushConditional(expr, visible);
           viewStack.push(popTarget);
           viewStack.push(curr.body);
@@ -63,7 +71,7 @@ export function render(
         }
       } else if (curr.constructor === ForEachComponent) {
         const { body, initial, expr } = curr;
-        const scope = expr.scope;
+        const scope = resolveRootState(expr).scope;
         const childScope = scope.pushScope();
 
         const iterator = buildIterator(childScope, body, expr);
@@ -81,7 +89,7 @@ export function render(
         curr();
       } else if (curr instanceof SelectProperty) {
         automaton.selectProperty(curr.prop);
-      } else if (curr instanceof State) {
+      } else if (isLense(curr)) {
         const { initial } = curr;
 
         if (initial instanceof Promise) {
@@ -143,7 +151,7 @@ function initializeIterator(
   sandbox: Sandbox,
   template: AutomatonTemplate,
   items: any[],
-  itemState?: State<any>
+  itemState?: ItemState<any>
 ) {
   const { currentTarget } = sandbox.automaton;
 
@@ -151,7 +159,8 @@ function initializeIterator(
     itemState &&
     concatOptimized(
       [],
-      currentTarget.events && currentTarget.events[itemState.graph]
+      currentTarget.events &&
+        currentTarget.events[resolveRootState(itemState).key]
     );
 
   const output = template.output;
@@ -172,9 +181,9 @@ function initializeIterator(
   }
 }
 
-function buildIterator(childScope: Scope, body: ForEachBody, parent: State) {
+function buildIterator(childScope: Scope, body: ForEachBody, list: Lense) {
   if (body instanceof Function) {
-    const itemState = new State<any, any>(childScope, undefined, parent, []);
+    const itemState = new ItemState<any>(childScope, list);
     return new Iterator(body(itemState), childScope, itemState);
   } else {
     return new Iterator(body, childScope);

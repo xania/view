@@ -7,8 +7,8 @@ export class Sandbox {
 
   constructor(public automaton: JsonAutomaton) {}
 
-  update<T>(state: State<T, any>, newValue: Value<T>) {
-    const { graph } = state;
+  update<T>(state: State<T>, newValue: Value<T>) {
+    const { key } = state;
     const { values } = this;
     const oldValue = values[state.key];
 
@@ -17,7 +17,7 @@ export class Sandbox {
     }
 
     if (!this.automaton.events) return;
-    const program = this.automaton.events[graph];
+    const program = this.automaton.events[key];
     if (!program) return;
 
     values[state.key] = newValue;
@@ -223,60 +223,60 @@ function popFromStack(state: ExecuteState) {
   state.currentOutput = state.outputStack.pop();
 }
 
-export function compile(state: State<any, any>, program: Program) {
-  let s: State<any, any> | undefined = state;
+// export function compile(state: State<any>, program: Program) {
+//   let s: State<any> | undefined = state;
 
-  while (s) {
-    let index = 0;
-    while (index < program.length) {
-      const curr = program[index];
-      const { type } = curr;
-      if (type === InstructionEnum.Read) {
-        if (curr.key == s.key) {
-          return;
-        }
-      }
-      index++;
-    }
+//   while (s) {
+//     let index = 0;
+//     while (index < program.length) {
+//       const curr = program[index];
+//       const { type } = curr;
+//       if (type === InstructionEnum.Read) {
+//         if (curr.key == s.key) {
+//           return;
+//         }
+//       }
+//       index++;
+//     }
 
-    const partial: Program = [];
+//     const partial: Program = [];
 
-    const { parent, arrows } = s;
-    if (parent) {
-      partial.push({
-        type: InstructionEnum.Read,
-        key: parent.key,
-        initial: parent.initial,
-      });
-    }
+//     const { parent, arrows } = s;
+//     if (parent) {
+//       partial.push({
+//         type: InstructionEnum.Read,
+//         key: parent.key,
+//         initial: parent.initial,
+//       });
+//     }
 
-    if (arrows) {
-      for (let i = arrows.length - 1; i >= 0; i--) {
-        const arr = arrows[i];
-        if (arr instanceof FuncArrow) {
-          partial.push({
-            type: InstructionEnum.MapState,
-            func: arr.func,
-            key: state.key,
-          });
-        }
-      }
-    }
+//     if (arrows) {
+//       for (let i = arrows.length - 1; i >= 0; i--) {
+//         const arr = arrows[i];
+//         if (arr instanceof FuncArrow) {
+//           partial.push({
+//             type: InstructionEnum.MapState,
+//             func: arr.func,
+//             key: state.key,
+//           });
+//         }
+//       }
+//     }
 
-    if (parent) {
-      partial.push({
-        type: InstructionEnum.Write,
-        key: s.key,
-      });
-    }
+//     if (parent) {
+//       partial.push({
+//         type: InstructionEnum.Write,
+//         key: s.key,
+//       });
+//     }
 
-    if (partial.length) {
-      program.splice(index, 0, ...partial);
-    }
+//     if (partial.length) {
+//       program.splice(index, 0, ...partial);
+//     }
 
-    s = s.parent;
-  }
-}
+//     s = s.parent;
+//   }
+// }
 
 export class Fragment {
   constructor(

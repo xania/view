@@ -1,5 +1,5 @@
 import { Instruction } from './program';
-import { Scope, State, Value } from './state';
+import { Lense, Scope, State, Value } from './state';
 
 export type Updatable =
   | {
@@ -121,7 +121,7 @@ export class AutomatonConditional {
 
   constructor(
     public output: any[],
-    public state: State<boolean>,
+    public state: Lense<boolean>,
     public visible: boolean | void
   ) {
     if (this.output instanceof Array) {
