@@ -49,6 +49,28 @@ describe('render list', () => {
     ]);
   });
 
+  it('foreach multiple mappings', () => {
+    // prepare view
+    var values = useState([1]);
+    const view = ForEach(values, (v) => ({
+      double: v.map((x) => x * 2),
+      triple: v.map((x) => x * 3),
+    }));
+
+    // render view
+    const root: any[] = ['root'];
+    render(view, new JsonAutomaton(root));
+
+    // assert
+    expect(root).toStrictEqual([
+      'root',
+      {
+        double: 2,
+        triple: 3,
+      },
+    ]);
+  });
+
   it('foreach item state', () => {
     // prepare view
     var values = useState([1, 2, 3]);

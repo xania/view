@@ -62,11 +62,11 @@ export function render(
           viewStack.push(curr.body);
         }
       } else if (curr.constructor === ForEachComponent) {
-        const { body, initial } = curr;
-        const scope = RootScope;
+        const { body, initial, expr } = curr;
+        const scope = expr.scope;
         const childScope = scope.pushScope();
 
-        const iterator = buildIterator(childScope, body);
+        const iterator = buildIterator(childScope, body, expr);
         const tpl = automaton.pushTemplate(childScope);
 
         viewStack.push(popTarget);
@@ -151,7 +151,7 @@ function initializeIterator(
     itemState &&
     concatOptimized(
       [],
-      currentTarget.events && currentTarget.events[itemState.key]
+      currentTarget.events && currentTarget.events[itemState.graph]
     );
 
   const output = template.output;
@@ -172,9 +172,9 @@ function initializeIterator(
   }
 }
 
-function buildIterator(childScope: Scope, body: ForEachBody) {
+function buildIterator(childScope: Scope, body: ForEachBody, parent: State) {
   if (body instanceof Function) {
-    const itemState = childScope.state();
+    const itemState = new State<any, any>(childScope, undefined, parent, []);
     return new Iterator(body(itemState), childScope, itemState);
   } else {
     return new Iterator(body, childScope);

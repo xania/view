@@ -27,6 +27,9 @@ describe('render optimization', () => {
         type: InstructionEnum.MapState,
       },
       {
+        type: InstructionEnum.Write,
+      },
+      {
         index: 1,
         type: InstructionEnum.UpdateArray,
       },

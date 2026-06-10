@@ -29,7 +29,7 @@ class ArrowBase<S = unknown, T = unknown> {
   }
 }
 
-export class State<T, TParent extends State<any, any> | void = void> {
+export class State<T = any, TParent extends State<any, any> | void = void> {
   public readonly graph: symbol;
   public readonly key: symbol;
 
@@ -125,7 +125,7 @@ export interface Arrow<S = unknown, T = unknown> {
   map<U>(input: ArrowInput<T, U>): Arrow<S, U>;
 }
 
-type ArrowInput<S, T> = Arrow<S, T> | ((s: S) => Value<T>);
+type ArrowInput<S, T> = Arrow<S, T> | ((s: S, prev?: S) => Value<T>);
 
 function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
   if (input instanceof Function) return new FuncArrow<S, T>(input);

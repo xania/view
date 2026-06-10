@@ -38,6 +38,7 @@ export interface ReadInstruction {
 export interface FuncInstruction {
   type: InstructionEnum.MapState;
   func: Function;
+  key: symbol;
 }
 
 export interface EffectInstruction {

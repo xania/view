@@ -20,12 +20,13 @@ export class ForEachComponent<T> {
 
 export function ForEach<T>(expr: State<T[], any>, body: ForEachBody<T>) {
   const { initial } = expr;
+
+  const actions = expr.map(reconcile);
+
   if (initial instanceof Promise) {
-    return initial.then(
-      (resolved) => new ForEachComponent(expr, resolved, body)
-    );
+    throw new Error('not yet implemeted');
   }
-  return new ForEachComponent(expr, initial, body);
+  return new ForEachComponent(actions, initial, body);
 }
 
 export class Iterator<T> {
@@ -34,4 +35,11 @@ export class Iterator<T> {
     public scope: Scope,
     public itemState?: State<T>
   ) {}
+}
+
+function reconcile<T>(next: T[], prev?: T[]) {
+  if (!prev) {
+    return next;
+  }
+  return next;
 }

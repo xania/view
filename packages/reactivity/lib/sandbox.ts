@@ -257,6 +257,7 @@ export function compile(state: State<any, any>, program: Program) {
           partial.push({
             type: InstructionEnum.MapState,
             func: arr.func,
+            key: state.key,
           });
         }
       }

@@ -410,7 +410,7 @@ function appendStateRead(state: State<any, any>, program: Program) {
   const chain: State<any, any>[] = [];
   let root = state;
 
-  while (root.parent) {
+  while (root.parent && root.arrows?.length) {
     chain.unshift(root);
     root = root.parent;
   }
@@ -420,19 +420,27 @@ function appendStateRead(state: State<any, any>, program: Program) {
     key: root.key,
     initial: root.initial,
   });
-  for (const derived of chain) {
-    const { arrows } = derived;
-    if (arrows) {
-      for (let i = arrows.length - 1; i >= 0; i--) {
-        const arr = arrows[i];
-        if (arr instanceof FuncArrow) {
-          program.push({
-            type: InstructionEnum.MapState,
-            func: arr.func,
-          });
+
+  if (chain.length) {
+    for (const derived of chain) {
+      const { arrows } = derived;
+      if (arrows) {
+        for (let i = arrows.length - 1; i >= 0; i--) {
+          const arr = arrows[i];
+          if (arr instanceof FuncArrow) {
+            program.push({
+              type: InstructionEnum.MapState,
+              func: arr.func,
+              key: derived.key,
+            });
+          }
         }
       }
     }
+    program.push({
+      type: InstructionEnum.Write,
+      key: state.key,
+    });
   }
 }
 function requireStateRead(program: Instruction[]) {

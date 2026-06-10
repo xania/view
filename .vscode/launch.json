@@ -11,6 +11,24 @@
       "url": "http://localhost:5173/",
       "webRoot": "${workspaceFolder}/packages/kitchensink",
       "sourceMaps": true
+    },
+    {
+      "name": "reactivity: test filter",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@xania/reactivity",
+        "exec",
+        "vitest",
+        "--run",
+        "-t",
+        "${input:reactivityTestFilter}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
     }
 
     // {
@@ -27,5 +45,13 @@
     //     "webpack:///*": "${workspaceFolder}/*"
     //   }
     // }
+  ],
+  "inputs": [
+    {
+      "id": "reactivityTestFilter",
+      "type": "promptString",
+      "description": "Vitest test name pattern for @xania/reactivity",
+      "default": ""
+    }
   ]
 }
