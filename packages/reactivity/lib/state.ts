@@ -13,6 +13,8 @@
  * as property or index selection.
  */
 
+import type { Instruction } from './program';
+
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
 class ArrowBase<S = unknown, T = unknown> {
@@ -140,6 +142,7 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
 }
 
 export class Scope {
+  public events?: Record<string | symbol, Instruction[]>;
   constructor(public level: number) {}
 
   pushScope() {

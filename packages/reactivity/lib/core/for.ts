@@ -1,4 +1,5 @@
 import type { ItemState, Lense, Scope, State } from '../state';
+import { createReconcile } from './reconcile';
 
 type BodyFun<T> = (e: Lense<T>) => any;
 
@@ -21,12 +22,10 @@ export class ForEachComponent<T> {
 export function ForEach<T>(expr: Lense<T[]>, body: ForEachBody<T>) {
   const { initial } = expr;
 
-  const actions = expr.map(reconcile);
-
   if (initial instanceof Promise) {
     throw new Error('not yet implemeted');
   }
-  return new ForEachComponent(actions, initial, body);
+  return new ForEachComponent(expr, initial, body);
 }
 
 export class Iterator<T> {
@@ -35,11 +34,4 @@ export class Iterator<T> {
     public scope: Scope,
     public itemState?: ItemState<T>
   ) {}
-}
-
-function reconcile<T>(next: T[], prev?: T[]) {
-  if (!prev) {
-    return next;
-  }
-  return next;
 }

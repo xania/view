@@ -14,6 +14,7 @@ import {
   ItemState,
   Lense,
   resolveRootState,
+  RootScope,
   Scope,
   State,
 } from './state';
@@ -48,12 +49,14 @@ export class JsonAutomaton {
   public currentTarget: AutomatonTarget;
   constructor(
     public rootOutput: AutomatonTarget['output'],
-    public events: AutomatonTarget['events'] = {}
+    public events: AutomatonTarget['events'] = {},
+    public scope: Scope = RootScope
   ) {
     this.currentTarget = {
       output: rootOutput,
       traversal: [],
       events,
+      scope,
     };
   }
 
@@ -68,6 +71,7 @@ export class JsonAutomaton {
     this.currentTarget = {
       output: newNode,
       traversal: this.setValue(currentTarget.output, newObject) ?? [],
+      scope: currentTarget.scope,
     };
   }
 
@@ -95,6 +99,7 @@ export class JsonAutomaton {
     this.currentTarget = {
       output: newRegion,
       traversal: [],
+      scope: currentTarget.scope,
     };
 
     return newRegion;
@@ -120,6 +125,7 @@ export class JsonAutomaton {
     this.currentTarget = {
       output: newConditional,
       traversal: [],
+      scope: currentTarget.scope,
     };
 
     return newConditional;
@@ -143,6 +149,7 @@ export class JsonAutomaton {
           index: currentTarget.output.length,
         },
       ],
+      scope: currentTarget.scope,
     };
 
     return tpl;
@@ -198,21 +205,27 @@ export class JsonAutomaton {
           const program = events[key];
           const result: Program = [
             {
+              type: InstructionEnum.PushOutput,
+              output: currentTarget.output.items,
+            },
+            ...program,
+            {
+              type: InstructionEnum.PopOutput,
+            },
+            {
               type: InstructionEnum.SelectTemplate,
               tpl: currentTarget.output,
               key: Symbol(),
               jump: program.length + 2,
             },
+            ...program,
           ];
-
-          // result.push(...program);
-          concatOptimized(result, program);
 
           result.push(
             { type: InstructionEnum.PopOutput },
             {
               type: InstructionEnum.Jump,
-              steps: -result.length - 2,
+              steps: -program.length - 3,
             }
           );
 
@@ -303,6 +316,7 @@ export class JsonAutomaton {
     this.currentTarget = {
       output: copy,
       traversal: this.setValue(currentTarget.output, copy) ?? [],
+      scope: currentTarget.scope,
     };
   }
 

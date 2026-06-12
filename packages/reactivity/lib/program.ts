@@ -18,7 +18,8 @@ export type Instruction =
   | SelectTemplateInstruction
   | PushOutputInstruction
   | PushPropertyInstruction
-  | PushIndexInstruction;
+  | PushIndexInstruction
+  | ReconcileInstruction;
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
@@ -101,6 +102,13 @@ export enum InstructionEnum {
   SelectTemplate = 'SelectTemplate',
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
+  Reconcile = 'Reconcile',
+}
+
+interface ReconcileInstruction {
+  type: InstructionEnum.Reconcile;
+  tpl: AutomatonTemplate;
+  itemUpdate: Program;
 }
 
 interface PopOutputInstruction {

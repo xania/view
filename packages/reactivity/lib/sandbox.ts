@@ -144,6 +144,10 @@ export class Sandbox {
 
           break;
 
+        case InstructionEnum.Reconcile:
+          const { tpl } = instruction;
+          break;
+
         case InstructionEnum.SelectTemplate:
           let fragmentIdx: number = 0;
           if (!memory || memory[instruction.key] === undefined) {

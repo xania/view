@@ -23,6 +23,7 @@ export type AutomatonTarget = {
     | AutomatonOutput;
   traversal: Instruction[];
   events?: Record<string | symbol, Instruction[]>;
+  scope: Scope;
 };
 
 export class AutomatonTemplate implements ITemplate {
