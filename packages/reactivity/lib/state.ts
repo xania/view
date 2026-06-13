@@ -172,7 +172,7 @@ export function resolveRootState(lense: Lense<any>): State {
     if (lense instanceof Func) {
       lense = lense.parent;
     } else if (lense instanceof ItemState) {
-      lense = lense.list;
+      return lense;
     } else {
       throw new Error('Resolve root state failed: not supported lense');
     }

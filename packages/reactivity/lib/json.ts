@@ -143,13 +143,8 @@ export class JsonAutomaton {
     const tpl = new AutomatonTemplate(currentTarget.output, scope);
     this.currentTarget = {
       output: tpl,
-      traversal: [
-        {
-          type: InstructionEnum.PushIndex,
-          index: currentTarget.output.length,
-        },
-      ],
-      scope: currentTarget.scope,
+      traversal: [],
+      scope: scope,
     };
 
     return tpl;
