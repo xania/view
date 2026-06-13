@@ -22,7 +22,8 @@ export type AutomatonTarget = {
     | AutomatonTemplate
     | AutomatonOutput;
   traversal: Instruction[];
-  events?: Record<string | symbol, Instruction[]>;
+  // root (updatable) state -> updates instructions
+  events?: Map<State, Instruction[]>;
   scope: Scope;
 };
 

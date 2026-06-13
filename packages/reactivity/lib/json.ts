@@ -49,7 +49,7 @@ export class JsonAutomaton {
   public currentTarget: AutomatonTarget;
   constructor(
     public rootOutput: AutomatonTarget['output'],
-    public events: AutomatonTarget['events'] = {},
+    public events: Map<State, Instruction[]> = new Map(),
     public scope: Scope = RootScope
   ) {
     this.currentTarget = {
@@ -164,11 +164,17 @@ export class JsonAutomaton {
     const { events } = currentTarget;
 
     const parentTarget = this.targets.pop()!;
-    const parentEvents = (parentTarget.events ??= {});
+    const parentEvents = (parentTarget.events ??= new Map<
+      State,
+      Instruction[]
+    >());
 
     if (currentTarget.output instanceof AutomatonConditional) {
-      const visibleEvent = (parentEvents[currentTarget.output.state.key] ??=
-        []);
+      const state = resolveRootState(currentTarget.output.state);
+      if (!parentEvents.has(state)) {
+        parentEvents.set(state, []);
+      }
+      const visibleEvent = parentEvents.get(state)!;
 
       visibleEvent.push({
         type: InstructionEnum.Show,
@@ -178,8 +184,8 @@ export class JsonAutomaton {
 
     if (events) {
       if (currentTarget.output instanceof AutomatonConditional) {
-        for (const key of Reflect.ownKeys(events)) {
-          const eventProgram = concatOptimized([], events[key]);
+        for (const [state, updates] of events) {
+          const eventProgram = concatOptimized([], updates);
 
           const result: Program = [
             {
@@ -198,11 +204,11 @@ export class JsonAutomaton {
             ...eventProgram,
           ];
 
-          appendEventProgram(parentEvents, key, result);
+          appendEventProgram(parentEvents, state, result);
         }
       } else if (currentTarget.output instanceof AutomatonTemplate) {
-        for (const key of Reflect.ownKeys(events)) {
-          const program = events[key];
+        for (const [state, updates] of events) {
+          const program = updates;
           const result: Program = [
             {
               type: InstructionEnum.PushOutput,
@@ -229,11 +235,11 @@ export class JsonAutomaton {
             }
           );
 
-          appendEventProgram(parentEvents, key, result);
+          appendEventProgram(parentEvents, state, result);
         }
       } else {
-        for (const key of Reflect.ownKeys(events)) {
-          const eventProgram = events[key];
+        for (const [state, updates] of events) {
+          const eventProgram = updates;
           const program: Instruction[] = currentTarget.traversal.slice(0);
 
           concatOptimized(program, eventProgram);
@@ -243,7 +249,7 @@ export class JsonAutomaton {
             program.push({ type: InstructionEnum.PopOutput });
           }
 
-          appendEventProgram(parentEvents, key, program);
+          appendEventProgram(parentEvents, state, program);
         }
       }
     }
@@ -323,11 +329,18 @@ export class JsonAutomaton {
   appendValue<T>(lense: Lense<any>, stateValue?: T): void {
     let { output } = this.currentTarget;
 
-    const currentEvents = (this.currentTarget.events ??= {});
+    const currentEvents = (this.currentTarget.events ??= new Map<
+      State,
+      Instruction[]
+    >());
 
-    const rootKey = resolveRootState(lense).key;
+    const rootKey = resolveRootState(lense);
 
-    const stateEvent = (currentEvents[rootKey] ??= []);
+    if (!currentEvents.has(rootKey)) {
+      currentEvents.set(rootKey, []);
+    }
+
+    const stateEvent = currentEvents.get(rootKey)!;
     appendStateRead(lense, stateEvent);
 
     if (output instanceof ObjectProperty) {
@@ -500,15 +513,14 @@ export function concatOptimized(
   return target;
 }
 
-function appendEventProgram(
-  events: Record<string | symbol, Instruction[]>,
-  key: string | symbol,
+function appendEventProgram<TK>(
+  events: Map<TK, Instruction[]>,
+  key: TK,
   program: Instruction[]
 ) {
-  const current = events[key];
-  if (current) {
-    current.push(...program);
+  if (events.has(key)) {
+    events.get(key)!.push(...program);
   } else {
-    events[key] = program.slice();
+    events.set(key, program.slice());
   }
 }

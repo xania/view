@@ -17,7 +17,7 @@ export class Sandbox {
     }
 
     if (!this.automaton.events) return;
-    const program = this.automaton.events[key];
+    const program = this.automaton.events.get(state);
     if (!program) return;
 
     values[state.key] = newValue;

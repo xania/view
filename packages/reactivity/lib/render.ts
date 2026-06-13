@@ -160,7 +160,7 @@ function initializeIterator(
     concatOptimized(
       [],
       currentTarget.events &&
-        currentTarget.events[resolveRootState(itemState).key]
+        currentTarget.events.get(resolveRootState(itemState))
     );
 
   const output = template.output;
