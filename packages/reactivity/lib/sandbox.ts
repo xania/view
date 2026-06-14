@@ -217,7 +217,9 @@ function pushToStack(state: ExecuteState, output: any) {
   } else {
     state.outputStack.push(state.currentOutput);
   }
-  state.currentOutput = output;
+
+  if (output instanceof Function) state.currentOutput = output();
+  else state.currentOutput = output;
 }
 
 function popFromStack(state: ExecuteState) {

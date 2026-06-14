@@ -105,7 +105,7 @@ export class JsonAutomaton {
     return newRegion;
   }
 
-  pushConditional(state: Lense<any>, stateValue: any): AutomatonConditional {
+  pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
@@ -118,14 +118,27 @@ export class JsonAutomaton {
 
     const newConditional = new AutomatonConditional(
       currentTarget.output,
-      state,
+      lense,
       stateValue
     );
+
+    const state = resolveRootState(lense);
 
     this.currentTarget = {
       output: newConditional,
       traversal: [],
       scope: currentTarget.scope,
+      events: new Map<State, Program>([
+        [
+          state,
+          [
+            {
+              type: InstructionEnum.Show,
+              node: newConditional,
+            },
+          ],
+        ],
+      ]),
     };
 
     return newConditional;
@@ -159,23 +172,6 @@ export class JsonAutomaton {
     const { events } = currentTarget;
 
     const parentTarget = this.targets.pop()!;
-    const parentEvents = (parentTarget.events ??= new Map<
-      State,
-      Instruction[]
-    >());
-
-    if (currentTarget.output instanceof AutomatonConditional) {
-      const state = resolveRootState(currentTarget.output.state);
-      if (!parentEvents.has(state)) {
-        parentEvents.set(state, []);
-      }
-      const visibleEvent = parentEvents.get(state)!;
-
-      visibleEvent.push({
-        type: InstructionEnum.Show,
-        node: currentTarget.output,
-      });
-    }
 
     if (events) {
       if (currentTarget.output instanceof AutomatonConditional) {
@@ -185,21 +181,21 @@ export class JsonAutomaton {
           const result: Program = [
             {
               type: InstructionEnum.PushOutput,
-              output: currentTarget.output.items,
+              output: currentTarget.output.fragment,
             },
             ...eventProgram,
             {
               type: InstructionEnum.PopOutput,
             },
-            {
-              type: InstructionEnum.IfVisible,
-              node: currentTarget.output,
-              steps: eventProgram.length,
-            },
-            ...eventProgram,
+            // {
+            //   type: InstructionEnum.IfVisible,
+            //   node: currentTarget.output,
+            //   steps: eventProgram.length,
+            // },
+            // ...eventProgram,
           ];
 
-          appendEventProgram(parentEvents, state, result);
+          appendEventProgram(parentTarget, state, result);
         }
       } else if (currentTarget.output instanceof AutomatonTemplate) {
         for (const [state, updates] of events) {
@@ -230,7 +226,7 @@ export class JsonAutomaton {
             }
           );
 
-          appendEventProgram(parentEvents, state, result);
+          appendEventProgram(parentTarget, state, result);
         }
       } else {
         for (const [state, updates] of events) {
@@ -244,7 +240,7 @@ export class JsonAutomaton {
             program.push({ type: InstructionEnum.PopOutput });
           }
 
-          appendEventProgram(parentEvents, state, program);
+          appendEventProgram(parentTarget, state, program);
         }
       }
     }
@@ -508,14 +504,19 @@ export function concatOptimized(
   return target;
 }
 
-function appendEventProgram<TK>(
-  events: Map<TK, Instruction[]>,
-  key: TK,
+function appendEventProgram(
+  target: AutomatonTarget,
+  state: State,
   program: Instruction[]
 ) {
-  if (events.has(key)) {
-    events.get(key)!.push(...program);
+  if (state.scope.level > target.scope.level) {
+  }
+
+  const events = (target.events ??= new Map<State, Instruction[]>());
+
+  if (events.has(state)) {
+    events.get(state)!.push(...program);
   } else {
-    events.set(key, program.slice());
+    events.set(state, program.slice());
   }
 }

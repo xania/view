@@ -1,4 +1,5 @@
 import { Instruction } from './program';
+import { Fragment } from './sandbox';
 import { Lense, Scope, State, Value } from './state';
 
 export type Updatable =
@@ -137,6 +138,11 @@ export class AutomatonConditional {
     }
   }
 
+  fragment = () => {
+    if (this.visible) return new Fragment(this.output, this.offset);
+    else return this.items;
+  };
+
   show(visible: boolean) {
     if (this.visible === visible) return;
 
@@ -145,7 +151,7 @@ export class AutomatonConditional {
     if (visible) {
       this.output.splice(this.offset, 0, ...this.items);
     } else {
-      this.output.splice(this.offset, this.items.length);
+      this.items = this.output.splice(this.offset, this.items.length);
     }
   }
 

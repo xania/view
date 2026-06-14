@@ -97,8 +97,7 @@ export enum InstructionEnum {
   UpdateArray = 'UpdateArray',
   UpdateObject = 'UpdateObject',
   PopOutput = 'PopOutput',
-  SelectFragment = 'SelectFragment',
-  PushOutput = 'SelectOutput',
+  PushOutput = 'PushOutput',
   SelectTemplate = 'SelectTemplate',
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
@@ -124,7 +123,7 @@ interface SelectTemplateInstruction {
 
 interface PushOutputInstruction {
   type: InstructionEnum.PushOutput;
-  output: any;
+  output: any[] | Function;
 }
 
 interface PushPropertyInstruction {
