@@ -126,7 +126,12 @@ export class JsonAutomaton {
 
     this.currentTarget = {
       output: newConditional,
-      traversal: [],
+      traversal: [
+        {
+          type: InstructionEnum.PushOutput,
+          output: newConditional.fragment,
+        },
+      ],
       scope: currentTarget.scope,
       events: new Map<State, Program>([
         [
@@ -174,30 +179,7 @@ export class JsonAutomaton {
     const parentTarget = this.targets.pop()!;
 
     if (events) {
-      if (currentTarget.output instanceof AutomatonConditional) {
-        for (const [state, updates] of events) {
-          const eventProgram = concatOptimized([], updates);
-
-          const result: Program = [
-            {
-              type: InstructionEnum.PushOutput,
-              output: currentTarget.output.fragment,
-            },
-            ...eventProgram,
-            {
-              type: InstructionEnum.PopOutput,
-            },
-            // {
-            //   type: InstructionEnum.IfVisible,
-            //   node: currentTarget.output,
-            //   steps: eventProgram.length,
-            // },
-            // ...eventProgram,
-          ];
-
-          appendEventProgram(parentTarget, state, result);
-        }
-      } else if (currentTarget.output instanceof AutomatonTemplate) {
+      if (currentTarget.output instanceof AutomatonTemplate) {
         for (const [state, updates] of events) {
           const program = updates;
           const result: Program = [
