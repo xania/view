@@ -1,4 +1,5 @@
 import { AutomatonTemplate, ITextNode } from './automaton';
+import { ReconcileOperation } from './core/reconcile';
 
 export type Program = Instruction[];
 
@@ -19,7 +20,8 @@ export type Instruction =
   | PushOutputInstruction
   | PushPropertyInstruction
   | PushIndexInstruction
-  | ReconcileInstruction;
+  | ReconcileInstruction
+  | PushFragmentInstruction;
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
@@ -102,12 +104,18 @@ export enum InstructionEnum {
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
   Reconcile = 'Reconcile',
+  PushFragment = 'PushFragment',
 }
 
 interface ReconcileInstruction {
   type: InstructionEnum.Reconcile;
   tpl: AutomatonTemplate;
   itemUpdate: Program;
+  reconcile: (next: any[]) => ReconcileOperation<any>[];
+}
+interface PushFragmentInstruction {
+  type: InstructionEnum.PushFragment;
+  offset: number;
 }
 
 interface PopOutputInstruction {

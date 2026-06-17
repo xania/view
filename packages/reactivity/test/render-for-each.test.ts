@@ -98,4 +98,23 @@ describe('render list', () => {
     // assert
     expect(root).toStrictEqual(['root', [1, [1, '-']], [2, [2, '-']]]);
   });
+
+  it('update foreach basic', async () => {
+    // prepare view
+    var values = useState([1, 2]);
+
+    const view = ForEach(values, '-');
+
+    // render view
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+    // assert
+    expect(root).toStrictEqual(['root', '-', '-']);
+
+    // update
+    sandbox.update(values, [1, 2, 3]);
+
+    // assert
+    expect(root).toStrictEqual(['root', '-', '-', '-']);
+  });
 });

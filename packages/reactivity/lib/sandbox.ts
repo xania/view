@@ -16,8 +16,10 @@ export class Sandbox {
       return;
     }
 
-    if (!this.automaton.events) return;
-    const program = this.automaton.events.get(state);
+    const events = state.scope.events;
+
+    if (!events) return;
+    const program = events.get(state);
     if (!program) return;
 
     values[state.key] = newValue;
@@ -144,8 +146,30 @@ export class Sandbox {
 
           break;
 
+        case InstructionEnum.PushFragment:
+          if (state.currentOutput instanceof Array) {
+            pushToStack(
+              state,
+              new Fragment(state.currentOutput, instruction.offset)
+            );
+          } else if (state.currentOutput instanceof Fragment) {
+            pushToStack(
+              state,
+              new Fragment(
+                state.currentOutput.output,
+                state.currentOutput.offset + instruction.offset
+              )
+            );
+          } else {
+            throw Error('Invalid operation: Array or fragment expected');
+          }
+          break;
+
         case InstructionEnum.Reconcile:
-          const { tpl } = instruction;
+          const { tpl, reconcile } = instruction;
+
+          const operations = reconcile(currentValue);
+
           break;
 
         case InstructionEnum.SelectTemplate:
@@ -165,21 +189,18 @@ export class Sandbox {
               memory = { [instruction.key]: fragmentIdx };
             }
 
+            const offset =
+              instruction.tpl.offset +
+              instruction.tpl.items.length * fragmentIdx;
+
             if (state.currentOutput instanceof Array) {
-              pushToStack(
-                state,
-                new Fragment(
-                  state.currentOutput,
-                  instruction.tpl.regions[fragmentIdx]
-                )
-              );
+              pushToStack(state, new Fragment(state.currentOutput, offset));
             } else if (state.currentOutput instanceof Fragment) {
               pushToStack(
                 state,
                 new Fragment(
                   state.currentOutput.output,
-                  state.currentOutput.offset +
-                    instruction.tpl.regions[fragmentIdx]
+                  state.currentOutput.offset + offset
                 )
               );
             } else {

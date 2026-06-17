@@ -1,7 +1,7 @@
 import { AutomatonTemplate, clone, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { InstructionEnum } from './program';
+import { InstructionEnum, Program } from './program';
 import { ExecuteState, Fragment, Sandbox } from './sandbox';
 import {
   isLense,
@@ -12,7 +12,7 @@ import {
   Scope,
   State,
 } from './state';
-import { concatOptimized, JsonAutomaton } from './json';
+import { appendStateRead, concatOptimized, JsonAutomaton } from './json';
 
 export function render(
   view: any,
@@ -71,11 +71,11 @@ export function render(
         }
       } else if (curr.constructor === ForEachComponent) {
         const { body, initial, expr } = curr;
-        const scope = resolveRootState(expr).scope;
-        const childScope = scope.pushScope();
+        const state = resolveRootState(expr);
+        const childScope = state.scope.pushScope();
 
         const iterator = buildIterator(childScope, body, expr);
-        const tpl = automaton.pushTemplate(childScope);
+        const tpl = automaton.pushTemplate(expr, childScope, initial);
 
         viewStack.push(popTarget);
         if (initial) {
@@ -165,12 +165,12 @@ function initializeIterator(
 
   const output = template.output;
 
-  const fragment = new Fragment(output, 0);
+  const fragment = new Fragment(output, output.length);
 
   for (const item of items) {
     fragment.offset = output.length;
 
-    template.clone();
+    template.clone(item);
 
     if (itemUpdate) {
       sandbox.values[itemState.key] = item;

@@ -7,6 +7,7 @@ import {
   ITextNode,
   ObjectProperty,
 } from './automaton';
+import { createReconcile } from './core/reconcile';
 import { Instruction, InstructionEnum, type Program } from './program';
 import {
   Func,
@@ -49,13 +50,12 @@ export class JsonAutomaton {
   public currentTarget: AutomatonTarget;
   constructor(
     public rootOutput: AutomatonTarget['output'],
-    public events: Map<State, Instruction[]> = new Map(),
     public scope: Scope = RootScope
   ) {
     this.currentTarget = {
       output: rootOutput,
       traversal: [],
-      events,
+      events: (scope.events ??= new Map()),
       scope,
     };
   }
@@ -149,7 +149,11 @@ export class JsonAutomaton {
     return newConditional;
   }
 
-  pushTemplate(scope: Scope) {
+  pushTemplate<T>(
+    list: Lense<T[]>,
+    itemScope: Scope,
+    listInitial: T[] | undefined | void
+  ) {
     const { currentTarget } = this;
     if (currentTarget) {
       this.targets.push(currentTarget);
@@ -158,11 +162,34 @@ export class JsonAutomaton {
       throw Error('output is not an array');
     }
 
-    const tpl = new AutomatonTemplate(currentTarget.output, scope);
+    const tpl = new AutomatonTemplate(currentTarget.output, itemScope);
+
+    const program = appendStateRead(list, currentTarget.traversal.slice());
+    program.push(
+      {
+        type: InstructionEnum.PushFragment,
+        offset: currentTarget.output.length,
+      },
+      {
+        type: InstructionEnum.Reconcile,
+        tpl,
+        reconcile: createReconcile<T>(tpl),
+        itemUpdate: [],
+      }
+    );
+
+    currentTarget.events ??= new Map();
+    currentTarget.events.set(resolveRootState(list), program);
+
     this.currentTarget = {
       output: tpl,
-      traversal: [],
-      scope: scope,
+      traversal: [
+        {
+          type: InstructionEnum.PushFragment,
+          offset: currentTarget.output.length,
+        },
+      ],
+      scope: itemScope,
     };
 
     return tpl;
@@ -200,13 +227,10 @@ export class JsonAutomaton {
             ...program,
           ];
 
-          result.push(
-            { type: InstructionEnum.PopOutput },
-            {
-              type: InstructionEnum.Jump,
-              steps: -program.length - 3,
-            }
-          );
+          result.push({
+            type: InstructionEnum.Jump,
+            steps: -program.length - 3,
+          });
 
           appendEventProgram(parentTarget, state, result);
         }
@@ -400,7 +424,8 @@ function getDepth(traversal: Instruction[]) {
     if (
       instruction.type === InstructionEnum.PushIndex ||
       instruction.type === InstructionEnum.PushProperty ||
-      instruction.type === InstructionEnum.PushOutput
+      instruction.type === InstructionEnum.PushOutput ||
+      instruction.type === InstructionEnum.PushFragment
     ) {
       depth++;
     }
@@ -412,19 +437,19 @@ function getDepth(traversal: Instruction[]) {
   return depth;
 }
 
-function appendStateRead(lense: Lense<any>, program: Program) {
+export function appendStateRead(lense: Lense<any>, program: Program) {
   const sub: Program = [];
 
   while (true) {
     if (lense instanceof State) {
-      program.push({
+      sub.push({
         type: InstructionEnum.Read,
         key: lense.key,
         initial: lense.initial,
       });
       break;
     } else if (lense instanceof ItemState) {
-      program.push({
+      sub.push({
         type: InstructionEnum.Read,
         key: lense.key,
         initial: undefined,
@@ -449,6 +474,8 @@ function appendStateRead(lense: Lense<any>, program: Program) {
   for (let i = sub.length - 1; i >= 0; i--) {
     program.push(sub[i]);
   }
+
+  return program;
 }
 
 function requireStateRead(program: Instruction[]) {

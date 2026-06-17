@@ -30,11 +30,12 @@ export type AutomatonTarget = {
 
 export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
-  public readonly regions: number[] = [];
+  public readonly regions: { key: any }[] = [];
 
   constructor(
     public output: any[],
-    public scope: Scope
+    public scope: Scope,
+    public offset: number = output.length
   ) {}
 
   push(item: any) {
@@ -49,11 +50,24 @@ export class AutomatonTemplate implements ITemplate {
     this.items[idx] = item;
   }
 
-  clone(): void {
+  clone(key: any) {
     const offset = this.output.length;
-    this.regions.push(offset);
+    const region = { offset, key };
+    this.regions.push(region);
 
     clone(this.items, this.output);
+
+    return region;
+  }
+
+  insert(value: any, index: number): void {
+    if (index < this.regions.length) {
+    } else {
+      const region = { key: value };
+      this.regions.splice(index, 0, region);
+
+      clone(this.items, this.output);
+    }
   }
 }
 
