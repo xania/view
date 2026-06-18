@@ -111,7 +111,7 @@ interface ReconcileInstruction {
   type: InstructionEnum.Reconcile;
   tpl: AutomatonTemplate;
   itemUpdate: Program;
-  reconcile: (next: any[]) => ReconcileOperation<any>[];
+  reconcile: (next: any[], output: any[]) => ReconcileOperation<any>[];
 }
 interface PushFragmentInstruction {
   type: InstructionEnum.PushFragment;

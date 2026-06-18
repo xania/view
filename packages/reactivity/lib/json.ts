@@ -149,11 +149,50 @@ export class JsonAutomaton {
     return newConditional;
   }
 
-  pushTemplate<T>(
+  registerReconciler<T>(
     list: Lense<T[]>,
-    itemScope: Scope,
-    listInitial: T[] | undefined | void
+    tpl: AutomatonTemplate,
+    item?: ItemState<T>
   ) {
+    const { currentTarget } = this;
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
+
+    const reconcile = createReconcile(tpl);
+
+    const offset = currentTarget.output.length;
+
+    if (list.initial instanceof Array)
+      reconcile(list.initial, currentTarget.output);
+
+    const program = appendStateRead(list, currentTarget.traversal.slice());
+    program.push(
+      {
+        type: InstructionEnum.PushFragment,
+        offset,
+      },
+      {
+        type: InstructionEnum.Reconcile,
+        tpl,
+        reconcile,
+        itemUpdate: [],
+      }
+    );
+
+    for (const [state, stateProgram] of tpl.events) {
+      if (state.scope.level > tpl.scope.level) {
+        console.log(state);
+      } else {
+        console.log(state);
+      }
+    }
+
+    currentTarget.events ??= new Map();
+    currentTarget.events.set(resolveRootState(list), program);
+  }
+
+  pushTemplate() {
     const { currentTarget } = this;
     if (currentTarget) {
       this.targets.push(currentTarget);
@@ -162,34 +201,21 @@ export class JsonAutomaton {
       throw Error('output is not an array');
     }
 
-    const tpl = new AutomatonTemplate(currentTarget.output, itemScope);
-
-    const program = appendStateRead(list, currentTarget.traversal.slice());
-    program.push(
-      {
-        type: InstructionEnum.PushFragment,
-        offset: currentTarget.output.length,
-      },
-      {
-        type: InstructionEnum.Reconcile,
-        tpl,
-        reconcile: createReconcile<T>(tpl),
-        itemUpdate: [],
-      }
+    const tpl = new AutomatonTemplate(
+      currentTarget.scope,
+      currentTarget.output.length
     );
-
-    currentTarget.events ??= new Map();
-    currentTarget.events.set(resolveRootState(list), program);
 
     this.currentTarget = {
       output: tpl,
+      events: tpl.events,
       traversal: [
         {
-          type: InstructionEnum.PushFragment,
-          offset: currentTarget.output.length,
+          type: InstructionEnum.PushOutput,
+          output: tpl.items,
         },
       ],
-      scope: itemScope,
+      scope: tpl.scope,
     };
 
     return tpl;
@@ -206,36 +232,19 @@ export class JsonAutomaton {
     const parentTarget = this.targets.pop()!;
 
     if (events) {
-      if (currentTarget.output instanceof AutomatonTemplate) {
-        for (const [state, updates] of events) {
-          const program = updates;
-          const result: Program = [
-            {
-              type: InstructionEnum.PushOutput,
-              output: currentTarget.output.items,
-            },
-            ...program,
-            {
-              type: InstructionEnum.PopOutput,
-            },
-            {
-              type: InstructionEnum.SelectTemplate,
-              tpl: currentTarget.output,
-              key: Symbol(),
-              jump: program.length + 2,
-            },
-            ...program,
-          ];
+      for (const [state, updates] of events) {
+        if (state.scope.level > currentTarget.scope.level) {
+          const scopeEvents = (state.scope.events ??= new Map<
+            State,
+            Instruction[]
+          >());
 
-          result.push({
-            type: InstructionEnum.Jump,
-            steps: -program.length - 3,
-          });
-
-          appendEventProgram(parentTarget, state, result);
-        }
-      } else {
-        for (const [state, updates] of events) {
+          if (scopeEvents.has(state)) {
+            scopeEvents.get(state)!.push(...updates);
+          } else {
+            scopeEvents.set(state, updates.slice());
+          }
+        } else {
           const eventProgram = updates;
           const program: Instruction[] = currentTarget.traversal.slice(0);
 
@@ -246,9 +255,19 @@ export class JsonAutomaton {
             program.push({ type: InstructionEnum.PopOutput });
           }
 
-          appendEventProgram(parentTarget, state, program);
+          const parentEvents = (parentTarget.events ??= new Map<
+            State,
+            Instruction[]
+          >());
+
+          if (parentEvents.has(state)) {
+            parentEvents.get(state)!.push(...program);
+          } else {
+            parentEvents.set(state, program.slice());
+          }
         }
       }
+      // }
     }
 
     this.currentTarget = parentTarget;
@@ -519,13 +538,20 @@ function appendEventProgram(
   program: Instruction[]
 ) {
   if (state.scope.level > target.scope.level) {
-  }
+    const events = (state.scope.events ??= new Map<State, Instruction[]>());
 
-  const events = (target.events ??= new Map<State, Instruction[]>());
-
-  if (events.has(state)) {
-    events.get(state)!.push(...program);
+    if (events.has(state)) {
+      events.get(state)!.push(...program);
+    } else {
+      events.set(state, program.slice());
+    }
   } else {
-    events.set(state, program.slice());
+    const events = (target.events ??= new Map<State, Instruction[]>());
+
+    if (events.has(state)) {
+      events.get(state)!.push(...program);
+    } else {
+      events.set(state, program.slice());
+    }
   }
 }

@@ -28,19 +28,20 @@ interface Region<K> {
 }
 
 export function createReconcile<T>(tpl: ReconcileTemplate<T>) {
-  return (next: readonly T[]) => {
-    const operations = reconcile(next, tpl);
+  return (next: readonly T[], output: any[]) => {
+    const operations = reconcile(next, output, tpl);
     return operations;
   };
 }
 
 interface ReconcileTemplate<T> {
   regions: Region<T>[];
-  insert(value: T, index: number): void;
+  insert(output: any[], value: T, index: number): void;
 }
 
 export function reconcile<T>(
   next: readonly T[],
+  output: any[],
   tpl: ReconcileTemplate<T>
 ): ReconcileOperation<T>[] {
   const operations: ReconcileOperation<T>[] = [];
@@ -103,7 +104,7 @@ export function reconcile<T>(
 
     const from = findKeyIndex(regions, key, index + 1, activeEnd);
     if (from === -1) {
-      tpl.insert(value, index);
+      tpl.insert(output, value, index);
       activeEnd++;
       operations.push({ type: 'insert', index, value });
     } else {

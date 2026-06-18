@@ -168,11 +168,12 @@ export class Sandbox {
         case InstructionEnum.Reconcile:
           const { tpl, reconcile } = instruction;
 
-          const operations = reconcile(currentValue);
+          const operations = reconcile(currentValue, state.currentOutput);
 
           break;
 
         case InstructionEnum.SelectTemplate:
+          const { regions, offset, items } = instruction.tpl;
           let fragmentIdx: number = 0;
           if (!memory || memory[instruction.key] === undefined) {
             fragmentIdx = 0;
@@ -180,7 +181,7 @@ export class Sandbox {
             fragmentIdx = 1 + memory[instruction.key];
           }
 
-          if (fragmentIdx >= instruction.tpl.regions.length) {
+          if (fragmentIdx >= regions.length) {
             instructionIdx += instruction.jump;
           } else {
             if (memory) {
@@ -189,18 +190,19 @@ export class Sandbox {
               memory = { [instruction.key]: fragmentIdx };
             }
 
-            const offset =
-              instruction.tpl.offset +
-              instruction.tpl.items.length * fragmentIdx;
+            const fragmentOffset = offset + items.length * fragmentIdx;
 
             if (state.currentOutput instanceof Array) {
-              pushToStack(state, new Fragment(state.currentOutput, offset));
+              pushToStack(
+                state,
+                new Fragment(state.currentOutput, fragmentOffset)
+              );
             } else if (state.currentOutput instanceof Fragment) {
               pushToStack(
                 state,
                 new Fragment(
                   state.currentOutput.output,
-                  state.currentOutput.offset + offset
+                  state.currentOutput.offset + fragmentOffset
                 )
               );
             } else {

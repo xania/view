@@ -31,11 +31,11 @@ export type AutomatonTarget = {
 export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
   public readonly regions: { key: any }[] = [];
+  public events: Map<State, Instruction[]> = new Map();
 
   constructor(
-    public output: any[],
     public scope: Scope,
-    public offset: number = output.length
+    public offset: number
   ) {}
 
   push(item: any) {
@@ -50,23 +50,29 @@ export class AutomatonTemplate implements ITemplate {
     this.items[idx] = item;
   }
 
-  clone(key: any) {
-    const offset = this.output.length;
+  clone(output: any[], key: any) {
+    const offset = output.length;
     const region = { offset, key };
     this.regions.push(region);
 
-    clone(this.items, this.output);
+    clone(this.items, output);
 
     return region;
   }
 
-  insert(value: any, index: number): void {
-    if (index < this.regions.length) {
-    } else {
-      const region = { key: value };
-      this.regions.splice(index, 0, region);
+  insert(output: any[] | Fragment, value: any, index: number): void {
+    const { offset } = this;
+    const region = { key: value };
+    this.regions.splice(index, 0, region);
 
-      clone(this.items, this.output);
+    if (output instanceof Array) {
+      output.splice(index + offset, 0, ...this.items.map(cloneTemplateItem));
+    } else if (output instanceof Fragment) {
+      output.output.splice(
+        index + output.offset + offset,
+        0,
+        ...this.items.map(cloneTemplateItem)
+      );
     }
   }
 }
@@ -236,7 +242,7 @@ export type IRegion = {
 
 export type ITemplate = {
   push(scope: Scope, item: any): void;
-  clone(visible?: boolean): void;
+  clone(output: any[], visible?: boolean): void;
 };
 
 export function clone(template: any[], output: any[]): void {

@@ -7,7 +7,7 @@ import {
 
 describe('reconcile', () => {
   it('creates insert operations for an initial list', () => {
-    expect(reconcile([1, 2], createTemplate())).toEqual([
+    expect(reconcile([1, 2], [], createTemplate())).toEqual([
       { type: 'insert', index: 0, value: 1 },
       { type: 'insert', index: 1, value: 2 },
     ]);
@@ -19,7 +19,7 @@ describe('reconcile', () => {
     const target = prev.slice();
     const template = createTemplate(prev);
 
-    applyOperations(target, reconcile(next, template));
+    applyOperations(target, reconcile(next, target, template));
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
@@ -34,7 +34,7 @@ describe('reconcile', () => {
     const target = [a, b, c];
     const template = createTemplate(target);
 
-    applyOperations(target, reconcile(next, template));
+    applyOperations(target, reconcile(next, target, template));
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
@@ -46,7 +46,7 @@ describe('reconcile', () => {
     const target = prev.slice();
     const template = createTemplate(prev);
 
-    applyOperations(target, reconcile(next, template));
+    applyOperations(target, reconcile(next, target, template));
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
@@ -57,8 +57,8 @@ describe('reconcile', () => {
     const diff = createReconcile<number>(template);
     const target: number[] = [];
 
-    applyOperations(target, diff([1, 2]));
-    applyOperations(target, diff([2, 3, 1]));
+    applyOperations(target, diff([1, 2], target));
+    applyOperations(target, diff([2, 3, 1], target));
 
     expect(target).toEqual([2, 3, 1]);
     expect(template.regions.map((region) => region.key)).toEqual([2, 3, 1]);
@@ -68,7 +68,7 @@ describe('reconcile', () => {
 function createTemplate<T>(values: T[] = []) {
   return {
     regions: values.map((key) => ({ key })),
-    insert(value: T, index: number) {
+    insert(_output: any[], value: T, index: number) {
       this.regions.splice(index, 0, { key: value });
     },
   };

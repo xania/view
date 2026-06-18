@@ -75,15 +75,19 @@ export function render(
         const childScope = state.scope.pushScope();
 
         const iterator = buildIterator(childScope, body, expr);
-        const tpl = automaton.pushTemplate(expr, childScope, initial);
+        const tpl = automaton.pushTemplate();
 
+        viewStack.push(() =>
+          automaton.registerReconciler(expr, tpl, iterator.itemState)
+        );
+
+        // if (initial) {
+        //   const { itemState } = iterator;
+        //   viewStack.push(() =>
+        //     initializeIterator(sandbox, tpl, initial, itemState)
+        //   );
+        // }
         viewStack.push(popTarget);
-        if (initial) {
-          const { itemState } = iterator;
-          viewStack.push(() =>
-            initializeIterator(sandbox, tpl, initial, itemState)
-          );
-        }
         viewStack.push(iterator.body);
       } else if (curr instanceof Function) {
         curr();
@@ -154,25 +158,23 @@ function initializeIterator(
   itemState?: ItemState<any>
 ) {
   const { currentTarget } = sandbox.automaton;
+  const output = currentTarget.output;
+
+  if (!(output instanceof Array)) throw Error('not an array');
 
   const itemUpdate =
-    itemState &&
-    concatOptimized(
-      [],
-      currentTarget.events &&
-        currentTarget.events.get(resolveRootState(itemState))
-    );
-
-  const output = template.output;
+    itemState && itemState.scope.events
+      ? itemState.scope.events.get(itemState)
+      : undefined;
 
   const fragment = new Fragment(output, output.length);
 
   for (const item of items) {
     fragment.offset = output.length;
 
-    template.clone(item);
+    template.clone(output, item);
 
-    if (itemUpdate) {
+    if (itemState && itemUpdate) {
       sandbox.values[itemState.key] = item;
       sandbox.execute(item, itemUpdate, {
         currentOutput: fragment,
