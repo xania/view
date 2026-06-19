@@ -7,11 +7,9 @@ import {
   ITextNode,
   ObjectProperty,
 } from './automaton';
-import { createReconcile } from './core/reconcile';
 import { Instruction, InstructionEnum, type Program } from './program';
 import {
   Func,
-  FuncArrow,
   ItemState,
   Lense,
   resolveRootState,
@@ -159,37 +157,94 @@ export class JsonAutomaton {
       throw Error('output is not an array');
     }
 
-    const reconcile = createReconcile(tpl);
+    // const reconcile = createReconciler(tpl);
 
     const offset = currentTarget.output.length;
 
-    if (list.initial instanceof Array)
-      reconcile(list.initial, currentTarget.output);
+    // if (list.initial instanceof Array) reconcile(list.initial);
 
-    const program = appendStateRead(list, currentTarget.traversal.slice());
-    program.push(
-      {
-        type: InstructionEnum.PushFragment,
-        offset,
-      },
-      {
-        type: InstructionEnum.Reconcile,
-        tpl,
-        reconcile,
-        itemUpdate: [],
-      }
-    );
+    if (!item || !tpl.events.has(item)) {
+      const program = appendStateRead(list, []);
+      program.push(
+        {
+          type: InstructionEnum.PushFragment,
+          offset,
+        },
+        {
+          type: InstructionEnum.Reconcile,
+          tpl,
+          key: Symbol(),
+          break: 2,
+        }
+      );
 
-    for (const [state, stateProgram] of tpl.events) {
-      if (state.scope.level > tpl.scope.level) {
-        console.log(state);
-      } else {
-        console.log(state);
-      }
+      program.push(
+        { type: InstructionEnum.PopOutput },
+        {
+          type: InstructionEnum.Jump,
+          steps: -3,
+        }
+      );
+
+      currentTarget.events ??= new Map();
+      currentTarget.events.set(resolveRootState(list), program);
     }
 
-    currentTarget.events ??= new Map();
-    currentTarget.events.set(resolveRootState(list), program);
+    for (const [state, stateProgram] of tpl.events) {
+      if (state === item) {
+        const itemProgram = stateProgram;
+
+        const program = appendStateRead(list, []);
+        program.push(
+          {
+            type: InstructionEnum.PushFragment,
+            offset,
+          },
+          {
+            type: InstructionEnum.Reconcile,
+            tpl,
+            key: Symbol(),
+            break: 2 + itemProgram.length,
+          }
+        );
+
+        program.push(
+          ...itemProgram,
+          { type: InstructionEnum.PopOutput },
+          {
+            type: InstructionEnum.Jump,
+            steps: -itemProgram.length - 3,
+          }
+        );
+
+        currentTarget.events ??= new Map();
+        currentTarget.events.set(resolveRootState(list), program);
+      } else {
+        currentTarget.events ??= new Map();
+
+        let parentProgram = currentTarget.events.get(state);
+
+        if (!parentProgram) {
+          parentProgram = [];
+          currentTarget.events.set(state, parentProgram);
+        }
+
+        parentProgram.push(
+          {
+            type: InstructionEnum.Enumerate,
+            tpl,
+            key: Symbol(),
+            break: stateProgram.length + 2,
+          },
+          ...stateProgram,
+          { type: InstructionEnum.PopOutput },
+          {
+            type: InstructionEnum.Jump,
+            steps: -stateProgram.length - 3,
+          }
+        );
+      }
+    }
   }
 
   pushTemplate() {
@@ -468,11 +523,6 @@ export function appendStateRead(lense: Lense<any>, program: Program) {
       });
       break;
     } else if (lense instanceof ItemState) {
-      sub.push({
-        type: InstructionEnum.Read,
-        key: lense.key,
-        initial: undefined,
-      });
       break;
     } else if (lense instanceof Func) {
       sub.push({

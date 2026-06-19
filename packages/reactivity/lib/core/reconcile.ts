@@ -2,7 +2,7 @@ export interface ReconcileOptions<T, K = T> {
   key?: (item: T) => K;
 }
 
-export type ReconcileOperation<T> =
+export type ReconcileOperation<T = unknown> =
   | {
       type: 'insert';
       index: number;
@@ -27,24 +27,14 @@ interface Region<K> {
   key: K;
 }
 
-export function createReconcile<T>(tpl: ReconcileTemplate<T>) {
-  return (next: readonly T[], output: any[]) => {
-    const operations = reconcile(next, output, tpl);
-    return operations;
-  };
-}
-
 interface ReconcileTemplate<T> {
   regions: Region<T>[];
-  insert(output: any[], value: T, index: number): void;
 }
 
-export function reconcile<T>(
+export function* reconcile<T>(
   next: readonly T[],
-  output: any[],
   tpl: ReconcileTemplate<T>
-): ReconcileOperation<T>[] {
-  const operations: ReconcileOperation<T>[] = [];
+): Generator<ReconcileOperation<T>, void> {
   const { regions } = tpl;
 
   let start = 0;
@@ -56,7 +46,8 @@ export function reconcile<T>(
     start < nextEnd &&
     regions[start].key === next[start]
   ) {
-    updateIfChanged(operations, regions, next[start], start);
+    const operation = updateIfChanged(regions, next[start], start);
+    if (operation) yield operation;
     start++;
   }
 
@@ -67,7 +58,8 @@ export function reconcile<T>(
   ) {
     currentEnd--;
     nextEnd--;
-    updateIfChanged(operations, regions, next[nextEnd], currentEnd);
+    const operation = updateIfChanged(regions, next[nextEnd], currentEnd);
+    if (operation) yield operation;
   }
 
   const nextCounts = new Map<T, number>();
@@ -83,7 +75,7 @@ export function reconcile<T>(
     if (count === 0) {
       regions.splice(i, 1);
       activeEnd--;
-      operations.push({ type: 'remove', index: i });
+      yield { type: 'remove', index: i };
     } else {
       nextCounts.set(key, count - 1);
     }
@@ -98,35 +90,33 @@ export function reconcile<T>(
         : undefined;
 
     if (currentKey === key) {
-      updateIfChanged(operations, regions, value, index);
+      const operation = updateIfChanged(regions, value, index);
+      if (operation) yield operation;
       continue;
     }
 
     const from = findKeyIndex(regions, key, index + 1, activeEnd);
     if (from === -1) {
-      tpl.insert(output, value, index);
       activeEnd++;
-      operations.push({ type: 'insert', index, value });
+      yield { type: 'insert', index, value };
     } else {
       const [moved] = regions.splice(from, 1);
       regions.splice(index, 0, moved);
-      operations.push({ type: 'move', from, to: index });
-      updateIfChanged(operations, regions, value, index);
+      yield { type: 'move', from, to: index };
+      const operation = updateIfChanged(regions, value, index);
+      if (operation) yield operation;
     }
   }
-
-  return operations;
 }
 
 function updateIfChanged<T>(
-  operations: ReconcileOperation<T>[],
   current: Region<T>[],
   value: T,
   index: number
-) {
-  if (current[index] !== value) {
+): ReconcileOperation<T> | undefined {
+  if (current[index].key !== value) {
     current[index].key = value;
-    operations.push({ type: 'update', index, value });
+    return { type: 'update', index, value };
   }
 }
 

@@ -1,5 +1,5 @@
 import type { ItemState, Lense, Scope, State } from '../state';
-import { createReconcile } from './reconcile';
+import { createReconciler } from './reconcile';
 
 type BodyFun<T> = (e: Lense<T>) => any;
 

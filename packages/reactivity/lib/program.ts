@@ -21,7 +21,8 @@ export type Instruction =
   | PushPropertyInstruction
   | PushIndexInstruction
   | ReconcileInstruction
-  | PushFragmentInstruction;
+  | PushFragmentInstruction
+  | EnumerateInstruction;
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
@@ -105,13 +106,20 @@ export enum InstructionEnum {
   PushIndex = 'PushIndex',
   Reconcile = 'Reconcile',
   PushFragment = 'PushFragment',
+  Enumerate = 'Enumerate',
 }
 
+interface EnumerateInstruction {
+  type: InstructionEnum.Enumerate;
+  tpl: AutomatonTemplate;
+  key: symbol;
+  break: number;
+}
 interface ReconcileInstruction {
   type: InstructionEnum.Reconcile;
   tpl: AutomatonTemplate;
-  itemUpdate: Program;
-  reconcile: (next: any[], output: any[]) => ReconcileOperation<any>[];
+  key: symbol;
+  break: number;
 }
 interface PushFragmentInstruction {
   type: InstructionEnum.PushFragment;

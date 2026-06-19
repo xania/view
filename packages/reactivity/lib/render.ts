@@ -1,8 +1,7 @@
 import { AutomatonTemplate, clone, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { InstructionEnum, Program } from './program';
-import { ExecuteState, Fragment, Sandbox } from './sandbox';
+import { Fragment, Sandbox } from './sandbox';
 import {
   isLense,
   ItemState,
@@ -12,7 +11,7 @@ import {
   Scope,
   State,
 } from './state';
-import { appendStateRead, concatOptimized, JsonAutomaton } from './json';
+import { JsonAutomaton } from './json';
 
 export function render(
   view: any,
@@ -70,15 +69,17 @@ export function render(
           viewStack.push(curr.body);
         }
       } else if (curr.constructor === ForEachComponent) {
-        const { body, initial, expr } = curr;
-        const state = resolveRootState(expr);
+        const { body, initial, expr: list } = curr;
+        const state = resolveRootState(list);
         const childScope = state.scope.pushScope();
 
-        const iterator = buildIterator(childScope, body, expr);
+        const iterator = buildIterator(childScope, body, list);
         const tpl = automaton.pushTemplate();
 
+        viewStack.push(new InitializeState(state));
+
         viewStack.push(() =>
-          automaton.registerReconciler(expr, tpl, iterator.itemState)
+          automaton.registerReconciler(list, tpl, iterator.itemState)
         );
 
         // if (initial) {

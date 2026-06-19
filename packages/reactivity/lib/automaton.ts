@@ -197,7 +197,7 @@ export class ObjectProperty {
   ) {}
 }
 
-function cloneTemplateItem<T>(item: T): T {
+export function cloneTemplateItem<T>(item: T): T {
   if (item instanceof Array) {
     return item.map(cloneTemplateItem) as T;
   }

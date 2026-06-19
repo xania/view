@@ -127,11 +127,11 @@ describe('render async', () => {
     var values = useState([1, 2, 3]);
     const view = ForEach(values, s);
 
-    const root: any[] = ['root'];
+    const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
     await sandbox.update(s, 4);
 
-    expect(root).toStrictEqual(['root', 4, 4, 4]);
+    expect(root).toStrictEqual([4, 4, 4]);
   });
 
   it('updates foreach complex state items', async () => {
@@ -139,11 +139,11 @@ describe('render async', () => {
     var values = useState([1, 2]);
     const view = ForEach(values, { s });
 
-    const root: any[] = ['root'];
+    const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
     await sandbox.update(s, 4);
 
-    expect(root).toStrictEqual(['root', { s: 4 }, { s: 4 }]);
+    expect(root).toStrictEqual([{ s: 4 }, { s: 4 }]);
   });
 
   it('renders foreach complex item state with async values', async () => {
@@ -156,11 +156,10 @@ describe('render async', () => {
       }))
     );
 
-    const root: any[] = ['root'];
+    const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
     expect(root).toStrictEqual([
-      'root',
       { s: 1, p: '123' },
       { s: 2, p: '123' },
       { s: 3, p: '123' },
@@ -169,7 +168,6 @@ describe('render async', () => {
     await sandbox.update(p, Promise.resolve('456'));
 
     expect(root).toStrictEqual([
-      'root',
       { s: 1, p: '456' },
       { s: 2, p: '456' },
       { s: 3, p: '456' },

@@ -1,3 +1,5 @@
+import { cloneTemplateItem } from './automaton';
+import { reconcile, ReconcileOperation } from './core/reconcile';
 import { JsonAutomaton } from './json';
 import { InstructionEnum, type Program } from './program';
 import { FuncArrow, State, Value } from './state';
@@ -8,7 +10,6 @@ export class Sandbox {
   constructor(public automaton: JsonAutomaton) {}
 
   update<T>(state: State<T>, newValue: Value<T>) {
-    const { key } = state;
     const { values } = this;
     const oldValue = values[state.key];
 
@@ -16,7 +17,7 @@ export class Sandbox {
       return;
     }
 
-    const events = state.scope.events;
+    const events = this.automaton.currentTarget.events;
 
     if (!events) return;
     const program = events.get(state);
@@ -25,7 +26,7 @@ export class Sandbox {
     values[state.key] = newValue;
 
     const execState: ExecuteState = {
-      currentOutput: this.automaton.rootOutput,
+      currentOutput: this.automaton.currentTarget.output,
       outputStack: [],
     };
 
@@ -92,6 +93,10 @@ export class Sandbox {
           break;
         case InstructionEnum.UpdateObject:
           const { property } = instruction;
+
+          if (!state.currentOutput) {
+            debugger;
+          }
 
           if (state.currentOutput instanceof Array) {
             throw Error('not an object');
@@ -165,10 +170,99 @@ export class Sandbox {
           }
           break;
 
-        case InstructionEnum.Reconcile:
-          const { tpl, reconcile } = instruction;
+        case InstructionEnum.Enumerate:
+          {
+            const { regions, items, offset } = instruction.tpl;
 
-          const operations = reconcile(currentValue, state.currentOutput);
+            let fragmentIdx: number = 0;
+            if (!memory || memory[instruction.key] === undefined) {
+              fragmentIdx = 0;
+            } else {
+              fragmentIdx = 1 + memory[instruction.key];
+            }
+
+            if (fragmentIdx >= regions.length) {
+              instructionIdx += instruction.break;
+            } else {
+              if (memory) {
+                memory[instruction.key] = fragmentIdx;
+              } else {
+                memory = { [instruction.key]: fragmentIdx };
+              }
+
+              const fragmentOffset = items.length * fragmentIdx;
+
+              if (state.currentOutput instanceof Array) {
+                pushToStack(
+                  state,
+                  new Fragment(state.currentOutput, fragmentOffset)
+                );
+              } else if (state.currentOutput instanceof Fragment) {
+                pushToStack(
+                  state,
+                  new Fragment(
+                    state.currentOutput.output,
+                    state.currentOutput.offset + fragmentOffset
+                  )
+                );
+              } else {
+                throw Error('not an array');
+              }
+            }
+          }
+          break;
+
+        case InstructionEnum.Reconcile:
+          const { tpl, key } = instruction;
+
+          if (!memory) {
+            state.memory = memory = {};
+          }
+
+          let operations: Generator<ReconcileOperation, void> = memory[key];
+
+          if (!operations) {
+            operations = reconcile(currentValue, tpl);
+            memory[key] = operations;
+          }
+
+          while (true) {
+            var next = operations.next();
+
+            if (next.done) {
+              instructionIdx += instruction.break;
+              break;
+            }
+
+            if (next.value.type === 'insert') {
+              const { value, index } = next.value;
+              currentValue = value;
+
+              const clone = tpl.items.map(cloneTemplateItem);
+              tpl.regions.splice(index, 0, { key: value });
+              if (state.currentOutput instanceof Array) {
+                state.currentOutput.splice(index, 0, ...clone);
+                pushToStack(state, new Fragment(state.currentOutput, index));
+              } else if (state.currentOutput instanceof Fragment) {
+                state.currentOutput.output.splice(
+                  state.currentOutput.offset + index,
+                  0,
+                  ...clone
+                );
+                pushToStack(
+                  state,
+                  new Fragment(
+                    state.currentOutput.output,
+                    state.currentOutput.offset + index
+                  )
+                );
+              } else {
+                throw Error('Failed to clone: not supported output');
+              }
+
+              break;
+            }
+          }
 
           break;
 

@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createReconcile,
-  reconcile,
-  type ReconcileOperation,
-} from '../lib/core/reconcile';
+import { reconcile, type ReconcileOperation } from '../lib/core/reconcile';
 
 describe('reconcile', () => {
   it('creates insert operations for an initial list', () => {
-    expect(reconcile([1, 2], [], createTemplate())).toEqual([
+    expect(Array.from(reconcile([1, 2], createTemplate()))).toEqual([
       { type: 'insert', index: 0, value: 1 },
       { type: 'insert', index: 1, value: 2 },
     ]);
@@ -19,7 +15,7 @@ describe('reconcile', () => {
     const target = prev.slice();
     const template = createTemplate(prev);
 
-    applyOperations(target, reconcile(next, target, template));
+    applyOperations(target, reconcile(next, template), template);
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
@@ -34,7 +30,7 @@ describe('reconcile', () => {
     const target = [a, b, c];
     const template = createTemplate(target);
 
-    applyOperations(target, reconcile(next, target, template));
+    applyOperations(target, reconcile(next, template), template);
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
@@ -46,51 +42,83 @@ describe('reconcile', () => {
     const target = prev.slice();
     const template = createTemplate(prev);
 
-    applyOperations(target, reconcile(next, target, template));
+    applyOperations(target, reconcile(next, template), template);
 
     expect(target).toEqual(next);
     expect(template.regions.map((region) => region.key)).toEqual(next);
   });
 
-  it('remembers previous values with createReconcile', () => {
+  it('returns one operation at a time', () => {
     const template = createTemplate<number>();
-    const diff = createReconcile<number>(template);
-    const target: number[] = [];
+    const operations = reconcile([1, 2], template);
 
-    applyOperations(target, diff([1, 2], target));
-    applyOperations(target, diff([2, 3, 1], target));
+    expect(operations.next().value).toEqual({
+      type: 'insert',
+      index: 0,
+      value: 1,
+    });
+    template.regions.splice(0, 0, { key: 1 });
+    expect(template.regions.map((region) => region.key)).toEqual([1]);
 
-    expect(target).toEqual([2, 3, 1]);
-    expect(template.regions.map((region) => region.key)).toEqual([2, 3, 1]);
+    expect(operations.next().value).toEqual({
+      type: 'insert',
+      index: 1,
+      value: 2,
+    });
+    template.regions.splice(1, 0, { key: 2 });
+    expect(template.regions.map((region) => region.key)).toEqual([1, 2]);
+    expect(operations.next()).toEqual({ value: undefined, done: true });
+  });
+
+  it('continues reconciling from its internal state', () => {
+    const template = createTemplate([1, 2, 3]);
+    const target = [1, 2, 3];
+    const next = [3, 1, 4];
+    const operations = reconcile(next, template);
+
+    applyOperations(target, operations, template);
+
+    expect(target).toEqual(next);
+    expect(template.regions.map((region) => region.key)).toEqual(next);
   });
 });
 
 function createTemplate<T>(values: T[] = []) {
   return {
     regions: values.map((key) => ({ key })),
-    insert(_output: any[], value: T, index: number) {
-      this.regions.splice(index, 0, { key: value });
-    },
   };
 }
 
-function applyOperations<T>(target: T[], operations: ReconcileOperation<T>[]) {
+function applyOperations<T>(
+  target: T[],
+  operations: Generator<ReconcileOperation<T>, void>,
+  template: ReturnType<typeof createTemplate<T>>
+) {
   for (const operation of operations) {
-    switch (operation.type) {
-      case 'insert':
-        target.splice(operation.index, 0, operation.value);
-        break;
-      case 'remove':
-        target.splice(operation.index, 1);
-        break;
-      case 'move': {
-        const [value] = target.splice(operation.from, 1);
-        target.splice(operation.to, 0, value);
-        break;
-      }
-      case 'update':
-        target[operation.index] = operation.value;
-        break;
+    applyOperation(target, operation, template);
+  }
+}
+
+function applyOperation<T>(
+  target: T[],
+  operation: ReconcileOperation<T>,
+  template: ReturnType<typeof createTemplate<T>>
+) {
+  switch (operation.type) {
+    case 'insert':
+      target.splice(operation.index, 0, operation.value);
+      template.regions.splice(operation.index, 0, { key: operation.value });
+      break;
+    case 'remove':
+      target.splice(operation.index, 1);
+      break;
+    case 'move': {
+      const [value] = target.splice(operation.from, 1);
+      target.splice(operation.to, 0, value);
+      break;
     }
+    case 'update':
+      target[operation.index] = operation.value;
+      break;
   }
 }
