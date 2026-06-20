@@ -143,6 +143,8 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
 
 export class Scope {
   public events?: Map<State, Instruction[]>;
+  public values: Record<symbol, any> = {};
+
   constructor(public level: number) {}
 
   pushScope() {

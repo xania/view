@@ -66,10 +66,12 @@ export class Sandbox {
           currentValue = this.values[instruction.key] ?? instruction.initial;
           break;
         case InstructionEnum.Write:
-          this.values[instruction.key] = currentValue;
+          // this.values[instruction.key] = currentValue;
+          this.automaton.scope.values[instruction.key] = currentValue;
           break;
         case InstructionEnum.MapState:
           currentValue = instruction.func(currentValue);
+          this.automaton.scope.values[instruction.key] = currentValue;
           break;
         case InstructionEnum.Effect:
           currentValue = instruction.func(currentValue);

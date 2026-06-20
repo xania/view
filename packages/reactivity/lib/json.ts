@@ -261,7 +261,7 @@ export class JsonAutomaton {
     const tpl = new AutomatonTemplate(childScope, currentTarget.output.length);
 
     this.currentTarget = {
-      output: tpl,
+      output: tpl.items,
       events: tpl.events,
       traversal: [
         {
@@ -367,13 +367,6 @@ export class JsonAutomaton {
           index: offset,
         },
       ];
-    } else if (output instanceof AutomatonTemplate) {
-      return [
-        {
-          type: InstructionEnum.PushIndex,
-          index: output.push(value),
-        },
-      ];
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'
@@ -432,20 +425,6 @@ export class JsonAutomaton {
         type: InstructionEnum.UpdateArray,
         index: nodeIndex,
       });
-    } else if (output instanceof AutomatonTemplate) {
-      const itemIdx = output.push(stateValue);
-
-      // if (lense.scope.level < output.scope.level) {
-      //   stateEvent.push({
-      //     type: InstructionEnum.UpdateArray,
-      //     index: itemIdx,
-      //   });
-      // } else {
-      stateEvent.push({
-        type: InstructionEnum.UpdateArray,
-        index: itemIdx,
-      });
-      // }
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
@@ -473,8 +452,6 @@ export class JsonAutomaton {
         throw Error('Cannot append text, prop is not selected');
       }
       output.object[output.prop] = content;
-    } else if (output instanceof AutomatonTemplate) {
-      output.push(content);
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(content);
     } else if (output instanceof AutomatonConditional) {
@@ -524,10 +501,6 @@ export function appendStateRead(lense: Lense<any>, program: Program) {
     } else if (lense instanceof ItemState) {
       break;
     } else if (lense instanceof Func) {
-      sub.push({
-        type: InstructionEnum.Write,
-        key: lense.key,
-      });
       sub.push({
         type: InstructionEnum.MapState,
         func: lense.func,
