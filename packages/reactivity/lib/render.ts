@@ -71,10 +71,9 @@ export function render(
       } else if (curr.constructor === ForEachComponent) {
         const { body, initial, expr: list } = curr;
         const state = resolveRootState(list);
-        const childScope = state.scope.pushScope();
 
-        const iterator = buildIterator(childScope, body, list);
         const tpl = automaton.pushTemplate();
+        const iterator = buildIterator(tpl.scope, body, list);
 
         viewStack.push(new InitializeState(state));
 

@@ -256,10 +256,9 @@ export class JsonAutomaton {
       throw Error('output is not an array');
     }
 
-    const tpl = new AutomatonTemplate(
-      currentTarget.scope,
-      currentTarget.output.length
-    );
+    const childScope = currentTarget.scope.pushScope();
+
+    const tpl = new AutomatonTemplate(childScope, currentTarget.output.length);
 
     this.currentTarget = {
       output: tpl,
