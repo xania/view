@@ -5,13 +5,13 @@ import { InstructionEnum, type Program } from './program';
 import { FuncArrow, State, Value } from './state';
 
 export class Sandbox {
-  public values: Record<symbol, any> = {};
+  public rootValues: Record<symbol, any> = {};
 
   constructor(public automaton: JsonAutomaton) {}
 
   update<T>(state: State<T>, newValue: Value<T>) {
-    const { values } = this;
-    const oldValue = values[state.key];
+    const { rootValues } = this;
+    const oldValue = rootValues[state.key];
 
     if (oldValue === newValue) {
       return;
@@ -23,16 +23,17 @@ export class Sandbox {
     const program = events.get(state);
     if (!program) return;
 
-    values[state.key] = newValue;
+    rootValues[state.key] = newValue;
 
     const execState: ExecuteState = {
       currentOutput: this.automaton.currentTarget.output,
       outputStack: [],
+      values: rootValues,
     };
 
     if (newValue instanceof Promise) {
       return newValue.then((resolved) => {
-        values[state.key] = resolved;
+        rootValues[state.key] = resolved;
         return this.execute(resolved, program, execState);
       });
     }
@@ -63,15 +64,14 @@ export class Sandbox {
       const { type } = instruction;
       switch (type) {
         case InstructionEnum.Read:
-          currentValue = this.values[instruction.key] ?? instruction.initial;
+          currentValue = state.values[instruction.key] ?? instruction.initial;
           break;
         case InstructionEnum.Write:
-          // this.values[instruction.key] = currentValue;
-          this.automaton.scope.values[instruction.key] = currentValue;
+          state.values[instruction.key] = currentValue;
           break;
         case InstructionEnum.MapState:
           currentValue = instruction.func(currentValue);
-          this.automaton.scope.values[instruction.key] = currentValue;
+          state.values[instruction.key] = currentValue;
           break;
         case InstructionEnum.Effect:
           currentValue = instruction.func(currentValue);
@@ -95,10 +95,6 @@ export class Sandbox {
           break;
         case InstructionEnum.UpdateObject:
           const { property } = instruction;
-
-          if (!state.currentOutput) {
-            debugger;
-          }
 
           if (state.currentOutput instanceof Array) {
             throw Error('not an object');
@@ -141,6 +137,7 @@ export class Sandbox {
         case InstructionEnum.PushOutput:
           pushToStack(state, instruction.output);
           break;
+
         case InstructionEnum.PushIndex:
           if (state.currentOutput instanceof Array) {
             pushToStack(state, state.currentOutput[instruction.index]);
@@ -150,7 +147,6 @@ export class Sandbox {
           } else {
             throw Error('Invalid operation: Array or region not expected');
           }
-
           break;
 
         case InstructionEnum.PushFragment:
@@ -191,6 +187,8 @@ export class Sandbox {
               } else {
                 memory = { [instruction.key]: fragmentIdx };
               }
+
+              state.values = regions[fragmentIdx];
 
               const fragmentOffset = items.length * fragmentIdx;
 
@@ -328,6 +326,7 @@ export interface ExecuteState {
   instructionIdx?: number;
   memory?: Record<symbol, any>;
   outputStack?: any[];
+  values: Record<symbol, any>;
 }
 
 function pushToStack(state: ExecuteState, output: any) {

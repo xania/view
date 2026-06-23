@@ -151,38 +151,6 @@ class SelectProperty {
   constructor(public prop: string) {}
 }
 
-function initializeIterator(
-  sandbox: Sandbox,
-  template: AutomatonTemplate,
-  items: any[],
-  itemState?: ItemState<any>
-) {
-  const { currentTarget } = sandbox.automaton;
-  const output = currentTarget.output;
-
-  if (!(output instanceof Array)) throw Error('not an array');
-
-  const itemUpdate =
-    itemState && itemState.scope.events
-      ? itemState.scope.events.get(itemState)
-      : undefined;
-
-  const fragment = new Fragment(output, output.length);
-
-  for (const item of items) {
-    fragment.offset = output.length;
-
-    template.clone(output, item);
-
-    if (itemState && itemUpdate) {
-      sandbox.values[itemState.key] = item;
-      sandbox.execute(item, itemUpdate, {
-        currentOutput: fragment,
-      });
-    }
-  }
-}
-
 function buildIterator(childScope: Scope, body: ForEachBody, list: Lense) {
   if (body instanceof Function) {
     const itemState = new ItemState<any>(childScope, list);

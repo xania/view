@@ -229,18 +229,21 @@ export class JsonAutomaton {
           currentTarget.events.set(state, parentProgram);
         }
 
+        const itemProgram = concatOptimized([], stateProgram);
+
+        parentProgram.push({
+          type: InstructionEnum.Enumerate,
+          tpl,
+          key: Symbol(),
+          break: itemProgram.length + 2,
+        });
+
         parentProgram.push(
-          {
-            type: InstructionEnum.Enumerate,
-            tpl,
-            key: Symbol(),
-            break: stateProgram.length + 2,
-          },
-          ...stateProgram,
+          ...itemProgram,
           { type: InstructionEnum.PopOutput },
           {
             type: InstructionEnum.Jump,
-            steps: -stateProgram.length - 3,
+            steps: -itemProgram.length - 3,
           }
         );
       }

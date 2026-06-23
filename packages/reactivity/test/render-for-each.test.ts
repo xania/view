@@ -51,7 +51,7 @@ describe('render list', () => {
 
   it('foreach multiple mappings', () => {
     // prepare view
-    var values = useState([1]);
+    const values = useState([1]);
     const view = ForEach(values, (v) => ({
       double: v.map((x) => x * 2),
       triple: v.map((x) => x * 3),
