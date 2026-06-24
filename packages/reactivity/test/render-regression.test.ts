@@ -208,4 +208,66 @@ describe('render regression', () => {
       },
     ]);
   });
+
+  it('updates nested item mappings from the same object item state', async () => {
+    const todos = useState([{ id: 1, title: 'Wire state', done: true }]);
+    const view = ForEach(todos, (todo) => ({
+      id: todo.map((item) => item.id),
+      title: todo.map((item) => item.title),
+      done: todo.map((item) => item.done),
+    }));
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(todos, [{ id: 2, title: 'Render templates', done: false }]);
+
+    expect(root).toStrictEqual([
+      {
+        id: 2,
+        title: 'Render templates',
+        done: false,
+      },
+    ]);
+  });
+
+  it('updates nested foreach output from a mapped outer item state', async () => {
+    const todos = useState([{ id: 1, labels: ['complete', '#1'] }]);
+    const view = ForEach(todos, (todo) => ({
+      id: todo.map((item) => item.id),
+      labels: [ForEach(todo.map((item) => item.labels), (label) => label)],
+    }));
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(todos, [{ id: 1, labels: ['open', 'next'] }]);
+
+    expect(root).toStrictEqual([
+      {
+        id: 1,
+        labels: ['open', 'next'],
+      },
+    ]);
+  });
+
+  it('updates root sibling mappings when one branch is async', async () => {
+    const count = useState(2);
+    const view = [
+      {
+        doubled: count.map((value) => value * 2),
+        summary: count.map((value) => Promise.resolve(`count:${value}`)),
+      },
+    ];
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(count, 3);
+
+    expect(root[0][0]).toMatchObject({
+      doubled: 6,
+      summary: 'count:3',
+    });
+  });
 });

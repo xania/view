@@ -117,4 +117,71 @@ describe('render list', () => {
     // assert
     expect(root).toStrictEqual(['root', '-', '-', '-']);
   });
+
+  it('updates foreach sibling mappings from the same item state', async () => {
+    const values = useState([1]);
+    const view = ForEach(values, (v) => ({
+      double: v.map((x) => x * 2),
+      triple: v.map((x) => x * 3),
+    }));
+
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(values, [2]);
+
+    expect(root).toStrictEqual([
+      'root',
+      {
+        double: 4,
+        triple: 6,
+      },
+    ]);
+  });
+
+  it('updates foreach async sibling mappings from the same item state', async () => {
+    const values = useState([1]);
+    const view = ForEach(values, (v) => ({
+      double: v.map((x) => Promise.resolve(x * 2)),
+      triple: v.map((x) => Promise.resolve(x * 3)),
+    }));
+
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(values, [2]);
+
+    expect(root).toStrictEqual([
+      'root',
+      {
+        double: 4,
+        triple: 6,
+      },
+    ]);
+  });
+
+  it('preserves item frames across reconcile churn', async () => {
+    const values = useState([1, 2]);
+    const view = ForEach(values, (v) => ({
+      value: v,
+      double: v.map((x) => x * 2),
+    }));
+
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(values, [2, 3]);
+
+    expect(root).toStrictEqual([
+      'root',
+      {
+        value: 2,
+        double: 4,
+      },
+      {
+        value: 3,
+        double: 6,
+      },
+    ]);
+  });
 });

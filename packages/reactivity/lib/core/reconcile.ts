@@ -2,7 +2,7 @@ export interface ReconcileOptions<T, K = T> {
   key?: (item: T) => K;
 }
 
-export type ReconcileOperation<T = unknown> =
+export type ReconcileOperation<T = any> =
   | {
       type: 'insert';
       index: number;

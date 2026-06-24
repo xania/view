@@ -138,7 +138,8 @@ export class JsonAutomaton {
             {
               type: InstructionEnum.Show,
               node: newConditional,
-            },
+              valueKey: lense.key,
+            } as Instruction,
           ],
         ],
       ]),
@@ -160,6 +161,7 @@ export class JsonAutomaton {
     // const reconcile = createReconciler(tpl);
 
     const offset = currentTarget.output.length;
+    tpl.itemKey ??= item?.key;
 
     // if (list.initial instanceof Array) reconcile(list.initial);
 
@@ -175,6 +177,7 @@ export class JsonAutomaton {
           tpl,
           key: Symbol(),
           break: 2,
+          listKey: list.key,
         }
       );
 
@@ -205,6 +208,7 @@ export class JsonAutomaton {
             tpl,
             key: Symbol(),
             break: 2 + itemProgram.length,
+            listKey: list.key,
           }
         );
 
@@ -419,6 +423,7 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateObject,
         property: prop,
+        valueKey: lense.key,
       });
     } else if (output instanceof Array) {
       const nodeIndex = output.length;
@@ -427,6 +432,7 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: nodeIndex,
+        valueKey: lense.key,
       });
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
@@ -434,6 +440,7 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: idx,
+        valueKey: lense.key,
       });
     } else if (output instanceof AutomatonConditional) {
       const idx = output.push(stateValue);
@@ -441,6 +448,7 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: idx,
+        valueKey: lense.key,
       });
     } else {
       debugger;
@@ -502,12 +510,18 @@ export function appendStateRead(lense: Lense<any>, program: Program) {
       });
       break;
     } else if (lense instanceof ItemState) {
+      sub.push({
+        type: InstructionEnum.Read,
+        key: lense.key,
+        initial: undefined,
+      });
       break;
     } else if (lense instanceof Func) {
       sub.push({
         type: InstructionEnum.MapState,
         func: lense.func,
-        key: lense.key,
+        sourceKey: lense.parent.key,
+        targetKey: lense.key,
       });
       lense = lense.parent;
     } else {
@@ -546,12 +560,6 @@ export function concatOptimized(
   if (!program) return target;
 
   for (const instruction of program) {
-    if (
-      instruction.type === InstructionEnum.Read &&
-      !requireStateRead(target)
-    ) {
-      continue;
-    }
     target.push(instruction);
   }
   return target;

@@ -28,14 +28,17 @@ export type AutomatonTarget = {
   scope: Scope;
 };
 
+type RegionFrame = Record<symbol, any> & { key: string };
+
 export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
-  public readonly regions: { key: any }[] = [];
+  public readonly regions: RegionFrame[] = [];
   public events: Map<State, Instruction[]> = new Map();
 
   constructor(
     public scope: Scope,
-    public offset: number
+    public offset: number,
+    public itemKey?: symbol
   ) {}
 
   push(item: any) {
@@ -50,9 +53,21 @@ export class AutomatonTemplate implements ITemplate {
     this.items[idx] = item;
   }
 
+  createRegion(value: any): RegionFrame {
+    const region: RegionFrame = {
+      key: value,
+    };
+
+    if (this.itemKey) {
+      region[this.itemKey] = value;
+    }
+
+    return region;
+  }
+
   clone(output: any[], key: any) {
     const offset = output.length;
-    const region = { offset, key };
+    const region = this.createRegion(key);
     this.regions.push(region);
 
     clone(this.items, output);
@@ -62,7 +77,7 @@ export class AutomatonTemplate implements ITemplate {
 
   insert(output: any[] | Fragment, value: any, index: number): void {
     const { offset } = this;
-    const region = { key: value };
+    const region = this.createRegion(value);
     this.regions.splice(index, 0, region);
 
     if (output instanceof Array) {
