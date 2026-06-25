@@ -134,13 +134,14 @@ export class JsonAutomaton {
       events: new Map<State, Program>([
         [
           state,
-          [
-            {
+          (() => {
+            const program = appendStateRead(lense, []);
+            program.push({
               type: InstructionEnum.Show,
               node: newConditional,
-              valueKey: lense.key,
-            } as Instruction,
-          ],
+            } as Instruction);
+            return program;
+          })(),
         ],
       ]),
     };
@@ -177,7 +178,6 @@ export class JsonAutomaton {
           tpl,
           key: Symbol(),
           break: 2,
-          listKey: list.key,
         }
       );
 
@@ -208,7 +208,6 @@ export class JsonAutomaton {
             tpl,
             key: Symbol(),
             break: 2 + itemProgram.length,
-            listKey: list.key,
           }
         );
 
@@ -423,7 +422,6 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateObject,
         property: prop,
-        valueKey: lense.key,
       });
     } else if (output instanceof Array) {
       const nodeIndex = output.length;
@@ -432,7 +430,6 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: nodeIndex,
-        valueKey: lense.key,
       });
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
@@ -440,7 +437,6 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: idx,
-        valueKey: lense.key,
       });
     } else if (output instanceof AutomatonConditional) {
       const idx = output.push(stateValue);
@@ -448,7 +444,6 @@ export class JsonAutomaton {
       stateEvent.push({
         type: InstructionEnum.UpdateArray,
         index: idx,
-        valueKey: lense.key,
       });
     } else {
       debugger;

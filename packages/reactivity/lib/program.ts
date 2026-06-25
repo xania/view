@@ -26,7 +26,6 @@ export type Instruction =
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
-  valueKey: symbol;
 }
 
 export interface StateInstruction {
@@ -57,7 +56,6 @@ export interface ShowInstruction {
   node: {
     show(visible: boolean): void;
   };
-  valueKey: symbol;
 }
 
 export interface CloneInstruction {
@@ -83,13 +81,11 @@ export interface IfVisibleInstruction {
 export interface UpdateArrayInstruction {
   type: InstructionEnum.UpdateArray;
   index: number;
-  valueKey: symbol;
 }
 
 export interface UpdateObjectInstruction {
   type: InstructionEnum.UpdateObject;
   property: number | string | symbol;
-  valueKey: symbol;
 }
 
 export enum InstructionEnum {
@@ -125,7 +121,6 @@ interface ReconcileInstruction {
   tpl: AutomatonTemplate;
   key: symbol;
   break: number;
-  listKey: symbol;
 }
 interface PushFragmentInstruction {
   type: InstructionEnum.PushFragment;

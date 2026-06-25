@@ -41,8 +41,18 @@ export class Sandbox {
     }
   }
 
-  execute(program: Program, exec: ExecuteState): void | Promise<void> {
+  execute(
+    program: Program,
+    exec: ExecuteState,
+    currentValue?: any
+  ): void | Promise<void> {
     let memory: Record<symbol, any> | undefined = exec?.memory;
+
+    if (currentValue instanceof Promise) {
+      return currentValue.then((resolved) => {
+        return this.execute(program, exec, resolved);
+      });
+    }
 
     for (
       let instructionIdx = exec?.instructionIdx ?? 0;
@@ -53,13 +63,19 @@ export class Sandbox {
 
       const { type } = instruction;
       switch (type) {
+        case InstructionEnum.Read:
+          currentValue = execValue(exec, instruction.key);
+          if (currentValue === undefined) {
+            currentValue = instruction.initial;
+          }
+          break;
         case InstructionEnum.MapState:
           const sourceValue = execValue(exec, instruction.sourceKey);
-          const targetValue = instruction.func(sourceValue);
-          exec.values[instruction.targetKey] = targetValue;
+          currentValue = instruction.func(sourceValue);
+          exec.values[instruction.targetKey] = currentValue;
           break;
         case InstructionEnum.SetText:
-          instruction.node.nodeValue = execValue(exec, instruction.valueKey);
+          instruction.node.nodeValue = currentValue;
           break;
         case InstructionEnum.Clone:
           instruction.template.clone();
@@ -67,13 +83,10 @@ export class Sandbox {
         case InstructionEnum.UpdateArray:
           const { index } = instruction;
           if (exec.currentOutput instanceof Array) {
-            exec.currentOutput[index] = execValue(exec, instruction.valueKey);
+            exec.currentOutput[index] = currentValue;
           } else if (exec.currentOutput instanceof Fragment) {
             const idx = exec.currentOutput.offset + instruction.index;
-            exec.currentOutput.output[idx] = execValue(
-              exec,
-              instruction.valueKey
-            );
+            exec.currentOutput.output[idx] = currentValue;
           } else {
             throw Error('not an array');
           }
@@ -87,19 +100,13 @@ export class Sandbox {
             'update' in exec.currentOutput &&
             exec.currentOutput.update instanceof Function
           ) {
-            exec.currentOutput.update(
-              property,
-              execValue(exec, instruction.valueKey)
-            );
+            exec.currentOutput.update(property, currentValue);
           } else {
-            exec.currentOutput[property] = execValue(
-              exec,
-              instruction.valueKey
-            );
+            exec.currentOutput[property] = currentValue;
           }
           break;
         case InstructionEnum.Show:
-          instruction.node.show(execValue(exec, instruction.valueKey));
+          instruction.node.show(currentValue);
           break;
         case InstructionEnum.Jump:
           instructionIdx += instruction.steps;
@@ -213,7 +220,7 @@ export class Sandbox {
           break;
 
         case InstructionEnum.Reconcile:
-          const { tpl, key, listKey } = instruction;
+          const { tpl, key } = instruction;
 
           if (!memory) {
             exec.memory = memory = {};
@@ -222,7 +229,7 @@ export class Sandbox {
           let operations: Generator<ReconcileOperation, void> = memory[key];
 
           if (!operations) {
-            operations = reconcile(execValue(exec, listKey), tpl);
+            operations = reconcile(currentValue, tpl);
             memory[key] = operations;
           }
 
@@ -327,6 +334,13 @@ export class Sandbox {
           const unsupportedType = InstructionEnum[type];
           console.warn(`instruction type not supported ${unsupportedType}`);
           break;
+      }
+
+      if (currentValue instanceof Promise) {
+        return currentValue.then((resolved) => {
+          exec.instructionIdx = instructionIdx + 1;
+          return this.execute(program, exec, resolved);
+        });
       }
     }
   }
