@@ -531,20 +531,24 @@ export function appendStateRead(lense: Lense<any>, program: Program) {
   return program;
 }
 
-function requireStateRead(program: Instruction[]) {
+function canReuseCurrentValue(program: Instruction[], key: symbol) {
   let length = program.length;
 
   while (length--) {
     const instr = program[length];
 
-    if (instr.type === InstructionEnum.MapState) {
-      return true;
+    if (
+      instr.type === InstructionEnum.MapState ||
+      instr.type === InstructionEnum.Effect
+    ) {
+      return false;
     }
 
     if (instr.type === InstructionEnum.Read && instr.key) {
-      return false;
+      return instr.key === key;
     }
   }
+
   return false;
 }
 
@@ -555,6 +559,12 @@ export function concatOptimized(
   if (!program) return target;
 
   for (const instruction of program) {
+    if (
+      instruction.type === InstructionEnum.Read &&
+      canReuseCurrentValue(target, instruction.key)
+    ) {
+      continue;
+    }
     target.push(instruction);
   }
   return target;

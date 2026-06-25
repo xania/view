@@ -20,14 +20,14 @@ describe('render optimization', () => {
         type: InstructionEnum.PushIndex,
       },
       {
+        type: InstructionEnum.Read,
+      },
+      {
         index: 0,
         type: InstructionEnum.UpdateArray,
       },
       {
         type: InstructionEnum.MapState,
-      },
-      {
-        type: InstructionEnum.Write,
       },
       {
         index: 1,
