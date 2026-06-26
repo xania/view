@@ -161,7 +161,7 @@ export class JsonAutomaton {
 
     // const reconcile = createReconciler(tpl);
 
-    const offset = currentTarget.output.length;
+    const offset = tpl.offset;
     tpl.itemKey ??= item?.key;
 
     // if (list.initial instanceof Array) reconcile(list.initial);

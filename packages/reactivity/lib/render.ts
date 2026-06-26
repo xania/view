@@ -1,7 +1,12 @@
-import { AutomatonTemplate, clone, popScope as popTarget } from './automaton';
+import {
+  AutomatonTemplate,
+  clone,
+  cloneTemplateItem,
+  popScope as popTarget,
+} from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { Fragment, Sandbox } from './sandbox';
+import { ExecuteState, Fragment, Sandbox } from './sandbox';
 import {
   isLense,
   ItemState,
@@ -75,18 +80,18 @@ export function render(
         const tpl = automaton.pushTemplate();
         const iterator = buildIterator(tpl.scope, body, list);
 
-        viewStack.push(new InitializeState(state));
+        // viewStack.push(new InitializeState(state));
 
         viewStack.push(() =>
           automaton.registerReconciler(list, tpl, iterator.itemState)
         );
 
-        // if (initial) {
-        //   const { itemState } = iterator;
-        //   viewStack.push(() =>
-        //     initializeIterator(sandbox, tpl, initial, itemState)
-        //   );
-        // }
+        if (initial) {
+          const { itemState } = iterator;
+          viewStack.push(() =>
+            initializeIterator(sandbox, tpl, initial, itemState)
+          );
+        }
         viewStack.push(popTarget);
         viewStack.push(iterator.body);
       } else if (curr instanceof Function) {
@@ -157,5 +162,43 @@ function buildIterator(childScope: Scope, body: ForEachBody, list: Lense) {
     return new Iterator(body(itemState), childScope, itemState);
   } else {
     return new Iterator(body, childScope);
+  }
+}
+
+function initializeIterator(
+  sandbox: Sandbox,
+  tpl: AutomatonTemplate,
+  initial: any[],
+  itemState?: ItemState<any>
+) {
+  const currentOutput = sandbox.automaton.currentTarget.output;
+  if (!(currentOutput instanceof Array)) throw Error('not supported');
+
+  const itemProgram = itemState && tpl.events.get(itemState);
+
+  if (itemProgram) {
+    // const fragment = new Fragment(currentOutput, tpl.offset);
+
+    for (const value of initial) {
+      const clone = tpl.items.map(cloneTemplateItem);
+      const region = tpl.createRegion(value);
+      region[itemState.key] = value;
+
+      tpl.regions.push(region);
+
+      // fragment.offset = currentOutput.length;
+
+      const exec: ExecuteState = {
+        currentOutput: clone,
+        values: region,
+        valuesStack: [],
+      };
+      sandbox.execute(itemProgram, exec, value);
+      currentOutput.push(...clone);
+    }
+  } else {
+    for (const value of initial) {
+      tpl.clone(currentOutput, value);
+    }
   }
 }
