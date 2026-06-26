@@ -99,6 +99,16 @@ describe('render list', () => {
     expect(root).toStrictEqual(['root', [1, [1, '-']], [2, [2, '-']]]);
   });
 
+  it('foreach item state with async values', async () => {
+    const values = useState([1, 2, 3]);
+    const view = ForEach(values, (item) => item.map((value) => Promise.resolve(value * 2)));
+
+    const root: any[] = ['root'];
+    await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual(['root', 2, 4, 6]);
+  });
+
   it('update foreach basic', async () => {
     // prepare view
     var values = useState([1, 2]);
