@@ -184,4 +184,35 @@ describe('render list', () => {
       },
     ]);
   });
+
+  it('updates adjacent foreach siblings from distinct list states independently', async () => {
+    // prepare view
+    var values1 = useState([1, 2]);
+    var values2 = useState([1, 2]);
+    const view = [ForEach(values1, '-'), ForEach(values2, '+')];
+
+    // render view
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    sandbox.update(values1, [1, 2, 3]);
+
+    // assert
+    expect(root).toStrictEqual(['root', ['-', '-', '-', '+', '+']]);
+  });
+
+  it('updates adjacent foreach siblings from the same list state', async () => {
+    // prepare view
+    var values = useState([1, 2]);
+    const view = [ForEach(values, '-'), ForEach(values, '+')];
+
+    // render view
+    const root: any[] = ['root'];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    sandbox.update(values, [1, 2, 3]);
+
+    // assert
+    expect(root).toStrictEqual(['root', ['-', '-', '-', '+', '+', '+']]);
+  });
 });

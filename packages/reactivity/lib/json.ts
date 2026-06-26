@@ -166,6 +166,10 @@ export class JsonAutomaton {
 
     // if (list.initial instanceof Array) reconcile(list.initial);
 
+    currentTarget.events ??= new Map();
+
+    const listRoot = resolveRootState(list);
+
     if (!item || !tpl.events.has(item)) {
       const program = appendStateRead(list, []);
       program.push(
@@ -189,8 +193,7 @@ export class JsonAutomaton {
         }
       );
 
-      currentTarget.events ??= new Map();
-      currentTarget.events.set(resolveRootState(list), program);
+      appendOrSetProgram(currentTarget, listRoot, program);
     }
 
     for (const [state, stateProgram] of tpl.events) {
@@ -220,8 +223,7 @@ export class JsonAutomaton {
           }
         );
 
-        currentTarget.events ??= new Map();
-        currentTarget.events.set(resolveRootState(list), program);
+        appendOrSetProgram(currentTarget, listRoot, program);
       } else {
         currentTarget.events ??= new Map();
 
@@ -591,5 +593,19 @@ function appendEventProgram(
     } else {
       events.set(state, program.slice());
     }
+  }
+}
+
+function appendOrSetProgram(
+  target: AutomatonTarget,
+  state: State,
+  program: Instruction[]
+) {
+  target.events ??= new Map();
+  const existingProgram = target.events.get(state);
+  if (existingProgram) {
+    existingProgram.push(...program);
+  } else {
+    target.events.set(state, program);
   }
 }

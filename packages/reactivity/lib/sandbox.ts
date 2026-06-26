@@ -6,29 +6,37 @@ import { State, Value } from './state';
 
 export class Sandbox {
   public rootValues: Record<symbol, any> = {};
+  private executeStates: Record<symbol, ExecuteState> = {};
 
   constructor(public automaton: JsonAutomaton) {}
 
   update<T>(state: State<T>, newValue: Value<T>) {
     const { rootValues } = this;
     const oldValue = rootValues[state.key];
-
-    if (oldValue === newValue) {
-      return;
-    }
-
     const events = this.automaton.currentTarget.events;
 
     if (!events) return;
     const program = events.get(state);
     if (!program) return;
 
-    const execState: ExecuteState = {
-      currentOutput: this.automaton.currentTarget.output,
-      outputStack: [],
-      values: rootValues,
-      valuesStack: [],
-    };
+    if (oldValue === newValue) {
+      if (state.scope.level !== 0) {
+        return;
+      }
+
+      const previousState = this.executeStates[state.key];
+      const instructionIdx = previousState?.instructionIdx ?? 0;
+      if (program.length <= instructionIdx) {
+        return;
+      }
+
+      const execState = this.createExecuteState(rootValues);
+      this.executeStates[state.key] = execState;
+      return this.execute(program, execState);
+    }
+
+    const execState = this.createExecuteState(rootValues);
+    this.executeStates[state.key] = execState;
 
     if (newValue instanceof Promise) {
       return newValue.then((resolved) => {
@@ -39,6 +47,19 @@ export class Sandbox {
       rootValues[state.key] = newValue;
       return this.execute(program, execState);
     }
+  }
+
+  private createExecuteState(
+    values: Record<symbol, any>,
+    instructionIdx?: number
+  ): ExecuteState {
+    return {
+      currentOutput: this.automaton.currentTarget.output,
+      instructionIdx,
+      outputStack: [],
+      values,
+      valuesStack: [],
+    };
   }
 
   execute(
@@ -343,6 +364,8 @@ export class Sandbox {
         });
       }
     }
+
+    // exec.instructionIdx = program.length;
   }
 }
 

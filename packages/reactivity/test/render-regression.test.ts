@@ -270,4 +270,109 @@ describe('render regression', () => {
       summary: 'count:3',
     });
   });
+
+  it('renders mixed object-producing foreach and conditional siblings', () => {
+    const visible = useState(true);
+    const values = useState([1, 2]);
+    const count = useState(2);
+    const view = [
+      'start',
+      ForEach(values, (value) => ({ value })),
+      If(visible, {
+        summary: count.map((current) => `count:${current}`),
+      }),
+      'end',
+    ];
+
+    const root: any[] = ['root'];
+    render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([
+      'root',
+      [
+        'start',
+        { value: 1 },
+        { value: 2 },
+        { summary: 'count:2' },
+        'end',
+      ],
+    ]);
+  });
+
+  it('updates object-valued mapped state across cousin branches', async () => {
+    const count = useState(2);
+    const view = {
+      header: {
+        summary: count.map((value) => ({
+          label: `count:${value}`,
+          doubled: value * 2,
+        })),
+      },
+      footer: {
+        metrics: count.map((value) => ({
+          current: value,
+          squared: value * value,
+        })),
+      },
+    };
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(count, 3);
+
+    expect(root).toStrictEqual([
+      {
+        header: {
+          summary: {
+            label: 'count:3',
+            doubled: 6,
+          },
+        },
+        footer: {
+          metrics: {
+            current: 3,
+            squared: 9,
+          },
+        },
+      },
+    ]);
+  });
+
+  it('updates nested object cousins from the same root state', async () => {
+    const count = useState(1);
+    const view = {
+      left: {
+        primary: count.map((value) => value + 1),
+      },
+      right: {
+        nested: [
+          {
+            secondary: count.map((value) => value + 2),
+          },
+        ],
+      },
+    };
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    await sandbox.update(count, 4);
+
+    expect(root).toStrictEqual([
+      {
+        left: {
+          primary: 5,
+        },
+        right: {
+          nested: [
+            {
+              secondary: 6,
+            },
+          ],
+        },
+      },
+    ]);
+  });
+
 });
