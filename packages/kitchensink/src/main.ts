@@ -3,7 +3,9 @@ import { ForEach } from "@xania/reactivity/core/for";
 import { JsonAutomaton } from "@xania/reactivity/json";
 import { render } from "@xania/reactivity/render";
 import { Sandbox } from "@xania/reactivity/sandbox";
-import { State, useState } from "@xania/reactivity/state";
+import { useState } from "@xania/reactivity/state";
+import type { Instruction } from "@xania/reactivity/program";
+import type { Lense, State } from "@xania/reactivity/state";
 import "./styles.css";
 
 type Todo = {
@@ -271,10 +273,10 @@ async function createDemoFromValues(values: DemoValues): Promise<DemoRuntime> {
     nextTodoId: values.nextTodoId,
   };
 
-  const doubled = nextModel.count.map((value) => value * 2);
-  const summary = nextModel.count.map((value) => `count:${value}`);
+  const doubled = nextModel.count.map((value: number) => value * 2);
+  const summary = nextModel.count.map((value: number) => `count:${value}`);
   const completeCount = nextModel.todos.map(
-    (items) => items.filter((item) => item.done).length,
+    (items: Todo[]) => items.filter((item: Todo) => item.done).length,
   );
 
   const view = [
@@ -300,14 +302,14 @@ async function createDemoFromValues(values: DemoValues): Promise<DemoRuntime> {
     {
       feature: "foreach",
       items: [
-        ForEach(nextModel.todos, (todo) => {
-          const todoState = todo as State<Todo>;
+        ForEach(nextModel.todos, (todo: Lense<Todo>) => {
+          const todoState = todo;
 
           return {
-            id: todoState.map((item) => item.id),
-            title: todoState.map((item) => item.title),
-            done: todoState.map((item) => item.done),
-            labels: todoState.map((item) => [
+            id: todoState.map((item: Todo) => item.id),
+            title: todoState.map((item: Todo) => item.title),
+            done: todoState.map((item: Todo) => item.done),
+            labels: todoState.map((item: Todo) => [
               item.done ? "complete" : "open",
               `#${item.id}`,
             ]),
@@ -343,13 +345,12 @@ function paint(current: DemoRuntime) {
 }
 
 function paintDebug(current: DemoRuntime) {
-  const eventPrograms = current.sandbox.automaton.events
-    ? Reflect.ownKeys(current.sandbox.automaton.events).map((key) => {
-        const program = current.sandbox.automaton.events?.[key] ?? [];
-
+  const events = current.sandbox.automaton.currentTarget.events;
+  const eventPrograms = events
+    ? Array.from(events.entries()).map(([key, program]) => {
         return {
           key: formatDebugValue(key),
-          instructions: program.map((instruction) =>
+          instructions: program.map((instruction: Instruction) =>
             Object.fromEntries(
               Object.entries(instruction).map(([name, value]) => [
                 name,
