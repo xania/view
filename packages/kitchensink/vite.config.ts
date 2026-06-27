@@ -8,6 +8,12 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        dom: path.resolve(__dirname, "dom.html"),
+      },
+    },
   },
   css: {
     postcss: {

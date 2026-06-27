@@ -50,6 +50,10 @@ app.innerHTML = `
         <p class="eyebrow">Xania Reactivity</p>
         <h1>Kitchensink</h1>
       </div>
+      <nav class="topnav" aria-label="Kitchen pages">
+        <a class="navlink active" href="/index.html">JSON Preview</a>
+        <a class="navlink" href="/dom.html">DOM Factory</a>
+      </nav>
       <div class="status" id="status">ready</div>
     </header>
 

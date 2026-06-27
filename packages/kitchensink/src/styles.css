@@ -28,6 +28,10 @@ button {
   cursor: pointer;
 }
 
+a {
+  color: inherit;
+}
+
 button:hover {
   background: #18594c;
 }
@@ -51,6 +55,29 @@ button:focus-visible {
   margin-bottom: 20px;
   border-bottom: 3px solid #202124;
   padding-bottom: 16px;
+}
+
+.topnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.navlink {
+  border: 1px solid #202124;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #202124;
+  background: #fffcf5;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.navlink.active {
+  color: #f8fbf8;
+  background: #1f6f5f;
+  border-color: #1f6f5f;
 }
 
 .eyebrow,
@@ -142,6 +169,126 @@ h2 {
   overflow: hidden;
 }
 
+.render-panel {
+  overflow: hidden;
+}
+
+.render-surface {
+  min-height: 360px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(242, 193, 78, 0.28), transparent 34%),
+    linear-gradient(180deg, #fffef8, #f7f1e2);
+}
+
+.dom-output {
+  display: grid;
+  gap: 18px;
+}
+
+.hero-card {
+  border: 1px solid #d8cfbf;
+  border-radius: 18px;
+  padding: 20px;
+  background: #fffdfa;
+  box-shadow: 0 12px 32px rgba(32, 33, 36, 0.08);
+}
+
+.hero-card h2,
+.todo-card h3 {
+  margin-bottom: 8px;
+}
+
+.hero-card p {
+  color: #5b5f55;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.metric {
+  border-radius: 12px;
+  padding: 12px;
+  background: #f3efe6;
+}
+
+.metric-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #7f5d2d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.todo-card {
+  border: 1px solid #d8cfbf;
+  border-radius: 18px;
+  padding: 20px;
+  background: #fffdfa;
+}
+
+.todo-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #f5f1e8;
+}
+
+.todo-item.done {
+  color: #506058;
+  background: #e4f1e4;
+}
+
+.todo-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.todo-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: #f8fbf8;
+  background: #9b3d2f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.todo-item.done .todo-badge {
+  background: #1f6f5f;
+}
+
+.todo-inline-button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+}
+
+.empty-state {
+  color: #6d4c41;
+  font-style: italic;
+}
+
 .debug-panel {
   grid-column: 1 / -1;
   overflow: hidden;
@@ -185,6 +332,10 @@ pre {
   .topbar {
     align-items: start;
     flex-direction: column;
+  }
+
+  .metric-row {
+    grid-template-columns: 1fr;
   }
 
   .workspace {

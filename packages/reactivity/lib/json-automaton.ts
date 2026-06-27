@@ -34,6 +34,17 @@ export const defaultObjectFactory: ObjectFactory = (objectType) => {
   return object;
 };
 
+export const domObjectFactory: ObjectFactory = (objectType) => {
+  if (!objectType) {
+    return {};
+  }
+
+  return {
+    type: objectType,
+    children: [],
+  };
+};
+
 export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
