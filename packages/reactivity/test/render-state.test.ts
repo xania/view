@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
-import { JsonAutomaton } from '../lib/json-automaton';
+import {
+  JsonAutomaton,
+  type as objectType,
+} from '../lib/json-automaton';
 
 describe('render state', () => {
   it('trivial sync', () => {
@@ -77,5 +80,47 @@ describe('render state', () => {
     await sandbox.update(count, 3);
 
     expect(root).toMatchObject([[6, 'count:3']]);
+  });
+
+  it('uses the default object factory for typed objects', () => {
+    const view = {
+      [objectType]: 'section',
+      value: 1,
+    };
+
+    const root: any[] = [];
+    render(view, new JsonAutomaton(root));
+
+    expect(root).toEqual([
+      {
+        [objectType]: 'section',
+        value: 1,
+      },
+    ]);
+  });
+
+  it('uses a custom object factory for typed objects', () => {
+    const view = {
+      [objectType]: 'section',
+      value: 1,
+    };
+    const created: Array<string | undefined> = [];
+
+    const root: any[] = [];
+    render(
+      view,
+      new JsonAutomaton(root, undefined, (type) => {
+        created.push(type);
+        return type ? { kind: type } : {};
+      })
+    );
+
+    expect(created).toEqual(['section']);
+    expect(root).toEqual([
+      {
+        kind: 'section',
+        value: 1,
+      },
+    ]);
   });
 });

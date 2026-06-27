@@ -20,13 +20,27 @@ import {
 } from './state';
 
 export const type = Symbol('type');
+export type ObjectFactory = (
+  type?: string
+) => Record<symbol | string | number, any>;
+
+export const defaultObjectFactory: ObjectFactory = (objectType) => {
+  const object: Record<symbol | string | number, any> = {};
+
+  if (objectType) {
+    object[type] = objectType;
+  }
+
+  return object;
+};
 
 export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
   constructor(
     rootOutput: AutomatonTarget['output'],
-    public scope: Scope = RootScope
+    public scope: Scope = RootScope,
+    private readonly objectFactory: ObjectFactory = defaultObjectFactory
   ) {
     this.currentTarget = {
       output: rootOutput,
@@ -40,11 +54,7 @@ export class JsonAutomaton implements Automaton {
     const { currentTarget } = this;
     this.targets.push(currentTarget);
 
-    const newObject: Record<symbol | string | number, any> = {};
-
-    if (_type) {
-      newObject[type] = _type;
-    }
+    const newObject = this.objectFactory(_type);
 
     const newNode = new ObjectProperty(newObject);
 
