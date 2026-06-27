@@ -21,19 +21,6 @@ export class Sandbox {
 
     if (oldValue === newValue) {
       return;
-      // if (state.scope.level !== 0) {
-      //   return;
-      // }
-
-      // const previousState = this.executeStates[state.key];
-      // const instructionIdx = previousState?.instructionIdx ?? 0;
-      // if (program.length <= instructionIdx) {
-      //   return;
-      // }
-
-      // const execState = this.createExecuteState(rootValues);
-      // this.executeStates[state.key] = execState;
-      // return this.execute(program, execState);
     }
 
     const execState = this.createExecuteState(rootValues);

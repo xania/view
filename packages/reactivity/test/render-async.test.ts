@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { If } from '../lib/core/if';
 import { ForEach } from '../lib/core/for';
-import { JsonAutomaton, JToken } from '../lib/json';
+import { JsonAutomaton } from '../lib/json';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
 
@@ -9,7 +9,7 @@ describe('render async', () => {
   it('renders a promised view', async () => {
     const view = Promise.resolve('sample view');
 
-    const root: JToken = [];
+    const root: any[] = [];
     await render(view, new JsonAutomaton(root));
 
     expect(root).toStrictEqual(['sample view']);
@@ -18,7 +18,7 @@ describe('render async', () => {
   it('renders a composed promised state', async () => {
     const view = ['state: ', useState(Promise.resolve(1)).map((x) => x + 1)];
 
-    const root: JToken = [];
+    const root: any[] = [];
     await render(view, new JsonAutomaton(root));
 
     expect([['state: ', 2]]).toEqual(root);

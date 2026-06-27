@@ -18,36 +18,11 @@ import {
   State,
 } from './state';
 
-export enum JsonEnum {
-  Object = 99823786,
-  String,
-  Property,
-}
-
-export type JToken = JObject | JString | JArray;
-
-export interface JObject {
-  type: JsonEnum.Object;
-  properties?: JProperty[];
-}
-
-export type JArray = JToken[];
-
-interface JProperty {
-  name: string;
-  value: JToken;
-}
-
-interface JString {
-  type: JsonEnum.String;
-  value: string;
-}
-
 export class JsonAutomaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
   constructor(
-    public rootOutput: AutomatonTarget['output'],
+    rootOutput: AutomatonTarget['output'],
     public scope: Scope = RootScope
   ) {
     this.currentTarget = {
@@ -159,12 +134,8 @@ export class JsonAutomaton {
       throw Error('output is not an array');
     }
 
-    // const reconcile = createReconciler(tpl);
-
     const offset = tpl.offset;
     tpl.itemKey ??= item?.key;
-
-    // if (list.initial instanceof Array) reconcile(list.initial);
 
     currentTarget.events ??= new Map();
 
@@ -570,30 +541,6 @@ export function concatOptimized(
     target.push(instruction);
   }
   return target;
-}
-
-function appendEventProgram(
-  target: AutomatonTarget,
-  state: State,
-  program: Instruction[]
-) {
-  if (state.scope.level > target.scope.level) {
-    const events = (state.scope.events ??= new Map<State, Instruction[]>());
-
-    if (events.has(state)) {
-      events.get(state)!.push(...program);
-    } else {
-      events.set(state, program.slice());
-    }
-  } else {
-    const events = (target.events ??= new Map<State, Instruction[]>());
-
-    if (events.has(state)) {
-      events.get(state)!.push(...program);
-    } else {
-      events.set(state, program.slice());
-    }
-  }
 }
 
 function appendOrSetProgram(

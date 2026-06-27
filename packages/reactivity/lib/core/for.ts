@@ -1,5 +1,4 @@
 import type { ItemState, Lense, Scope, State } from '../state';
-import { createReconciler } from './reconcile';
 
 type BodyFun<T> = (e: Lense<T>) => any;
 
@@ -31,7 +30,7 @@ export function ForEach<T>(expr: Lense<T[]>, body: ForEachBody<T>) {
 export class Iterator<T> {
   constructor(
     public body: any,
-    public scope: Scope,
+    _scope: Scope,
     public itemState?: ItemState<T>
   ) {}
 }

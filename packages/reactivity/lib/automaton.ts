@@ -1,13 +1,6 @@
 import { Instruction } from './program';
 import { Fragment } from './sandbox';
-import { Lense, Scope, State, Value } from './state';
-
-export type Updatable =
-  | {
-      update?: (idx: number | string, value: any) => void;
-      [key: string]: any;
-    }
-  | Record<string | number, any>;
+import { Scope, State } from './state';
 
 export type AutomatonOutput =
   | {
@@ -159,7 +152,7 @@ export class AutomatonConditional {
 
   constructor(
     public output: any[],
-    public state: Lense<boolean>,
+    _state: any,
     public visible: boolean | void
   ) {
     if (this.output instanceof Array) {
@@ -230,24 +223,11 @@ export function cloneTemplateItem<T>(item: T): T {
   return item;
 }
 
-export type TextNodeUpdater = (nodeValue: any) => void;
 export interface ITextNode {
   nodeValue: any;
 }
 
-export class SetProperty {
-  constructor(
-    public name: string,
-    public value: any
-  ) {}
-}
-
 export const popScope = Symbol();
-
-export type INode = {
-  push(item: any): void;
-  show(visible: boolean): void;
-};
 export type IRegion = {
   offset: number;
   push(item: any): void;
