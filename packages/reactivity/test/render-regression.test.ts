@@ -375,4 +375,98 @@ describe('render regression', () => {
     ]);
   });
 
+  it('updates nested foreach structures with async item mappings and sibling root state', async () => {
+    const status = useState('ready');
+    const todos = useState([
+      {
+        id: 1,
+        title: 'Wire state',
+        comments: ['first', 'second'],
+      },
+    ]);
+
+    const view = {
+      status: {
+        label: status.map((value) => Promise.resolve(`status:${value}`)),
+      },
+      todos: [
+        ForEach(todos, (todo) => ({
+          id: todo.map((item) => item.id),
+          title: todo.map((item) => Promise.resolve(item.title.toUpperCase())),
+          commentCount: todo.map((item) => item.comments.length),
+          comments: [
+            ForEach(
+              todo.map((item) => item.comments),
+              (comment) => ({
+                text: comment.map((value) => Promise.resolve(value)),
+                decorated: comment.map((value) => `#${value}`),
+              })
+            ),
+          ],
+        })),
+      ],
+    };
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([
+      {
+        status: {
+          label: 'status:ready',
+        },
+        todos: [
+          {
+            id: 1,
+            title: 'WIRE STATE',
+            commentCount: 2,
+            comments: [
+              { text: 'first', decorated: '#first' },
+              { text: 'second', decorated: '#second' },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    await sandbox.update(status, 'busy');
+    await sandbox.update(todos, [
+      {
+        id: 2,
+        title: 'Render templates',
+        comments: ['next'],
+      },
+      {
+        id: 3,
+        title: 'Ship fixes',
+        comments: ['alpha', 'beta'],
+      },
+    ]);
+
+    expect(root).toStrictEqual([
+      {
+        status: {
+          label: 'status:busy',
+        },
+        todos: [
+          {
+            id: 2,
+            title: 'RENDER TEMPLATES',
+            commentCount: 1,
+            comments: [{ text: 'next', decorated: '#next' }],
+          },
+          {
+            id: 3,
+            title: 'SHIP FIXES',
+            commentCount: 2,
+            comments: [
+              { text: 'alpha', decorated: '#alpha' },
+              { text: 'beta', decorated: '#beta' },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
 });

@@ -308,6 +308,9 @@ async function createDemoFromValues(values: DemoValues): Promise<DemoRuntime> {
           return {
             id: todoState.map((item: Todo) => item.id),
             title: todoState.map((item: Todo) => item.title),
+            titleAsync: todoState.map((item: Todo) =>
+              Promise.resolve(item.title.toUpperCase()),
+            ),
             done: todoState.map((item: Todo) => item.done),
             labels: todoState.map((item: Todo) => [
               item.done ? "complete" : "open",
