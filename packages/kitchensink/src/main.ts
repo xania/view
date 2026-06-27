@@ -4,7 +4,6 @@ import { JsonAutomaton } from "@xania/reactivity/json";
 import { render } from "@xania/reactivity/render";
 import { Sandbox } from "@xania/reactivity/sandbox";
 import { useState } from "@xania/reactivity/state";
-import type { Instruction } from "@xania/reactivity/program";
 import type { Lense, State } from "@xania/reactivity/state";
 import "./styles.css";
 
@@ -83,6 +82,7 @@ app.innerHTML = `
           <div class="button-row">
             <button id="addTodo" type="button">Add item</button>
             <button id="completeTodo" type="button">Complete first</button>
+            <button id="deleteTodo" type="button">Delete first</button>
           </div>
         </div>
 
@@ -102,14 +102,6 @@ app.innerHTML = `
         </div>
         <pre id="preview"></pre>
       </section>
-
-      <section class="panel debug-panel">
-        <div class="preview-head">
-          <h2>Debug</h2>
-          <span id="debugValue">enabled</span>
-        </div>
-        <pre id="debug"></pre>
-      </section>
     </section>
   </section>
 `;
@@ -121,8 +113,6 @@ const visibleValue = getElement<HTMLSpanElement>("visibleValue");
 const todoValue = getElement<HTMLSpanElement>("todoValue");
 const asyncValue = getElement<HTMLSpanElement>("asyncValue");
 const nodeCount = getElement<HTMLSpanElement>("nodeCount");
-const debugOutput = getElement<HTMLPreElement>("debug");
-const debugValue = getElement<HTMLSpanElement>("debugValue");
 
 let runtime: DemoRuntime;
 let lastAction = "initial render";
@@ -190,6 +180,16 @@ function bindControls(current: DemoRuntime) {
       rerender(current);
     },
   );
+
+  getElement<HTMLButtonElement>("deleteTodo").addEventListener("click", () => {
+    if (current.model.currentTodos.length === 0) {
+      return;
+    }
+
+    current.model.currentTodos = current.model.currentTodos.slice(1);
+    lastAction = "delete first todo";
+    rerender(current);
+  });
 
   getElement<HTMLButtonElement>("refreshAsync").addEventListener(
     "click",
@@ -344,69 +344,6 @@ function paint(current: DemoRuntime) {
   asyncValue.textContent = String(asyncLabel);
   nodeCount.textContent = `${countNodes(current.root)} nodes`;
   preview.textContent = JSON.stringify(current.root, null, 2);
-  paintDebug(current);
-}
-
-function paintDebug(current: DemoRuntime) {
-  const events = current.sandbox.automaton.currentTarget.events;
-  const eventPrograms = events
-    ? Array.from(events.entries()).map(([key, program]) => {
-        return {
-          key: formatDebugValue(key),
-          instructions: program.map((instruction: Instruction) =>
-            Object.fromEntries(
-              Object.entries(instruction).map(([name, value]) => [
-                name,
-                formatDebugValue(value),
-              ]),
-            ),
-          ),
-        };
-      })
-    : [];
-
-  const snapshot = {
-    lastAction,
-    model: {
-      count: current.model.currentCount,
-      visible: current.model.currentVisible,
-      todos: current.model.currentTodos,
-      asyncLabel: current.model.currentAsyncLabel,
-      nextTodoId: current.model.nextTodoId,
-    },
-    root: current.root,
-    eventPrograms,
-  };
-
-  debugValue.textContent = `${eventPrograms.length} programs`;
-  debugOutput.textContent = JSON.stringify(snapshot, null, 2);
-  console.debug("[kitchensink]", snapshot);
-}
-
-function formatDebugValue(value: unknown): unknown {
-  if (typeof value === "symbol") {
-    return value.toString();
-  }
-
-  if (typeof value === "function") {
-    return `[Function ${value.name || "anonymous"}]`;
-  }
-
-  if (value instanceof Array) {
-    return value.map(formatDebugValue);
-  }
-
-  if (value && typeof value === "object") {
-    if ("constructor" in value && value.constructor !== Object) {
-      return `[${value.constructor.name}]`;
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, formatDebugValue(item)]),
-    );
-  }
-
-  return value;
 }
 
 function countNodes(value: unknown): number {

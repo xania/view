@@ -146,6 +146,21 @@ describe('render async', () => {
     expect(root).toStrictEqual([{ s: 4 }, { s: 4 }]);
   });
 
+  it('deletes foreach component values during reconcile', async () => {
+    const s = useState(3);
+    const values = useState([1, 2, 3]);
+    const view = ForEach(values, { s });
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([{ s: 3 }, { s: 3 }, { s: 3 }]);
+
+    await sandbox.update(values, [2, 3]);
+
+    expect(root).toStrictEqual([{ s: 3 }, { s: 3 }]);
+  });
+
   it('renders foreach complex item state with async values', async () => {
     var values = useState([1, 2, 3]);
     var p = useState(Promise.resolve('123'));
