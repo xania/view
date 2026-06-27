@@ -6,7 +6,7 @@ import {
 } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
-import { ExecuteState, Fragment, Sandbox } from './sandbox';
+import { ExecuteState, Sandbox } from './sandbox';
 import {
   isLense,
   ItemState,
@@ -16,6 +16,7 @@ import {
   Scope,
   State,
 } from './state';
+import { type } from './json-automaton';
 
 export function render(
   view: any,
@@ -132,8 +133,9 @@ export function render(
             viewStack.push(item);
           }
         }
-      } else {
-        automaton.appendObject();
+      } else if (curr.constructor === Object) {
+        const objectType = curr[type];
+        automaton.appendObject(objectType);
 
         const properties = Object.keys(curr);
 
@@ -146,6 +148,8 @@ export function render(
           viewStack.push(propValue);
           viewStack.push(new SelectProperty(prop));
         }
+      } else {
+        throw Error('unsupported view');
       }
     }
   }
@@ -197,7 +201,11 @@ function initializeIterator(
         return result.then(async () => {
           currentOutput.push(...clone);
 
-          for (let nextIndex = index + 1; nextIndex < initial.length; nextIndex++) {
+          for (
+            let nextIndex = index + 1;
+            nextIndex < initial.length;
+            nextIndex++
+          ) {
             const nextValue = initial[nextIndex];
             const nextClone = tpl.items.map(cloneTemplateItem);
             const nextRegion = tpl.createRegion(nextValue);

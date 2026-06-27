@@ -19,6 +19,8 @@ import {
   State,
 } from './state';
 
+export const type = Symbol('type');
+
 export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
@@ -34,11 +36,15 @@ export class JsonAutomaton implements Automaton {
     };
   }
 
-  appendObject() {
+  appendObject(_type?: string) {
     const { currentTarget } = this;
     this.targets.push(currentTarget);
 
-    const newObject = {};
+    const newObject: Record<symbol | string | number, any> = {};
+
+    if (_type) {
+      newObject[type] = _type;
+    }
 
     const newNode = new ObjectProperty(newObject);
 
