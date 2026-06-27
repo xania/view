@@ -1,6 +1,6 @@
 import { Instruction } from './program';
 import { Fragment } from './sandbox';
-import { Scope, State } from './state';
+import { ItemState, Lense, Scope, State } from './state';
 
 export type AutomatonOutput =
   | {
@@ -20,6 +20,24 @@ export type AutomatonTarget = {
   events?: Map<State, Instruction[]>;
   scope: Scope;
 };
+
+export interface Automaton {
+  currentTarget: AutomatonTarget;
+  appendArray(): void;
+  appendObject(): void;
+  appendText(content: ITextNode['nodeValue'], property?: string): void;
+  appendValue<T>(lense: Lense<any>, stateValue?: T): void;
+  popTarget(): void;
+  pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional;
+  pushRegion(visible?: boolean | void): IRegion;
+  pushTemplate(): AutomatonTemplate;
+  registerReconciler<T>(
+    list: Lense<T[]>,
+    tpl: AutomatonTemplate,
+    item?: ItemState<T>
+  ): void;
+  selectProperty(prop: string): void;
+}
 
 type RegionFrame = Record<symbol, any> & { key: string };
 

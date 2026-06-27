@@ -1,6 +1,6 @@
 import {
+  Automaton,
   AutomatonTemplate,
-  clone,
   cloneTemplateItem,
   popScope as popTarget,
 } from './automaton';
@@ -16,11 +16,10 @@ import {
   Scope,
   State,
 } from './state';
-import { JsonAutomaton } from './json';
 
 export function render(
   view: any,
-  automaton: JsonAutomaton
+  automaton: Automaton
 ): Promise<Sandbox> | Sandbox {
   const sandbox = new Sandbox(automaton);
 

@@ -1,6 +1,5 @@
-import { AutomatonTemplate, cloneTemplateItem } from './automaton';
+import { Automaton, AutomatonTemplate, cloneTemplateItem } from './automaton';
 import { reconcile, ReconcileOperation } from './core/reconcile';
-import { JsonAutomaton } from './json';
 import { InstructionEnum, type Program } from './program';
 import { State, Value } from './state';
 
@@ -8,7 +7,7 @@ export class Sandbox {
   public rootValues: Record<symbol, any> = {};
   private executeStates: Record<symbol, ExecuteState> = {};
 
-  constructor(public automaton: JsonAutomaton) {}
+  constructor(public automaton: Automaton) {}
 
   update<T>(state: State<T>, newValue: Value<T>) {
     const { rootValues } = this;

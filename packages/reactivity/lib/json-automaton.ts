@@ -1,4 +1,5 @@
 import {
+  Automaton,
   AutomatonConditional,
   AutomatonRegion,
   AutomatonTarget,
@@ -18,7 +19,7 @@ import {
   State,
 } from './state';
 
-export class JsonAutomaton {
+export class JsonAutomaton implements Automaton {
   private targets: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
   constructor(

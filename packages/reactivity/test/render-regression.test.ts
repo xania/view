@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ForEach } from '../lib/core/for';
 import { If } from '../lib/core/if';
-import { JsonAutomaton } from '../lib/json';
+import { JsonAutomaton } from '../lib/json-automaton';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
 

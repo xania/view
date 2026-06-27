@@ -1,6 +1,6 @@
 import { If } from "@xania/reactivity/core/if";
 import { ForEach } from "@xania/reactivity/core/for";
-import { JsonAutomaton } from "@xania/reactivity/json";
+import { JsonAutomaton } from "@xania/reactivity/json-automaton";
 import { render } from "@xania/reactivity/render";
 import { Sandbox } from "@xania/reactivity/sandbox";
 import { useState } from "@xania/reactivity/state";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
-import { JsonAutomaton } from '../lib/json';
+import { JsonAutomaton } from '../lib/json-automaton';
 import { If } from '../lib/core/if';
 
 describe('render if', () => {
