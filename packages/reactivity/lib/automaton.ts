@@ -18,7 +18,8 @@ export type AutomatonTarget = {
     | AutomatonOutput;
   traversal: Instruction[];
   // root (updatable) state -> updates instructions
-  events?: Map<State | Event, Instruction[]>;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
   init?: Instruction[];
   scope: Scope;
 };
@@ -47,7 +48,7 @@ type RegionFrame = Record<symbol, any> & { key: string };
 export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
   public readonly regions: RegionFrame[] = [];
-  public events: Map<State, Instruction[]> = new Map();
+  public patches: Map<State, Instruction[]> = new Map();
   public init: Instruction[] = [];
 
   constructor(
@@ -222,7 +223,7 @@ export class AutomatonConditional {
 
 export class ObjectProperty {
   constructor(
-    public object: any,
+    public object: Record<string | number | symbol, any>,
     public prop?: string
   ) {}
 }

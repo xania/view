@@ -141,6 +141,15 @@ export function render(
         const objectType = curr[type];
         automaton.appendObject(objectType);
 
+        const eventsObject = curr[objectEvents];
+        if (eventsObject) {
+          const eventNames = Object.keys(eventsObject);
+          for (const eventName of eventNames) {
+            const handler = eventsObject[eventName];
+            automaton.addEvent(eventName, handler);
+          }
+        }
+
         const properties = Object.keys(curr);
 
         viewStack.push(popTarget);
@@ -184,7 +193,7 @@ function initializeIterator(
   const currentOutput = sandbox.automaton.currentTarget.output;
   if (!(currentOutput instanceof Array)) throw Error('not supported');
 
-  const itemProgram = itemState && tpl.events.get(itemState);
+  const itemProgram = itemState && tpl.patches.get(itemState);
 
   if (itemProgram) {
     for (let index = 0; index < initial.length; index++) {

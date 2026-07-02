@@ -12,7 +12,7 @@ describe('render optimization', () => {
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    const countEvent = count.scope.events!.get(count)!;
+    const countEvent = count.scope.patches!.get(count)!;
 
     expect(countEvent).toMatchObject([
       {

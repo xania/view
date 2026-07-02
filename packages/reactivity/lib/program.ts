@@ -1,5 +1,6 @@
 import { AutomatonTemplate, ITextNode } from './automaton';
 import { ReconcileOperation } from './core/reconcile';
+import type { Event } from './event';
 
 export type Program = Instruction[];
 
@@ -114,8 +115,7 @@ export enum InstructionEnum {
 
 interface AttachEventInstruction {
   type: InstructionEnum.AttachEvent;
-  eventName: string;
-  handler: Function;
+  event: Event;
 }
 
 interface EnumerateInstruction {

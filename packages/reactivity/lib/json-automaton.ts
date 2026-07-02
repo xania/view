@@ -60,7 +60,7 @@ export class JsonAutomaton implements Automaton {
     this.currentTarget = {
       output: rootOutput,
       traversal: [],
-      events: (scope.events ??= new Map()),
+      patches: (scope.patches ??= new Map()),
       scope,
     };
   }
@@ -94,11 +94,17 @@ export class JsonAutomaton implements Automaton {
 
     const init = (currentTarget.init ??= []);
 
+    const event = new Event(currentTarget.scope, eventName, handler);
     init.push({
       type: InstructionEnum.AttachEvent,
-      eventName,
-      handler,
+      event,
     });
+
+    output.object[events] ??= {};
+    output.object[events][eventName] = handler;
+
+    // const events = (currentTarget.events ??= new Map<Event, Instruction[]>());
+    // events.set(event, []);
   }
 
   selectProperty(prop: string): void {
@@ -159,7 +165,7 @@ export class JsonAutomaton implements Automaton {
         },
       ],
       scope: currentTarget.scope,
-      events: new Map<State, Program>([
+      patches: new Map<State, Program>([
         [
           state,
           (() => {
@@ -190,11 +196,11 @@ export class JsonAutomaton implements Automaton {
     const offset = tpl.offset;
     tpl.itemKey ??= item?.key;
 
-    currentTarget.events ??= new Map();
+    currentTarget.patches ??= new Map();
 
     const listRoot = resolveRootState(list);
 
-    if (!item || !tpl.events.has(item)) {
+    if (!item || !tpl.patches.has(item)) {
       const program = appendStateRead(list, []);
       program.push(
         {
@@ -225,12 +231,12 @@ export class JsonAutomaton implements Automaton {
     }
 
     if (item) {
-      const itemProgram = tpl.events.get(item);
+      const itemProgram = tpl.patches.get(item);
       if (itemProgram) {
       }
     }
 
-    for (const [state, stateProgram] of tpl.events) {
+    for (const [state, stateProgram] of tpl.patches) {
       if (state === item) {
         const itemProgram = stateProgram;
 
@@ -259,13 +265,13 @@ export class JsonAutomaton implements Automaton {
 
         appendOrSetProgram(currentTarget, listRoot, program);
       } else {
-        currentTarget.events ??= new Map();
+        currentTarget.patches ??= new Map();
 
-        let parentProgram = currentTarget.events.get(state);
+        let parentProgram = currentTarget.patches.get(state);
 
         if (!parentProgram) {
           parentProgram = [];
-          currentTarget.events.set(state, parentProgram);
+          currentTarget.patches.set(state, parentProgram);
         }
 
         const itemProgram = concatOptimized([], stateProgram);
@@ -304,7 +310,7 @@ export class JsonAutomaton implements Automaton {
 
     this.currentTarget = {
       output: tpl.items,
-      events: tpl.events,
+      patches: tpl.patches,
       init: tpl.init,
       traversal: [
         {
@@ -324,7 +330,7 @@ export class JsonAutomaton implements Automaton {
     }
 
     const { currentTarget } = this;
-    const { events, init } = currentTarget;
+    const { patches, init } = currentTarget;
 
     const parentTarget = this.targets.pop()!;
 
@@ -339,18 +345,18 @@ export class JsonAutomaton implements Automaton {
       }
     }
 
-    if (events) {
-      for (const [state, updates] of events) {
+    if (patches) {
+      for (const [state, updates] of patches) {
         if (state.scope.level > currentTarget.scope.level) {
-          const scopeEvents = (state.scope.events ??= new Map<
+          const scopePatches = (state.scope.patches ??= new Map<
             State | Event,
             Instruction[]
           >());
 
-          if (scopeEvents.has(state)) {
-            scopeEvents.get(state)!.push(...updates);
+          if (scopePatches.has(state)) {
+            scopePatches.get(state)!.push(...updates);
           } else {
-            scopeEvents.set(state, updates.slice());
+            scopePatches.set(state, updates.slice());
           }
         } else {
           const eventProgram = updates;
@@ -363,15 +369,15 @@ export class JsonAutomaton implements Automaton {
             program.push({ type: InstructionEnum.PopOutput });
           }
 
-          const parentEvents = (parentTarget.events ??= new Map<
+          const parentPatches = (parentTarget.patches ??= new Map<
             State,
             Instruction[]
           >());
 
-          if (parentEvents.has(state)) {
-            parentEvents.get(state)!.push(...program);
+          if (parentPatches.has(state)) {
+            parentPatches.get(state)!.push(...program);
           } else {
-            parentEvents.set(state, program.slice());
+            parentPatches.set(state, program.slice());
           }
         }
       }
@@ -446,18 +452,18 @@ export class JsonAutomaton implements Automaton {
   appendValue<T>(lense: Lense<any>, stateValue?: T): void {
     let { output } = this.currentTarget;
 
-    const currentEvents = (this.currentTarget.events ??= new Map<
+    const currentPatches = (this.currentTarget.patches ??= new Map<
       State,
       Instruction[]
     >());
 
     const rootKey = resolveRootState(lense);
 
-    if (!currentEvents.has(rootKey)) {
-      currentEvents.set(rootKey, []);
+    if (!currentPatches.has(rootKey)) {
+      currentPatches.set(rootKey, []);
     }
 
-    const stateEvent = currentEvents.get(rootKey)!;
+    const stateEvent = currentPatches.get(rootKey)!;
     appendStateRead(lense, stateEvent);
 
     if (output instanceof ObjectProperty) {
@@ -623,11 +629,11 @@ function appendOrSetProgram(
   state: State,
   program: Instruction[]
 ) {
-  target.events ??= new Map();
-  const existingProgram = target.events.get(state);
+  target.patches ??= new Map();
+  const existingProgram = target.patches.get(state);
   if (existingProgram) {
     existingProgram.push(...program);
   } else {
-    target.events.set(state, program);
+    target.patches.set(state, program);
   }
 }

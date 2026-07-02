@@ -1,4 +1,5 @@
 import { Automaton, AutomatonTemplate, cloneTemplateItem } from './automaton';
+import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
 import { events } from './json-automaton';
 import { InstructionEnum, type Program } from './program';
@@ -6,8 +7,20 @@ import { State, Value } from './state';
 
 export class Sandbox {
   dispatchEvent(target: any, eventName: string) {
-    debugger;
+    const eventsObject = target[events];
+    if (!eventsObject) {
+      throw Error('No events registered on target');
+    }
+    const handler = eventsObject[eventName];
+    if (!handler) {
+      return;
+    }
+
+    if (handler instanceof UpdateCommand) {
+      return this.update(handler.state, handler.value);
+    }
   }
+
   public rootValues: Record<symbol, any> = {};
   private executeStates: Record<symbol, ExecuteState> = {};
 
@@ -16,10 +29,10 @@ export class Sandbox {
   update<T>(state: State<T>, newValue: Value<T>) {
     const { rootValues } = this;
     const oldValue = rootValues[state.key];
-    const events = this.automaton.currentTarget.events;
+    const patches = this.automaton.currentTarget.patches;
 
-    if (!events) return;
-    const program = events.get(state);
+    if (!patches) return;
+    const program = patches.get(state);
     if (!program) return;
 
     if (oldValue === newValue) {
@@ -299,14 +312,11 @@ export class Sandbox {
           }
 
           break;
-        // case InstructionEnum.AttachEvent:
-        //   this.automaton.attachEvent(
-        //     exec.currentOutput,
-        //     instruction.eventName,
-        //     instruction.handler,
-        //     exec.values
-        //   );
-        //   break;
+        case InstructionEnum.AttachEvent:
+          exec.currentOutput[events] = exec.currentOutput[events] || {};
+          exec.currentOutput[events][instruction.event.name] =
+            instruction.event;
+          break;
         default:
           const unsupportedType = InstructionEnum[type];
           console.warn(`instruction type not supported ${unsupportedType}`);

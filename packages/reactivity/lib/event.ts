@@ -1,5 +1,10 @@
 import { Scope } from './state';
 
 export class Event {
-  constructor(public scope: Scope) {}
+  public readonly key: symbol = Symbol('event');
+  constructor(
+    public scope: Scope,
+    public name: string,
+    public handler: Function
+  ) {}
 }
