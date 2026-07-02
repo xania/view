@@ -50,23 +50,25 @@ describe('render events', () => {
     sandbox.dispatchEvent(button, 'click');
 
     // assert
-    expect(root).toMatchObject([{ state: 2, obj: { state: 2 } }]);
+    expect(root).toMatchObject([{ state: 2, button: { state: 2 } }]);
   });
 
   it('click events in foreach item body', async () => {
-    const state = useState([1]);
+    const state = useState(1);
+    const values = useState([1]);
 
-    const view = ForEach(state, (item) => ({
-      value: item,
+    const button = {
+      value: state,
       [events]: {
-        click: new UpdateCommand(item, 2),
+        click: new UpdateCommand(state, 2),
       },
-    }));
+    };
+    const view = ForEach(values, (_) => button);
 
     const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    sandbox.dispatchEvent(root[0], 'click');
+    sandbox.dispatchEvent(button, 'click');
 
     expect(root).toMatchObject([{ value: 2 }]);
   });
