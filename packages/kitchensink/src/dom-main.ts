@@ -1,6 +1,8 @@
 import { If } from "@xania/reactivity/core/if";
 import { ForEach } from "@xania/reactivity/core/for";
 import {
+  type AutomatonObject,
+  events as objectEvents,
   JsonAutomaton,
   domObjectFactory,
   type as objectType,
@@ -94,14 +96,14 @@ app.innerHTML = `
           <span id="nodeCount">0 nodes</span>
         </div>
         <div class="render-surface">
-          <div id="mount"></div>
+          <div id="init"></div>
         </div>
       </section>
     </section>
   </section>
 `;
 
-const mount = getElement<HTMLDivElement>("mount");
+const init = getElement<HTMLDivElement>("init");
 const status = getElement<HTMLDivElement>("status");
 const countValue = getElement<HTMLSpanElement>("countValue");
 const visibleValue = getElement<HTMLSpanElement>("visibleValue");
@@ -118,9 +120,11 @@ createRuntime()
   })
   .catch((error) => {
     status.textContent = "failed";
-    mount.replaceChildren(document.createTextNode(
-      error instanceof Error ? (error.stack ?? error.message) : String(error)
-    ));
+    init.replaceChildren(
+      document.createTextNode(
+        error instanceof Error ? (error.stack ?? error.message) : String(error),
+      ),
+    );
   });
 
 async function createRuntime(): Promise<DomRuntime> {
@@ -128,7 +132,7 @@ async function createRuntime(): Promise<DomRuntime> {
     count: 2,
     visible: true,
     todos: [
-      { id: 1, title: "Mount real nodes", done: true },
+      { id: 1, title: "Init real nodes", done: true },
       { id: 2, title: "Drive them from JSON", done: false },
     ],
     nextTodoId: 3,
@@ -136,32 +140,6 @@ async function createRuntime(): Promise<DomRuntime> {
 }
 
 function bindControls(current: DomRuntime) {
-  mount.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-
-    const actionButton = target.closest<HTMLButtonElement>(
-      "button[data-action='mark-done']",
-    );
-
-    if (!actionButton) {
-      return;
-    }
-
-    const todoId = Number(actionButton.dataset.todoId);
-    if (!Number.isFinite(todoId)) {
-      return;
-    }
-
-    const todos = current.model.todosValue.map((todo) =>
-      todo.id === todoId ? { ...todo, done: !todo.done } : todo,
-    );
-
-    void updateTodos(current, todos);
-  });
-
   getElement<HTMLButtonElement>("increment").addEventListener("click", () => {
     void updateCount(current, 1);
   });
@@ -271,7 +249,7 @@ async function createRuntimeFromValues(values: {
         h(
           "p",
           {},
-          "This page renders through JsonAutomaton, then mounts the resulting DOM-shaped object tree into the browser.",
+          "This page renders through JsonAutomaton, then initializes the resulting DOM-shaped object tree in the browser.",
         ),
         h(
           "div",
@@ -317,7 +295,11 @@ async function createRuntimeFromValues(values: {
                 item.done ? "todo-item done" : "todo-item",
               ),
             },
-            h("span", {}, todo.map((item: Todo) => item.title)),
+            h(
+              "span",
+              {},
+              todo.map((item: Todo) => item.title),
+            ),
             h(
               "div",
               { class: "todo-item-actions" },
@@ -330,10 +312,31 @@ async function createRuntimeFromValues(values: {
                 "button",
                 {
                   class: "todo-inline-button",
-                  "data-action": "mark-done",
                   "data-todo-id": todo.map((item: Todo) => item.id),
+                  [objectEvents]: {
+                    click(this: Record<string, unknown>) {
+                      if (!runtime) {
+                        return;
+                      }
+
+                      const todoId = Number(this["data-todo-id"]);
+                      if (!Number.isFinite(todoId)) {
+                        return;
+                      }
+
+                      const todos = runtime.model.todosValue.map((todo) =>
+                        todo.id === todoId
+                          ? { ...todo, done: !todo.done }
+                          : todo,
+                      );
+
+                      void updateTodos(runtime, todos);
+                    },
+                  },
                 },
-                todo.map((item: Todo) => (item.done ? "Mark open" : "Mark done")),
+                todo.map((item: Todo) =>
+                  item.done ? "Mark open" : "Mark done",
+                ),
               ),
             ),
           ),
@@ -343,7 +346,10 @@ async function createRuntimeFromValues(values: {
   );
 
   const root: any[] = [];
-  const sandbox = await render(view, new JsonAutomaton(root, undefined, domObjectFactory));
+  const sandbox = await render(
+    view,
+    new JsonAutomaton(root, undefined, domObjectFactory),
+  );
 
   return { root, sandbox, model };
 }
@@ -354,7 +360,7 @@ function paint(current: DomRuntime) {
   todoValue.textContent = `${current.model.todosValue.length} items`;
   nodeCount.textContent = `${countNodes(current.root)} nodes`;
 
-  mount.replaceChildren(...materializeChildren(current.root));
+  init.replaceChildren(...materializeChildren(current.root));
   status.textContent = "ready";
 }
 
@@ -384,16 +390,23 @@ function materializeChildren(value: unknown): Node[] {
   }
 
   if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
+    const record = value as AutomatonObject;
     if (typeof record.type === "string") {
       const element = document.createElement(record.type);
+      const eventMap = record[objectEvents] as
+        | Record<string, (this: Record<string, unknown>, event: Event) => void>
+        | undefined;
 
       for (const [key, propValue] of Object.entries(record)) {
         if (key === "type" || key === "children") {
           continue;
         }
 
-        if (propValue === false || propValue === null || propValue === undefined) {
+        if (
+          propValue === false ||
+          propValue === null ||
+          propValue === undefined
+        ) {
           continue;
         }
 
@@ -404,6 +417,14 @@ function materializeChildren(value: unknown): Node[] {
 
         const attrName = key === "className" ? "class" : key;
         element.setAttribute(attrName, String(propValue));
+      }
+
+      if (eventMap) {
+        for (const [eventName, handler] of Object.entries(eventMap)) {
+          element.addEventListener(eventName, (event) =>
+            handler.call(record, event),
+          );
+        }
       }
 
       element.append(...materializeChildren(record.children ?? []));

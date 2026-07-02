@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
 import {
+  type AutomatonObject,
+  defaultEventFactory,
+  events as objectEvents,
+  type EventFactory,
   JsonAutomaton,
   domObjectFactory,
   type as objectType,
@@ -169,5 +173,50 @@ describe('render state', () => {
         ],
       },
     ]);
+  });
+
+  it('preserves special object events through the dom object factory', () => {
+    const click = () => undefined;
+    const view = {
+      [objectType]: 'button',
+      [objectEvents]: { click },
+      children: ['Run'],
+    };
+
+    const root: any[] = [];
+    render(view, new JsonAutomaton(root, undefined, domObjectFactory));
+
+    expect(root[0].type).toBe('button');
+    expect(root[0][objectEvents]).toEqual({ click });
+  });
+
+  it('uses a custom event factory for special object events', () => {
+    const click = () => undefined;
+    const captured: Array<{
+      target: AutomatonObject;
+      eventName: string;
+      handler: Function;
+    }> = [];
+
+    const eventFactory: EventFactory = (target, eventName, handler) => {
+      captured.push({ target, eventName, handler });
+      defaultEventFactory(target, eventName, handler);
+    };
+
+    const root: any[] = [];
+    render(
+      {
+        [objectType]: 'button',
+        [objectEvents]: { click },
+        children: ['Run'],
+      },
+      new JsonAutomaton(root, undefined, domObjectFactory, eventFactory)
+    );
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0].target).toBe(root[0]);
+    expect(captured[0].eventName).toBe('click');
+    expect(captured[0].handler).toBe(click);
+    expect(root[0][objectEvents]).toEqual({ click });
   });
 });

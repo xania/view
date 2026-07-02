@@ -1,9 +1,13 @@
 import { Automaton, AutomatonTemplate, cloneTemplateItem } from './automaton';
 import { reconcile, ReconcileOperation } from './core/reconcile';
+import { events } from './json-automaton';
 import { InstructionEnum, type Program } from './program';
 import { State, Value } from './state';
 
 export class Sandbox {
+  dispatchEvent(target: any, eventName: string) {
+    debugger;
+  }
   public rootValues: Record<symbol, any> = {};
   private executeStates: Record<symbol, ExecuteState> = {};
 
@@ -295,49 +299,14 @@ export class Sandbox {
           }
 
           break;
-
-        case InstructionEnum.SelectTemplate:
-          const { regions, offset, items } = instruction.tpl;
-          let fragmentIdx: number = 0;
-          if (!memory || memory[instruction.key] === undefined) {
-            fragmentIdx = 0;
-          } else {
-            fragmentIdx = 1 + memory[instruction.key];
-          }
-
-          if (fragmentIdx >= regions.length) {
-            if (memory) {
-              delete memory[instruction.key];
-            }
-            instructionIdx += instruction.jump;
-          } else {
-            if (memory) {
-              memory[instruction.key] = fragmentIdx;
-            } else {
-              memory = { [instruction.key]: fragmentIdx };
-            }
-
-            const fragmentOffset = offset + items.length * fragmentIdx;
-
-            if (exec.currentOutput instanceof Array) {
-              pushToStack(
-                exec,
-                new Fragment(exec.currentOutput, fragmentOffset)
-              );
-            } else if (exec.currentOutput instanceof Fragment) {
-              pushToStack(
-                exec,
-                new Fragment(
-                  exec.currentOutput.output,
-                  exec.currentOutput.offset + fragmentOffset
-                )
-              );
-            } else {
-              throw Error('not an array');
-            }
-          }
-
-          break;
+        // case InstructionEnum.AttachEvent:
+        //   this.automaton.attachEvent(
+        //     exec.currentOutput,
+        //     instruction.eventName,
+        //     instruction.handler,
+        //     exec.values
+        //   );
+        //   break;
         default:
           const unsupportedType = InstructionEnum[type];
           console.warn(`instruction type not supported ${unsupportedType}`);

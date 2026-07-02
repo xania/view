@@ -14,6 +14,7 @@
  */
 
 import type { Instruction } from './program';
+import type { Event } from './event';
 
 export type Value<T> = JSX.MaybePromise<T | undefined | void>;
 
@@ -142,7 +143,7 @@ function toArrow<S, T>(input: ArrowInput<S, T>): Arrow<S, T> {
 }
 
 export class Scope {
-  public events?: Map<State, Instruction[]>;
+  public events?: Map<State | Event, Instruction[]>;
 
   constructor(public level: number) {}
 

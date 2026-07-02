@@ -22,7 +22,8 @@ export type Instruction =
   | PushIndexInstruction
   | ReconcileInstruction
   | PushFragmentInstruction
-  | EnumerateInstruction;
+  | EnumerateInstruction
+  | AttachEventInstruction;
 export interface SetTextInstruction {
   type: InstructionEnum.SetText;
   node: ITextNode;
@@ -108,6 +109,13 @@ export enum InstructionEnum {
   Reconcile = 'Reconcile',
   PushFragment = 'PushFragment',
   Enumerate = 'Enumerate',
+  AttachEvent = 'AttachEvent',
+}
+
+interface AttachEventInstruction {
+  type: InstructionEnum.AttachEvent;
+  eventName: string;
+  handler: Function;
 }
 
 interface EnumerateInstruction {

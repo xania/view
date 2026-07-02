@@ -1,6 +1,7 @@
 import { Instruction } from './program';
 import { Fragment } from './sandbox';
 import { ItemState, Lense, Scope, State } from './state';
+import { Event } from './event';
 
 export type AutomatonOutput =
   | {
@@ -17,12 +18,14 @@ export type AutomatonTarget = {
     | AutomatonOutput;
   traversal: Instruction[];
   // root (updatable) state -> updates instructions
-  events?: Map<State, Instruction[]>;
+  events?: Map<State | Event, Instruction[]>;
+  init?: Instruction[];
   scope: Scope;
 };
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
+  addEvent(eventName: string, handler: Function): void;
   appendArray(): void;
   appendObject(type?: string): void;
   appendText(content: ITextNode['nodeValue'], property?: string): void;
@@ -45,6 +48,7 @@ export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
   public readonly regions: RegionFrame[] = [];
   public events: Map<State, Instruction[]> = new Map();
+  public init: Instruction[] = [];
 
   constructor(
     public scope: Scope,

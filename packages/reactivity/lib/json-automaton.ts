@@ -18,14 +18,18 @@ import {
   Scope,
   State,
 } from './state';
+import { Event } from './event';
 
 export const type = Symbol('type');
-export type ObjectFactory = (
-  type?: string
-) => Record<symbol | string | number, any>;
+export const events = Symbol('events');
+export type ObjectEvents = Record<string, Function>;
+export type AutomatonObject = Record<string | number, any> & {
+  [key: symbol]: any;
+};
+export type ObjectFactory = (type?: string) => AutomatonObject;
 
 export const defaultObjectFactory: ObjectFactory = (objectType) => {
-  const object: Record<symbol | string | number, any> = {};
+  const object: AutomatonObject = {};
 
   if (objectType) {
     object[type] = objectType;
@@ -74,6 +78,27 @@ export class JsonAutomaton implements Automaton {
       traversal: this.setValue(currentTarget.output, newObject) ?? [],
       scope: currentTarget.scope,
     };
+  }
+
+  addEvent(eventName: string, handler: Function) {
+    const { currentTarget } = this;
+    const { output } = currentTarget;
+
+    if (!(output instanceof ObjectProperty)) {
+      throw Error('Cannot add event outside object context');
+    }
+
+    if (output.prop) {
+      throw Error('Cannot add event while a property is selected');
+    }
+
+    const init = (currentTarget.init ??= []);
+
+    init.push({
+      type: InstructionEnum.AttachEvent,
+      eventName,
+      handler,
+    });
   }
 
   selectProperty(prop: string): void {
@@ -180,19 +205,29 @@ export class JsonAutomaton implements Automaton {
           type: InstructionEnum.Reconcile,
           tpl,
           key: Symbol(),
-          break: 2,
+          break: 2 + (currentTarget.init?.length ?? 0),
         }
       );
+
+      if (currentTarget.init) {
+        program.push(...currentTarget.init);
+      }
 
       program.push(
         { type: InstructionEnum.PopOutput },
         {
           type: InstructionEnum.Jump,
-          steps: -3,
+          steps: -3 - (currentTarget.init?.length ?? 0),
         }
       );
 
       appendOrSetProgram(currentTarget, listRoot, program);
+    }
+
+    if (item) {
+      const itemProgram = tpl.events.get(item);
+      if (itemProgram) {
+      }
     }
 
     for (const [state, stateProgram] of tpl.events) {
@@ -270,6 +305,7 @@ export class JsonAutomaton implements Automaton {
     this.currentTarget = {
       output: tpl.items,
       events: tpl.events,
+      init: tpl.init,
       traversal: [
         {
           type: InstructionEnum.PushOutput,
@@ -288,15 +324,26 @@ export class JsonAutomaton implements Automaton {
     }
 
     const { currentTarget } = this;
-    const { events } = currentTarget;
+    const { events, init } = currentTarget;
 
     const parentTarget = this.targets.pop()!;
+
+    if (init) {
+      const parentInit = (parentTarget.init ??= []);
+
+      parentInit.push(...currentTarget.traversal, ...init);
+
+      let depth = getDepth(currentTarget.traversal);
+      while (depth--) {
+        parentInit.push({ type: InstructionEnum.PopOutput });
+      }
+    }
 
     if (events) {
       for (const [state, updates] of events) {
         if (state.scope.level > currentTarget.scope.level) {
           const scopeEvents = (state.scope.events ??= new Map<
-            State,
+            State | Event,
             Instruction[]
           >());
 

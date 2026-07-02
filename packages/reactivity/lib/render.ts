@@ -16,7 +16,11 @@ import {
   Scope,
   State,
 } from './state';
-import { type } from './json-automaton';
+import {
+  type AutomatonObject,
+  events as objectEvents,
+  type,
+} from './json-automaton';
 
 export function render(
   view: any,
