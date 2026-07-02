@@ -12,7 +12,7 @@ describe('render events', () => {
     const state = useState(1);
 
     // prepare view
-    const view = ForEach(values, [
+    const view = ForEach(values, [state,
       {
         [events]: {
           click: new UpdateCommand(state, 2),
@@ -27,6 +27,6 @@ describe('render events', () => {
     sandbox.dispatchEvent(root[0], 'click');
 
     // assert
-    expect(root).toStrictEqual([{}]);
+    expect(root).toStrictEqual([2, {}]);
   });
 });
