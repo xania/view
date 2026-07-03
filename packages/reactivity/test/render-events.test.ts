@@ -72,4 +72,21 @@ describe('render events', () => {
 
     expect(root).toMatchObject([{ value: 2 }]);
   });
+
+  it('increment', async () => {
+    const state = useState(1);
+    const button = {
+      value: state,
+      [events]: {
+        click: new UpdateCommand(state, (x) => x + 1),
+      },
+    };
+
+    const root: any[] = [];
+    const sandbox = await render(button, new JsonAutomaton(root));
+
+    sandbox.dispatchEvent(button, 'click');
+
+    expect(root).toMatchObject([{ value: 2 }]);
+  });
 });

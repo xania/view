@@ -3,7 +3,7 @@ import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
 import { events } from './json-automaton';
 import { InstructionEnum, type Program } from './program';
-import { State, Value } from './state';
+import { mapValue, State, Value } from './state';
 
 export class Sandbox {
   dispatchEvent(target: any, eventName: string) {
@@ -16,10 +16,33 @@ export class Sandbox {
       return;
     }
 
-    if (handler instanceof UpdateCommand) {
-      return this.update(handler.state, handler.value);
+    if (handler instanceof Function) {
+      const result = handler.call(target);
+      return this.process(result);
     }
+
+    return this.process(handler);
   }
+
+  process = (command?: UpdateCommand<any>): Promise<void> | void => {
+    if (command instanceof Promise) {
+      return command.then(this.process);
+    }
+
+    if (!(command instanceof UpdateCommand)) {
+      return;
+    }
+
+    const newValue =
+      command.value instanceof Function
+        ? mapValue(
+            this.rootValues[command.state.key] ?? command.state.initial,
+            command.value
+          )
+        : command.value;
+
+    return this.update(command.state, newValue);
+  };
 
   public rootValues: Record<symbol, any> = {};
   private executeStates: Record<symbol, ExecuteState> = {};
@@ -162,13 +185,11 @@ export class Sandbox {
           break;
 
         case InstructionEnum.PushIndex:
-          if (exec.currentOutput instanceof Array) {
-            pushToStack(exec, exec.currentOutput[instruction.index]);
-          } else if (exec.currentOutput instanceof Fragment) {
+          if (exec.currentOutput instanceof Fragment) {
             const idx = exec.currentOutput.offset + instruction.index;
             pushToStack(exec, exec.currentOutput.output[idx]);
           } else {
-            throw Error('Invalid operation: Array or region not expected');
+            pushToStack(exec, exec.currentOutput[instruction.index]);
           }
           break;
 

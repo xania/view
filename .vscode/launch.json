@@ -9,8 +9,13 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173/",
-      "webRoot": "${workspaceFolder}/packages/kitchensink",
-      "sourceMaps": true
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/@fs/${workspaceFolder}/*": "${workspaceFolder}/*",
+        "/@fs/*": "*",
+        "webpack:///*": "${workspaceFolder}/*"
+      }
     },
     {
       "name": "reactivity: test filter",

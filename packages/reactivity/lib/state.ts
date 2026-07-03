@@ -98,7 +98,10 @@ export class FuncArrow<S, T> extends ArrowBase<S, T> {
   }
 }
 
-function mapValue<T, U>(src: Value<T>, func: (s: T) => Value<U>): Value<any> {
+export function mapValue<T, U>(
+  src: Value<T>,
+  func: (s: T) => Value<U>
+): Value<any> {
   if (src === undefined) return undefined;
   if (src === null) return undefined;
 

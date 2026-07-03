@@ -4,8 +4,8 @@ import { useState } from '../lib/state';
 import {
   events as objectEvents,
   JsonAutomaton,
-  domObjectFactory,
   type as objectType,
+  type,
 } from '../lib/json-automaton';
 
 describe('render state', () => {
@@ -122,52 +122,6 @@ describe('render state', () => {
       {
         kind: 'section',
         value: 1,
-      },
-    ]);
-  });
-
-  it('uses the dom object factory for typed objects', () => {
-    const view = {
-      [objectType]: 'section',
-      id: 'hero',
-      children: ['body'],
-    };
-
-    const root: any[] = [];
-    render(view, new JsonAutomaton(root, undefined, domObjectFactory));
-
-    expect(root).toEqual([
-      {
-        type: 'section',
-        id: 'hero',
-        children: ['body'],
-      },
-    ]);
-  });
-
-  it('uses the dom object factory for nested typed objects', () => {
-    const view = {
-      [objectType]: 'section',
-      children: [
-        {
-          [objectType]: 'span',
-          children: ['label'],
-        },
-      ],
-    };
-
-    const root: any[] = [];
-    render(view, new JsonAutomaton(root, undefined, domObjectFactory));
-
-    expect(root).toEqual([
-      {
-        type: 'section',
-        children: [
-          {
-            type: 'span',
-            children: ['label'],
-          },
-        ],
       },
     ]);
   });

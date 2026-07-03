@@ -23,9 +23,11 @@ import { Event } from './event';
 export const type = Symbol('type');
 export const events = Symbol('events');
 export type ObjectEvents = Record<string, Function>;
-export type AutomatonObject = Record<string | number, any> & {
-  [key: symbol]: any;
-};
+export type AutomatonObject = Partial<HTMLElement> &
+  Record<string | number, any> & {
+    [type]?: any;
+    [events]?: ObjectEvents;
+  };
 export type ObjectFactory = (type?: string) => AutomatonObject;
 
 export const defaultObjectFactory: ObjectFactory = (objectType) => {
@@ -36,17 +38,6 @@ export const defaultObjectFactory: ObjectFactory = (objectType) => {
   }
 
   return object;
-};
-
-export const domObjectFactory: ObjectFactory = (objectType) => {
-  if (!objectType) {
-    return {};
-  }
-
-  return {
-    type: objectType,
-    children: [],
-  };
 };
 
 export class JsonAutomaton implements Automaton {
@@ -395,7 +386,9 @@ export class JsonAutomaton implements Automaton {
       if (!output.prop) {
         throw Error('Cannot set value, prop is not selected');
       }
-      output.object[output.prop] = value;
+      if (!(output.prop in output.object)) {
+        output.object[output.prop] = value;
+      }
       return [
         {
           type: InstructionEnum.PushProperty,
