@@ -24,7 +24,6 @@ export const events = Symbol('events');
 export type ObjectEvents = Record<string, Function>;
 
 export class JsonAutomaton implements Automaton {
-  public targetStack: AutomatonTarget[] = [];
   public currentTarget: AutomatonTarget;
   constructor(
     private rootOutput: AutomatonTarget['output'],
@@ -41,7 +40,6 @@ export class JsonAutomaton implements Automaton {
   // Platform specific
   appendObject(_type?: string) {
     const { currentTarget } = this;
-    this.targetStack.push(currentTarget);
 
     const newObject: Record<string | number, any> & {
       [type]?: any;
@@ -54,7 +52,7 @@ export class JsonAutomaton implements Automaton {
 
     const newNode = new AutomatonObject(newObject);
 
-    this.currentTarget = {
+    return {
       output: newNode,
       traversal:
         this.append(currentTarget.output, newObject, currentTarget.prop) ?? [],
@@ -62,7 +60,7 @@ export class JsonAutomaton implements Automaton {
     };
   }
 
-  pushRegion(visible: boolean | void = true): IRegion {
+  pushRegion(visible: boolean | void = true) {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
@@ -71,24 +69,18 @@ export class JsonAutomaton implements Automaton {
     if (!(currentTarget.output instanceof Array)) {
       throw Error('output is not an array');
     }
-    this.targetStack.push(currentTarget);
 
     const newRegion = new AutomatonRegion(currentTarget.output, visible);
 
-    this.currentTarget = {
+    return {
       output: newRegion,
       traversal: [],
       scope: currentTarget.scope,
     };
-
-    return newRegion;
   }
 
-  pushTemplate() {
+  pushTemplate(): AutomatonTarget {
     const { currentTarget } = this;
-    if (currentTarget) {
-      this.targetStack.push(currentTarget);
-    }
     if (!(currentTarget.output instanceof Array)) {
       throw Error('output is not an array');
     }
@@ -97,8 +89,8 @@ export class JsonAutomaton implements Automaton {
 
     const tpl = new AutomatonTemplate(childScope, currentTarget.output.length);
 
-    this.currentTarget = {
-      output: tpl.items,
+    return {
+      output: tpl,
       patches: tpl.patches,
       init: tpl.init,
       traversal: [
@@ -109,8 +101,6 @@ export class JsonAutomaton implements Automaton {
       ],
       scope: tpl.scope,
     };
-
-    return tpl;
   }
 
   private append(
@@ -147,6 +137,15 @@ export class JsonAutomaton implements Automaton {
           index: idx,
         },
       ];
+    } else if (output instanceof AutomatonTemplate) {
+      const offset = output.items.length;
+      output.items.push(value);
+      return [
+        {
+          type: InstructionEnum.PushIndex,
+          index: offset,
+        },
+      ];
     } else if (output instanceof Array) {
       const offset = output.length;
       output.push(value);
@@ -165,13 +164,9 @@ export class JsonAutomaton implements Automaton {
   appendArray() {
     const { currentTarget } = this;
 
-    if (currentTarget) {
-      this.targetStack.push(currentTarget);
-    }
-
     const copy: any[] = [];
 
-    this.currentTarget = {
+    return {
       output: copy,
       traversal:
         this.append(currentTarget.output, copy, currentTarget.prop) ?? [],
@@ -216,6 +211,14 @@ export class JsonAutomaton implements Automaton {
         type: InstructionEnum.UpdateArray,
         index: nodeIndex,
       });
+    } else if (output instanceof AutomatonTemplate) {
+      const nodeIndex = output.items.length;
+      output.items.push(stateValue);
+
+      stateEvent.push({
+        type: InstructionEnum.UpdateArray,
+        index: nodeIndex,
+      });
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
@@ -244,11 +247,12 @@ export class JsonAutomaton implements Automaton {
       }
       output.object[prop] = content;
     } else if (output instanceof AutomatonRegion) {
-      const idx = output.push(content);
+      output.push(content);
     } else if (output instanceof AutomatonConditional) {
-      const idx = output.push(content);
+      output.push(content);
+    } else if (output instanceof AutomatonTemplate) {
+      output.items.push(content);
     } else if (output instanceof Array) {
-      const nodeIndex = output.length;
       output.push(content);
     } else if (property) {
       const target = output as Record<string | number, any>;

@@ -22,6 +22,13 @@ import {
 } from './state';
 
 export class Sandbox {
+  public targetStack: AutomatonTarget[] = [];
+
+  pushTarget(nextTarget: AutomatonTarget) {
+    this.targetStack.push(this.automaton.currentTarget);
+    this.automaton.currentTarget = nextTarget;
+  }
+
   dispatchEvent(target: any, eventName: string) {
     const eventsObject = target[events];
     if (!eventsObject) {
@@ -93,13 +100,19 @@ export class Sandbox {
     this.automaton.currentTarget.prop = prop;
   }
 
+  appendArray(): void {
+    this.pushTarget(this.automaton.appendArray());
+  }
+
+  appendObject(type?: string): void {
+    this.pushTarget(this.automaton.appendObject(type));
+  }
+
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional {
     const { currentTarget } = this.automaton;
     if (!(currentTarget.output instanceof Array)) {
       throw Error('output is not an array');
     }
-
-    this.automaton.targetStack.push(currentTarget);
 
     const conditional = new AutomatonConditional(
       currentTarget.output,
@@ -108,7 +121,7 @@ export class Sandbox {
     );
     const state = resolveRootState(lense);
 
-    this.automaton.currentTarget = {
+    this.pushTarget({
       output: conditional,
       traversal: [
         {
@@ -130,19 +143,34 @@ export class Sandbox {
           })(),
         ],
       ]),
-    };
+    });
 
     return conditional;
   }
 
+  pushRegion(visible: boolean | void = true): void {
+    this.pushTarget(this.automaton.pushRegion(visible));
+  }
+
+  pushTemplate(): AutomatonTemplate {
+    const target = this.automaton.pushTemplate();
+    this.pushTarget(target);
+
+    if (!target.output) {
+      throw Error('automaton did not provide template target');
+    }
+
+    return target.output as AutomatonTemplate;
+  }
+
   popTarget(): void {
-    if (this.automaton.targetStack.length === 0) {
+    if (this.targetStack.length === 0) {
       throw Error('cannot pop out root');
     }
 
     const { currentTarget } = this.automaton;
     const { patches, init } = currentTarget;
-    const parentTarget = this.automaton.targetStack.pop()!;
+    const parentTarget = this.targetStack.pop()!;
 
     if (init) {
       const parentInit = (parentTarget.init ??= []);

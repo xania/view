@@ -1,8 +1,6 @@
 import {
   Automaton,
   AutomatonTarget,
-  AutomatonTemplate,
-  IRegion,
   ITextNode,
   Lense,
   RootScope,
@@ -11,7 +9,6 @@ import {
 
 export class DomAutomaton implements Automaton {
   public currentTarget: AutomatonTarget;
-  public targetStack: AutomatonTarget[] = [];
 
   constructor(
     rootOutput: HTMLElement,
@@ -25,10 +22,10 @@ export class DomAutomaton implements Automaton {
     };
   }
 
-  appendArray(): void {
+  appendArray(): AutomatonTarget {
     throw new Error('Method not implemented.');
   }
-  appendObject(type?: string): void {
+  appendObject(type?: string): AutomatonTarget {
     throw new Error('Method not implemented.');
   }
   appendText(content: ITextNode['nodeValue'], property?: string): void {
@@ -37,10 +34,10 @@ export class DomAutomaton implements Automaton {
   appendValue<T>(lense: Lense<any>, stateValue?: T): void {
     throw new Error('Method not implemented.');
   }
-  pushRegion(visible?: boolean | void | undefined): IRegion {
+  pushRegion(visible?: boolean | void | undefined): AutomatonTarget {
     throw new Error('Method not implemented.');
   }
-  pushTemplate(): AutomatonTemplate {
+  pushTemplate(): AutomatonTarget {
     throw new Error('Method not implemented.');
   }
 }

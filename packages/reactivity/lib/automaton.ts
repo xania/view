@@ -1,6 +1,6 @@
-import { Instruction } from './program';
+import { Instruction, Program } from './program';
 import { Fragment } from './sandbox';
-import { ItemState, Lense, Scope, State } from './state';
+import { Lense, Scope, State } from './state';
 import { Event } from './event';
 
 export type AutomatonOutput =
@@ -16,7 +16,7 @@ export type AutomatonTarget = {
     | AutomatonRegion
     | AutomatonTemplate
     | AutomatonOutput;
-  traversal: Instruction[];
+  traversal: Program;
   // root (updatable) state -> updates instructions
   patches?: Map<State, Instruction[]>;
   events?: Map<Event, Instruction[]>;
@@ -27,13 +27,12 @@ export type AutomatonTarget = {
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
-  targetStack: AutomatonTarget[];
-  appendArray(): void;
-  appendObject(type?: string): void;
+  appendArray(): AutomatonTarget;
+  appendObject(type?: string): AutomatonTarget;
   appendText(content: ITextNode['nodeValue'], property?: string): void;
   appendValue<T>(lense: Lense<any>, stateValue?: T): void;
-  pushRegion(visible?: boolean | void): IRegion;
-  pushTemplate(): AutomatonTemplate;
+  pushRegion(visible?: boolean | void): AutomatonTarget;
+  pushTemplate(): AutomatonTarget;
 }
 
 type RegionFrame = Record<symbol, any> & { key: string };

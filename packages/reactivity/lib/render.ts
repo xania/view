@@ -69,7 +69,7 @@ export function render(
           viewStack.push(popTarget);
           viewStack.push(curr.body);
         } else if (visible) {
-          automaton.pushRegion();
+          sandbox.pushRegion();
           viewStack.push(popTarget);
           viewStack.push(curr.body);
         }
@@ -77,7 +77,8 @@ export function render(
         const { body, initial, expr: list } = curr;
         const state = resolveRootState(list);
 
-        const tpl = automaton.pushTemplate();
+        const tpl = sandbox.pushTemplate();
+
         const iterator = buildIterator(tpl.scope, body, list);
 
         // viewStack.push(new InitializeState(state));
@@ -124,7 +125,7 @@ export function render(
       } else if (curr === popTarget) {
         sandbox.popTarget();
       } else if (curr.constructor === Array) {
-        automaton.appendArray();
+        sandbox.appendArray();
         viewStack.push(popTarget);
 
         for (let i = curr.length - 1; i >= 0; i--) {
@@ -135,7 +136,7 @@ export function render(
         }
       } else if (curr.constructor === Object) {
         const objectType = curr[type];
-        automaton.appendObject(objectType);
+        sandbox.appendObject(objectType);
 
         const eventsObject = curr[objectEvents];
         if (eventsObject) {
