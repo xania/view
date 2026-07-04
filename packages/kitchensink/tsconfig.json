@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "@xania/reactivity/*": ["../reactivity/lib/*"]
+      "@xania/reactivity/*": ["../reactivity/lib/*"],
+      "@xania/web": ["../web/lib/index.ts"],
+      "@xania/web/*": ["../web/lib/*"]
     },
     "types": ["vite/client"],
     "noEmit": true

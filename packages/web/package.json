@@ -1,0 +1,42 @@
+{
+  "name": "@xania/web",
+  "author": "Ibrahim ben Salah",
+  "license": "MIT",
+  "version": "0.0.0",
+  "description": "",
+  "main": "./dist/main.cjs",
+  "module": "./dist/main.js",
+  "types": "./lib/index.ts",
+  "type": "module",
+  "private": false,
+  "exports": {
+    ".": {
+      "import": "./dist/main.js",
+      "require": "./dist/main.cjs",
+      "types": "./lib/index.ts"
+    }
+  },
+  "dependencies": {
+    "@xania/reactivity": "workspace:*"
+  },
+  "scripts": {
+    "dev": "npx vite --watch build",
+    "build": "npm run clean && npx vite build",
+    "clean": "npx rimraf dist",
+    "prepublishOnly": "npm run build",
+    "lint": "tsc"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "tabWidth": 2
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "dist"
+  ]
+}

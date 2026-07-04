@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@xania/reactivity": ["../reactivity/lib/index.ts"],
+      "@xania/reactivity/*": ["../reactivity/lib/*"]
+    },
+    "types": ["vite/client"],
+    "noEmit": true
+  },
+  "include": ["lib", "vite.config.ts"]
+}

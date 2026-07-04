@@ -100,29 +100,4 @@ describe('render state', () => {
       },
     ]);
   });
-
-  it('uses a custom object factory for typed objects', () => {
-    const view = {
-      [objectType]: 'section',
-      value: 1,
-    };
-    const created: Array<string | undefined> = [];
-
-    const root: any[] = [];
-    render(
-      view,
-      new JsonAutomaton(root, undefined, (type) => {
-        created.push(type);
-        return type ? { kind: type } : {};
-      })
-    );
-
-    expect(created).toEqual(['section']);
-    expect(root).toEqual([
-      {
-        kind: 'section',
-        value: 1,
-      },
-    ]);
-  });
 });

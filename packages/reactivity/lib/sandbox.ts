@@ -1,9 +1,25 @@
-import { Automaton, AutomatonTemplate, cloneTemplateItem } from './automaton';
+import {
+  Automaton,
+  AutomatonConditional,
+  AutomatonTarget,
+  AutomatonTemplate,
+  cloneTemplateItem,
+  AutomatonObject,
+} from './automaton';
 import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
+import { concatOptimized, appendStateRead } from './json-automaton';
 import { events } from './json-automaton';
-import { InstructionEnum, type Program } from './program';
-import { mapValue, State, Value } from './state';
+import { Event } from './event';
+import { InstructionEnum, type Instruction, type Program } from './program';
+import {
+  ItemState,
+  Lense,
+  mapValue,
+  resolveRootState,
+  State,
+  Value,
+} from './state';
 
 export class Sandbox {
   dispatchEvent(target: any, eventName: string) {
@@ -48,6 +64,234 @@ export class Sandbox {
   private executeStates: Record<symbol, ExecuteState> = {};
 
   constructor(public automaton: Automaton) {}
+
+  attachEvent(eventName: string, handler: Function): void {
+    const { currentTarget } = this.automaton;
+    const { output } = currentTarget;
+
+    if (!(output instanceof AutomatonObject)) {
+      throw Error('Cannot add event outside object context');
+    }
+
+    if (currentTarget.prop) {
+      throw Error('Cannot add event while a property is selected');
+    }
+
+    const init = (currentTarget.init ??= []);
+    const event = new Event(currentTarget.scope, eventName, handler);
+
+    init.push({
+      type: InstructionEnum.AttachEvent,
+      event,
+    });
+
+    output.object[events] ??= {};
+    output.object[events][eventName] = handler;
+  }
+
+  selectProperty(prop: string): void {
+    this.automaton.currentTarget.prop = prop;
+  }
+
+  pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional {
+    const { currentTarget } = this.automaton;
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
+
+    this.automaton.targetStack.push(currentTarget);
+
+    const conditional = new AutomatonConditional(
+      currentTarget.output,
+      lense,
+      stateValue
+    );
+    const state = resolveRootState(lense);
+
+    this.automaton.currentTarget = {
+      output: conditional,
+      traversal: [
+        {
+          type: InstructionEnum.PushOutput,
+          output: conditional.fragment,
+        },
+      ],
+      scope: currentTarget.scope,
+      patches: new Map<State, Program>([
+        [
+          state,
+          (() => {
+            const program = appendStateRead(lense, []);
+            program.push({
+              type: InstructionEnum.Show,
+              node: conditional,
+            } as Instruction);
+            return program;
+          })(),
+        ],
+      ]),
+    };
+
+    return conditional;
+  }
+
+  popTarget(): void {
+    if (this.automaton.targetStack.length === 0) {
+      throw Error('cannot pop out root');
+    }
+
+    const { currentTarget } = this.automaton;
+    const { patches, init } = currentTarget;
+    const parentTarget = this.automaton.targetStack.pop()!;
+
+    if (init) {
+      const parentInit = (parentTarget.init ??= []);
+      parentInit.push(...currentTarget.traversal, ...init);
+
+      let depth = getDepth(currentTarget.traversal);
+      while (depth--) {
+        parentInit.push({ type: InstructionEnum.PopOutput });
+      }
+    }
+
+    if (patches) {
+      for (const [state, updates] of patches) {
+        if (state.scope.level > currentTarget.scope.level) {
+          const scopePatches = (state.scope.patches ??= new Map());
+
+          if (scopePatches.has(state)) {
+            scopePatches.get(state)!.push(...updates);
+          } else {
+            scopePatches.set(state, updates.slice());
+          }
+        } else {
+          const program: Instruction[] = currentTarget.traversal.slice();
+          concatOptimized(program, updates);
+
+          let depth = getDepth(currentTarget.traversal);
+          while (depth--) {
+            program.push({ type: InstructionEnum.PopOutput });
+          }
+
+          const parentPatches = (parentTarget.patches ??= new Map());
+
+          if (parentPatches.has(state)) {
+            parentPatches.get(state)!.push(...program);
+          } else {
+            parentPatches.set(state, program.slice());
+          }
+        }
+      }
+    }
+
+    this.automaton.currentTarget = parentTarget;
+  }
+
+  registerReconciler<T>(
+    list: Lense<T[]>,
+    tpl: AutomatonTemplate,
+    item?: ItemState<T>
+  ) {
+    const { currentTarget } = this.automaton;
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
+
+    const offset = tpl.offset;
+    tpl.itemKey ??= item?.key;
+
+    currentTarget.patches ??= new Map();
+
+    const listRoot = resolveRootState(list);
+
+    if (!item || !tpl.patches.has(item)) {
+      const program = appendStateRead(list, []);
+      program.push(
+        {
+          type: InstructionEnum.PushFragment,
+          offset,
+        },
+        {
+          type: InstructionEnum.Reconcile,
+          tpl,
+          key: Symbol(),
+          break: 2 + (currentTarget.init?.length ?? 0),
+        }
+      );
+
+      if (currentTarget.init) {
+        program.push(...currentTarget.init);
+      }
+
+      program.push(
+        { type: InstructionEnum.PopOutput },
+        {
+          type: InstructionEnum.Jump,
+          steps: -3 - (currentTarget.init?.length ?? 0),
+        }
+      );
+
+      appendOrSetProgram(currentTarget, listRoot, program);
+    }
+
+    for (const [state, stateProgram] of tpl.patches) {
+      if (state === item) {
+        const itemProgram = stateProgram;
+
+        const program = appendStateRead(list, []);
+        program.push(
+          {
+            type: InstructionEnum.PushFragment,
+            offset,
+          },
+          {
+            type: InstructionEnum.Reconcile,
+            tpl,
+            key: Symbol(),
+            break: 2 + itemProgram.length,
+          }
+        );
+
+        program.push(
+          ...itemProgram,
+          { type: InstructionEnum.PopOutput },
+          {
+            type: InstructionEnum.Jump,
+            steps: -itemProgram.length - 3,
+          }
+        );
+
+        appendOrSetProgram(currentTarget, listRoot, program);
+      } else {
+        currentTarget.patches ??= new Map();
+
+        let parentProgram = currentTarget.patches.get(state);
+
+        if (!parentProgram) {
+          parentProgram = [];
+          currentTarget.patches.set(state, parentProgram);
+        }
+
+        const itemProgram = concatOptimized([], stateProgram);
+
+        parentProgram.push({
+          type: InstructionEnum.Enumerate,
+          tpl,
+          key: Symbol(),
+          break: itemProgram.length + 2,
+        });
+
+        parentProgram.push(
+          ...itemProgram,
+          { type: InstructionEnum.PopOutput },
+          {
+            type: InstructionEnum.Jump,
+            steps: -itemProgram.length - 3,
+          }
+        );
+      }
+    }
+  }
 
   update<T>(state: State<T>, newValue: Value<T>) {
     const { rootValues } = this;
@@ -497,4 +741,37 @@ function execValue(exec: ExecuteState, key: symbol) {
   }
 
   return undefined;
+}
+
+function getDepth(traversal: Instruction[]) {
+  let depth = 0;
+  for (const instruction of traversal) {
+    if (
+      instruction.type === InstructionEnum.PushIndex ||
+      instruction.type === InstructionEnum.PushProperty ||
+      instruction.type === InstructionEnum.PushOutput ||
+      instruction.type === InstructionEnum.PushFragment
+    ) {
+      depth++;
+    }
+    if (instruction.type === InstructionEnum.PopOutput) {
+      depth--;
+    }
+  }
+
+  return depth;
+}
+
+function appendOrSetProgram(
+  target: AutomatonTarget,
+  state: State,
+  program: Instruction[]
+) {
+  target.patches ??= new Map();
+  const existingProgram = target.patches.get(state);
+  if (existingProgram) {
+    existingProgram.push(...program);
+  } else {
+    target.patches.set(state, program);
+  }
 }

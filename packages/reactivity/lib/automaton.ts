@@ -12,7 +12,7 @@ export type AutomatonOutput =
   | any[];
 export type AutomatonTarget = {
   output:
-    | ObjectProperty
+    | AutomatonObject
     | AutomatonRegion
     | AutomatonTemplate
     | AutomatonOutput;
@@ -22,25 +22,18 @@ export type AutomatonTarget = {
   events?: Map<Event, Instruction[]>;
   init?: Instruction[];
   scope: Scope;
+  prop?: string;
 };
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
-  addEvent(eventName: string, handler: Function): void;
+  targetStack: AutomatonTarget[];
   appendArray(): void;
   appendObject(type?: string): void;
   appendText(content: ITextNode['nodeValue'], property?: string): void;
   appendValue<T>(lense: Lense<any>, stateValue?: T): void;
-  popTarget(): void;
-  pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional;
   pushRegion(visible?: boolean | void): IRegion;
   pushTemplate(): AutomatonTemplate;
-  registerReconciler<T>(
-    list: Lense<T[]>,
-    tpl: AutomatonTemplate,
-    item?: ItemState<T>
-  ): void;
-  selectProperty(prop: string): void;
 }
 
 type RegionFrame = Record<symbol, any> & { key: string };
@@ -221,11 +214,8 @@ export class AutomatonConditional {
   }
 }
 
-export class ObjectProperty {
-  constructor(
-    public object: Record<string | number | symbol, any>,
-    public prop?: string
-  ) {}
+export class AutomatonObject {
+  constructor(public object: Record<string | number | symbol, any>) {}
 }
 
 export function cloneTemplateItem<T>(item: T): T {

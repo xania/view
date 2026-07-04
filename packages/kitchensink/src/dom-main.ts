@@ -1,16 +1,17 @@
 import { If } from "@xania/reactivity/core/if";
 import { ForEach } from "@xania/reactivity/core/for";
 import {
-  type AutomatonObject,
-  events as objectEvents,
   JsonAutomaton,
-  domObjectFactory,
+  events as objectEvents,
   type as objectType,
 } from "@xania/reactivity/json-automaton";
+import { UpdateCommand, update } from "@xania/reactivity/commands/update";
 import { render } from "@xania/reactivity/render";
 import { Sandbox } from "@xania/reactivity/sandbox";
 import { useState } from "@xania/reactivity/state";
 import type { Lense, State } from "@xania/reactivity/state";
+// import { DomAutomaton } from "@xania/web";
+import { renderDomShell } from "./shell";
 import "./styles.css";
 
 type Todo = {
@@ -20,7 +21,6 @@ type Todo = {
 };
 
 type DomRuntime = {
-  root: any[];
   sandbox: Sandbox;
   model: DomModel;
 };
@@ -29,9 +29,6 @@ type DomModel = {
   count: State<number>;
   visible: State<boolean>;
   todos: State<Todo[]>;
-  countValue: number;
-  visibleValue: boolean;
-  todosValue: Todo[];
   nextTodoId: number;
 };
 
@@ -41,74 +38,8 @@ if (!app) {
   throw new Error("App root was not found");
 }
 
-app.innerHTML = `
-  <section class="shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Xania Reactivity</p>
-        <h1>DOM Factory</h1>
-      </div>
-      <nav class="topnav" aria-label="Kitchen pages">
-        <a class="navlink" href="/index.html">JSON Preview</a>
-        <a class="navlink active" href="/dom.html">DOM Factory</a>
-      </nav>
-      <div class="status" id="status">ready</div>
-    </header>
-
-    <section class="workspace">
-      <aside class="panel controls">
-        <div class="control-group">
-          <div class="group-head">
-            <h2>State</h2>
-            <span id="countValue">0</span>
-          </div>
-          <div class="button-row">
-            <button id="decrement" type="button">-</button>
-            <button id="increment" type="button">+</button>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="group-head">
-            <h2>Conditional</h2>
-            <span id="visibleValue">shown</span>
-          </div>
-          <button id="toggle" type="button">Toggle hero</button>
-        </div>
-
-        <div class="control-group">
-          <div class="group-head">
-            <h2>ForEach</h2>
-            <span id="todoValue">0 items</span>
-          </div>
-          <div class="button-row">
-            <button id="addTodo" type="button">Add item</button>
-            <button id="completeTodo" type="button">Toggle first</button>
-            <button id="markDoneTodo" type="button">Mark first done</button>
-            <button id="deleteTodo" type="button">Delete first</button>
-          </div>
-        </div>
-      </aside>
-
-      <section class="panel render-panel">
-        <div class="preview-head">
-          <h2>Mounted DOM</h2>
-          <span id="nodeCount">0 nodes</span>
-        </div>
-        <div class="render-surface">
-          <div id="init"></div>
-        </div>
-      </section>
-    </section>
-  </section>
-`;
-
-const init = getElement<HTMLDivElement>("init");
-const status = getElement<HTMLDivElement>("status");
-const countValue = getElement<HTMLSpanElement>("countValue");
-const visibleValue = getElement<HTMLSpanElement>("visibleValue");
-const todoValue = getElement<HTMLSpanElement>("todoValue");
-const nodeCount = getElement<HTMLSpanElement>("nodeCount");
+const { init, status, countValue, visibleValue, todoValue, nodeCount } =
+  renderDomShell(app);
 
 let runtime: DomRuntime;
 
@@ -139,79 +70,57 @@ async function createRuntime(): Promise<DomRuntime> {
   });
 }
 
-function bindControls(current: DomRuntime) {
-  getElement<HTMLButtonElement>("increment").addEventListener("click", () => {
-    void updateCount(current, 1);
-  });
-
-  getElement<HTMLButtonElement>("decrement").addEventListener("click", () => {
-    void updateCount(current, -1);
-  });
-
-  getElement<HTMLButtonElement>("toggle").addEventListener("click", () => {
-    void updateVisible(current);
-  });
-
-  getElement<HTMLButtonElement>("addTodo").addEventListener("click", () => {
-    const todos = current.model.todosValue.slice();
-    todos.push({
-      id: current.model.nextTodoId,
-      title: `Inspect node ${current.model.nextTodoId}`,
-      done: false,
-    });
-    current.model.nextTodoId += 1;
-    void updateTodos(current, todos);
-  });
-
-  getElement<HTMLButtonElement>("completeTodo").addEventListener(
-    "click",
-    () => {
-      const todos = current.model.todosValue.map((todo, index) =>
-        index === 0 ? { ...todo, done: !todo.done } : todo,
-      );
-      void updateTodos(current, todos);
-    },
-  );
-
-  getElement<HTMLButtonElement>("markDoneTodo").addEventListener(
-    "click",
-    () => {
-      const todos = current.model.todosValue.map((todo, index) =>
-        index === 0 ? { ...todo, done: true } : todo,
-      );
-      void updateTodos(current, todos);
-    },
-  );
-
-  getElement<HTMLButtonElement>("deleteTodo").addEventListener("click", () => {
-    if (current.model.todosValue.length === 0) {
-      return;
-    }
-
-    void updateTodos(current, current.model.todosValue.slice(1));
-  });
-}
-
 async function updateCount(current: DomRuntime, delta: number) {
-  const next = current.model.countValue + delta;
   status.textContent = "updating";
-  await current.sandbox.update(current.model.count, next);
-  current.model.countValue = next;
+  await Promise.resolve(
+    current.sandbox.dispatchEvent(
+      {
+        [objectEvents]: {
+          click: new UpdateCommand(
+            current.model.count,
+            (count) => count + delta,
+          ),
+        },
+      },
+      "click",
+    ),
+  );
   paint(current);
 }
 
 async function updateVisible(current: DomRuntime) {
-  const next = !current.model.visibleValue;
   status.textContent = "updating";
-  await current.sandbox.update(current.model.visible, next);
-  current.model.visibleValue = next;
+  await Promise.resolve(
+    current.sandbox.dispatchEvent(
+      {
+        [objectEvents]: {
+          click: new UpdateCommand(
+            current.model.visible,
+            (visible) => !visible,
+          ),
+        },
+      },
+      "click",
+    ),
+  );
   paint(current);
 }
 
-async function updateTodos(current: DomRuntime, todos: Todo[]) {
+async function updateTodos(
+  current: DomRuntime,
+  update: (todos: Todo[]) => Todo[],
+) {
   status.textContent = "updating";
-  await current.sandbox.update(current.model.todos, todos);
-  current.model.todosValue = todos;
+  await Promise.resolve(
+    current.sandbox.dispatchEvent(
+      {
+        [objectEvents]: {
+          click: new UpdateCommand(current.model.todos, update),
+        },
+      },
+      "click",
+    ),
+  );
   paint(current);
 }
 
@@ -225,9 +134,6 @@ async function createRuntimeFromValues(values: {
     count: useState(values.count),
     visible: useState(values.visible),
     todos: useState(values.todos),
-    countValue: values.count,
-    visibleValue: values.visible,
-    todosValue: values.todos,
     nextTodoId: values.nextTodoId,
   };
 
@@ -244,12 +150,12 @@ async function createRuntimeFromValues(values: {
       h(
         "article",
         { class: "hero-card" },
-        h("p", { class: "eyebrow" }, "domObjectFactory"),
+        h("p", { class: "eyebrow" }, "WebAutomaton"),
         h("h2", {}, "Typed Objects Become Real DOM"),
         h(
           "p",
           {},
-          "This page renders through JsonAutomaton, then initializes the resulting DOM-shaped object tree in the browser.",
+          "This page renders directly into the browser DOM through WebAutomaton.",
         ),
         h(
           "div",
@@ -279,6 +185,30 @@ async function createRuntimeFromValues(values: {
       "article",
       { class: "todo-card" },
       h("h3", {}, "Todo Output"),
+      h(
+        "div",
+        { class: "todo-item-actions" },
+        h(
+          "button",
+          {
+            class: "todo-inline-button",
+            [objectEvents]: {
+              click: new UpdateCommand(model.count, 7),
+            },
+          },
+          "Set count to 7",
+        ),
+        h(
+          "button",
+          {
+            class: "todo-inline-button",
+            [objectEvents]: {
+              click: new UpdateCommand(model.visible, false),
+            },
+          },
+          "Hide hero",
+        ),
+      ),
       h(
         "p",
         { class: "empty-state" },
@@ -324,13 +254,13 @@ async function createRuntimeFromValues(values: {
                         return;
                       }
 
-                      const todos = runtime.model.todosValue.map((todo) =>
-                        todo.id === todoId
-                          ? { ...todo, done: !todo.done }
-                          : todo,
+                      return update(runtime.model.todos, (todos) =>
+                        todos.map((todo) =>
+                          todo.id === todoId
+                            ? { ...todo, done: !todo.done }
+                            : todo,
+                        ),
                       );
-
-                      void updateTodos(runtime, todos);
                     },
                   },
                 },
@@ -345,22 +275,81 @@ async function createRuntimeFromValues(values: {
     ),
   );
 
-  const root: any[] = [];
-  const sandbox = await render(
-    view,
-    new JsonAutomaton(root, undefined, domObjectFactory),
-  );
+  const sandbox = await render(view, new JsonAutomaton(init));
 
-  return { root, sandbox, model };
+  return { sandbox, model };
+}
+
+function bindControls(current: DomRuntime) {
+  document.body.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    const control = target.closest("[data-control-action]");
+    if (!(control instanceof HTMLElement)) {
+      return;
+    }
+
+    const action = control.dataset.controlAction;
+    switch (action) {
+      case "increment":
+        void updateCount(current, 1);
+        break;
+      case "decrement":
+        void updateCount(current, -1);
+        break;
+      case "toggle":
+        void updateVisible(current);
+        break;
+      case "addTodo": {
+        const nextTodoId = current.model.nextTodoId;
+        current.model.nextTodoId += 1;
+        void updateTodos(current, (todos) => [
+          ...todos,
+          {
+            id: nextTodoId,
+            title: `Inspect node ${nextTodoId}`,
+            done: false,
+          },
+        ]);
+        break;
+      }
+      case "completeTodo": {
+        void updateTodos(current, (todos) =>
+          todos.map((todo, index) =>
+            index === 0 ? { ...todo, done: !todo.done } : todo,
+          ),
+        );
+        break;
+      }
+      case "markDoneTodo": {
+        void updateTodos(current, (todos) =>
+          todos.map((todo, index) =>
+            index === 0 ? { ...todo, done: true } : todo,
+          ),
+        );
+        break;
+      }
+      case "deleteTodo":
+        if (readState(current, current.model.todos).length > 0) {
+          void updateTodos(current, (todos) => todos.slice(1));
+        }
+        break;
+    }
+  });
 }
 
 function paint(current: DomRuntime) {
-  countValue.textContent = String(current.model.countValue);
-  visibleValue.textContent = current.model.visibleValue ? "shown" : "hidden";
-  todoValue.textContent = `${current.model.todosValue.length} items`;
-  nodeCount.textContent = `${countNodes(current.root)} nodes`;
+  const count = readState(current, current.model.count);
+  const visible = readState(current, current.model.visible);
+  const todos = readState(current, current.model.todos);
 
-  init.replaceChildren(...materializeChildren(current.root));
+  countValue.textContent = String(count);
+  visibleValue.textContent = visible ? "shown" : "hidden";
+  todoValue.textContent = `${todos.length} items`;
+  nodeCount.textContent = `${countNodes(init)} nodes`;
   status.textContent = "ready";
 }
 
@@ -375,66 +364,8 @@ function h(
     children,
   };
 }
-
-function materializeChildren(value: unknown): Node[] {
-  if (value instanceof Array) {
-    return value.flatMap((item) => materializeChildren(item));
-  }
-
-  if (value === null || value === undefined) {
-    return [];
-  }
-
-  if (typeof value === "string" || typeof value === "number") {
-    return [document.createTextNode(String(value))];
-  }
-
-  if (typeof value === "object") {
-    const record = value as AutomatonObject;
-    if (typeof record.type === "string") {
-      const element = document.createElement(record.type);
-      const eventMap = record[objectEvents] as
-        | Record<string, (this: Record<string, unknown>, event: Event) => void>
-        | undefined;
-
-      for (const [key, propValue] of Object.entries(record)) {
-        if (key === "type" || key === "children") {
-          continue;
-        }
-
-        if (
-          propValue === false ||
-          propValue === null ||
-          propValue === undefined
-        ) {
-          continue;
-        }
-
-        if (propValue === true) {
-          element.setAttribute(key, "");
-          continue;
-        }
-
-        const attrName = key === "className" ? "class" : key;
-        element.setAttribute(attrName, String(propValue));
-      }
-
-      if (eventMap) {
-        for (const [eventName, handler] of Object.entries(eventMap)) {
-          element.addEventListener(eventName, (event) =>
-            handler.call(record, event),
-          );
-        }
-      }
-
-      element.append(...materializeChildren(record.children ?? []));
-      return [element];
-    }
-
-    return [document.createTextNode(JSON.stringify(record))];
-  }
-
-  return [document.createTextNode(String(value))];
+function readState<T>(current: DomRuntime, state: State<T>): T {
+  return (current.sandbox.rootValues[state.key] ?? state.initial) as T;
 }
 
 function countNodes(value: unknown): number {
@@ -453,12 +384,4 @@ function countNodes(value: unknown): number {
   }
 
   return 1;
-}
-
-function getElement<T extends HTMLElement>(id: string): T {
-  const element = document.getElementById(id);
-  if (!element) {
-    throw new Error(`Missing element #${id}`);
-  }
-  return element as T;
 }

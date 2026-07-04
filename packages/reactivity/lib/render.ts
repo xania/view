@@ -16,11 +16,7 @@ import {
   Scope,
   State,
 } from './state';
-import {
-  type AutomatonObject,
-  events as objectEvents,
-  type,
-} from './json-automaton';
+import { events as objectEvents, type } from './json-automaton';
 
 export function render(
   view: any,
@@ -69,7 +65,7 @@ export function render(
         const { expr, visible } = curr;
 
         if (isLense(expr)) {
-          const conditional = automaton.pushConditional(expr, visible);
+          sandbox.pushConditional(expr, visible);
           viewStack.push(popTarget);
           viewStack.push(curr.body);
         } else if (visible) {
@@ -87,7 +83,7 @@ export function render(
         // viewStack.push(new InitializeState(state));
 
         viewStack.push(() =>
-          automaton.registerReconciler(list, tpl, iterator.itemState)
+          sandbox.registerReconciler(list, tpl, iterator.itemState)
         );
 
         if (initial) {
@@ -104,7 +100,7 @@ export function render(
           return result.then(() => traverse(currentScope));
         }
       } else if (curr instanceof SelectProperty) {
-        automaton.selectProperty(curr.prop);
+        sandbox.selectProperty(curr.prop);
       } else if (isLense(curr)) {
         const { initial } = curr;
 
@@ -126,7 +122,7 @@ export function render(
           sandbox.update(curr.expr, initial);
         }
       } else if (curr === popTarget) {
-        automaton.popTarget();
+        sandbox.popTarget();
       } else if (curr.constructor === Array) {
         automaton.appendArray();
         viewStack.push(popTarget);
@@ -146,7 +142,7 @@ export function render(
           const eventNames = Object.keys(eventsObject);
           for (const eventName of eventNames) {
             const handler = eventsObject[eventName];
-            automaton.addEvent(eventName, handler);
+            sandbox.attachEvent(eventName, handler);
           }
         }
 

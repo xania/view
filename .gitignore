@@ -13,3 +13,4 @@ dist
 coverage/
 *.tsbuildinfo
 .cache/
+.pnpm-store/

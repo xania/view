@@ -23,6 +23,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@xania/reactivity': path.resolve(__dirname, '../reactivity/lib'),
+      '@xania/web': path.resolve(__dirname, '../web/lib'),
     },
   },
 });
