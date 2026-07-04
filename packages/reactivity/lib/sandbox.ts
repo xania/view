@@ -96,12 +96,14 @@ export class Sandbox {
     output.object[events][eventName] = handler;
   }
 
-  selectProperty(prop: string): void {
-    this.automaton.currentTarget.prop = prop;
-  }
+  appendArray(): boolean | void {
+    const nextTarget = this.automaton.appendArray();
+    if (!nextTarget) {
+      return;
+    }
 
-  appendArray(): void {
-    this.pushTarget(this.automaton.appendArray());
+    this.pushTarget(nextTarget);
+    return true;
   }
 
   appendObject(type?: string): void {

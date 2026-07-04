@@ -21,6 +21,7 @@ import {
 
 export const type = Symbol('type');
 export const events = Symbol('events');
+export const children = Symbol('children');
 export type ObjectEvents = Record<string, Function>;
 
 export class JsonAutomaton implements Automaton {
@@ -238,7 +239,7 @@ export class JsonAutomaton implements Automaton {
     }
   }
 
-  appendText(content: ITextNode['nodeValue'], property?: string): void {
+  appendText(content: ITextNode['nodeValue']): void {
     const { output, prop } = this.currentTarget;
 
     if (output instanceof AutomatonObject) {
@@ -254,9 +255,9 @@ export class JsonAutomaton implements Automaton {
       output.items.push(content);
     } else if (output instanceof Array) {
       output.push(content);
-    } else if (property) {
+    } else if (prop) {
       const target = output as Record<string | number, any>;
-      target[property] = content;
+      target[prop] = content;
     } else {
       throw Error('Not yet implemented!');
     }

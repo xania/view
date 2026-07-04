@@ -27,9 +27,9 @@ export type AutomatonTarget = {
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
-  appendArray(): AutomatonTarget;
+  appendArray(): AutomatonTarget | void;
   appendObject(type?: string): AutomatonTarget;
-  appendText(content: ITextNode['nodeValue'], property?: string): void;
+  appendText(content: ITextNode['nodeValue']): void;
   appendValue<T>(lense: Lense<any>, stateValue?: T): void;
   pushRegion(visible?: boolean | void): AutomatonTarget;
   pushTemplate(): AutomatonTarget;

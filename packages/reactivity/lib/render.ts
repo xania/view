@@ -16,7 +16,11 @@ import {
   Scope,
   State,
 } from './state';
-import { events as objectEvents, type } from './json-automaton';
+import {
+  events as objectEvents,
+  type as objectType,
+  children as objectChildren,
+} from './json-automaton';
 
 export function render(
   view: any,
@@ -101,7 +105,7 @@ export function render(
           return result.then(() => traverse(currentScope));
         }
       } else if (curr instanceof SelectProperty) {
-        sandbox.selectProperty(curr.prop);
+        sandbox.automaton.currentTarget.prop = curr.prop;
       } else if (isLense(curr)) {
         const { initial } = curr;
 
@@ -135,8 +139,8 @@ export function render(
           }
         }
       } else if (curr.constructor === Object) {
-        const objectType = curr[type];
-        sandbox.appendObject(objectType);
+        const type = curr[objectType];
+        sandbox.appendObject(type);
 
         const eventsObject = curr[objectEvents];
         if (eventsObject) {
@@ -147,10 +151,15 @@ export function render(
           }
         }
 
-        const properties = Object.keys(curr);
-
         viewStack.push(popTarget);
 
+        const children = curr[objectChildren];
+        if (children) {
+          viewStack.push(children);
+        }
+        viewStack.push(new SelectProperty(undefined));
+
+        const properties = Object.keys(curr);
         for (let idx = properties.length - 1; idx >= 0; idx--) {
           const prop = properties[idx];
           const propValue = curr[prop];
@@ -169,7 +178,7 @@ class InitializeState {
 }
 
 class SelectProperty {
-  constructor(public prop: string) {}
+  constructor(public prop?: string) {}
 }
 
 function buildIterator(childScope: Scope, body: ForEachBody, list: Lense) {
