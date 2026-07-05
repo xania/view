@@ -1,6 +1,5 @@
 import {
   Automaton,
-  AutomatonConditional,
   AutomatonTarget,
   AutomatonTemplate,
   cloneTemplateItem,
@@ -11,18 +10,24 @@ import { reconcile, ReconcileOperation } from './core/reconcile';
 import { concatOptimized, appendStateRead } from './json-automaton';
 import { events } from './json-automaton';
 import { Event } from './event';
-import { InstructionEnum, type Instruction, type Program } from './program';
+import { InstructionEnum, Program, type Instruction } from './program';
 import {
   ItemState,
   Lense,
   mapValue,
   resolveRootState,
+  Scope,
   State,
   Value,
 } from './state';
 
 export class Sandbox {
   public targetStack: AutomatonTarget[] = [];
+
+  constructor(
+    public automaton: Automaton,
+    public currentScope: Scope
+  ) {}
 
   pushTarget(nextTarget: AutomatonTarget) {
     this.targetStack.push(this.automaton.currentTarget);
@@ -70,8 +75,6 @@ export class Sandbox {
   public rootValues: Record<symbol, any> = {};
   private executeStates: Record<symbol, ExecuteState> = {};
 
-  constructor(public automaton: Automaton) {}
-
   attachEvent(eventName: string, handler: Function): void {
     const { currentTarget } = this.automaton;
     const { output } = currentTarget;
@@ -108,46 +111,6 @@ export class Sandbox {
 
   appendObject(type?: string): void {
     this.pushTarget(this.automaton.appendObject(type));
-  }
-
-  pushConditional(lense: Lense<any>, stateValue: any): AutomatonConditional {
-    const { currentTarget } = this.automaton;
-    if (!(currentTarget.output instanceof Array)) {
-      throw Error('output is not an array');
-    }
-
-    const conditional = new AutomatonConditional(
-      currentTarget.output,
-      lense,
-      stateValue
-    );
-    const state = resolveRootState(lense);
-
-    this.pushTarget({
-      output: conditional,
-      traversal: [
-        {
-          type: InstructionEnum.PushOutput,
-          output: conditional.fragment,
-        },
-      ],
-      scope: currentTarget.scope,
-      patches: new Map<State, Program>([
-        [
-          state,
-          (() => {
-            const program = appendStateRead(lense, []);
-            program.push({
-              type: InstructionEnum.Show,
-              node: conditional,
-            } as Instruction);
-            return program;
-          })(),
-        ],
-      ]),
-    });
-
-    return conditional;
   }
 
   pushRegion(visible: boolean | void = true): void {

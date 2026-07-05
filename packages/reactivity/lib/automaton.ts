@@ -31,6 +31,7 @@ export interface Automaton {
   appendObject(type?: string): AutomatonTarget;
   appendText(content: ITextNode['nodeValue']): void;
   appendValue<T>(lense: Lense<any>, stateValue?: T): void;
+  pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget;
   pushRegion(visible?: boolean | void): AutomatonTarget;
   pushTemplate(): AutomatonTarget;
 }

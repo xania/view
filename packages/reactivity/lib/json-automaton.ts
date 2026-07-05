@@ -80,6 +80,44 @@ export class JsonAutomaton implements Automaton {
     };
   }
 
+  pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget {
+    const { currentTarget } = this;
+    if (!(currentTarget.output instanceof Array)) {
+      throw Error('output is not an array');
+    }
+
+    const conditional = new AutomatonConditional(
+      currentTarget.output,
+      lense,
+      stateValue
+    );
+    const state = resolveRootState(lense);
+
+    return {
+      output: conditional,
+      traversal: [
+        {
+          type: InstructionEnum.PushOutput,
+          output: conditional.fragment,
+        },
+      ],
+      scope: currentTarget.scope,
+      patches: new Map<State, Program>([
+        [
+          state,
+          (() => {
+            const program = appendStateRead(lense, []);
+            program.push({
+              type: InstructionEnum.Show,
+              node: conditional,
+            } as Instruction);
+            return program;
+          })(),
+        ],
+      ]),
+    };
+  }
+
   pushTemplate(): AutomatonTarget {
     const { currentTarget } = this;
     if (!(currentTarget.output instanceof Array)) {

@@ -8,5 +8,5 @@
     "types": ["vite/client"],
     "noEmit": true
   },
-  "include": ["lib", "vite.config.ts"]
+  "include": ["lib", "test", "vite.config.ts"]
 }

@@ -19,12 +19,16 @@
   "dependencies": {
     "@xania/reactivity": "workspace:*"
   },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  },
   "scripts": {
     "dev": "npx vite --watch build",
     "build": "npm run clean && npx vite build",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm run build",
-    "lint": "tsc"
+    "lint": "tsc",
+    "test": "vitest run"
   },
   "prettier": {
     "printWidth": 80,

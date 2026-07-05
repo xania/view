@@ -6,11 +6,10 @@ import {
   children as objectChildren,
 } from "@xania/reactivity/json-automaton";
 import { UpdateCommand, update } from "@xania/reactivity/commands/update";
-import { render } from "@xania/reactivity/render";
 import { Sandbox } from "@xania/reactivity/sandbox";
 import { useState } from "@xania/reactivity/state";
 import type { Lense, State } from "@xania/reactivity/state";
-import { DomAutomaton } from "@xania/web";
+import { renderDOM } from "@xania/web";
 import { renderDomShell } from "./shell";
 import "./styles.css";
 
@@ -275,7 +274,7 @@ async function createRuntimeFromValues(values: {
     ),
   );
 
-  const sandbox = await render(view, new DomAutomaton(init));
+  const sandbox = await renderDOM(view, init);
 
   return { sandbox, model };
 }

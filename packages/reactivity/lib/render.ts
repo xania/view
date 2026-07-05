@@ -22,154 +22,176 @@ import {
   children as objectChildren,
 } from './json-automaton';
 
+export interface RenderOption {
+  expand(renderState: RenderState, view: any): boolean;
+}
+
 export function render(
   view: any,
-  automaton: Automaton
+  automaton: Automaton,
+  options?: RenderOption
 ): Promise<Sandbox> | Sandbox {
-  const sandbox = new Sandbox(automaton);
+  const sandbox = new Sandbox(automaton, RootScope);
 
   if (view === undefined || view === null) {
     return sandbox;
   }
 
-  const viewStack = [view];
-
-  const promises: Promise<any>[] = [];
-  const retval = traverse(RootScope);
+  const renderState: RenderState = {
+    viewStack: [view],
+    promises: [],
+  };
+  const retval = traverse(sandbox, renderState, options);
 
   if (retval instanceof Promise) {
-    promises.push(retval);
+    renderState.promises.push(retval);
   }
 
-  if (promises.length) {
-    return Promise.all(promises).then(() => sandbox);
+  if (renderState.promises.length) {
+    return Promise.all(renderState.promises).then(() => sandbox);
   } else {
     return sandbox;
   }
+}
 
-  function traverse(currentScope: Scope): void | Promise<void> {
-    while (viewStack.length) {
-      const curr = viewStack.pop()!;
-      if (curr === null || curr === undefined) {
-        continue;
+export interface RenderState {
+  viewStack: any[];
+  promises: Promise<any>[];
+}
+
+export function traverse(
+  sandbox: Sandbox,
+  renderState: RenderState,
+  options?: RenderOption
+): void | Promise<void> {
+  const { automaton } = sandbox;
+
+  while (renderState.viewStack.length) {
+    const curr = renderState.viewStack.pop()!;
+
+    if (curr === null || curr === undefined) {
+      continue;
+    }
+
+    if (curr instanceof Promise) {
+      return curr.then((resolved) => {
+        renderState.viewStack.push(resolved);
+        return traverse(sandbox, renderState, options);
+      });
+    }
+
+    if (options?.expand(renderState, curr)) {
+      continue;
+    }
+
+    if (curr.constructor === String) {
+      const node = automaton.appendText(curr);
+    } else if (curr.constructor === Number) {
+      const node = automaton.appendText(curr);
+    } else if (curr.constructor === Conditional) {
+      const { expr, visible } = curr;
+
+      if (isLense(expr)) {
+        sandbox.pushTarget(automaton.pushConditional(expr, visible));
+        renderState.viewStack.push(popTarget);
+        renderState.viewStack.push(curr.body);
+      } else if (visible) {
+        sandbox.pushRegion();
+        renderState.viewStack.push(popTarget);
+        renderState.viewStack.push(curr.body);
       }
+    } else if (curr.constructor === ForEachComponent) {
+      const { body, initial, expr: list } = curr;
+      const state = resolveRootState(list);
 
-      if (curr instanceof Promise) {
-        return curr.then((resolved) => {
-          viewStack.push(resolved);
-          return traverse(currentScope);
+      const tpl = sandbox.pushTemplate();
+
+      const iterator = buildIterator(tpl.scope, body, list);
+
+      // renderState.viewStack.push(new InitializeState(state));
+
+      renderState.viewStack.push(() =>
+        sandbox.registerReconciler(list, tpl, iterator.itemState)
+      );
+
+      if (initial) {
+        const { itemState } = iterator;
+        renderState.viewStack.push(() =>
+          initializeIterator(sandbox, tpl, initial, itemState)
+        );
+      }
+      renderState.viewStack.push(popTarget);
+      renderState.viewStack.push(iterator.body);
+    } else if (curr instanceof Function) {
+      const result = curr();
+      if (result instanceof Promise) {
+        return result.then(() => traverse(sandbox, renderState, options));
+      }
+    } else if (curr instanceof SelectProperty) {
+      sandbox.automaton.currentTarget.prop = curr.prop;
+    } else if (isLense(curr)) {
+      const { initial } = curr;
+
+      if (initial instanceof Promise) {
+        return initial.then((resolved) => {
+          automaton.appendValue(curr, resolved);
+          return traverse(sandbox, renderState, options);
         });
       }
 
-      if (curr.constructor === String) {
-        const node = automaton.appendText(curr);
-      } else if (curr.constructor === Number) {
-        const node = automaton.appendText(curr);
-      } else if (curr.constructor === Conditional) {
-        const { expr, visible } = curr;
-
-        if (isLense(expr)) {
-          sandbox.pushConditional(expr, visible);
-          viewStack.push(popTarget);
-          viewStack.push(curr.body);
-        } else if (visible) {
-          sandbox.pushRegion();
-          viewStack.push(popTarget);
-          viewStack.push(curr.body);
-        }
-      } else if (curr.constructor === ForEachComponent) {
-        const { body, initial, expr: list } = curr;
-        const state = resolveRootState(list);
-
-        const tpl = sandbox.pushTemplate();
-
-        const iterator = buildIterator(tpl.scope, body, list);
-
-        // viewStack.push(new InitializeState(state));
-
-        viewStack.push(() =>
-          sandbox.registerReconciler(list, tpl, iterator.itemState)
-        );
-
-        if (initial) {
-          const { itemState } = iterator;
-          viewStack.push(() =>
-            initializeIterator(sandbox, tpl, initial, itemState)
-          );
-        }
-        viewStack.push(popTarget);
-        viewStack.push(iterator.body);
-      } else if (curr instanceof Function) {
-        const result = curr();
-        if (result instanceof Promise) {
-          return result.then(() => traverse(currentScope));
-        }
-      } else if (curr instanceof SelectProperty) {
-        sandbox.automaton.currentTarget.prop = curr.prop;
-      } else if (isLense(curr)) {
-        const { initial } = curr;
-
-        if (initial instanceof Promise) {
-          return initial.then((resolved) => {
-            automaton.appendValue(curr, resolved);
-            return traverse(currentScope);
-          });
-        }
-
-        automaton.appendValue(curr, initial);
-      } else if (curr instanceof InitializeState) {
-        const { initial } = curr.expr;
-        if (initial instanceof Promise) {
-          return initial
-            .then((res) => sandbox.update(curr.expr, res))
-            .then((_) => traverse(currentScope));
-        } else {
-          sandbox.update(curr.expr, initial);
-        }
-      } else if (curr === popTarget) {
-        sandbox.popTarget();
-      } else if (curr.constructor === Array) {
-        sandbox.appendArray();
-        viewStack.push(popTarget);
-
-        for (let i = curr.length - 1; i >= 0; i--) {
-          const item = curr[i];
-          if (item !== null && item !== undefined) {
-            viewStack.push(item);
-          }
-        }
-      } else if (curr.constructor === Object) {
-        const type = curr[objectType];
-        sandbox.appendObject(type);
-
-        const eventsObject = curr[objectEvents];
-        if (eventsObject) {
-          const eventNames = Object.keys(eventsObject);
-          for (const eventName of eventNames) {
-            const handler = eventsObject[eventName];
-            sandbox.attachEvent(eventName, handler);
-          }
-        }
-
-        viewStack.push(popTarget);
-
-        const children = curr[objectChildren];
-        if (children) {
-          viewStack.push(children);
-        }
-        viewStack.push(new SelectProperty(undefined));
-
-        const properties = Object.keys(curr);
-        for (let idx = properties.length - 1; idx >= 0; idx--) {
-          const prop = properties[idx];
-          const propValue = curr[prop];
-
-          viewStack.push(propValue);
-          viewStack.push(new SelectProperty(prop));
-        }
+      automaton.appendValue(curr, initial);
+    } else if (curr instanceof InitializeState) {
+      const { initial } = curr.expr;
+      if (initial instanceof Promise) {
+        return initial
+          .then((res) => sandbox.update(curr.expr, res))
+          .then((_) => traverse(sandbox, renderState, options));
       } else {
-        throw Error('unsupported view');
+        sandbox.update(curr.expr, initial);
       }
+    } else if (curr === popTarget) {
+      sandbox.popTarget();
+    } else if (curr.constructor === Array) {
+      sandbox.appendArray();
+      renderState.viewStack.push(popTarget);
+
+      for (let i = curr.length - 1; i >= 0; i--) {
+        const item = curr[i];
+        if (item !== null && item !== undefined) {
+          renderState.viewStack.push(item);
+        }
+      }
+    } else if (curr.constructor === Object) {
+      const type = curr[objectType];
+      sandbox.appendObject(type);
+
+      const eventsObject = curr[objectEvents];
+      if (eventsObject) {
+        const eventNames = Object.keys(eventsObject);
+        for (const eventName of eventNames) {
+          const handler = eventsObject[eventName];
+          sandbox.attachEvent(eventName, handler);
+        }
+      }
+
+      renderState.viewStack.push(popTarget);
+
+      const children = curr[objectChildren];
+      if (children) {
+        renderState.viewStack.push(children);
+      }
+      renderState.viewStack.push(new SelectProperty(undefined));
+
+      const properties = Object.keys(curr);
+      for (let idx = properties.length - 1; idx >= 0; idx--) {
+        const prop = properties[idx];
+        const propValue = curr[prop];
+
+        renderState.viewStack.push(propValue);
+        renderState.viewStack.push(new SelectProperty(prop));
+      }
+    } else {
+      throw Error('unsupported view');
     }
   }
 }
