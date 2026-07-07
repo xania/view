@@ -411,6 +411,11 @@ export class Sandbox {
             exec.currentOutput[property] = currentValue;
           }
           break;
+        case InstructionEnum.UpdateChild:
+          const { index: childIdx } = instruction;
+          const childrenList = exec.currentOutput[children];
+          childrenList[childIdx] = currentValue;
+          break;
         case InstructionEnum.Show:
           instruction.node.show(currentValue);
           break;
@@ -456,7 +461,7 @@ export class Sandbox {
             const idx = exec.currentOutput.offset + instruction.index;
             pushToStack(exec, exec.currentOutput.output[children][idx]);
           } else {
-            pushToStack(exec, exec.currentOutput[instruction.index]);
+            pushToStack(exec, exec.currentOutput[children][instruction.index]);
           }
           break;
 

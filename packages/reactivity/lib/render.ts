@@ -180,11 +180,13 @@ export function traverse(
       renderState.viewStack.push(popTarget);
 
       const children = curr[objectChildren];
-      if (children) {
+      if (children instanceof Array) {
         let length = children.length;
         while (length--) {
           renderState.viewStack.push(children[length]);
         }
+      } else if (children) {
+        renderState.viewStack.push(children);
       }
 
       renderState.viewStack.push(

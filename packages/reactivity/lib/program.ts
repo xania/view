@@ -16,6 +16,7 @@ export type Instruction =
   | JumpInstruction
   | UpdateArrayInstruction
   | UpdateObjectInstruction
+  | UpdateChildInstruction
   | PopOutputInstruction
   | IfVisibleInstruction
   | SelectTemplateInstruction
@@ -92,6 +93,11 @@ export interface UpdateObjectInstruction {
   property: number | string | symbol;
 }
 
+export interface UpdateChildInstruction {
+  type: InstructionEnum.UpdateChild;
+  index: number;
+}
+
 export enum InstructionEnum {
   Write = 'Write',
   Read = 'Read',
@@ -104,6 +110,7 @@ export enum InstructionEnum {
   IfVisible = 'IfVisible',
   UpdateArray = 'UpdateArray',
   UpdateObject = 'UpdateObject',
+  UpdateChild = 'UpdateChild',
   PopOutput = 'PopOutput',
   PushOutput = 'PushOutput',
   SelectTemplate = 'SelectTemplate',

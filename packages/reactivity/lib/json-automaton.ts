@@ -273,17 +273,26 @@ export class JsonAutomaton implements Automaton {
       ];
     } else if (output instanceof AutomatonObject) {
       const prop = output.prop;
-      if (!prop) {
-        throw Error('Cannot append value to object, need prop');
-      }
-      output.object[prop] = stateValue;
+      if (prop) {
+        output.object[prop] = stateValue;
+        return [
+          {
+            type: InstructionEnum.UpdateObject,
+            property: prop,
+          },
+        ];
+      } else {
+        const childrenList = (output.object[children] ??= []);
+        const idx = childrenList.length;
+        childrenList.push(stateValue);
 
-      return [
-        {
-          type: InstructionEnum.UpdateObject,
-          property: prop,
-        },
-      ];
+        return [
+          {
+            type: InstructionEnum.UpdateChild,
+            index: idx,
+          },
+        ];
+      }
     }
   }
 

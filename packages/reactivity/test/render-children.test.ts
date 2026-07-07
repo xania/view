@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { children, JsonAutomaton, render } from '../lib';
+import { children, JsonAutomaton, render, useState } from '../lib';
 
-describe('reconcile', () => {
-  it('creates insert operations for an initial list', () => {
+describe('render children', () => {
+  it('renders an initial children list', () => {
     const view = {
       type: 'object as container',
       [children]: [1, 2],
@@ -12,5 +12,36 @@ describe('reconcile', () => {
     render(view, new JsonAutomaton(root));
 
     expect(root).toEqual({ [children]: [view] });
+  });
+
+  it('renders an reactive children list', async () => {
+    const s1 = useState(1);
+    const view = {
+      type: 'object as container',
+      [children]: s1,
+    };
+
+    const root = {};
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    expect(root).toEqual({
+      [children]: [
+        {
+          type: 'object as container',
+          [children]: [1],
+        },
+      ],
+    });
+
+    sandbox.update(s1, 2);
+
+    expect(root).toEqual({
+      [children]: [
+        {
+          type: 'object as container',
+          [children]: [2],
+        },
+      ],
+    });
   });
 });

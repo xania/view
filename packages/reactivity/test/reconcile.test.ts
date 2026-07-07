@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { reconcile, type ReconcileOperation } from '../lib/core/reconcile';
 
 describe('reconcile', () => {
-  it('creates insert operations for an initial list', () => {
+  it('creates insert operations for each item in an initial list', () => {
     expect(Array.from(reconcile([1, 2], createTemplate()))).toEqual([
       { type: 'insert', index: 0, value: 1 },
       { type: 'insert', index: 1, value: 2 },
