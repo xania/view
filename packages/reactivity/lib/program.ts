@@ -1,6 +1,7 @@
 import { AutomatonTemplate, ITextNode } from './automaton';
 import { ReconcileOperation } from './core/reconcile';
 import type { Event } from './event';
+import { ArrayFragment } from './sandbox';
 
 export type Program = Instruction[];
 
@@ -131,7 +132,7 @@ interface EnumerateInstruction {
   key: symbol;
   break: number;
   fragmentIdx: number;
-  fragmentOffset: number;
+  fragment?: ArrayFragment;
 }
 interface ReconcileInstruction {
   type: InstructionEnum.Reconcile;

@@ -295,19 +295,14 @@ export class Sandbox {
           type: InstructionEnum.Enumerate,
           tpl,
           key: Symbol(),
-          break: itemProgram.length + 2,
+          break: itemProgram.length + 1,
           fragmentIdx: -1,
-          fragmentOffset: -1,
         });
 
-        parentProgram.push(
-          ...itemProgram,
-          { type: InstructionEnum.PopOutput },
-          {
-            type: InstructionEnum.Jump,
-            steps: -itemProgram.length - 3,
-          }
-        );
+        parentProgram.push(...itemProgram, {
+          type: InstructionEnum.Jump,
+          steps: -itemProgram.length - 2,
+        });
       }
     }
   }
@@ -490,10 +485,26 @@ export class Sandbox {
 
             if (instruction.fragmentIdx < 0) {
               // init
-              instruction.fragmentIdx = 0;
               exec.valuesStack.push(exec.values);
+              instruction.fragmentIdx = 0;
+
+              if (exec.currentOutput instanceof Array) {
+                instruction.fragment = new ArrayFragment(
+                  exec.currentOutput,
+                  offset
+                );
+              } else if (exec.currentOutput instanceof ArrayFragment) {
+                instruction.fragment = new ArrayFragment(
+                  exec.currentOutput.output,
+                  exec.currentOutput.offset + offset
+                );
+              } else {
+                throw Error('not an array');
+              }
+              pushToStack(exec, instruction.fragment);
             } else {
               instruction.fragmentIdx++;
+              instruction.fragment!.offset += items.length;
             }
 
             const { fragmentIdx } = instruction;
@@ -503,32 +514,12 @@ export class Sandbox {
               instructionIdx += instruction.break;
               exec.values = exec.valuesStack.pop();
               instruction.fragmentIdx = -1;
+              popFromStack(exec);
             } else {
-              instruction.fragmentOffset = offset + items.length * fragmentIdx;
               exec.values = regions[fragmentIdx];
 
               if (itemKey) {
                 exec.values[itemKey] = items[fragmentIdx];
-              }
-
-              if (exec.currentOutput instanceof Array) {
-                pushToStack(
-                  exec,
-                  new ArrayFragment(
-                    exec.currentOutput,
-                    instruction.fragmentOffset
-                  )
-                );
-              } else if (exec.currentOutput instanceof ArrayFragment) {
-                pushToStack(
-                  exec,
-                  new ArrayFragment(
-                    exec.currentOutput.output,
-                    exec.currentOutput.offset + instruction.fragmentOffset
-                  )
-                );
-              } else {
-                throw Error('not an array');
               }
             }
           }

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { reconcile, type ReconcileOperation } from '../lib/core/reconcile';
 import { children, JsonAutomaton, render } from '../lib';
 
 describe('reconcile', () => {
@@ -12,6 +11,6 @@ describe('reconcile', () => {
     const root = {};
     render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual(view);
+    expect(root).toEqual({ [children]: [view] });
   });
 });

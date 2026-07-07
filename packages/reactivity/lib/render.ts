@@ -181,7 +181,10 @@ export function traverse(
 
       const children = curr[objectChildren];
       if (children) {
-        renderState.viewStack.push(children);
+        let length = children.length;
+        while (length--) {
+          renderState.viewStack.push(children[length]);
+        }
       }
 
       renderState.viewStack.push(

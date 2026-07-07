@@ -147,18 +147,26 @@ export class JsonAutomaton implements Automaton {
   ): Instruction[] | void {
     if (output instanceof AutomatonObject) {
       const prop = output.prop;
-      if (!prop) {
-        throw Error('Cannot set value, prop is not selected');
-      }
-      if (!(prop in output.object)) {
+      if (prop) {
         output.object[prop] = value;
+        return [
+          {
+            type: InstructionEnum.PushProperty,
+            prop: prop,
+          },
+        ];
+      } else {
+        const childrenList = (output.object[children] ??= []);
+        childrenList.push(value);
+
+        const idx = childrenList.length;
+        return [
+          {
+            type: InstructionEnum.PushChild,
+            index: idx,
+          },
+        ];
       }
-      return [
-        {
-          type: InstructionEnum.PushProperty,
-          prop: prop,
-        },
-      ];
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(value);
       return [
@@ -283,10 +291,12 @@ export class JsonAutomaton implements Automaton {
     const { output } = this.currentTarget;
 
     if (output instanceof AutomatonObject) {
-      if (!output.prop) {
-        throw Error('Cannot append text, prop is not selected');
+      if (output.prop) {
+        output.object[output.prop] = content;
+      } else {
+        const childrenList = (output.object[children] ??= []);
+        childrenList.push(content);
       }
-      output.object[output.prop] = content;
     } else if (output instanceof AutomatonRegion) {
       output.push(content);
     } else if (output instanceof AutomatonConditional) {
