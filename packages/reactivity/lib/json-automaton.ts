@@ -55,8 +55,7 @@ export class JsonAutomaton implements Automaton {
 
     return {
       output: newNode,
-      traversal:
-        this.append(currentTarget.output, newObject, currentTarget.prop) ?? [],
+      traversal: this.append(currentTarget.output, newObject) ?? [],
       scope: currentTarget.scope,
     };
   }
@@ -144,10 +143,10 @@ export class JsonAutomaton implements Automaton {
 
   private append(
     output: AutomatonTarget['output'],
-    value: any,
-    prop: string | undefined = undefined
+    value: any
   ): Instruction[] | void {
     if (output instanceof AutomatonObject) {
+      const prop = output.prop;
       if (!prop) {
         throw Error('Cannot set value, prop is not selected');
       }
@@ -194,6 +193,18 @@ export class JsonAutomaton implements Automaton {
           index: offset,
         },
       ];
+    } else if (output) {
+      output[children] ??= [];
+
+      const offset = output[children].length;
+      output[children].push(value);
+
+      return [
+        {
+          type: InstructionEnum.PushChild,
+          index: offset,
+        },
+      ];
     } else
       throw Error(
         'invalid state: current expected to be array when property is not provided'
@@ -207,84 +218,75 @@ export class JsonAutomaton implements Automaton {
 
     return {
       output: copy,
-      traversal:
-        this.append(currentTarget.output, copy, currentTarget.prop) ?? [],
+      traversal: this.append(currentTarget.output, copy) ?? [],
       scope: currentTarget.scope,
     };
   }
 
-  appendValue<T>(lense: Lense<any>, stateValue?: T): void {
+  appendValue<T>(stateValue?: T): Program | void {
     let { output } = this.currentTarget;
-
-    const currentPatches = (this.currentTarget.patches ??= new Map<
-      State,
-      Instruction[]
-    >());
-
-    const rootKey = resolveRootState(lense);
-
-    if (!currentPatches.has(rootKey)) {
-      currentPatches.set(rootKey, []);
-    }
-
-    const stateEvent = currentPatches.get(rootKey)!;
-    appendStateRead(lense, stateEvent);
-
-    if (output instanceof AutomatonObject) {
-      const { object } = output;
-      const prop = this.currentTarget.prop;
-      if (!prop) {
-        throw Error('Cannot append value to object, need prop');
-      }
-      object[prop] = stateValue;
-
-      stateEvent.push({
-        type: InstructionEnum.UpdateObject,
-        property: prop,
-      });
-    } else if (output instanceof Array) {
+    if (output instanceof Array) {
       const nodeIndex = output.length;
       output.push(stateValue);
 
-      stateEvent.push({
-        type: InstructionEnum.UpdateArray,
-        index: nodeIndex,
-      });
+      return [
+        {
+          type: InstructionEnum.UpdateArray,
+          index: nodeIndex,
+        },
+      ];
     } else if (output instanceof AutomatonTemplate) {
       const nodeIndex = output.items.length;
       output.items.push(stateValue);
 
-      stateEvent.push({
-        type: InstructionEnum.UpdateArray,
-        index: nodeIndex,
-      });
+      return [
+        {
+          type: InstructionEnum.UpdateArray,
+          index: nodeIndex,
+        },
+      ];
     } else if (output instanceof AutomatonRegion) {
       const idx = output.push(stateValue);
 
-      stateEvent.push({
-        type: InstructionEnum.UpdateArray,
-        index: idx,
-      });
+      return [
+        {
+          type: InstructionEnum.UpdateArray,
+          index: idx,
+        },
+      ];
     } else if (output instanceof AutomatonConditional) {
       const idx = output.push(stateValue);
 
-      stateEvent.push({
-        type: InstructionEnum.UpdateArray,
-        index: idx,
-      });
-    } else {
-      debugger;
+      return [
+        {
+          type: InstructionEnum.UpdateArray,
+          index: idx,
+        },
+      ];
+    } else if (output instanceof AutomatonObject) {
+      const prop = output.prop;
+      if (!prop) {
+        throw Error('Cannot append value to object, need prop');
+      }
+      output.object[prop] = stateValue;
+
+      return [
+        {
+          type: InstructionEnum.UpdateObject,
+          property: prop,
+        },
+      ];
     }
   }
 
   appendText(content: ITextNode['nodeValue']): void {
-    const { output, prop } = this.currentTarget;
+    const { output } = this.currentTarget;
 
     if (output instanceof AutomatonObject) {
-      if (!prop) {
+      if (!output.prop) {
         throw Error('Cannot append text, prop is not selected');
       }
-      output.object[prop] = content;
+      output.object[output.prop] = content;
     } else if (output instanceof AutomatonRegion) {
       output.push(content);
     } else if (output instanceof AutomatonConditional) {
@@ -293,9 +295,6 @@ export class JsonAutomaton implements Automaton {
       output.items.push(content);
     } else if (output instanceof Array) {
       output.push(content);
-    } else if (prop) {
-      const target = output as Record<string | number, any>;
-      target[prop] = content;
     } else {
       throw Error('Not yet implemented!');
     }

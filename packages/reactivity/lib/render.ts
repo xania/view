@@ -1,5 +1,6 @@
 import {
   Automaton,
+  AutomatonObject,
   AutomatonTemplate,
   cloneTemplateItem,
   popScope as popTarget,
@@ -128,18 +129,18 @@ export function traverse(
         return result.then(() => traverse(sandbox, renderState, options));
       }
     } else if (curr instanceof SelectProperty) {
-      sandbox.automaton.currentTarget.prop = curr.prop;
+      curr.object.prop = curr.prop;
     } else if (isLense(curr)) {
       const { initial } = curr;
 
       if (initial instanceof Promise) {
         return initial.then((resolved) => {
-          automaton.appendValue(curr, resolved);
+          sandbox.appendValue(curr, resolved);
           return traverse(sandbox, renderState, options);
         });
       }
 
-      automaton.appendValue(curr, initial);
+      sandbox.appendValue(curr, initial);
     } else if (curr instanceof InitializeState) {
       const { initial } = curr.expr;
       if (initial instanceof Promise) {
@@ -165,6 +166,8 @@ export function traverse(
       const type = curr[objectType];
       sandbox.appendObject(type);
 
+      const automatonObject = automaton.currentTarget.output as AutomatonObject;
+
       const eventsObject = curr[objectEvents];
       if (eventsObject) {
         const eventNames = Object.keys(eventsObject);
@@ -180,7 +183,10 @@ export function traverse(
       if (children) {
         renderState.viewStack.push(children);
       }
-      renderState.viewStack.push(new SelectProperty(undefined));
+
+      renderState.viewStack.push(
+        new SelectProperty(automatonObject, undefined)
+      );
 
       const properties = Object.keys(curr);
       for (let idx = properties.length - 1; idx >= 0; idx--) {
@@ -188,7 +194,7 @@ export function traverse(
         const propValue = curr[prop];
 
         renderState.viewStack.push(propValue);
-        renderState.viewStack.push(new SelectProperty(prop));
+        renderState.viewStack.push(new SelectProperty(automatonObject, prop));
       }
     } else {
       throw Error('unsupported view');
@@ -200,7 +206,10 @@ class InitializeState {
 }
 
 class SelectProperty {
-  constructor(public prop?: string) {}
+  constructor(
+    public object: AutomatonObject,
+    public prop?: string
+  ) {}
 }
 
 function buildIterator(childScope: Scope, body: ForEachBody, list: Lense) {
@@ -219,7 +228,7 @@ function initializeIterator(
   itemState?: ItemState<any>
 ): void | Promise<void> {
   const currentOutput = sandbox.automaton.currentTarget.output;
-  if (!(currentOutput instanceof Array)) throw Error('not supported');
+  if (!(currentOutput instanceof Array)) throw Error('output not supported');
 
   const itemProgram = itemState && tpl.patches.get(itemState);
 

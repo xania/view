@@ -1,14 +1,14 @@
 import { Instruction, Program } from './program';
-import { Fragment } from './sandbox';
+import { ArrayFragment } from './sandbox';
 import { Lense, Scope, State } from './state';
 import { Event } from './event';
 
 export type AutomatonOutput =
   | {
       update?: (idx: number | string, value: any) => void;
-      [key: string]: any;
+      [key: string | number | symbol]: any;
     }
-  | Record<string | number, any>
+  | Record<string | number | symbol, any>
   | any[];
 export type AutomatonTarget = {
   output:
@@ -22,7 +22,6 @@ export type AutomatonTarget = {
   events?: Map<Event, Instruction[]>;
   init?: Instruction[];
   scope: Scope;
-  prop?: string;
 };
 
 export interface Automaton {
@@ -30,7 +29,7 @@ export interface Automaton {
   appendArray(): AutomatonTarget | void;
   appendObject(type?: string): AutomatonTarget;
   appendText(content: ITextNode['nodeValue']): void;
-  appendValue<T>(lense: Lense<any>, stateValue?: T): void;
+  appendValue<T>(stateValue?: T): Program | void;
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget;
   pushRegion(visible?: boolean | void): AutomatonTarget;
   pushTemplate(): AutomatonTarget;
@@ -84,14 +83,14 @@ export class AutomatonTemplate implements ITemplate {
     return region;
   }
 
-  insert(output: any[] | Fragment, value: any, index: number): void {
+  insert(output: any[] | ArrayFragment, value: any, index: number): void {
     const { offset } = this;
     const region = this.createRegion(value);
     this.regions.splice(index, 0, region);
 
     if (output instanceof Array) {
       output.splice(index + offset, 0, ...this.items.map(cloneTemplateItem));
-    } else if (output instanceof Fragment) {
+    } else if (output instanceof ArrayFragment) {
       output.output.splice(
         index + output.offset + offset,
         0,
@@ -183,7 +182,7 @@ export class AutomatonConditional {
   }
 
   fragment = () => {
-    if (this.visible) return new Fragment(this.output, this.offset);
+    if (this.visible) return new ArrayFragment(this.output, this.offset);
     else return this.items;
   };
 
@@ -215,6 +214,8 @@ export class AutomatonConditional {
 }
 
 export class AutomatonObject {
+  public prop?: string;
+
   constructor(public object: Record<string | number | symbol, any>) {}
 }
 

@@ -7,7 +7,7 @@ import {
 } from './automaton';
 import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
-import { concatOptimized, appendStateRead } from './json-automaton';
+import { concatOptimized, appendStateRead, children } from './json-automaton';
 import { events } from './json-automaton';
 import { Event } from './event';
 import { InstructionEnum, Program, type Instruction } from './program';
@@ -32,6 +32,30 @@ export class Sandbox {
   pushTarget(nextTarget: AutomatonTarget) {
     this.targetStack.push(this.automaton.currentTarget);
     this.automaton.currentTarget = nextTarget;
+  }
+
+  appendValue<T>(lense: Lense<T>, stateValue?: T) {
+    const { currentTarget } = this.automaton;
+    let { output } = currentTarget;
+
+    const currentPatches = (currentTarget.patches ??= new Map<
+      State,
+      Instruction[]
+    >());
+
+    const rootKey = resolveRootState(lense);
+
+    if (!currentPatches.has(rootKey)) {
+      currentPatches.set(rootKey, []);
+    }
+
+    const stateEvent = currentPatches.get(rootKey)!;
+    appendStateRead(lense, stateEvent);
+
+    const program = this.automaton.appendValue(stateValue);
+    if (program) {
+      stateEvent.push(...program);
+    }
   }
 
   dispatchEvent(target: any, eventName: string) {
@@ -83,7 +107,7 @@ export class Sandbox {
       throw Error('Cannot add event outside object context');
     }
 
-    if (currentTarget.prop) {
+    if (output.prop) {
       throw Error('Cannot add event while a property is selected');
     }
 
@@ -272,6 +296,8 @@ export class Sandbox {
           tpl,
           key: Symbol(),
           break: itemProgram.length + 2,
+          fragmentIdx: -1,
+          fragmentOffset: -1,
         });
 
         parentProgram.push(
@@ -369,7 +395,7 @@ export class Sandbox {
           const { index } = instruction;
           if (exec.currentOutput instanceof Array) {
             exec.currentOutput[index] = currentValue;
-          } else if (exec.currentOutput instanceof Fragment) {
+          } else if (exec.currentOutput instanceof ArrayFragment) {
             const idx = exec.currentOutput.offset + instruction.index;
             exec.currentOutput.output[idx] = currentValue;
           } else {
@@ -408,7 +434,7 @@ export class Sandbox {
 
         case InstructionEnum.PushProperty:
           if (
-            exec.currentOutput instanceof Fragment ||
+            exec.currentOutput instanceof ArrayFragment ||
             exec.currentOutput instanceof Array
           ) {
             throw Error('Invalid operation: Array or region not expected');
@@ -422,9 +448,18 @@ export class Sandbox {
           break;
 
         case InstructionEnum.PushIndex:
-          if (exec.currentOutput instanceof Fragment) {
+          if (exec.currentOutput instanceof ArrayFragment) {
             const idx = exec.currentOutput.offset + instruction.index;
             pushToStack(exec, exec.currentOutput.output[idx]);
+          } else {
+            pushToStack(exec, exec.currentOutput[instruction.index]);
+          }
+          break;
+
+        case InstructionEnum.PushChild:
+          if (exec.currentOutput instanceof ArrayFragment) {
+            const idx = exec.currentOutput.offset + instruction.index;
+            pushToStack(exec, exec.currentOutput.output[children][idx]);
           } else {
             pushToStack(exec, exec.currentOutput[instruction.index]);
           }
@@ -434,12 +469,12 @@ export class Sandbox {
           if (exec.currentOutput instanceof Array) {
             pushToStack(
               exec,
-              new Fragment(exec.currentOutput, instruction.offset)
+              new ArrayFragment(exec.currentOutput, instruction.offset)
             );
-          } else if (exec.currentOutput instanceof Fragment) {
+          } else if (exec.currentOutput instanceof ArrayFragment) {
             pushToStack(
               exec,
-              new Fragment(
+              new ArrayFragment(
                 exec.currentOutput.output,
                 exec.currentOutput.offset + instruction.offset
               )
@@ -453,46 +488,43 @@ export class Sandbox {
           {
             const { regions, items, offset, itemKey } = instruction.tpl;
 
-            let fragmentIdx: number = 0;
-            if (!memory || memory[instruction.key] === undefined) {
+            if (instruction.fragmentIdx < 0) {
+              // init
+              instruction.fragmentIdx = 0;
               exec.valuesStack.push(exec.values);
-              fragmentIdx = 0;
             } else {
-              fragmentIdx = 1 + memory[instruction.key];
+              instruction.fragmentIdx++;
             }
 
+            const { fragmentIdx } = instruction;
+
             if (fragmentIdx >= regions.length) {
-              if (memory) {
-                delete memory[instruction.key];
-              }
+              // finalize
               instructionIdx += instruction.break;
               exec.values = exec.valuesStack.pop();
+              instruction.fragmentIdx = -1;
             } else {
-              if (memory) {
-                memory[instruction.key] = fragmentIdx;
-              } else {
-                memory = { [instruction.key]: fragmentIdx };
-              }
-
+              instruction.fragmentOffset = offset + items.length * fragmentIdx;
               exec.values = regions[fragmentIdx];
 
               if (itemKey) {
                 exec.values[itemKey] = items[fragmentIdx];
               }
 
-              const fragmentOffset = offset + items.length * fragmentIdx;
-
               if (exec.currentOutput instanceof Array) {
                 pushToStack(
                   exec,
-                  new Fragment(exec.currentOutput, fragmentOffset)
+                  new ArrayFragment(
+                    exec.currentOutput,
+                    instruction.fragmentOffset
+                  )
                 );
-              } else if (exec.currentOutput instanceof Fragment) {
+              } else if (exec.currentOutput instanceof ArrayFragment) {
                 pushToStack(
                   exec,
-                  new Fragment(
+                  new ArrayFragment(
                     exec.currentOutput.output,
-                    exec.currentOutput.offset + fragmentOffset
+                    exec.currentOutput.offset + instruction.fragmentOffset
                   )
                 );
               } else {
@@ -630,19 +662,19 @@ function getRegionSize(tpl: AutomatonTemplate) {
 }
 
 function getRegionOffset(
-  output: any[] | Fragment,
+  output: any[] | ArrayFragment,
   tpl: AutomatonTemplate,
   index: number
 ) {
   const regionSize = getRegionSize(tpl);
-  if (output instanceof Fragment) {
+  if (output instanceof ArrayFragment) {
     return output.offset + index * regionSize;
   }
   return tpl.offset + index * regionSize;
 }
 
-function getRegionArray(output: any[] | Fragment) {
-  return output instanceof Fragment ? output.output : output;
+function getRegionArray(output: any[] | ArrayFragment) {
+  return output instanceof ArrayFragment ? output.output : output;
 }
 
 function pushRegionOutput(
@@ -653,14 +685,14 @@ function pushRegionOutput(
   const currentOutput = state.currentOutput;
   if (
     !(currentOutput instanceof Array) &&
-    !(currentOutput instanceof Fragment)
+    !(currentOutput instanceof ArrayFragment)
   ) {
     throw Error('Failed to select region output: not supported output');
   }
 
   pushToStack(
     state,
-    new Fragment(
+    new ArrayFragment(
       getRegionArray(currentOutput),
       getRegionOffset(currentOutput, tpl, index)
     )
@@ -668,7 +700,7 @@ function pushRegionOutput(
 }
 
 function insertRegionOutput(
-  output: any[] | Fragment,
+  output: any[] | ArrayFragment,
   tpl: AutomatonTemplate,
   index: number,
   clone: any[]
@@ -679,7 +711,7 @@ function insertRegionOutput(
 }
 
 function removeRegionOutput(
-  output: any[] | Fragment,
+  output: any[] | ArrayFragment,
   tpl: AutomatonTemplate,
   index: number
 ) {
@@ -689,7 +721,7 @@ function removeRegionOutput(
 }
 
 function moveRegionOutput(
-  output: any[] | Fragment,
+  output: any[] | ArrayFragment,
   tpl: AutomatonTemplate,
   from: number,
   to: number
@@ -711,7 +743,7 @@ function moveRegionOutput(
   target.splice(toOffset, 0, ...moved);
 }
 
-export class Fragment {
+export class ArrayFragment {
   constructor(
     public output: any[],
     public offset: number
@@ -740,6 +772,7 @@ function getDepth(traversal: Instruction[]) {
   let depth = 0;
   for (const instruction of traversal) {
     if (
+      instruction.type === InstructionEnum.PushChild ||
       instruction.type === InstructionEnum.PushIndex ||
       instruction.type === InstructionEnum.PushProperty ||
       instruction.type === InstructionEnum.PushOutput ||

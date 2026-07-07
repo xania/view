@@ -1,7 +1,7 @@
 import {
   Automaton,
-  AutomatonObject,
   AutomatonTarget,
+  AutomatonTemplate,
   ITextNode,
   Lense,
   RootScope,
@@ -75,8 +75,21 @@ export class DomAutomaton implements Automaton {
     }
   }
 
-  appendValue<T>(lense: Lense<any>, stateValue?: T): void {
-    debugger;
+  appendValue<T>(stateValue?: T): Program | void {
+    const { currentTarget } = this;
+    if (currentTarget.output instanceof HTMLElement) {
+      if (currentTarget.prop) {
+        currentTarget.output.setAttribute(
+          currentTarget.prop,
+          String(stateValue)
+        );
+      } else {
+        const textNode = document.createTextNode(String(stateValue));
+        currentTarget.output.appendChild(textNode);
+      }
+    } else {
+      debugger;
+    }
   }
 
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget {
@@ -120,7 +133,30 @@ export class DomAutomaton implements Automaton {
     throw new Error('Method not implemented.');
   }
   pushTemplate(): AutomatonTarget {
-    throw new Error('Method not implemented.');
+    const { currentTarget } = this;
+    if (!(currentTarget.output instanceof HTMLElement)) {
+      throw Error('output is not an array');
+    }
+
+    const childScope = currentTarget.scope.pushScope();
+
+    const tpl = new AutomatonTemplate(
+      childScope,
+      currentTarget.output.childNodes.length
+    );
+
+    return {
+      output: tpl,
+      patches: tpl.patches,
+      init: tpl.init,
+      traversal: [
+        {
+          type: InstructionEnum.PushOutput,
+          output: tpl.items,
+        },
+      ],
+      scope: tpl.scope,
+    };
   }
 
   private append(newObject: WebElement): Program | void {
@@ -152,6 +188,15 @@ export class DomAutomaton implements Automaton {
         {
           type: InstructionEnum.PushIndex,
           index: idx,
+        },
+      ];
+    } else if (currentTarget.output instanceof AutomatonTemplate) {
+      const offset = currentTarget.output.items.length;
+      currentTarget.output.items.push(newObject);
+      return [
+        {
+          type: InstructionEnum.PushIndex,
+          index: offset,
         },
       ];
     } else {
