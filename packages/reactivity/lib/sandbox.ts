@@ -210,9 +210,9 @@ export class Sandbox {
     item?: ItemState<T>
   ) {
     const { currentTarget } = this.automaton;
-    if (!(currentTarget.output instanceof Array)) {
-      throw Error('output is not an array');
-    }
+    // if (!(currentTarget.output instanceof Array)) {
+    //   throw Error('output is not an array');
+    // }
 
     const offset = tpl.offset;
     tpl.itemKey ??= item?.key;

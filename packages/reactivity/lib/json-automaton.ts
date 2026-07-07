@@ -119,26 +119,45 @@ export class JsonAutomaton implements Automaton {
 
   pushTemplate(): AutomatonTarget {
     const { currentTarget } = this;
-    if (!(currentTarget.output instanceof Array)) {
-      throw Error('output is not an array');
-    }
+
+    const { output } = currentTarget;
 
     const childScope = currentTarget.scope.pushScope();
 
-    const tpl = new AutomatonTemplate(childScope, currentTarget.output.length);
+    if (output instanceof Array) {
+      const tpl = new AutomatonTemplate(childScope, output.length);
 
-    return {
-      output: tpl,
-      patches: tpl.patches,
-      init: tpl.init,
-      traversal: [
-        {
-          type: InstructionEnum.PushOutput,
-          output: tpl.items,
-        },
-      ],
-      scope: tpl.scope,
-    };
+      return {
+        output: tpl,
+        patches: tpl.patches,
+        init: tpl.init,
+        traversal: [
+          {
+            type: InstructionEnum.PushOutput,
+            output: tpl.items,
+          },
+        ],
+        scope: tpl.scope,
+      };
+    } else if (output instanceof AutomatonObject) {
+      const childrenList = (output.object[children] ??= []);
+
+      const tpl = new AutomatonTemplate(childScope, childrenList.length);
+      return {
+        output: tpl,
+        patches: tpl.patches,
+        init: tpl.init,
+        traversal: [
+          {
+            type: InstructionEnum.PushOutput,
+            output: tpl.items,
+          },
+        ],
+        scope: tpl.scope,
+      };
+    } else {
+      throw Error('invalid operation, cannot add template to current output');
+    }
   }
 
   private append(

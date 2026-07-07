@@ -21,6 +21,7 @@ import {
   events as objectEvents,
   type as objectType,
   children as objectChildren,
+  children,
 } from './json-automaton';
 
 export interface RenderOption {
@@ -232,8 +233,14 @@ function initializeIterator(
   initial: any[],
   itemState?: ItemState<any>
 ): void | Promise<void> {
-  const currentOutput = sandbox.automaton.currentTarget.output;
-  if (!(currentOutput instanceof Array)) throw Error('output not supported');
+  let currentOutput = sandbox.automaton.currentTarget.output;
+  if (currentOutput instanceof Array) {
+    // good
+  } else if (currentOutput instanceof AutomatonObject) {
+    currentOutput = currentOutput.object[children];
+  } else {
+    throw Error('output not supported');
+  }
 
   const itemProgram = itemState && tpl.patches.get(itemState);
 
