@@ -52,27 +52,23 @@ describe('render children', () => {
       [children]: ForEach(values, (e) => e),
     };
 
-    const root = {};
+    const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual({
-      [children]: [
-        {
-          type: 'object as container',
-          [children]: [1, 2],
-        },
-      ],
-    });
+    expect(root).toEqual([
+      {
+        type: 'object as container',
+        [children]: [1, 2],
+      },
+    ]);
 
     sandbox.update(values, [1, 2, 3]);
 
-    expect(root).toEqual({
-      [children]: [
-        {
-          type: 'object as container',
-          [children]: [2],
-        },
-      ],
-    });
+    expect(root).toEqual([
+      {
+        type: 'object as container',
+        [children]: [1, 2, 3],
+      },
+    ]);
   });
 });

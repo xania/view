@@ -24,7 +24,8 @@ export type Instruction =
   | PushPropertyInstruction
   | PushIndexInstruction
   | ReconcileInstruction
-  | PushFragmentInstruction
+  | PushArrayFragmentInstruction
+  | PushChildrenFragmentInstruction
   | EnumerateInstruction
   | AttachEventInstruction
   | PushChildInstruction;
@@ -117,7 +118,8 @@ export enum InstructionEnum {
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
   Reconcile = 'Reconcile',
-  PushFragment = 'PushFragment',
+  PushArrayFragment = 'PushArrayFragment',
+  PushChildrenFragment = 'PushChildrenFragment',
   Enumerate = 'Enumerate',
   AttachEvent = 'AttachEvent',
   PushChild = 'PushChild',
@@ -147,8 +149,13 @@ interface ReconcileInstruction {
   key: symbol;
   break: number;
 }
-interface PushFragmentInstruction {
-  type: InstructionEnum.PushFragment;
+interface PushArrayFragmentInstruction {
+  type: InstructionEnum.PushArrayFragment;
+  offset: number;
+}
+
+interface PushChildrenFragmentInstruction {
+  type: InstructionEnum.PushChildrenFragment;
   offset: number;
 }
 

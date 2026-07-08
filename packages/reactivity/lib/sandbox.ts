@@ -225,7 +225,7 @@ export class Sandbox {
       const program = appendStateRead(list, []);
       program.push(
         {
-          type: InstructionEnum.PushFragment,
+          type: InstructionEnum.PushArrayFragment,
           offset,
         },
         {
@@ -258,7 +258,7 @@ export class Sandbox {
         const program = appendStateRead(list, []);
         program.push(
           {
-            type: InstructionEnum.PushFragment,
+            type: InstructionEnum.PushArrayFragment,
             offset,
           },
           {
@@ -465,7 +465,7 @@ export class Sandbox {
           }
           break;
 
-        case InstructionEnum.PushFragment:
+        case InstructionEnum.PushArrayFragment:
           if (exec.currentOutput instanceof Array) {
             pushToStack(
               exec,
@@ -480,7 +480,11 @@ export class Sandbox {
               )
             );
           } else {
-            throw Error('Invalid operation: Array or fragment expected');
+            const childrenList: any[] = exec.currentOutput[children];
+            pushToStack(
+              exec,
+              new ArrayFragment(childrenList, instruction.offset)
+            );
           }
           break;
 
@@ -772,7 +776,8 @@ function getDepth(traversal: Instruction[]) {
       instruction.type === InstructionEnum.PushIndex ||
       instruction.type === InstructionEnum.PushProperty ||
       instruction.type === InstructionEnum.PushOutput ||
-      instruction.type === InstructionEnum.PushFragment
+      instruction.type === InstructionEnum.PushArrayFragment ||
+      instruction.type === InstructionEnum.PushChildrenFragment
     ) {
       depth++;
     }
