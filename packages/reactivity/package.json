@@ -16,8 +16,12 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/main.js",
-      "require": "./dist/main.cjs"
+      "import": "./lib/index.ts",
+      "types": "./lib/index.ts"
+    },
+    "./program": {
+      "import": "./lib/program.ts",
+      "types": "./lib/program.ts"
     }
   },
   "private": false,

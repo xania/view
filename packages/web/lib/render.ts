@@ -12,12 +12,16 @@ export function renderDOM(view: any, root: HTMLElement) {
   const automaton = new DomAutomaton(root);
   var sandbox = new Sandbox(automaton, RootScope);
 
+  if (view === undefined || view === null) {
+    return sandbox;
+  }
+
   const renderState: RenderState = {
     viewStack: [view],
     promises: [],
   };
 
-  return traverse(sandbox, renderState, {
+  const retval = traverse(sandbox, renderState, {
     expand(renderState, view) {
       if (view instanceof Array) {
         const { automaton } = sandbox;
@@ -34,4 +38,14 @@ export function renderDOM(view: any, root: HTMLElement) {
       return false;
     },
   });
+
+  if (retval instanceof Promise) {
+    renderState.promises.push(retval);
+  }
+
+  if (renderState.promises.length) {
+    return Promise.all(renderState.promises).then(() => sandbox);
+  } else {
+    return sandbox;
+  }
 }

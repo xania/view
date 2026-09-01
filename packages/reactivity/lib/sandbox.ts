@@ -459,7 +459,7 @@ export class Sandbox {
         case InstructionEnum.PushChild:
           if (exec.currentOutput instanceof ArrayFragment) {
             const idx = exec.currentOutput.offset + instruction.index;
-            pushToStack(exec, exec.currentOutput.output[children][idx]);
+            pushToStack(exec, exec.currentOutput.output[idx]);
           } else {
             pushToStack(exec, exec.currentOutput[children][instruction.index]);
           }
@@ -508,7 +508,10 @@ export class Sandbox {
                   exec.currentOutput.offset + offset
                 );
               } else {
-                throw Error('not an array');
+                instruction.fragment = new ArrayFragment(
+                  exec.currentOutput[children],
+                  offset
+                );
               }
               pushToStack(exec, instruction.fragment);
             } else {

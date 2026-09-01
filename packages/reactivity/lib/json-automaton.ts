@@ -66,11 +66,16 @@ export class JsonAutomaton implements Automaton {
       throw Error('Cannot push standalone region, a target is not found');
     }
 
-    if (!(currentTarget.output instanceof Array)) {
+    let output = currentTarget.output;
+    if (output instanceof AutomatonObject) {
+      output = output.object[children] ??= [];
+    }
+
+    if (!(output instanceof Array)) {
       throw Error('output is not an array');
     }
 
-    const newRegion = new AutomatonRegion(currentTarget.output, visible);
+    const newRegion = new AutomatonRegion(output, visible);
 
     return {
       output: newRegion,
@@ -81,12 +86,17 @@ export class JsonAutomaton implements Automaton {
 
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget {
     const { currentTarget } = this;
-    if (!(currentTarget.output instanceof Array)) {
+    let output = currentTarget.output;
+    if (output instanceof AutomatonObject) {
+      output = output.object[children] ??= [];
+    }
+
+    if (!(output instanceof Array)) {
       throw Error('output is not an array');
     }
 
     const conditional = new AutomatonConditional(
-      currentTarget.output,
+      output,
       lense,
       stateValue
     );
