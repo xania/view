@@ -64,6 +64,7 @@ export class JsonAutomaton implements Automaton {
 
     return {
       ...currentTarget,
+      patches: new Map(),
       output: new AutomatonProperty(currentTarget.output, prop),
       traversal: [],
     };
