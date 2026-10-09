@@ -571,6 +571,7 @@ export class Sandbox {
 
             if (next.done) {
               delete memory[key];
+              popFromStack(exec);
               instructionIdx += instruction.break;
               break;
             }
