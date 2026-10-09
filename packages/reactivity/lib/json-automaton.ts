@@ -34,7 +34,7 @@ export class JsonAutomaton implements Automaton {
     this.currentTarget = {
       output: rootOutput,
       traversal: [],
-      patches: (scope.patches ??= new Map()),
+      patches: new Map(),
       scope,
     };
   }
