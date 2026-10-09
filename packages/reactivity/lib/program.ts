@@ -22,6 +22,7 @@ export type Instruction =
   | SelectTemplateInstruction
   | PushOutputInstruction
   | PushPropertyInstruction
+  | PushChildrenInstruction
   | PushIndexInstruction
   | ReconcileInstruction
   | PushArrayFragmentInstruction
@@ -114,6 +115,7 @@ export enum InstructionEnum {
   UpdateChild = 'UpdateChild',
   PopOutput = 'PopOutput',
   PushOutput = 'PushOutput',
+  PushChildren = 'PushChildren',
   SelectTemplate = 'SelectTemplate',
   PushProperty = 'PushProperty',
   PushIndex = 'PushIndex',
@@ -173,6 +175,10 @@ interface SelectTemplateInstruction {
 interface PushOutputInstruction {
   type: InstructionEnum.PushOutput;
   output: any[] | Function;
+}
+
+interface PushChildrenInstruction {
+  type: InstructionEnum.PushChildren;
 }
 
 interface PushPropertyInstruction {

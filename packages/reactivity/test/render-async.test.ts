@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { If } from '../lib/core/if';
 import { ForEach } from '../lib/core/for';
-import { JsonAutomaton } from '../lib/json-automaton';
+import { children, JsonAutomaton } from '../lib/json-automaton';
 import { render } from '../lib/render';
 import { useState } from '../lib/state';
 
@@ -22,6 +22,21 @@ describe('render async', () => {
     await render(view, new JsonAutomaton(root));
 
     expect([['state: ', 2]]).toEqual(root);
+  });
+
+  it('render object with property', async () => {
+    const view = {
+      messages: 123,
+    };
+
+    const root: any[] = [];
+    await render(view, new JsonAutomaton(root));
+
+    expect(root).toEqual([
+      {
+        messages: 123,
+      },
+    ]);
   });
 
   it('updates a complex element state', async () => {
@@ -61,6 +76,20 @@ describe('render async', () => {
     sandbox.update(state, 2);
 
     expect([['state: ', 2]]).toEqual(root);
+  });
+
+  it('updates a simple children state', async () => {
+    const state = useState(1);
+    const view = { [children]: state };
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    expect(root).toEqual([{ [children]: [1] }]);
+
+    sandbox.update(state, 2);
+
+    expect(root).toEqual([{ [children]: [2] }]);
   });
 
   it('renders async state', async () => {

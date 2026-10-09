@@ -130,7 +130,7 @@ export function traverse(
         return result.then(() => traverse(sandbox, renderState, options));
       }
     } else if (curr instanceof SelectProperty) {
-      curr.object.prop = curr.prop;
+      sandbox.pushProperty(curr.prop);
     } else if (isLense(curr)) {
       const { initial } = curr;
 
@@ -167,8 +167,6 @@ export function traverse(
       const type = curr[objectType];
       sandbox.appendObject(type);
 
-      const automatonObject = automaton.currentTarget.output as AutomatonObject;
-
       const eventsObject = curr[objectEvents];
       if (eventsObject) {
         const eventNames = Object.keys(eventsObject);
@@ -180,27 +178,33 @@ export function traverse(
 
       renderState.viewStack.push(popTarget);
 
-      const children = curr[objectChildren];
-      if (children instanceof Array) {
-        let length = children.length;
-        while (length--) {
-          renderState.viewStack.push(children[length]);
-        }
-      } else if (children) {
-        renderState.viewStack.push(children);
-      }
-
-      renderState.viewStack.push(
-        new SelectProperty(automatonObject, undefined)
-      );
+      const automatonObject = automaton.currentTarget.output;
 
       const properties = Object.keys(curr);
       for (let idx = properties.length - 1; idx >= 0; idx--) {
         const prop = properties[idx];
         const propValue = curr[prop];
 
+        renderState.viewStack.push(popTarget);
         renderState.viewStack.push(propValue);
         renderState.viewStack.push(new SelectProperty(automatonObject, prop));
+      }
+
+      const children = curr[objectChildren];
+      if (children) {
+        sandbox.pushChildren();
+        renderState.viewStack.push(popTarget);
+
+        if (children instanceof Array) {
+          for (let i = children.length - 1; i >= 0; i--) {
+            const item = children[i];
+            if (item !== null && item !== undefined) {
+              renderState.viewStack.push(item);
+            }
+          }
+        } else if (children) {
+          renderState.viewStack.push(children);
+        }
       }
     } else {
       throw Error('unsupported view');
@@ -214,7 +218,7 @@ class InitializeState {
 class SelectProperty {
   constructor(
     public object: AutomatonObject,
-    public prop?: string
+    public prop: string
   ) {}
 }
 
@@ -236,8 +240,6 @@ function initializeIterator(
   let currentOutput = sandbox.automaton.currentTarget.output;
   if (currentOutput instanceof Array) {
     // good
-  } else if (currentOutput instanceof AutomatonObject) {
-    currentOutput = currentOutput.object[children];
   } else {
     throw Error('output not supported');
   }

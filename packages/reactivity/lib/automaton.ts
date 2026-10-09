@@ -12,6 +12,7 @@ export type AutomatonOutput =
   | any[];
 export type AutomatonTarget = {
   output:
+    | AutomatonProperty
     | AutomatonObject
     | AutomatonRegion
     | AutomatonTemplate
@@ -33,6 +34,8 @@ export interface Automaton {
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget;
   pushRegion(visible?: boolean | void): AutomatonTarget;
   pushTemplate(): AutomatonTarget;
+  pushChildren(): AutomatonTarget;
+  pushProperty(prop: string): AutomatonTarget;
 }
 
 type RegionFrame = Record<symbol, any> & { key: string };
@@ -213,10 +216,13 @@ export class AutomatonConditional {
   }
 }
 
-export class AutomatonObject {
-  public prop?: string;
+export type AutomatonObject = Record<string | number | symbol, any>;
 
-  constructor(public object: Record<string | number | symbol, any>) {}
+export class AutomatonProperty {
+  constructor(
+    public object: AutomatonObject,
+    public prop: string | number | symbol
+  ) {}
 }
 
 export function cloneTemplateItem<T>(item: T): T {

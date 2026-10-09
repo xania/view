@@ -1,11 +1,4 @@
-import {
-  render,
-  RenderState,
-  RootScope,
-  Sandbox,
-  Scope,
-  traverse,
-} from '@xania/reactivity';
+import { RenderState, RootScope, Sandbox, traverse } from '@xania/reactivity';
 import { DomAutomaton } from './dom-automaton';
 
 export function renderDOM(view: any, root: HTMLElement) {

@@ -3,6 +3,7 @@ import {
   AutomatonTarget,
   AutomatonTemplate,
   cloneTemplateItem,
+  AutomatonProperty,
   AutomatonObject,
 } from './automaton';
 import { UpdateCommand } from './commands/update';
@@ -103,24 +104,25 @@ export class Sandbox {
     const { currentTarget } = this.automaton;
     const { output } = currentTarget;
 
-    if (!(output instanceof AutomatonObject)) {
-      throw Error('Cannot add event outside object context');
+    if (output instanceof AutomatonProperty) {
+      if (output.prop) {
+        throw Error('Cannot add event while a property is selected');
+      }
+
+      const init = (currentTarget.init ??= []);
+      const event = new Event(currentTarget.scope, eventName, handler);
+
+      init.push({
+        type: InstructionEnum.AttachEvent,
+        event,
+      });
+
+      output.object[events] ??= {};
+      output.object[events][eventName] = handler;
+    } else if (output) {
+      (output as AutomatonObject)[events] ??= {};
+      (output as AutomatonObject)[events][eventName] = handler;
     }
-
-    if (output.prop) {
-      throw Error('Cannot add event while a property is selected');
-    }
-
-    const init = (currentTarget.init ??= []);
-    const event = new Event(currentTarget.scope, eventName, handler);
-
-    init.push({
-      type: InstructionEnum.AttachEvent,
-      event,
-    });
-
-    output.object[events] ??= {};
-    output.object[events][eventName] = handler;
   }
 
   appendArray(): boolean | void {
@@ -133,12 +135,19 @@ export class Sandbox {
     return true;
   }
 
+  pushChildren() {
+    this.pushTarget(this.automaton.pushChildren());
+  }
+
   appendObject(type?: string): void {
     this.pushTarget(this.automaton.appendObject(type));
   }
 
   pushRegion(visible: boolean | void = true): void {
     this.pushTarget(this.automaton.pushRegion(visible));
+  }
+  pushProperty(prop: string) {
+    this.pushTarget(this.automaton.pushProperty(prop));
   }
 
   pushTemplate(): AutomatonTemplate {
@@ -177,7 +186,8 @@ export class Sandbox {
           const scopePatches = (state.scope.patches ??= new Map());
 
           if (scopePatches.has(state)) {
-            scopePatches.get(state)!.push(...updates);
+            const statePatches = scopePatches.get(state)!;
+            statePatches.push(...updates);
           } else {
             scopePatches.set(state, updates.slice());
           }
@@ -193,7 +203,8 @@ export class Sandbox {
           const parentPatches = (parentTarget.patches ??= new Map());
 
           if (parentPatches.has(state)) {
-            parentPatches.get(state)!.push(...program);
+            const statePatches = parentPatches.get(state)!;
+            statePatches.push(...program);
           } else {
             parentPatches.set(state, program.slice());
           }
@@ -445,6 +456,10 @@ export class Sandbox {
 
         case InstructionEnum.PushOutput:
           pushToStack(exec, instruction.output);
+          break;
+
+        case InstructionEnum.PushChildren:
+          pushToStack(exec, exec.currentOutput[children]);
           break;
 
         case InstructionEnum.PushIndex:
@@ -779,6 +794,7 @@ function getDepth(traversal: Instruction[]) {
       instruction.type === InstructionEnum.PushIndex ||
       instruction.type === InstructionEnum.PushProperty ||
       instruction.type === InstructionEnum.PushOutput ||
+      instruction.type === InstructionEnum.PushChildren ||
       instruction.type === InstructionEnum.PushArrayFragment ||
       instruction.type === InstructionEnum.PushChildrenFragment
     ) {

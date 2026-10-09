@@ -7,6 +7,7 @@ import {
   IRegion,
   ITextNode,
   AutomatonObject as AutomatonObject,
+  AutomatonProperty,
 } from './automaton';
 import { Instruction, InstructionEnum, type Program } from './program';
 import {
@@ -51,12 +52,20 @@ export class JsonAutomaton implements Automaton {
       newObject[type] = _type;
     }
 
-    const newNode = new AutomatonObject(newObject);
-
     return {
-      output: newNode,
+      output: newObject,
       traversal: this.append(currentTarget.output, newObject) ?? [],
       scope: currentTarget.scope,
+    };
+  }
+
+  pushProperty(prop: string): AutomatonTarget {
+    const { currentTarget } = this;
+
+    return {
+      ...currentTarget,
+      output: new AutomatonProperty(currentTarget.output, prop),
+      traversal: [],
     };
   }
 
@@ -67,7 +76,7 @@ export class JsonAutomaton implements Automaton {
     }
 
     let output = currentTarget.output;
-    if (output instanceof AutomatonObject) {
+    if (output instanceof AutomatonProperty) {
       output = output.object[children] ??= [];
     }
 
@@ -87,7 +96,7 @@ export class JsonAutomaton implements Automaton {
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget {
     const { currentTarget } = this;
     let output = currentTarget.output;
-    if (output instanceof AutomatonObject) {
+    if (output instanceof AutomatonProperty) {
       output = output.object[children] ??= [];
     }
 
@@ -95,11 +104,7 @@ export class JsonAutomaton implements Automaton {
       throw Error('output is not an array');
     }
 
-    const conditional = new AutomatonConditional(
-      output,
-      lense,
-      stateValue
-    );
+    const conditional = new AutomatonConditional(output, lense, stateValue);
     const state = resolveRootState(lense);
 
     return {
@@ -127,6 +132,20 @@ export class JsonAutomaton implements Automaton {
     };
   }
 
+  pushChildren(): AutomatonTarget {
+    const output = this.currentTarget.output as { [children]?: any[] };
+    const childrenList = (output[children] ??= []);
+    return {
+      output: childrenList,
+      traversal: [
+        {
+          type: InstructionEnum.PushChildren,
+        },
+      ],
+      scope: this.currentTarget.scope,
+    };
+  }
+
   pushTemplate(): AutomatonTarget {
     const { currentTarget } = this;
 
@@ -149,7 +168,7 @@ export class JsonAutomaton implements Automaton {
         ],
         scope: tpl.scope,
       };
-    } else if (output instanceof AutomatonObject) {
+    } else if (output instanceof AutomatonProperty) {
       const childrenList = (output.object[children] ??= []);
 
       const tpl = new AutomatonTemplate(childScope, childrenList.length);
@@ -165,8 +184,28 @@ export class JsonAutomaton implements Automaton {
         ],
         scope: tpl.scope,
       };
+    } else if (output) {
+      const childrenList = ((output as { [children]?: any[] })[children] ??=
+        []);
+
+      const tpl = new AutomatonTemplate(childScope, childrenList.length);
+
+      return {
+        output: tpl,
+        patches: tpl.patches,
+        init: tpl.init,
+        traversal: [
+          {
+            type: InstructionEnum.PushOutput,
+            output: tpl.items,
+          },
+        ],
+        scope: tpl.scope,
+      };
     } else {
-      throw Error('invalid operation, cannot add template to current output');
+      throw Error(
+        'invalid state: current expected to be array when property is not provided'
+      );
     }
   }
 
@@ -174,29 +213,7 @@ export class JsonAutomaton implements Automaton {
     output: AutomatonTarget['output'],
     value: any
   ): Instruction[] | void {
-    if (output instanceof AutomatonObject) {
-      const prop = output.prop;
-      if (prop) {
-        output.object[prop] = value;
-        return [
-          {
-            type: InstructionEnum.PushProperty,
-            prop: prop,
-          },
-        ];
-      } else {
-        const childrenList = (output.object[children] ??= []);
-        childrenList.push(value);
-
-        const idx = childrenList.length;
-        return [
-          {
-            type: InstructionEnum.PushChild,
-            index: idx,
-          },
-        ];
-      }
-    } else if (output instanceof AutomatonRegion) {
+    if (output instanceof AutomatonRegion) {
       const idx = output.push(value);
       return [
         {
@@ -230,22 +247,56 @@ export class JsonAutomaton implements Automaton {
           index: offset,
         },
       ];
+    } else if (output instanceof AutomatonProperty) {
+      const { object, prop } = output;
+      object[prop] = value;
+      return [
+        {
+          type: InstructionEnum.PushProperty,
+          prop: prop,
+        },
+      ];
     } else if (output) {
-      output[children] ??= [];
+      //   output[children] ??= [];
 
-      const offset = output[children].length;
-      output[children].push(value);
+      //   const offset = output[children].length;
+      //   output[children].push(value);
+
+      //   return [
+      //     {
+      //       type: InstructionEnum.PushChild,
+      //       index: offset,
+      //     },
+      //   ];
+
+      //   // } else {
+      //   //         const prop = output.prop;
+      //   //   if (prop) {
+      //   //     output[prop] = value;
+      //   //     return [
+      //   //       {
+      //   //         type: InstructionEnum.PushProperty,
+      //   //         prop: prop,
+      //   //       },
+      //   //     ];
+      // } else {
+      const childrenList = (output[children] ??= []);
+      const idx = childrenList.length;
+
+      childrenList.push(value);
 
       return [
         {
           type: InstructionEnum.PushChild,
-          index: offset,
+          index: idx,
         },
       ];
-    } else
-      throw Error(
-        'invalid state: current expected to be array when property is not provided'
-      );
+    }
+
+    // }
+    //   throw Error(
+    //     'invalid state: current expected to be array when property is not provided'
+    //   );
   }
 
   appendArray() {
@@ -300,7 +351,7 @@ export class JsonAutomaton implements Automaton {
           index: idx,
         },
       ];
-    } else if (output instanceof AutomatonObject) {
+    } else if (output instanceof AutomatonProperty) {
       const prop = output.prop;
       if (prop) {
         output.object[prop] = stateValue;
@@ -310,25 +361,25 @@ export class JsonAutomaton implements Automaton {
             property: prop,
           },
         ];
-      } else {
-        const childrenList = (output.object[children] ??= []);
-        const idx = childrenList.length;
-        childrenList.push(stateValue);
-
-        return [
-          {
-            type: InstructionEnum.UpdateChild,
-            index: idx,
-          },
-        ];
       }
+    } else {
+      const childrenList = (output[children] ??= []);
+      const idx = childrenList.length;
+      childrenList.push(stateValue);
+
+      return [
+        {
+          type: InstructionEnum.UpdateChild,
+          index: idx,
+        },
+      ];
     }
   }
 
   appendText(content: ITextNode['nodeValue']): void {
     const { output } = this.currentTarget;
 
-    if (output instanceof AutomatonObject) {
+    if (output instanceof AutomatonProperty) {
       if (output.prop) {
         output.object[output.prop] = content;
       } else {
@@ -343,8 +394,11 @@ export class JsonAutomaton implements Automaton {
       output.items.push(content);
     } else if (output instanceof Array) {
       output.push(content);
+    } else if (output) {
+      const childrenList = (output[children] ??= []);
+      childrenList.push(content);
     } else {
-      throw Error('Not yet implemented!');
+      throw Error('invalid state');
     }
   }
 }
