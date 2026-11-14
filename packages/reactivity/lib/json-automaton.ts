@@ -1,14 +1,4 @@
-import {
-  Automaton,
-  AutomatonConditional,
-  AutomatonRegion,
-  AutomatonTarget,
-  AutomatonTemplate,
-  IRegion,
-  ITextNode,
-  AutomatonObject as AutomatonObject,
-  AutomatonProperty,
-} from './automaton';
+import { Automaton, AutomatonConditional, ITextNode } from './automaton';
 import { Instruction, InstructionEnum, type Program } from './program';
 import {
   Func,
@@ -19,6 +9,12 @@ import {
   Scope,
   State,
 } from './state';
+import {
+  AutomatonProperty,
+  AutomatonRegion,
+  AutomatonTarget,
+  AutomatonTemplate,
+} from './target';
 
 export const type = Symbol('type');
 export const events = Symbol('events');
@@ -105,7 +101,7 @@ export class JsonAutomaton implements Automaton {
       throw Error('output is not an array');
     }
 
-    const conditional = new AutomatonConditional(output, lense, stateValue);
+    const conditional = new AutomatonConditional(output, stateValue);
     const state = resolveRootState(lense);
 
     return {
@@ -113,7 +109,7 @@ export class JsonAutomaton implements Automaton {
       traversal: [
         {
           type: InstructionEnum.PushOutput,
-          output: conditional.fragment,
+          output: [],
         },
       ],
       scope: currentTarget.scope,
@@ -124,7 +120,11 @@ export class JsonAutomaton implements Automaton {
             const program = appendStateRead(lense, []);
             program.push({
               type: InstructionEnum.Show,
-              node: conditional,
+              node: {
+                show: (visible: boolean) => {
+                  debugger;
+                },
+              },
             } as Instruction);
             return program;
           })(),

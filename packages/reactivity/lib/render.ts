@@ -1,10 +1,4 @@
-import {
-  Automaton,
-  AutomatonObject,
-  AutomatonTemplate,
-  cloneTemplateItem,
-  popScope as popTarget,
-} from './automaton';
+import { Automaton, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { ExecuteState, Sandbox } from './sandbox';
@@ -21,8 +15,12 @@ import {
   events as objectEvents,
   type as objectType,
   children as objectChildren,
-  children,
 } from './json-automaton';
+import {
+  AutomatonObject,
+  AutomatonTemplate,
+  cloneTemplateItem,
+} from './target';
 
 export interface RenderOption {
   expand(renderState: RenderState, view: any): boolean;
@@ -93,15 +91,9 @@ export function traverse(
     } else if (curr.constructor === Conditional) {
       const { expr, visible } = curr;
 
-      if (isLense(expr)) {
-        sandbox.pushTarget(automaton.pushConditional(expr, visible));
-        renderState.viewStack.push(popTarget);
-        renderState.viewStack.push(curr.body);
-      } else if (visible) {
-        sandbox.pushRegion();
-        renderState.viewStack.push(popTarget);
-        renderState.viewStack.push(curr.body);
-      }
+      sandbox.pushTarget(automaton.pushConditional(expr, visible));
+      renderState.viewStack.push(popTarget);
+      renderState.viewStack.push(curr.body);
     } else if (curr.constructor === ForEachComponent) {
       const { body, initial, expr: list } = curr;
       const state = resolveRootState(list);

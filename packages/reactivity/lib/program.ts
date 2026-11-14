@@ -174,7 +174,7 @@ interface SelectTemplateInstruction {
 
 interface PushOutputInstruction {
   type: InstructionEnum.PushOutput;
-  output: any[] | Function;
+  output: any[];
 }
 
 interface PushChildrenInstruction {

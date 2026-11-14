@@ -1,11 +1,4 @@
-import {
-  Automaton,
-  AutomatonTarget,
-  AutomatonTemplate,
-  cloneTemplateItem,
-  AutomatonProperty,
-  AutomatonObject,
-} from './automaton';
+import { Automaton } from './automaton';
 import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
 import { concatOptimized, appendStateRead, children } from './json-automaton';
@@ -21,6 +14,14 @@ import {
   State,
   Value,
 } from './state';
+import {
+  AutomatonObject,
+  AutomatonProperty,
+  AutomatonTarget,
+  AutomatonTargetEnum,
+  AutomatonTemplate,
+  cloneTemplateItem,
+} from './target';
 
 export class Sandbox {
   public targetStack: AutomatonTarget[] = [];
@@ -102,26 +103,29 @@ export class Sandbox {
 
   attachEvent(eventName: string, handler: Function): void {
     const { currentTarget } = this.automaton;
-    const { output } = currentTarget;
+    const { type } = currentTarget;
 
-    if (output instanceof AutomatonProperty) {
-      if (output.prop) {
-        throw Error('Cannot add event while a property is selected');
+    if (type === AutomatonTargetEnum.Other) {
+      const { output } = currentTarget;
+      if (output instanceof AutomatonProperty) {
+        if (output.prop) {
+          throw Error('Cannot add event while a property is selected');
+        }
+
+        const init = (currentTarget.init ??= []);
+        const event = new Event(currentTarget.scope, eventName, handler);
+
+        init.push({
+          type: InstructionEnum.AttachEvent,
+          event,
+        });
+
+        output.object[events] ??= {};
+        output.object[events][eventName] = handler;
+      } else if (output) {
+        (output as AutomatonObject)[events] ??= {};
+        (output as AutomatonObject)[events][eventName] = handler;
       }
-
-      const init = (currentTarget.init ??= []);
-      const event = new Event(currentTarget.scope, eventName, handler);
-
-      init.push({
-        type: InstructionEnum.AttachEvent,
-        event,
-      });
-
-      output.object[events] ??= {};
-      output.object[events][eventName] = handler;
-    } else if (output) {
-      (output as AutomatonObject)[events] ??= {};
-      (output as AutomatonObject)[events][eventName] = handler;
     }
   }
 
@@ -183,7 +187,7 @@ export class Sandbox {
     if (patches) {
       for (const [state, updates] of patches) {
         if (state.scope.level > currentTarget.scope.level) {
-          const scopePatches = (state.scope.patches ??= new Map());
+          const scopePatches = new Map();
 
           if (scopePatches.has(state)) {
             const statePatches = scopePatches.get(state)!;
@@ -663,7 +667,7 @@ function pushToStack(state: ExecuteState, output: any) {
     });
   }
 
-  if (output instanceof Function) state.currentOutput = output();
+  if (output instanceof Function) state.currentOutput = output(state.values);
   else state.currentOutput = output;
 }
 
