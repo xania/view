@@ -1,11 +1,14 @@
 import { Program } from './program';
 import { Lense } from './state';
-import { AutomatonTarget } from './target';
+import { AutomatonObjectTarget, AutomatonTarget } from './target';
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
   appendArray(): AutomatonTarget | void;
-  appendObject(type?: string): AutomatonTarget;
+  appendObject(
+    type?: string,
+    eventsObject?: Record<string, Function>
+  ): AutomatonObjectTarget;
   appendText(content: ITextNode['nodeValue']): void;
   appendValue<T>(stateValue?: T): Program | void;
   pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget;

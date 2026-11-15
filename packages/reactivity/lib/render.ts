@@ -157,16 +157,9 @@ export function traverse(
       }
     } else if (curr.constructor === Object) {
       const type = curr[objectType];
-      sandbox.appendObject(type);
-
       const eventsObject = curr[objectEvents];
-      if (eventsObject) {
-        const eventNames = Object.keys(eventsObject);
-        for (const eventName of eventNames) {
-          const handler = eventsObject[eventName];
-          sandbox.attachEvent(eventName, handler);
-        }
-      }
+
+      sandbox.appendObject(type, eventsObject);
 
       renderState.viewStack.push(popTarget);
 

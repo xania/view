@@ -5,28 +5,32 @@ import { Scope, State } from './state';
 export enum AutomatonTargetEnum {
   Array = 'array',
   Object = 'object',
-  Other = 'other',
+  Property = 'property',
+  Region = 'region',
+  Conditional = 'conditional',
+  Template = 'template',
 }
 
 export type AutomatonTarget =
   | AutomatonArrayTarget
   | AutomatonObjectTarget
-  | {
-      output:
-        | AutomatonProperty
-        | AutomatonRegion
-        | AutomatonTemplate
-        | AutomatonOutput;
-      traversal: Program;
-      patches?: Map<State, Instruction[]>;
-      events?: Map<Event, Instruction[]>;
-      init?: Instruction[];
-      scope: Scope;
-      type: AutomatonTargetEnum.Other;
-    };
+  | AutomatonPropertyTarget
+  | AutomatonRegionTarget
+  | AutomatonConditionalTarget
+  | AutomatonTemplateTarget;
+
+export type AutomatonArrayTarget = {
+  output: any[];
+  traversal: Program;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
+  init?: Instruction[];
+  scope: Scope;
+  type: AutomatonTargetEnum.Array;
+};
 
 export type AutomatonObjectTarget = {
-  object: AutomatonObject;
+  output: AutomatonObject;
   traversal: Program;
   patches?: Map<State, Instruction[]>;
   events?: Map<Event, Instruction[]>;
@@ -35,15 +39,44 @@ export type AutomatonObjectTarget = {
   type: AutomatonTargetEnum.Object;
 };
 
-export type AutomatonArrayTarget = {
-  array: any[];
-  offset: number;
+export type AutomatonPropertyTarget = {
+  output: AutomatonProperty;
   traversal: Program;
   patches?: Map<State, Instruction[]>;
   events?: Map<Event, Instruction[]>;
   init?: Instruction[];
   scope: Scope;
-  type: AutomatonTargetEnum.Array;
+  type: AutomatonTargetEnum.Property;
+};
+
+export type AutomatonRegionTarget = {
+  output: AutomatonRegion;
+  traversal: Program;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
+  init?: Instruction[];
+  scope: Scope;
+  type: AutomatonTargetEnum.Region;
+};
+
+export type AutomatonConditionalTarget = {
+  output: import('./automaton').AutomatonConditional;
+  traversal: Program;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
+  init?: Instruction[];
+  scope: Scope;
+  type: AutomatonTargetEnum.Conditional;
+};
+
+export type AutomatonTemplateTarget = {
+  output: AutomatonTemplate;
+  traversal: Program;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
+  init?: Instruction[];
+  scope: Scope;
+  type: AutomatonTargetEnum.Template;
 };
 
 type RegionFrame = Record<symbol, any> & { key: string };

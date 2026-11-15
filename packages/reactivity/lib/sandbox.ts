@@ -105,26 +105,35 @@ export class Sandbox {
     const { currentTarget } = this.automaton;
     const { type } = currentTarget;
 
-    if (type === AutomatonTargetEnum.Other) {
+    if (type === AutomatonTargetEnum.Object) {
       const { output } = currentTarget;
-      if (output instanceof AutomatonProperty) {
-        if (output.prop) {
-          throw Error('Cannot add event while a property is selected');
+
+      (output as AutomatonObject)[events] ??= {};
+      (output as AutomatonObject)[events][eventName] = handler;
+    } else {
+      debugger;
+      if (type === AutomatonTargetEnum.Property) {
+        const { output } = currentTarget;
+        if (output instanceof AutomatonProperty) {
+          if (output.prop) {
+            throw Error('Cannot add event while a property is selected');
+          }
+
+          const init = (currentTarget.init ??= []);
+          const event = new Event(currentTarget.scope, eventName, handler);
+
+          init.push({
+            type: InstructionEnum.AttachEvent,
+            event,
+          });
+
+          output.object[events] ??= {};
+          output.object[events][eventName] = handler;
+        } else if (output) {
+          (output as AutomatonObject)[events] ??= {};
+          (output as AutomatonObject)[events][eventName] = handler;
         }
-
-        const init = (currentTarget.init ??= []);
-        const event = new Event(currentTarget.scope, eventName, handler);
-
-        init.push({
-          type: InstructionEnum.AttachEvent,
-          event,
-        });
-
-        output.object[events] ??= {};
-        output.object[events][eventName] = handler;
-      } else if (output) {
-        (output as AutomatonObject)[events] ??= {};
-        (output as AutomatonObject)[events][eventName] = handler;
+      } else {
       }
     }
   }
@@ -143,8 +152,10 @@ export class Sandbox {
     this.pushTarget(this.automaton.pushChildren());
   }
 
-  appendObject(type?: string): void {
-    this.pushTarget(this.automaton.appendObject(type));
+  appendObject(type?: string, eventsObject?: Record<string, Function>): void {
+    const objectTarget = this.automaton.appendObject(type, eventsObject);
+
+    this.pushTarget(objectTarget);
   }
 
   pushRegion(visible: boolean | void = true): void {

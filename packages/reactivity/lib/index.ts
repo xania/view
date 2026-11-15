@@ -7,3 +7,12 @@ export * from './sandbox';
 export * from './state';
 export * from './automaton';
 export * from './json-automaton';
+export type {
+  AutomatonArrayTarget,
+  AutomatonConditionalTarget,
+  AutomatonObjectTarget,
+  AutomatonPropertyTarget,
+  AutomatonRegionTarget,
+  AutomatonTarget,
+  AutomatonTemplateTarget,
+} from './target';

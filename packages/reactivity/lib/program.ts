@@ -1,5 +1,6 @@
-import { AutomatonTemplate, ITextNode } from './automaton';
-import { ReconcileOperation } from './core/reconcile';
+import type { ITextNode } from './automaton';
+import type { AutomatonTemplate } from './target';
+import type { ReconcileOperation } from './core/reconcile';
 import type { Event } from './event';
 import { ArrayFragment } from './sandbox';
 

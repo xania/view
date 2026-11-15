@@ -10,10 +10,16 @@ import {
   State,
 } from './state';
 import {
+  AutomatonArrayTarget,
+  AutomatonConditionalTarget,
+  AutomatonObjectTarget,
   AutomatonProperty,
   AutomatonRegion,
+  AutomatonRegionTarget,
   AutomatonTarget,
+  AutomatonTargetEnum,
   AutomatonTemplate,
+  AutomatonTemplateTarget,
 } from './target';
 
 export const type = Symbol('type');
@@ -32,11 +38,15 @@ export class JsonAutomaton implements Automaton {
       traversal: [],
       patches: new Map(),
       scope,
+      type: AutomatonTargetEnum.Object,
     };
   }
 
   // Platform specific
-  appendObject(_type?: string) {
+  appendObject(
+    _type?: string,
+    eventsObject?: Record<string, Function>
+  ): AutomatonObjectTarget {
     const { currentTarget } = this;
 
     const newObject: Record<string | number, any> & {
@@ -48,10 +58,23 @@ export class JsonAutomaton implements Automaton {
       newObject[type] = _type;
     }
 
+    if (eventsObject) {
+      const eventNames = Object.keys(eventsObject);
+      if (eventNames.length > 0) {
+        newObject[events] ??= {};
+
+        for (const eventName of eventNames) {
+          const handler = eventsObject[eventName];
+          newObject[events][eventName] = handler;
+        }
+      }
+    }
+
     return {
       output: newObject,
       traversal: this.append(currentTarget.output, newObject) ?? [],
       scope: currentTarget.scope,
+      type: AutomatonTargetEnum.Object,
     };
   }
 
@@ -63,10 +86,11 @@ export class JsonAutomaton implements Automaton {
       patches: new Map(),
       output: new AutomatonProperty(currentTarget.output, prop),
       traversal: [],
+      type: AutomatonTargetEnum.Property,
     };
   }
 
-  pushRegion(visible: boolean | void = true) {
+  pushRegion(visible: boolean | void = true): AutomatonRegionTarget {
     const { currentTarget } = this;
     if (!currentTarget) {
       throw Error('Cannot push standalone region, a target is not found');
@@ -87,10 +111,14 @@ export class JsonAutomaton implements Automaton {
       output: newRegion,
       traversal: [],
       scope: currentTarget.scope,
+      type: AutomatonTargetEnum.Region,
     };
   }
 
-  pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget {
+  pushConditional(
+    lense: Lense<any>,
+    stateValue: any
+  ): AutomatonConditionalTarget {
     const { currentTarget } = this;
     let output = currentTarget.output;
     if (output instanceof AutomatonProperty) {
@@ -105,6 +133,7 @@ export class JsonAutomaton implements Automaton {
     const state = resolveRootState(lense);
 
     return {
+      type: AutomatonTargetEnum.Conditional,
       output: conditional,
       traversal: [
         {
@@ -144,10 +173,11 @@ export class JsonAutomaton implements Automaton {
         },
       ],
       scope: this.currentTarget.scope,
+      type: AutomatonTargetEnum.Array,
     };
   }
 
-  pushTemplate(): AutomatonTarget {
+  pushTemplate(): AutomatonTemplateTarget {
     const { currentTarget } = this;
 
     const { output } = currentTarget;
@@ -158,6 +188,7 @@ export class JsonAutomaton implements Automaton {
       const tpl = new AutomatonTemplate(childScope, output.length);
 
       return {
+        type: AutomatonTargetEnum.Template,
         output: tpl,
         patches: tpl.patches,
         init: tpl.init,
@@ -174,6 +205,7 @@ export class JsonAutomaton implements Automaton {
 
       const tpl = new AutomatonTemplate(childScope, childrenList.length);
       return {
+        type: AutomatonTargetEnum.Template,
         output: tpl,
         patches: tpl.patches,
         init: tpl.init,
@@ -192,6 +224,7 @@ export class JsonAutomaton implements Automaton {
       const tpl = new AutomatonTemplate(childScope, childrenList.length);
 
       return {
+        type: AutomatonTargetEnum.Template,
         output: tpl,
         patches: tpl.patches,
         init: tpl.init,
@@ -300,12 +333,13 @@ export class JsonAutomaton implements Automaton {
     //   );
   }
 
-  appendArray() {
+  appendArray(): AutomatonArrayTarget | void {
     const { currentTarget } = this;
 
     const copy: any[] = [];
 
     return {
+      type: AutomatonTargetEnum.Array,
       output: copy,
       traversal: this.append(currentTarget.output, copy) ?? [],
       scope: currentTarget.scope,
