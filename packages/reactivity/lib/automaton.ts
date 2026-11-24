@@ -4,18 +4,15 @@ import { AutomatonObjectTarget, AutomatonTarget } from './target';
 
 export interface Automaton {
   currentTarget: AutomatonTarget;
-  appendArray(): AutomatonTarget | void;
+  appendArray(): AutomatonTarget;
   appendObject(
     type?: string,
     eventsObject?: Record<string, Function>
   ): AutomatonObjectTarget;
   appendText(content: ITextNode['nodeValue']): void;
   appendValue<T>(stateValue?: T): Program | void;
-  pushConditional(lense: Lense<any>, stateValue: any): AutomatonTarget;
-  pushRegion(visible?: boolean | void): AutomatonTarget;
-  pushTemplate(): AutomatonTarget;
   pushChildren(): AutomatonTarget;
-  pushProperty(prop: string): AutomatonTarget;
+  selectProperty(prop: string): void;
 }
 
 export class AutomatonConditional {

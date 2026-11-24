@@ -3,7 +3,6 @@ import { UpdateCommand } from './commands/update';
 import { reconcile, ReconcileOperation } from './core/reconcile';
 import { concatOptimized, appendStateRead, children } from './json-automaton';
 import { events } from './json-automaton';
-import { Event } from './event';
 import { InstructionEnum, Program, type Instruction } from './program';
 import {
   ItemState,
@@ -15,12 +14,13 @@ import {
   Value,
 } from './state';
 import {
-  AutomatonObject,
-  AutomatonProperty,
+  AutomatonArrayTarget,
+  AutomatonConditionalTarget,
   AutomatonTarget,
   AutomatonTargetEnum,
   AutomatonTemplate,
   cloneTemplateItem,
+  ConditionalOutput,
 } from './target';
 
 export class Sandbox {
@@ -31,6 +31,35 @@ export class Sandbox {
     public currentScope: Scope
   ) {}
 
+  pushConditional(lense: Lense<boolean>, visible: boolean | undefined) {
+    const { automaton } = this;
+    const { currentTarget } = automaton;
+    this.targetStack.push(currentTarget);
+
+    const currentPatches = (currentTarget.patches ??= new Map<
+      State,
+      Instruction[]
+    >());
+
+    const rootKey = resolveRootState(lense);
+
+    if (!currentPatches.has(rootKey)) {
+      currentPatches.set(rootKey, []);
+    }
+
+    const stateEvent = currentPatches.get(rootKey)!;
+    appendStateRead(lense, stateEvent);
+
+    const conditionalTarget: AutomatonConditionalTarget = {
+      output: new ConditionalOutput(currentTarget),
+      traversal: [],
+      scope: currentTarget.scope,
+      type: AutomatonTargetEnum.Conditional,
+    };
+
+    this.automaton.currentTarget = conditionalTarget;
+  }
+
   pushTarget(nextTarget: AutomatonTarget) {
     this.targetStack.push(this.automaton.currentTarget);
     this.automaton.currentTarget = nextTarget;
@@ -38,7 +67,6 @@ export class Sandbox {
 
   appendValue<T>(lense: Lense<T>, stateValue?: T) {
     const { currentTarget } = this.automaton;
-    let { output } = currentTarget;
 
     const currentPatches = (currentTarget.patches ??= new Map<
       State,
@@ -57,6 +85,36 @@ export class Sandbox {
     const program = this.automaton.appendValue(stateValue);
     if (program) {
       stateEvent.push(...program);
+    }
+  }
+
+  resolveTraversal(): Program {
+    const { currentTarget } = this.automaton;
+
+    if (currentTarget.type === AutomatonTargetEnum.Array) {
+      const { output } = currentTarget;
+      const nodeIndex = output.length;
+
+      return [
+        {
+          type: InstructionEnum.UpdateArray,
+          index: nodeIndex,
+        },
+      ];
+    } else if (currentTarget.type === AutomatonTargetEnum.Object) {
+      const { prop } = currentTarget;
+      if (prop) {
+        return [
+          {
+            type: InstructionEnum.UpdateObject,
+            property: prop,
+          },
+        ];
+      } else {
+        throw Error('Object target prop is not set');
+      }
+    } else {
+      throw Error('Not supported target type');
     }
   }
 
@@ -106,39 +164,33 @@ export class Sandbox {
     const { type } = currentTarget;
 
     if (type === AutomatonTargetEnum.Object) {
-      const { output } = currentTarget;
+      const { output, prop } = currentTarget;
 
-      (output as AutomatonObject)[events] ??= {};
-      (output as AutomatonObject)[events][eventName] = handler;
+      if (prop) {
+        throw Error('Cannot add event while a property is selected');
+      }
+
+      output[events] ??= {};
+      output[events][eventName] = handler;
     } else {
       debugger;
-      if (type === AutomatonTargetEnum.Property) {
-        const { output } = currentTarget;
-        if (output instanceof AutomatonProperty) {
-          if (output.prop) {
-            throw Error('Cannot add event while a property is selected');
-          }
-
-          const init = (currentTarget.init ??= []);
-          const event = new Event(currentTarget.scope, eventName, handler);
-
-          init.push({
-            type: InstructionEnum.AttachEvent,
-            event,
-          });
-
-          output.object[events] ??= {};
-          output.object[events][eventName] = handler;
-        } else if (output) {
-          (output as AutomatonObject)[events] ??= {};
-          (output as AutomatonObject)[events][eventName] = handler;
-        }
-      } else {
-      }
     }
   }
 
-  appendArray(): boolean | void {
+  pushTemplate() {
+    const { currentTarget } = this.automaton;
+    const nextTarget: AutomatonTarget = {
+      output: [],
+      scope: currentTarget.scope,
+      traversal: [],
+      type: AutomatonTargetEnum.Array,
+    };
+
+    this.pushTarget(nextTarget);
+    return true;
+  }
+
+  pushArray(): boolean | void {
     const nextTarget = this.automaton.appendArray();
     if (!nextTarget) {
       return;
@@ -158,22 +210,25 @@ export class Sandbox {
     this.pushTarget(objectTarget);
   }
 
-  pushRegion(visible: boolean | void = true): void {
-    this.pushTarget(this.automaton.pushRegion(visible));
-  }
-  pushProperty(prop: string) {
-    this.pushTarget(this.automaton.pushProperty(prop));
+  selectProperty(prop: string) {
+    this.automaton.selectProperty(prop);
   }
 
-  pushTemplate(): AutomatonTemplate {
-    const target = this.automaton.pushTemplate();
-    this.pushTarget(target);
+  popTemplate(): AutomatonTemplate {
+    const { currentTarget } = this.automaton;
 
-    if (!target.output) {
-      throw Error('automaton did not provide template target');
+    if (currentTarget.type !== AutomatonTargetEnum.Array) {
+      throw new Error('');
     }
 
-    return target.output as AutomatonTemplate;
+    const tpl = new AutomatonTemplate(currentTarget.scope, 0);
+    tpl.init = currentTarget.init;
+    tpl.items = currentTarget.output;
+    tpl.patches = currentTarget.patches;
+
+    this.popTarget();
+
+    return tpl;
   }
 
   popTarget(): void {
@@ -198,14 +253,6 @@ export class Sandbox {
     if (patches) {
       for (const [state, updates] of patches) {
         if (state.scope.level > currentTarget.scope.level) {
-          const scopePatches = new Map();
-
-          if (scopePatches.has(state)) {
-            const statePatches = scopePatches.get(state)!;
-            statePatches.push(...updates);
-          } else {
-            scopePatches.set(state, updates.slice());
-          }
         } else {
           const program: Instruction[] = currentTarget.traversal.slice();
           concatOptimized(program, updates);
@@ -236,9 +283,6 @@ export class Sandbox {
     item?: ItemState<T>
   ) {
     const { currentTarget } = this.automaton;
-    // if (!(currentTarget.output instanceof Array)) {
-    //   throw Error('output is not an array');
-    // }
 
     const offset = tpl.offset;
     tpl.itemKey ??= item?.key;
@@ -247,40 +291,8 @@ export class Sandbox {
 
     const listRoot = resolveRootState(list);
 
-    if (!item || !tpl.patches.has(item)) {
-      const program = appendStateRead(list, []);
-      program.push(
-        {
-          type: InstructionEnum.PushArrayFragment,
-          offset,
-        },
-        {
-          type: InstructionEnum.Reconcile,
-          tpl,
-          key: Symbol(),
-          break: 2 + (currentTarget.init?.length ?? 0),
-        }
-      );
-
-      if (currentTarget.init) {
-        program.push(...currentTarget.init);
-      }
-
-      program.push(
-        { type: InstructionEnum.PopOutput },
-        {
-          type: InstructionEnum.Jump,
-          steps: -3 - (currentTarget.init?.length ?? 0),
-        }
-      );
-
-      appendOrSetProgram(currentTarget, listRoot, program);
-    }
-
-    for (const [state, stateProgram] of tpl.patches) {
-      if (state === item) {
-        const itemProgram = stateProgram;
-
+    if (tpl.patches) {
+      if (!item || !tpl.patches.has(item)) {
         const program = appendStateRead(list, []);
         program.push(
           {
@@ -291,44 +303,78 @@ export class Sandbox {
             type: InstructionEnum.Reconcile,
             tpl,
             key: Symbol(),
-            break: 2 + itemProgram.length,
+            break: 2 + (currentTarget.init?.length ?? 0),
           }
         );
 
+        if (currentTarget.init && currentTarget.init.length > 0) {
+          program.push(...currentTarget.init);
+        }
+
         program.push(
-          ...itemProgram,
           { type: InstructionEnum.PopOutput },
           {
             type: InstructionEnum.Jump,
-            steps: -itemProgram.length - 3,
+            steps: -3 - (currentTarget.init?.length ?? 0),
           }
         );
 
         appendOrSetProgram(currentTarget, listRoot, program);
-      } else {
-        currentTarget.patches ??= new Map();
+      }
 
-        let parentProgram = currentTarget.patches.get(state);
+      for (const [state, stateProgram] of tpl.patches) {
+        if (state === item) {
+          const itemProgram = stateProgram;
 
-        if (!parentProgram) {
-          parentProgram = [];
-          currentTarget.patches.set(state, parentProgram);
+          const program = appendStateRead(list, []);
+          program.push(
+            {
+              type: InstructionEnum.PushArrayFragment,
+              offset,
+            },
+            {
+              type: InstructionEnum.Reconcile,
+              tpl,
+              key: Symbol(),
+              break: 2 + itemProgram.length,
+            }
+          );
+
+          program.push(
+            ...itemProgram,
+            { type: InstructionEnum.PopOutput },
+            {
+              type: InstructionEnum.Jump,
+              steps: -itemProgram.length - 3,
+            }
+          );
+
+          appendOrSetProgram(currentTarget, listRoot, program);
+        } else {
+          currentTarget.patches ??= new Map();
+
+          let parentProgram = currentTarget.patches.get(state);
+
+          if (!parentProgram) {
+            parentProgram = [];
+            currentTarget.patches.set(state, parentProgram);
+          }
+
+          const itemProgram = concatOptimized([], stateProgram);
+
+          parentProgram.push({
+            type: InstructionEnum.Enumerate,
+            tpl,
+            key: Symbol(),
+            break: itemProgram.length + 1,
+            fragmentIdx: -1,
+          });
+
+          parentProgram.push(...itemProgram, {
+            type: InstructionEnum.Jump,
+            steps: -itemProgram.length - 2,
+          });
         }
-
-        const itemProgram = concatOptimized([], stateProgram);
-
-        parentProgram.push({
-          type: InstructionEnum.Enumerate,
-          tpl,
-          key: Symbol(),
-          break: itemProgram.length + 1,
-          fragmentIdx: -1,
-        });
-
-        parentProgram.push(...itemProgram, {
-          type: InstructionEnum.Jump,
-          steps: -itemProgram.length - 2,
-        });
       }
     }
   }

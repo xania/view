@@ -5,22 +5,53 @@ import { Scope, State } from './state';
 export enum AutomatonTargetEnum {
   Array = 'array',
   Object = 'object',
-  Property = 'property',
-  Region = 'region',
   Conditional = 'conditional',
-  Template = 'template',
 }
 
 export type AutomatonTarget =
   | AutomatonArrayTarget
   | AutomatonObjectTarget
-  | AutomatonPropertyTarget
-  | AutomatonRegionTarget
-  | AutomatonConditionalTarget
-  | AutomatonTemplateTarget;
+  | AutomatonConditionalTarget;
+
+export class ConditionalOutput {
+  public offline: any[] = [];
+  constructor(public parent: AutomatonTarget) {}
+
+  push(value: any): number {
+    const { offline, parent } = this;
+    const idx = offline.length;
+
+    offline.push(value);
+
+    switch (parent.type) {
+      case AutomatonTargetEnum.Array:
+        parent.output.push(value);
+        break;
+      case AutomatonTargetEnum.Conditional:
+        parent.output.push(value);
+        break;
+      case AutomatonTargetEnum.Object:
+        throw Error('Object target is not supported');
+      default:
+        throw Error('Target unknown');
+    }
+
+    return idx;
+  }
+}
+export type AutomatonConditionalTarget = {
+  traversal: [];
+  output: ConditionalOutput;
+  patches?: Map<State, Instruction[]>;
+  events?: Map<Event, Instruction[]>;
+  init?: Instruction[];
+  scope: Scope;
+  type: AutomatonTargetEnum.Conditional;
+};
 
 export type AutomatonArrayTarget = {
   output: any[];
+  offset?: number;
   traversal: Program;
   patches?: Map<State, Instruction[]>;
   events?: Map<Event, Instruction[]>;
@@ -31,52 +62,13 @@ export type AutomatonArrayTarget = {
 
 export type AutomatonObjectTarget = {
   output: AutomatonObject;
+  prop?: string | number | symbol;
   traversal: Program;
   patches?: Map<State, Instruction[]>;
   events?: Map<Event, Instruction[]>;
   init?: Instruction[];
   scope: Scope;
   type: AutomatonTargetEnum.Object;
-};
-
-export type AutomatonPropertyTarget = {
-  output: AutomatonProperty;
-  traversal: Program;
-  patches?: Map<State, Instruction[]>;
-  events?: Map<Event, Instruction[]>;
-  init?: Instruction[];
-  scope: Scope;
-  type: AutomatonTargetEnum.Property;
-};
-
-export type AutomatonRegionTarget = {
-  output: AutomatonRegion;
-  traversal: Program;
-  patches?: Map<State, Instruction[]>;
-  events?: Map<Event, Instruction[]>;
-  init?: Instruction[];
-  scope: Scope;
-  type: AutomatonTargetEnum.Region;
-};
-
-export type AutomatonConditionalTarget = {
-  output: import('./automaton').AutomatonConditional;
-  traversal: Program;
-  patches?: Map<State, Instruction[]>;
-  events?: Map<Event, Instruction[]>;
-  init?: Instruction[];
-  scope: Scope;
-  type: AutomatonTargetEnum.Conditional;
-};
-
-export type AutomatonTemplateTarget = {
-  output: AutomatonTemplate;
-  traversal: Program;
-  patches?: Map<State, Instruction[]>;
-  events?: Map<Event, Instruction[]>;
-  init?: Instruction[];
-  scope: Scope;
-  type: AutomatonTargetEnum.Template;
 };
 
 type RegionFrame = Record<symbol, any> & { key: string };
@@ -94,13 +86,13 @@ export type AutomatonOutput = {
 export class AutomatonTemplate implements ITemplate {
   public items: any[] = [];
   public readonly regions: RegionFrame[] = [];
-  public patches: Map<State, Instruction[]> = new Map();
-  public init: Instruction[] = [];
+  public patches?: Map<State, Instruction[]>;
+  public init?: Instruction[];
+  public itemKey?: symbol;
 
   constructor(
-    public scope: Scope,
-    public offset: number,
-    public itemKey?: symbol
+    public readonly scope: Scope,
+    public readonly offset: number
   ) {}
 
   push(item: any) {
@@ -154,75 +146,7 @@ export class AutomatonTemplate implements ITemplate {
   }
 }
 
-export class AutomatonProperty {
-  constructor(
-    public object: AutomatonObject,
-    public prop: string | number | symbol
-  ) {}
-}
-
 export type AutomatonObject = Record<string | number | symbol, any>;
-
-export class AutomatonRegion {
-  public readonly offset: number;
-  private items: any[] = [];
-
-  constructor(
-    public output: AutomatonOutput,
-    public visible: boolean | void
-  ) {
-    if (this.output instanceof Array) {
-      this.offset = this.output.length;
-    } else {
-      throw Error(
-        'invalid state: expected array scope but got object {' +
-          this.output +
-          '}'
-      );
-    }
-  }
-
-  push(item: any) {
-    const { items } = this;
-    const idx = items.length;
-    items.push(item);
-    if (this.visible) {
-      this.output.push(item);
-    }
-    return idx;
-  }
-
-  update(idx: number, item: any) {
-    this.items[idx] = item;
-
-    if (this.visible) {
-      if (this.output instanceof Array) {
-        this.output[this.offset + idx] = item;
-      } else {
-        throw Error('invalid state: expected array scope');
-      }
-    }
-  }
-
-  show(visible: boolean) {
-    if (this.visible === visible) {
-      return;
-    }
-
-    this.visible = visible;
-
-    if (visible) {
-      this.output.splice(this.offset, 0, ...this.items);
-    } else {
-      this.output.splice(this.offset, this.items.length);
-    }
-  }
-  clone() {
-    const self = this;
-
-    this.output.push(...self.items);
-  }
-}
 
 export function cloneTemplateItem<T>(item: T): T {
   if (item instanceof Array) {

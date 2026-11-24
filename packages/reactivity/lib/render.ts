@@ -2,15 +2,7 @@ import { Automaton, popScope as popTarget } from './automaton';
 import { Conditional } from './core/if';
 import { ForEachBody, ForEachComponent, Iterator } from './core/for';
 import { ExecuteState, Sandbox } from './sandbox';
-import {
-  isLense,
-  ItemState,
-  Lense,
-  resolveRootState,
-  RootScope,
-  Scope,
-  State,
-} from './state';
+import { isLense, ItemState, Lense, RootScope, Scope, State } from './state';
 import {
   events as objectEvents,
   type as objectType,
@@ -18,6 +10,7 @@ import {
 } from './json-automaton';
 import {
   AutomatonObject,
+  AutomatonTargetEnum,
   AutomatonTemplate,
   cloneTemplateItem,
 } from './target';
@@ -85,36 +78,31 @@ export function traverse(
     }
 
     if (curr.constructor === String) {
-      const node = automaton.appendText(curr);
+      automaton.appendText(curr);
     } else if (curr.constructor === Number) {
-      const node = automaton.appendText(curr);
+      automaton.appendText(curr);
     } else if (curr.constructor === Conditional) {
       const { expr, visible } = curr;
-
-      sandbox.pushTarget(automaton.pushConditional(expr, visible));
+      sandbox.pushConditional(expr, visible);
+      // sandbox.pushTarget(automaton.pushConditional(expr, visible));
       renderState.viewStack.push(popTarget);
       renderState.viewStack.push(curr.body);
     } else if (curr.constructor === ForEachComponent) {
       const { body, initial, expr: list } = curr;
-      const state = resolveRootState(list);
 
-      const tpl = sandbox.pushTemplate();
+      sandbox.pushTemplate();
 
-      const iterator = buildIterator(tpl.scope, body, list);
-
-      // renderState.viewStack.push(new InitializeState(state));
-
-      renderState.viewStack.push(() =>
-        sandbox.registerReconciler(list, tpl, iterator.itemState)
-      );
-
-      if (initial) {
+      const tplScope = sandbox.automaton.currentTarget.scope.pushScope();
+      const iterator = buildIterator(tplScope, body, list);
+      renderState.viewStack.push(() => {
         const { itemState } = iterator;
-        renderState.viewStack.push(() =>
-          initializeIterator(sandbox, tpl, initial, itemState)
-        );
-      }
-      renderState.viewStack.push(popTarget);
+        const tpl = sandbox.popTemplate();
+        if (initial) {
+          initializeIterator(sandbox, tpl, initial, itemState);
+        }
+        sandbox.registerReconciler(list, tpl, itemState);
+      });
+
       renderState.viewStack.push(iterator.body);
     } else if (curr instanceof Function) {
       const result = curr();
@@ -122,7 +110,8 @@ export function traverse(
         return result.then(() => traverse(sandbox, renderState, options));
       }
     } else if (curr instanceof SelectProperty) {
-      sandbox.pushProperty(curr.prop);
+      sandbox.selectProperty(curr.prop);
+      renderState.viewStack.push(curr.value);
     } else if (isLense(curr)) {
       const { initial } = curr;
 
@@ -146,7 +135,7 @@ export function traverse(
     } else if (curr === popTarget) {
       sandbox.popTarget();
     } else if (curr.constructor === Array) {
-      sandbox.appendArray();
+      sandbox.pushArray();
       renderState.viewStack.push(popTarget);
 
       for (let i = curr.length - 1; i >= 0; i--) {
@@ -163,16 +152,15 @@ export function traverse(
 
       renderState.viewStack.push(popTarget);
 
-      const automatonObject = automaton.currentTarget.output;
-
       const properties = Object.keys(curr);
+
       for (let idx = properties.length - 1; idx >= 0; idx--) {
         const prop = properties[idx];
         const propValue = curr[prop];
 
-        renderState.viewStack.push(popTarget);
-        renderState.viewStack.push(propValue);
-        renderState.viewStack.push(new SelectProperty(automatonObject, prop));
+        if (propValue !== undefined) {
+          renderState.viewStack.push(new SelectProperty(prop, propValue));
+        }
       }
 
       const children = curr[objectChildren];
@@ -202,8 +190,8 @@ class InitializeState {
 
 class SelectProperty {
   constructor(
-    public object: AutomatonObject,
-    public prop: string
+    public prop: string,
+    public value: any
   ) {}
 }
 
@@ -222,14 +210,15 @@ function initializeIterator(
   initial: any[],
   itemState?: ItemState<any>
 ): void | Promise<void> {
-  let currentOutput = sandbox.automaton.currentTarget.output;
-  if (currentOutput instanceof Array) {
+  const { currentTarget } = sandbox.automaton;
+  if (currentTarget.type === AutomatonTargetEnum.Array) {
     // good
   } else {
     throw Error('output not supported');
   }
+  let currentOutput = currentTarget.output;
 
-  const itemProgram = itemState && tpl.patches.get(itemState);
+  const itemProgram = itemState && tpl.patches?.get(itemState);
 
   if (itemProgram) {
     for (let index = 0; index < initial.length; index++) {

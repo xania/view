@@ -11,15 +11,11 @@ import {
 } from './state';
 import {
   AutomatonArrayTarget,
-  AutomatonConditionalTarget,
+  AutomatonObject,
   AutomatonObjectTarget,
-  AutomatonProperty,
-  AutomatonRegion,
-  AutomatonRegionTarget,
   AutomatonTarget,
   AutomatonTargetEnum,
   AutomatonTemplate,
-  AutomatonTemplateTarget,
 } from './target';
 
 export const type = Symbol('type');
@@ -30,16 +26,26 @@ export type ObjectEvents = Record<string, Function>;
 export class JsonAutomaton implements Automaton {
   public currentTarget: AutomatonTarget;
   constructor(
-    private rootOutput: AutomatonTarget['output'],
+    private rootOutput: AutomatonObject | any[],
     public scope: Scope = RootScope
   ) {
-    this.currentTarget = {
-      output: rootOutput,
-      traversal: [],
-      patches: new Map(),
-      scope,
-      type: AutomatonTargetEnum.Object,
-    };
+    if (rootOutput instanceof Array)
+      this.currentTarget = {
+        output: rootOutput,
+        traversal: [],
+        patches: new Map(),
+        scope,
+        type: AutomatonTargetEnum.Array,
+      };
+    else {
+      this.currentTarget = {
+        output: rootOutput,
+        traversal: [],
+        patches: new Map(),
+        scope,
+        type: AutomatonTargetEnum.Object,
+      };
+    }
   }
 
   // Platform specific
@@ -72,98 +78,73 @@ export class JsonAutomaton implements Automaton {
 
     return {
       output: newObject,
-      traversal: this.append(currentTarget.output, newObject) ?? [],
+      traversal: this.append(currentTarget, newObject) ?? [],
       scope: currentTarget.scope,
       type: AutomatonTargetEnum.Object,
     };
   }
 
-  pushProperty(prop: string): AutomatonTarget {
+  selectProperty(prop: string) {
     const { currentTarget } = this;
 
-    return {
-      ...currentTarget,
-      patches: new Map(),
-      output: new AutomatonProperty(currentTarget.output, prop),
-      traversal: [],
-      type: AutomatonTargetEnum.Property,
-    };
+    if (currentTarget.type === AutomatonTargetEnum.Object) {
+      currentTarget.prop = prop;
+    }
   }
 
-  pushRegion(visible: boolean | void = true): AutomatonRegionTarget {
-    const { currentTarget } = this;
-    if (!currentTarget) {
-      throw Error('Cannot push standalone region, a target is not found');
-    }
+  // pushConditional(
+  //   lense: Lense<any>,
+  //   stateValue: any
+  // ): AutomatonConditionalTarget {
+  //   const { currentTarget } = this;
 
-    let output = currentTarget.output;
-    if (output instanceof AutomatonProperty) {
-      output = output.object[children] ??= [];
-    }
+  //   if (currentTarget.type !== AutomatonTargetEnum.Array) {
+  //     throw Error('current target is not an array');
+  //   }
 
-    if (!(output instanceof Array)) {
-      throw Error('output is not an array');
-    }
+  //   const output = currentTarget.output;
 
-    const newRegion = new AutomatonRegion(output, visible);
+  //   const conditional = new AutomatonConditional(output, stateValue);
+  //   const state = resolveRootState(lense);
 
-    return {
-      output: newRegion,
-      traversal: [],
-      scope: currentTarget.scope,
-      type: AutomatonTargetEnum.Region,
-    };
-  }
-
-  pushConditional(
-    lense: Lense<any>,
-    stateValue: any
-  ): AutomatonConditionalTarget {
-    const { currentTarget } = this;
-    let output = currentTarget.output;
-    if (output instanceof AutomatonProperty) {
-      output = output.object[children] ??= [];
-    }
-
-    if (!(output instanceof Array)) {
-      throw Error('output is not an array');
-    }
-
-    const conditional = new AutomatonConditional(output, stateValue);
-    const state = resolveRootState(lense);
-
-    return {
-      type: AutomatonTargetEnum.Conditional,
-      output: conditional,
-      traversal: [
-        {
-          type: InstructionEnum.PushOutput,
-          output: [],
-        },
-      ],
-      scope: currentTarget.scope,
-      patches: new Map<State, Program>([
-        [
-          state,
-          (() => {
-            const program = appendStateRead(lense, []);
-            program.push({
-              type: InstructionEnum.Show,
-              node: {
-                show: (visible: boolean) => {
-                  debugger;
-                },
-              },
-            } as Instruction);
-            return program;
-          })(),
-        ],
-      ]),
-    };
-  }
+  //   return {
+  //     type: AutomatonTargetEnum.Conditional,
+  //     output: conditional,
+  //     traversal: [
+  //       {
+  //         type: InstructionEnum.PushOutput,
+  //         output: [],
+  //       },
+  //     ],
+  //     scope: currentTarget.scope,
+  //     patches: new Map<State, Program>([
+  //       [
+  //         state,
+  //         (() => {
+  //           const program = appendStateRead(lense, []);
+  //           program.push({
+  //             type: InstructionEnum.Show,
+  //             node: {
+  //               show: (_visible: boolean) => {
+  //                 throw Error('not yet implemented');
+  //               },
+  //             },
+  //           } as Instruction);
+  //           return program;
+  //         })(),
+  //       ],
+  //     ]),
+  //   };
+  // }
 
   pushChildren(): AutomatonTarget {
-    const output = this.currentTarget.output as { [children]?: any[] };
+    const { currentTarget } = this;
+
+    if (currentTarget.type !== AutomatonTargetEnum.Object) {
+      throw Error('current target is not an array');
+    }
+
+    const output = currentTarget.output;
     const childrenList = (output[children] ??= []);
     return {
       output: childrenList,
@@ -177,154 +158,84 @@ export class JsonAutomaton implements Automaton {
     };
   }
 
-  pushTemplate(): AutomatonTemplateTarget {
-    const { currentTarget } = this;
+  // pushTemplate(): AutomatonTemplateTarget {
+  //   const { currentTarget } = this;
 
-    const { output } = currentTarget;
+  //   const childScope = currentTarget.scope.pushScope();
 
-    const childScope = currentTarget.scope.pushScope();
+  //   if (currentTarget.type === AutomatonTargetEnum.Array) {
+  //     const { output: array, offset } = currentTarget;
+  //     if (offset != array.length) {
+  //       throw Error(
+  //         'invalid state: current expected to be at the end of array when pushing template'
+  //       );
+  //     }
 
-    if (output instanceof Array) {
-      const tpl = new AutomatonTemplate(childScope, output.length);
+  //     const tpl = new AutomatonTemplate(childScope, array.length);
 
-      return {
-        type: AutomatonTargetEnum.Template,
-        output: tpl,
-        patches: tpl.patches,
-        init: tpl.init,
-        traversal: [
-          {
-            type: InstructionEnum.PushOutput,
-            output: tpl.items,
-          },
-        ],
-        scope: tpl.scope,
-      };
-    } else if (output instanceof AutomatonProperty) {
-      const childrenList = (output.object[children] ??= []);
+  //     return {
+  //       type: AutomatonTargetEnum.Template,
+  //       output: tpl,
+  //       patches: tpl.patches,
+  //       init: tpl.init,
+  //       traversal: [
+  //         {
+  //           type: InstructionEnum.PushOutput,
+  //           output: tpl.items,
+  //         },
+  //       ],
+  //       scope: tpl.scope,
+  //     };
+  //   } else {
+  //     throw Error(
+  //       'invalid state: current expected to be array when property is not provided'
+  //     );
+  //   }
+  // }
 
-      const tpl = new AutomatonTemplate(childScope, childrenList.length);
-      return {
-        type: AutomatonTargetEnum.Template,
-        output: tpl,
-        patches: tpl.patches,
-        init: tpl.init,
-        traversal: [
-          {
-            type: InstructionEnum.PushOutput,
-            output: tpl.items,
-          },
-        ],
-        scope: tpl.scope,
-      };
-    } else if (output) {
-      const childrenList = ((output as { [children]?: any[] })[children] ??=
-        []);
-
-      const tpl = new AutomatonTemplate(childScope, childrenList.length);
-
-      return {
-        type: AutomatonTargetEnum.Template,
-        output: tpl,
-        patches: tpl.patches,
-        init: tpl.init,
-        traversal: [
-          {
-            type: InstructionEnum.PushOutput,
-            output: tpl.items,
-          },
-        ],
-        scope: tpl.scope,
-      };
-    } else {
-      throw Error(
-        'invalid state: current expected to be array when property is not provided'
-      );
-    }
-  }
-
-  private append(
-    output: AutomatonTarget['output'],
-    value: any
-  ): Instruction[] | void {
-    if (output instanceof AutomatonRegion) {
-      const idx = output.push(value);
+  private append(target: AutomatonTarget, value: any): Instruction[] | void {
+    if (target.type === AutomatonTargetEnum.Conditional) {
+      const idx = target.output.push(value);
       return [
         {
-          type: InstructionEnum.PushIndex,
+          type: InstructionEnum.UpdateArray,
           index: idx,
         },
       ];
-    } else if (output instanceof AutomatonConditional) {
-      const idx = output.push(value);
-      return [
-        {
-          type: InstructionEnum.PushIndex,
-          index: idx,
-        },
-      ];
-    } else if (output instanceof AutomatonTemplate) {
-      const offset = output.items.length;
-      output.items.push(value);
+    } else if (target.type === AutomatonTargetEnum.Array) {
+      const offset = target.output.length;
+      // if (offset !== target.offset) {
+      //   throw Error(
+      //     'invalid state: current expected to be at the end of array when appending value'
+      //   );
+      // }
+
+      target.output.push(value);
       return [
         {
           type: InstructionEnum.PushIndex,
           index: offset,
         },
       ];
-    } else if (output instanceof Array) {
-      const offset = output.length;
-      output.push(value);
-      return [
-        {
-          type: InstructionEnum.PushIndex,
-          index: offset,
-        },
-      ];
-    } else if (output instanceof AutomatonProperty) {
-      const { object, prop } = output;
-      object[prop] = value;
+    } else if (target.type === AutomatonTargetEnum.Object) {
+      const { output, prop } = target;
+      if (!prop) {
+        throw Error(
+          'invalid state: current object target does not specify a property to append value to'
+        );
+      }
+
+      output[prop] = value;
       return [
         {
           type: InstructionEnum.PushProperty,
           prop: prop,
         },
       ];
-    } else if (output) {
-      //   output[children] ??= [];
-
-      //   const offset = output[children].length;
-      //   output[children].push(value);
-
-      //   return [
-      //     {
-      //       type: InstructionEnum.PushChild,
-      //       index: offset,
-      //     },
-      //   ];
-
-      //   // } else {
-      //   //         const prop = output.prop;
-      //   //   if (prop) {
-      //   //     output[prop] = value;
-      //   //     return [
-      //   //       {
-      //   //         type: InstructionEnum.PushProperty,
-      //   //         prop: prop,
-      //   //       },
-      //   //     ];
-      // } else {
-      const childrenList = (output[children] ??= []);
-      const idx = childrenList.length;
-
-      childrenList.push(value);
-
-      return [
-        {
-          type: InstructionEnum.PushChild,
-          index: idx,
-        },
-      ];
+    } else {
+      throw Error(
+        'invalid state: current expected to be array or object when appending value'
+      );
     }
 
     // }
@@ -333,7 +244,7 @@ export class JsonAutomaton implements Automaton {
     //   );
   }
 
-  appendArray(): AutomatonArrayTarget | void {
+  appendArray(): AutomatonArrayTarget {
     const { currentTarget } = this;
 
     const copy: any[] = [];
@@ -341,16 +252,18 @@ export class JsonAutomaton implements Automaton {
     return {
       type: AutomatonTargetEnum.Array,
       output: copy,
-      traversal: this.append(currentTarget.output, copy) ?? [],
+      traversal: this.append(currentTarget, copy) ?? [],
       scope: currentTarget.scope,
     };
   }
 
   appendValue<T>(stateValue?: T): Program | void {
-    let { output } = this.currentTarget;
-    if (output instanceof Array) {
-      const nodeIndex = output.length;
-      output.push(stateValue);
+    const { currentTarget } = this;
+
+    if (currentTarget.type === AutomatonTargetEnum.Array) {
+      const { output: array } = currentTarget;
+      const nodeIndex = array.length;
+      array.push(stateValue);
 
       return [
         {
@@ -358,9 +271,9 @@ export class JsonAutomaton implements Automaton {
           index: nodeIndex,
         },
       ];
-    } else if (output instanceof AutomatonTemplate) {
-      const nodeIndex = output.items.length;
-      output.items.push(stateValue);
+    } else if (currentTarget.type === AutomatonTargetEnum.Conditional) {
+      const { output } = currentTarget;
+      const nodeIndex = output.push(stateValue);
 
       return [
         {
@@ -368,28 +281,10 @@ export class JsonAutomaton implements Automaton {
           index: nodeIndex,
         },
       ];
-    } else if (output instanceof AutomatonRegion) {
-      const idx = output.push(stateValue);
-
-      return [
-        {
-          type: InstructionEnum.UpdateArray,
-          index: idx,
-        },
-      ];
-    } else if (output instanceof AutomatonConditional) {
-      const idx = output.push(stateValue);
-
-      return [
-        {
-          type: InstructionEnum.UpdateArray,
-          index: idx,
-        },
-      ];
-    } else if (output instanceof AutomatonProperty) {
-      const prop = output.prop;
+    } else if (currentTarget.type === AutomatonTargetEnum.Object) {
+      const { prop, output } = currentTarget;
       if (prop) {
-        output.object[prop] = stateValue;
+        output[prop] = stateValue;
         return [
           {
             type: InstructionEnum.UpdateObject,
@@ -398,42 +293,27 @@ export class JsonAutomaton implements Automaton {
         ];
       }
     } else {
-      const childrenList = (output[children] ??= []);
-      const idx = childrenList.length;
-      childrenList.push(stateValue);
-
-      return [
-        {
-          type: InstructionEnum.UpdateChild,
-          index: idx,
-        },
-      ];
+      throw Error('unexpected target');
     }
   }
 
   appendText(content: ITextNode['nodeValue']): void {
-    const { output } = this.currentTarget;
+    const { currentTarget } = this;
 
-    if (output instanceof AutomatonProperty) {
-      if (output.prop) {
-        output.object[output.prop] = content;
+    if (currentTarget.type === AutomatonTargetEnum.Array) {
+      currentTarget.output.push(content);
+    } else if (currentTarget.type === AutomatonTargetEnum.Object) {
+      const { output, prop } = currentTarget;
+      if (prop) {
+        output[prop] = content;
       } else {
-        const childrenList = (output.object[children] ??= []);
-        childrenList.push(content);
+        throw Error('Object property is not set');
       }
-    } else if (output instanceof AutomatonRegion) {
-      output.push(content);
-    } else if (output instanceof AutomatonConditional) {
-      output.push(content);
-    } else if (output instanceof AutomatonTemplate) {
-      output.items.push(content);
-    } else if (output instanceof Array) {
-      output.push(content);
-    } else if (output) {
-      const childrenList = (output[children] ??= []);
-      childrenList.push(content);
+    } else if (currentTarget.type === AutomatonTargetEnum.Conditional) {
+      currentTarget.output.push(content);
     } else {
-      throw Error('invalid state');
+      debugger;
+      throw Error('invalid target type');
     }
   }
 }

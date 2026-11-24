@@ -1,4 +1,4 @@
-import { State, Value } from '../state';
+import { Lense, State, Value } from '../state';
 
 export function If(expr: State<boolean> | Value<boolean>, body: unknown): any {
   if (expr instanceof State) {
@@ -18,8 +18,8 @@ export function If(expr: State<boolean> | Value<boolean>, body: unknown): any {
 
 export class Conditional {
   constructor(
-    public expr: State<boolean>,
+    public expr: Lense<boolean>,
     public body: unknown,
-    public visible: boolean | void
+    public visible?: boolean
   ) {}
 }

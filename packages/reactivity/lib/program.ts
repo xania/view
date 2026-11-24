@@ -15,6 +15,7 @@ export type Instruction =
   | ShowInstruction
   | CloneInstruction
   | JumpInstruction
+  | BranchInstruction
   | UpdateArrayInstruction
   | UpdateObjectInstruction
   | UpdateChildInstruction
@@ -78,6 +79,11 @@ export interface JumpInstruction {
   steps: number;
 }
 
+export interface BranchInstruction {
+  type: InstructionEnum.Branch;
+  lense: symbol;
+}
+
 export interface IfVisibleInstruction {
   type: InstructionEnum.IfVisible;
   steps: number;
@@ -110,6 +116,7 @@ export enum InstructionEnum {
   Show = 'Show',
   Clone = 'Clone',
   Jump = 'Jump',
+  Branch = 'Branch',
   IfVisible = 'IfVisible',
   UpdateArray = 'UpdateArray',
   UpdateObject = 'UpdateObject',

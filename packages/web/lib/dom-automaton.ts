@@ -1,7 +1,7 @@
 import {
   Automaton,
   AutomatonTarget,
-  AutomatonTemplate,
+  AutomatonTemplateTarget,
   ITextNode,
   Lense,
   RootScope,
@@ -16,6 +16,7 @@ import {
   InstructionEnum,
   Program,
 } from '@xania/reactivity/program';
+import { AutomatonTargetEnum } from '@xania/reactivity/target';
 
 export type ObjectEvents = Record<string, Function>;
 
@@ -129,10 +130,8 @@ export class DomAutomaton implements Automaton {
       ]),
     };
   }
-  pushRegion(visible?: boolean | void | undefined): AutomatonTarget {
-    throw new Error('Method not implemented.');
-  }
-  pushTemplate(): AutomatonTarget {
+
+  pushTemplate(): AutomatonTemplateTarget {
     const { currentTarget } = this;
     if (!(currentTarget.output instanceof HTMLElement)) {
       throw Error('output is not an array');
@@ -156,6 +155,7 @@ export class DomAutomaton implements Automaton {
         },
       ],
       scope: tpl.scope,
+      type: AutomatonTargetEnum.Template,
     };
   }
 
@@ -190,7 +190,7 @@ export class DomAutomaton implements Automaton {
           index: idx,
         },
       ];
-    } else if (currentTarget.output instanceof AutomatonTemplate) {
+    } else if (currentTarget.type === AutomatonTargetEnum.Template) {
       const offset = currentTarget.output.items.length;
       currentTarget.output.items.push(newObject);
       return [
