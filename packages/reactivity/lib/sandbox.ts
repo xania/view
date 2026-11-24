@@ -14,7 +14,6 @@ import {
   Value,
 } from './state';
 import {
-  AutomatonArrayTarget,
   AutomatonConditionalTarget,
   AutomatonTarget,
   AutomatonTargetEnum,
@@ -51,7 +50,7 @@ export class Sandbox {
     appendStateRead(lense, stateEvent);
 
     const conditionalTarget: AutomatonConditionalTarget = {
-      output: new ConditionalOutput(currentTarget),
+      output: new ConditionalOutput(currentTarget, visible),
       traversal: [],
       scope: currentTarget.scope,
       type: AutomatonTargetEnum.Conditional,

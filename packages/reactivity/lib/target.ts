@@ -15,7 +15,10 @@ export type AutomatonTarget =
 
 export class ConditionalOutput {
   public offline: any[] = [];
-  constructor(public parent: AutomatonTarget) {}
+  constructor(
+    public parent: AutomatonTarget,
+    public visible: boolean | undefined
+  ) {}
 
   push(value: any): number {
     const { offline, parent } = this;
@@ -23,17 +26,19 @@ export class ConditionalOutput {
 
     offline.push(value);
 
-    switch (parent.type) {
-      case AutomatonTargetEnum.Array:
-        parent.output.push(value);
-        break;
-      case AutomatonTargetEnum.Conditional:
-        parent.output.push(value);
-        break;
-      case AutomatonTargetEnum.Object:
-        throw Error('Object target is not supported');
-      default:
-        throw Error('Target unknown');
+    if (this.visible) {
+      switch (parent.type) {
+        case AutomatonTargetEnum.Array:
+          parent.output.push(value);
+          break;
+        case AutomatonTargetEnum.Conditional:
+          parent.output.push(value);
+          break;
+        case AutomatonTargetEnum.Object:
+          throw Error('Object target is not supported');
+        default:
+          throw Error('Target unknown');
+      }
     }
 
     return idx;
