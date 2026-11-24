@@ -181,7 +181,7 @@ export class Sandbox {
     const { currentTarget } = this.automaton;
     const nextTarget: AutomatonTarget = {
       output: [],
-      scope: currentTarget.scope,
+      scope: currentTarget.scope.pushScope(),
       traversal: [],
       type: AutomatonTargetEnum.Array,
     };

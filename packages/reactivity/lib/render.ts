@@ -92,7 +92,7 @@ export function traverse(
 
       sandbox.pushTemplate();
 
-      const tplScope = sandbox.automaton.currentTarget.scope.pushScope();
+      const tplScope = sandbox.automaton.currentTarget.scope;
       const iterator = buildIterator(tplScope, body, list);
       renderState.viewStack.push(() => {
         const { itemState } = iterator;

@@ -291,6 +291,10 @@ export class JsonAutomaton implements Automaton {
             property: prop,
           },
         ];
+      } else {
+        throw Error(
+          'invalid state: current object target does not specify a property to append value to'
+        );
       }
     } else {
       throw Error('unexpected target');

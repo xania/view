@@ -2,7 +2,7 @@ import type { ITextNode } from './automaton';
 import type { AutomatonTemplate } from './target';
 import type { ReconcileOperation } from './core/reconcile';
 import type { Event } from './event';
-import { ArrayFragment } from './sandbox';
+import type { ArrayFragment } from './sandbox';
 
 export type Program = Instruction[];
 
