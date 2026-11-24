@@ -17,10 +17,10 @@ describe('render children', () => {
       [children]: [1, 2],
     };
 
-    const root = {};
+    const root: any[] = [];
     render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual({ [children]: [view] });
+    expect(root).toEqual([view]);
   });
 
   it('renders a state value as a single child and updates it reactively', async () => {
@@ -30,28 +30,24 @@ describe('render children', () => {
       [children]: s1,
     };
 
-    const root = {};
+    const root: any[] = [];
     const sandbox = await render(view, new JsonAutomaton(root));
 
-    expect(root).toEqual({
-      [children]: [
-        {
-          type: 'object as container',
-          [children]: [1],
-        },
-      ],
-    });
+    expect(root).toEqual([
+      {
+        type: 'object as container',
+        [children]: [1],
+      },
+    ]);
 
     sandbox.update(s1, 2);
 
-    expect(root).toEqual({
-      [children]: [
-        {
-          type: 'object as container',
-          [children]: [2],
-        },
-      ],
-    });
+    expect(root).toEqual([
+      {
+        type: 'object as container',
+        [children]: [2],
+      },
+    ]);
   });
 
   it('renders ForEach output as children and appends new items on update', async () => {
