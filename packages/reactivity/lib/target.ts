@@ -20,19 +20,58 @@ export class ConditionalOutput {
     public visible: boolean | undefined
   ) {}
 
-  push(value: any): number {
-    const { offline, parent } = this;
-    const idx = offline.length;
+  show(value: any): void | Promise<void> {
+    // assume this is called only when visibility is toggled, so we don't need to check if the value is the same as the current visibility
+    if (value) {
+      switch (this.parent.type) {
+        case AutomatonTargetEnum.Array:
+          this.parent.output.push(...this.offline);
+          break;
+        case AutomatonTargetEnum.Conditional:
+          this.parent.output.push(...this.offline);
+          break;
+        case AutomatonTargetEnum.Object:
+          throw Error('Object target is not supported');
+        default:
+          throw Error('Target unknown');
+      }
+    }
+  }
 
-    offline.push(value);
+  update(value: any, index: number) {
+    const { offline, parent } = this;
+
+    offline[index] = value;
 
     if (this.visible) {
       switch (parent.type) {
         case AutomatonTargetEnum.Array:
-          parent.output.push(value);
+          parent.output[index] = value;
           break;
         case AutomatonTargetEnum.Conditional:
-          parent.output.push(value);
+          parent.output.update(value, index);
+          break;
+        case AutomatonTargetEnum.Object:
+          throw Error('Object target is not supported');
+        default:
+          throw Error('Target unknown');
+      }
+    }
+  }
+
+  push(...values: any[]): number {
+    const { offline, parent } = this;
+    const idx = offline.length;
+
+    offline.push(...values);
+
+    if (this.visible) {
+      switch (parent.type) {
+        case AutomatonTargetEnum.Array:
+          parent.output.push(...values);
+          break;
+        case AutomatonTargetEnum.Conditional:
+          parent.output.push(...values);
           break;
         case AutomatonTargetEnum.Object:
           throw Error('Object target is not supported');

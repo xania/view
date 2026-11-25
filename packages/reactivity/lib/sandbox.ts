@@ -30,31 +30,37 @@ export class Sandbox {
     public currentScope: Scope
   ) {}
 
-  pushConditional(lense: Lense<boolean>, visible: boolean | undefined) {
+  pushConditional(visible: Lense<boolean>, initial: boolean | undefined) {
     const { automaton } = this;
     const { currentTarget } = automaton;
     this.targetStack.push(currentTarget);
+
+    const output = new ConditionalOutput(currentTarget, initial);
+    const conditionalTarget: AutomatonConditionalTarget = {
+      output,
+      traversal: [],
+      scope: currentTarget.scope,
+      type: AutomatonTargetEnum.Conditional,
+    };
 
     const currentPatches = (currentTarget.patches ??= new Map<
       State,
       Instruction[]
     >());
 
-    const rootKey = resolveRootState(lense);
+    const rootKey = resolveRootState(visible);
 
     if (!currentPatches.has(rootKey)) {
       currentPatches.set(rootKey, []);
     }
 
     const stateEvent = currentPatches.get(rootKey)!;
-    appendStateRead(lense, stateEvent);
 
-    const conditionalTarget: AutomatonConditionalTarget = {
-      output: new ConditionalOutput(currentTarget, visible),
-      traversal: [],
-      scope: currentTarget.scope,
-      type: AutomatonTargetEnum.Conditional,
-    };
+    appendStateRead(visible, stateEvent);
+    stateEvent.push({
+      type: InstructionEnum.Effect,
+      func: (value) => output.show(value),
+    });
 
     this.automaton.currentTarget = conditionalTarget;
   }
@@ -467,6 +473,10 @@ export class Sandbox {
           } else {
             throw Error('not an array');
           }
+          break;
+        case InstructionEnum.Effect:
+          const { func } = instruction;
+          func(currentValue);
           break;
         case InstructionEnum.UpdateObject:
           const { property } = instruction;

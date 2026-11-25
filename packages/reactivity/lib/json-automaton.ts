@@ -277,8 +277,8 @@ export class JsonAutomaton implements Automaton {
 
       return [
         {
-          type: InstructionEnum.UpdateArray,
-          index: nodeIndex,
+          type: InstructionEnum.Effect,
+          func: (value) => output.update(value, nodeIndex),
         },
       ];
     } else if (currentTarget.type === AutomatonTargetEnum.Object) {

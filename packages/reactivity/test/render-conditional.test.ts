@@ -28,4 +28,21 @@ describe('render if', () => {
     // assert
     expect(root).toStrictEqual([]);
   });
+
+  it('applies hidden conditional updates when the region is shown', async () => {
+    const state = useState(1);
+    const visible = useState(false);
+    const view = If(visible, state);
+
+    const root: any[] = [];
+    const sandbox = await render(view, new JsonAutomaton(root));
+
+    expect(root).toStrictEqual([]);
+
+    await sandbox.update(state, 2);
+    expect(root).toStrictEqual([]);
+
+    await sandbox.update(visible, true);
+    expect(root).toStrictEqual([2]);
+  });
 });

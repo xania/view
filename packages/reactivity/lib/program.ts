@@ -62,9 +62,6 @@ export interface EffectInstruction {
 
 export interface ShowInstruction {
   type: InstructionEnum.Show;
-  node: {
-    show(visible: boolean): void;
-  };
 }
 
 export interface CloneInstruction {
